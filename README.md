@@ -93,6 +93,18 @@ supabase db reset
 supabase logs
 ```
 
+### Quality Gates
+
+```sh
+npm run lint
+npm run typecheck
+npm run test -- --run
+npm run build
+npm run guard:no-internal-artifacts
+```
+
+CI runs these checks on pull requests and pushes.
+
 ### Switching Back to Production
 
 To switch back to production Supabase, simply update your `.env` file with the production credentials (found at the top of this README).

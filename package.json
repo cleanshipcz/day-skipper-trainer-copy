@@ -13,7 +13,8 @@
     "test": "vitest",
     "test:live-db": "vitest --run src/features/progress/progressLiveDbConcurrency.integration.test.ts",
     "test:build-budget": "node scripts/check-build-budget.mjs",
-    "guard:no-internal-artifacts": "node scripts/check-no-internal-artifacts.mjs"
+    "guard:no-internal-artifacts": "node scripts/check-no-internal-artifacts.mjs",
+    "prepare": "node scripts/setup-githooks.mjs"
   },
   "dependencies": {
     "@hookform/resolvers": "^3.10.0",
