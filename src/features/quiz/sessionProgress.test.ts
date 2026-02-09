@@ -1,7 +1,17 @@
 import { describe, expect, it, vi } from "vitest";
-import { buildQuizSessionProgress, parseSavedQuizSession, persistQuizSessionProgress } from "./sessionProgress";
+import {
+  buildQuizSessionProgress,
+  createEmptyQuizAnswers,
+  parseSavedQuizSession,
+  persistQuizSessionProgress,
+} from "./sessionProgress";
 
 describe("quiz session progress helpers", () => {
+  it("creates empty answers arrays with stable null defaults", () => {
+    expect(createEmptyQuizAnswers(3)).toEqual([null, null, null]);
+    expect(createEmptyQuizAnswers(0)).toEqual([]);
+  });
+
   it("builds standard payload shape", () => {
     expect(buildQuizSessionProgress([1, null, 2], 1)).toEqual({
       answers: [1, null, 2],

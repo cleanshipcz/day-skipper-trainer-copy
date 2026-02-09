@@ -6,6 +6,8 @@ export type QuizSessionProgress = {
   currentQuestion: number;
 };
 
+export const createEmptyQuizAnswers = (questionCount: number): Array<number | null> => Array(questionCount).fill(null);
+
 interface PersistQuizSessionProgressArgs {
   isAuthenticated: boolean;
   topicKey: string;
@@ -35,7 +37,7 @@ export const parseSavedQuizSession = (raw: Json | undefined, questionCount: numb
   const maybeAnswers = "answers" in raw ? raw.answers : undefined;
   if (!Array.isArray(maybeAnswers)) return null;
 
-  const normalizedAnswers = new Array(questionCount).fill(null).map((_, idx) => {
+  const normalizedAnswers = createEmptyQuizAnswers(questionCount).map((_, idx) => {
     const candidate = maybeAnswers[idx];
     return isFiniteNumber(candidate) ? candidate : null;
   });

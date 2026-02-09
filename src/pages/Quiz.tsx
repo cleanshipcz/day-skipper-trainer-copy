@@ -19,6 +19,7 @@ import { canonicalQuizProgressKey, resolveQuizProgressForLoad, type QuizProgress
 import { createSeededRng, shuffleWithRng } from "@/features/quiz/randomization";
 import {
   buildQuizSessionProgress,
+  createEmptyQuizAnswers,
   parseSavedQuizSession,
   persistQuizSessionProgress,
 } from "@/features/quiz/sessionProgress";
@@ -938,13 +939,22 @@ const Quiz = () => {
           console.error("Error parsing saved quiz progress:", error);
         }
       }
-      setAnswers(new Array(questions.length).fill(null));
+      setAnswers(createEmptyQuizAnswers(questions.length));
     };
     initQuiz();
   }, [questions.length, topicKey, loadProgress, saveProgress, resetProgress]);
 
   const selectedAnswer = answers[currentQuestion] ?? null;
   const correctAnswers = countCorrectAnswers(answers, questions);
+
+  const persistSession = async (nextAnswers: Array<number | null>, nextQuestion: number) => {
+    await persistQuizSessionProgress({
+      isAuthenticated: Boolean(user),
+      topicKey,
+      saveProgress,
+      progress: buildQuizSessionProgress(nextAnswers, nextQuestion),
+    });
+  };
 
   if (!questions.length) {
     return (
@@ -979,12 +989,7 @@ const Quiz = () => {
     newAnswers[currentQuestion] = answerIndex;
     setAnswers(newAnswers);
 
-    await persistQuizSessionProgress({
-      isAuthenticated: Boolean(user),
-      topicKey,
-      saveProgress,
-      progress: buildQuizSessionProgress(newAnswers, currentQuestion),
-    });
+    await persistSession(newAnswers, currentQuestion);
   };
 
   const handleSubmit = () => {
@@ -1009,12 +1014,7 @@ const Quiz = () => {
     setCurrentQuestion(newQuestion);
     setShowExplanation(false);
 
-    await persistQuizSessionProgress({
-      isAuthenticated: Boolean(user),
-      topicKey,
-      saveProgress,
-      progress: buildQuizSessionProgress(answers, newQuestion),
-    });
+    await persistSession(answers, newQuestion);
 
     if (currentQuestion >= questions.length - 1) {
       handleComplete();
@@ -1027,12 +1027,7 @@ const Quiz = () => {
       setCurrentQuestion(newQuestion);
       setShowExplanation(false);
 
-      await persistQuizSessionProgress({
-        isAuthenticated: Boolean(user),
-        topicKey,
-        saveProgress,
-        progress: buildQuizSessionProgress(answers, newQuestion),
-      });
+      await persistSession(answers, newQuestion);
     }
   };
 
@@ -1074,7 +1069,7 @@ const Quiz = () => {
 
   const handleRestart = () => {
     setCurrentQuestion(0);
-    setAnswers(new Array(questions.length).fill(null));
+    setAnswers(createEmptyQuizAnswers(questions.length));
     setShowExplanation(false);
     setIsComplete(false);
     setSeed((n) => n + 1);
