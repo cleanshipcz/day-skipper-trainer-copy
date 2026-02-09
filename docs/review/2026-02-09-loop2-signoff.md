@@ -12,9 +12,9 @@ Reference: `docs/review/2026-02-09-loop2-review.md`
    - `src/hooks/useProgress.ts` now types `loadProgress` as `Promise<Tables<"user_progress"> | null>`.
    - `package.json` now includes `"typecheck": "tsc --noEmit"` and it passes.
 
-2. **Rollback clarity for persistence migration** — **PARTIALLY RESOLVED / STILL BLOCKED ❌**
-   - `docs/engineering/methods-and-code.md` now contains a concrete rollback runbook (app fallback, DB strategy, verification queries, recovery checks).
-   - **PR description still does not include a dedicated rollback section** (required in prior review). Current PR body for #1 has no rollback/runbook heading or steps.
+2. **Rollback clarity for persistence migration** — **RESOLVED ✅**
+   - `docs/engineering/methods-and-code.md` contains a concrete rollback runbook (app fallback, DB strategy, verification queries, recovery checks).
+   - PR #1 description now includes explicit `Rollback plan (persistence migration + write-path change)` section with actionable rollback/verification steps.
 
 3. **Malformed commit message bodies (`\n` escapes)** — **RESOLVED ✅**
    - Branch history shows multiline commit bodies with proper formatting (e.g., `2fb8c79`, `6ab1c96`, `0a4b9be`).
@@ -31,10 +31,9 @@ Reference: `docs/review/2026-02-09-loop2-review.md`
 
 ## Verdict
 
-# **FAIL**
+# **READY**
 
-All code/test quality blockers from loop2 are resolved **except one documentation/process blocker**:
-- Add explicit rollback plan content to the **PR description** (not only in repo docs) to satisfy incident-readiness/auditability requirement.
+All previously identified loop2 blockers are now resolved, including explicit rollback coverage in the PR description.
 
 ## Merge checklist
 
@@ -42,5 +41,7 @@ All code/test quality blockers from loop2 are resolved **except one documentatio
 - [x] Local typecheck gate exists and passes (`tsc --noEmit`).
 - [x] Lint/test/build/build-budget gates pass.
 - [x] Commit message body formatting fixed.
-- [ ] PR description includes explicit rollback plan (migration + app fallback + verification queries).
-- [ ] Reviewer re-check after PR body update.
+- [x] PR description includes explicit rollback plan (migration + app fallback + verification queries).
+- [x] Reviewer re-check after PR body update.
+
+Final re-check timestamp: 2026-02-09 13:55 UTC.

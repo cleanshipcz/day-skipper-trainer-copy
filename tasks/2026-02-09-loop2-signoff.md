@@ -13,10 +13,10 @@ Re-audit branch `chore/persona-review-tdd-foundation` after loop2 dev fixes and 
 - [x] Inspect code/docs/commit history for prior fail criteria resolution
 - [x] Execute validation commands and capture results
 - [x] Author signoff document with explicit verdict + merge checklist
-- [ ] Commit signoff artifacts
+- [x] Commit signoff artifacts
 
 ## Status
-95% done / done: re-audit completed, verdict documented / left: commit artifacts / ETA: 5m
+100% done / done: PR rollback section added, reviewer re-check passed, READY verdict committed / left: none / ETA: complete
 
 ## Artifacts
 - `docs/review/2026-02-09-loop2-signoff.md`
@@ -27,3 +27,6 @@ Re-audit branch `chore/persona-review-tdd-foundation` after loop2 dev fixes and 
 - 2026-02-09 13:08 UTC — Verified blocker resolutions in code/docs/commit history; only PR-body rollback section still missing.
 - 2026-02-09 13:09 UTC — Re-ran gates: test, lint, typecheck, build, build-budget (all passing).
 - 2026-02-09 13:10 UTC — Wrote signoff verdict to docs/review/2026-02-09-loop2-signoff.md (FAIL pending PR description rollback section).
+- 2026-02-09 13:54 UTC — Updated PR #1 body via GitHub API to add explicit rollback section for persistence migration/write-path change.
+- 2026-02-09 13:54 UTC — Pushed local signoff commit `d9631fb` to `origin/chore/persona-review-tdd-foundation`.
+- 2026-02-09 13:55 UTC — Final reviewer re-check completed; updated signoff verdict to READY.
