@@ -3,36 +3,16 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Button } from "@/components/ui/button";
 import { Progress } from "@/components/ui/progress";
 import { Badge } from "@/components/ui/badge";
-import {
-  Anchor,
-  Link2,
-  Ship,
-  Wrench,
-  Fuel,
-  CheckCircle2,
-  Trophy,
-  BookOpen,
-  User,
-  LogOut,
-  Compass,
-  Map,
-  LifeBuoy,
-} from "lucide-react";
+import { Anchor, Link2, Ship, Wrench, Fuel, CheckCircle2, Trophy, BookOpen, User, LogOut, Compass, Map, LifeBuoy } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { useAuth } from "@/contexts/AuthHooks";
 import { supabase } from "@/integrations/supabase/client";
 import { deriveTopicCompletionState } from "@/features/dashboard/topicCompletion";
+import { TopicMenuGrid, type TopicMenuItem } from "@/components/module-menu/TopicMenuGrid";
 
-interface Topic {
-  id: string;
-  title: string;
-  description: string;
-  icon: React.ElementType;
-  path: string;
-  color: string;
-  completed: boolean;
+type Topic = TopicMenuItem & {
   submoduleIds?: string[];
-}
+};
 
 const topics: Topic[] = [
   {
@@ -42,7 +22,6 @@ const topics: Topic[] = [
     icon: Ship,
     path: "/nautical-terms",
     color: "text-ocean",
-    completed: false,
     submoduleIds: ["nautical-terms-boat-parts", "nautical-terms-sail-controls", "nautical-terms-quiz"],
   },
   {
@@ -52,7 +31,6 @@ const topics: Topic[] = [
     icon: Link2,
     path: "/ropework",
     color: "text-rope",
-    completed: false,
   },
   {
     id: "anchorwork",
@@ -61,7 +39,6 @@ const topics: Topic[] = [
     icon: Anchor,
     path: "/anchorwork",
     color: "text-primary",
-    completed: false,
   },
   {
     id: "victualling",
@@ -70,7 +47,6 @@ const topics: Topic[] = [
     icon: Fuel,
     path: "/victualling",
     color: "text-secondary",
-    completed: false,
   },
   {
     id: "engine",
@@ -79,7 +55,6 @@ const topics: Topic[] = [
     icon: Wrench,
     path: "/engine",
     color: "text-accent",
-    completed: false,
   },
   {
     id: "rig",
@@ -88,7 +63,6 @@ const topics: Topic[] = [
     icon: CheckCircle2,
     path: "/rig",
     color: "text-success",
-    completed: false,
   },
   {
     id: "rules-of-the-road",
@@ -97,7 +71,6 @@ const topics: Topic[] = [
     icon: Compass,
     path: "/rules-of-the-road",
     color: "text-red-500",
-    completed: false,
     submoduleIds: ["colregs-theory", "lights-theory", "colregs"],
   },
   {
@@ -107,7 +80,6 @@ const topics: Topic[] = [
     icon: Map,
     path: "/navigation",
     color: "text-blue-500",
-    completed: false,
     submoduleIds: ["charts-theory", "compass-theory", "position-theory"],
   },
   {
@@ -117,7 +89,6 @@ const topics: Topic[] = [
     icon: LifeBuoy,
     path: "/safety",
     color: "text-red-500",
-    completed: false,
     submoduleIds: ["safety-mob"],
   },
 ];
@@ -269,44 +240,14 @@ const Index = () => {
         </Card>
 
         {/* Topics Grid */}
-        <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6">
-          {topics.map((topic) => {
-            const Icon = topic.icon;
-            const { isCompleted, score: topicScore } = deriveTopicCompletionState(topic, userProgress);
-
-            return (
-              <Card
-                key={topic.id}
-                className="group hover:shadow-lg transition-all duration-300 hover:scale-105 cursor-pointer border-2 hover:border-secondary/50"
-                onClick={() => navigate(topic.path)}
-              >
-                <CardHeader>
-                  <div className="flex items-start justify-between mb-2">
-                    <div className={`p-3 rounded-lg bg-muted ${topic.color}`}>
-                      <Icon className="w-6 h-6" />
-                    </div>
-                    {isCompleted && (
-                      <Badge variant="default" className="bg-success text-success-foreground">
-                        <CheckCircle2 className="w-3 h-3 mr-1" />
-                        {topicScore}%
-                      </Badge>
-                    )}
-                  </div>
-                  <CardTitle className="text-lg group-hover:text-secondary transition-colors">{topic.title}</CardTitle>
-                  <CardDescription>{topic.description}</CardDescription>
-                </CardHeader>
-                <CardContent>
-                  <Button
-                    variant="secondary"
-                    className="w-full group-hover:bg-secondary group-hover:text-secondary-foreground transition-all"
-                  >
-                    {isCompleted ? "Review" : "Start Learning"}
-                  </Button>
-                </CardContent>
-              </Card>
-            );
-          })}
-        </div>
+        <TopicMenuGrid
+          items={topics}
+          onNavigate={navigate}
+          getCompletionState={(topic) => {
+            const { isCompleted, score } = deriveTopicCompletionState(topic, userProgress);
+            return { isCompleted, score };
+          }}
+        />
 
         {/* Quick Stats */}
         <div className="grid md:grid-cols-3 gap-6 mt-8">

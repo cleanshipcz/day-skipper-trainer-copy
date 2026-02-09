@@ -1,8 +1,8 @@
 import { Card, CardContent } from "@/components/ui/card";
-import { Button } from "@/components/ui/button";
-import { ArrowLeft, Map, Compass, Crosshair, Waves } from "lucide-react";
+import { Map, Compass, Crosshair, Waves } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { ModuleMenuGrid } from "@/components/module-menu/ModuleMenuGrid";
+import { ModuleMenuHeader } from "@/components/module-menu/ModuleMenuHeader";
 import type { ModuleMenuItem } from "@/components/module-menu/types";
 
 const subModules: ModuleMenuItem[] = [
@@ -49,19 +49,11 @@ const NavigationMenu = () => {
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-background via-ocean-light/10 to-background">
-      <header className="border-b border-border bg-card/50 backdrop-blur-sm sticky top-0 z-40">
-        <div className="container mx-auto px-4 py-4">
-          <div className="flex items-center gap-3">
-            <Button variant="ghost" size="icon" onClick={() => navigate("/")}>
-              <ArrowLeft className="w-5 h-5" />
-            </Button>
-            <div>
-              <h1 className="text-xl font-bold">Navigation Fundamentals</h1>
-              <p className="text-sm text-muted-foreground">Charts, Compass, and Position</p>
-            </div>
-          </div>
-        </div>
-      </header>
+      <ModuleMenuHeader
+        title="Navigation Fundamentals"
+        subtitle="Charts, Compass, and Position"
+        onBack={() => navigate("/")}
+      />
 
       <main className="container mx-auto px-4 py-8">
         <Card className="mb-8 border-2 border-primary/20 bg-gradient-to-r from-primary/5 to-transparent">

@@ -1,8 +1,8 @@
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Button } from "@/components/ui/button";
-import { ArrowLeft, BookOpen, Lightbulb, Volume2, AlertTriangle, Trophy } from "lucide-react";
+import { BookOpen, Lightbulb, Volume2, AlertTriangle, Trophy } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { ModuleMenuGrid } from "@/components/module-menu/ModuleMenuGrid";
+import { ModuleMenuHeader } from "@/components/module-menu/ModuleMenuHeader";
 import type { ModuleMenuItem } from "@/components/module-menu/types";
 
 const subModules: ModuleMenuItem[] = [
@@ -32,19 +32,11 @@ const LightsSignalsMenu = () => {
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-background via-ocean-light/10 to-background">
-      <header className="border-b border-border bg-card/50 backdrop-blur-sm sticky top-0 z-40">
-        <div className="container mx-auto px-4 py-4">
-          <div className="flex items-center gap-3">
-            <Button variant="ghost" size="icon" onClick={() => navigate("/rules-of-the-road")}>
-              <ArrowLeft className="w-5 h-5" />
-            </Button>
-            <div>
-              <h1 className="text-xl font-bold">Lights & Signals</h1>
-              <p className="text-sm text-muted-foreground">Mastering Identification and Communication at Sea</p>
-            </div>
-          </div>
-        </div>
-      </header>
+      <ModuleMenuHeader
+        title="Lights & Signals"
+        subtitle="Mastering Identification and Communication at Sea"
+        onBack={() => navigate("/rules-of-the-road")}
+      />
 
       <main className="container mx-auto px-4 py-8 max-w-5xl">
         <div className="grid md:grid-cols-3 gap-6 mb-8">
