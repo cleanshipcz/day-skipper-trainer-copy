@@ -9,6 +9,14 @@ import { toast } from "sonner";
 import { useAuth } from "@/contexts/AuthHooks";
 import { supabase } from "@/integrations/supabase/client";
 import { useProgress } from "@/hooks/useProgress";
+import {
+  countCorrectAnswers,
+  percentageScore,
+  pointsFromCorrectAnswers,
+  questionProgressPercent,
+} from "@/features/quiz/scoring";
+import { canonicalQuizProgressKey, resolveQuizProgressForLoad } from "@/features/quiz/progressKeys";
+import { createSeededRng, shuffleWithRng } from "@/features/quiz/randomization";
 
 interface Question {
   id: string;
@@ -17,15 +25,6 @@ interface Question {
   options: string[];
   correctAnswer: number;
   explanation: string;
-}
-
-function shuffleArray<T>(array: T[]): T[] {
-  const shuffled = [...array];
-  for (let i = shuffled.length - 1; i > 0; i--) {
-    const j = Math.floor(Math.random() * (i + 1));
-    [shuffled[i], shuffled[j]] = [shuffled[j], shuffled[i]];
-  }
-  return shuffled;
 }
 
 const quizData: Record<string, Question[]> = {
@@ -868,16 +867,17 @@ const Quiz = () => {
   // If topicId is nautical-terms (legacy) or undefined, use the new specific ID
   const topicKey = !topicId || topicId === "nautical-terms" ? "nautical-terms-quiz" : topicId;
   const { user } = useAuth();
-  const { loadProgress, saveProgress } = useProgress();
+  const { loadProgress, saveProgress, resetProgress } = useProgress();
   const [seed, setSeed] = useState(0);
   const questions = useMemo(() => {
     const source = quizData[topicKey] || [];
-    // Shuffle questions, take up to 20, and shuffle options within each question
-    return shuffleArray(source)
+    const rng = createSeededRng(seed + 1);
+
+    return shuffleWithRng(source, rng)
       .slice(0, Math.min(20, source.length))
       .map((q) => {
         const optionObjs = q.options.map((opt, idx) => ({ opt, idx }));
-        const shuffledOptions = shuffleArray(optionObjs);
+        const shuffledOptions = shuffleWithRng(optionObjs, rng);
         const correctIndex = shuffledOptions.findIndex((o) => o.idx === q.correctAnswer);
         return {
           ...q,
@@ -885,7 +885,7 @@ const Quiz = () => {
           correctAnswer: correctIndex,
         };
       });
-  }, [topicKey]); // Removed seed dependency
+  }, [topicKey, seed]);
   const meta = topicMeta[topicKey] || {
     title: "Topic Quiz",
     subtitle: "Answer the questions to test yourself",
@@ -899,7 +899,12 @@ const Quiz = () => {
   // Initialize answers array when questions change
   useEffect(() => {
     const initQuiz = async () => {
-      const savedData = await loadProgress(`quiz-${topicKey}`);
+      const canonicalKey = canonicalQuizProgressKey(topicKey);
+      const canonicalRecord = await loadProgress(canonicalKey);
+      const legacyRecord = canonicalRecord ? null : await loadProgress(topicKey);
+      const resolution = resolveQuizProgressForLoad(topicKey, canonicalRecord, legacyRecord);
+      const savedData = resolution.record;
+
       if (savedData?.answers_history) {
         try {
           const saved =
@@ -909,6 +914,11 @@ const Quiz = () => {
           if (saved.answers && Array.isArray(saved.answers)) {
             setAnswers(saved.answers);
             setCurrentQuestion(saved.currentQuestion || 0);
+
+            if (resolution.shouldMigrateFromLegacy) {
+              await saveProgress(canonicalKey, savedData.completed, savedData.score, 0, saved);
+              await resetProgress(topicKey);
+            }
             return;
           }
         } catch (error) {
@@ -918,10 +928,10 @@ const Quiz = () => {
       setAnswers(new Array(questions.length).fill(null));
     };
     initQuiz();
-  }, [questions.length, topicKey, loadProgress]);
+  }, [questions.length, topicKey, loadProgress, saveProgress, resetProgress]);
 
   const selectedAnswer = answers[currentQuestion] ?? null;
-  const correctAnswers = answers.filter((ans, idx) => ans === questions[idx]?.correctAnswer).length;
+  const correctAnswers = countCorrectAnswers(answers, questions);
 
   if (!questions.length) {
     return (
@@ -948,7 +958,7 @@ const Quiz = () => {
   }
 
   const question = questions[currentQuestion];
-  const progress = ((currentQuestion + 1) / questions.length) * 100;
+  const progress = questionProgressPercent(currentQuestion, questions.length);
 
   const handleAnswerSelect = (answerIndex: number) => {
     if (showExplanation) return;
@@ -982,7 +992,7 @@ const Quiz = () => {
     // Save progress
     if (user) {
       const progressData = { answers, currentQuestion: newQuestion };
-      await saveProgress(`quiz-${topicKey}`, false, 0, 0, progressData);
+      await saveProgress(canonicalQuizProgressKey(topicKey), false, 0, 0, progressData);
     }
 
     if (currentQuestion >= questions.length - 1) {
@@ -999,7 +1009,7 @@ const Quiz = () => {
       // Save progress
       if (user) {
         const progressData = { answers, currentQuestion: newQuestion };
-        await saveProgress(`quiz-${topicKey}`, false, 0, 0, progressData);
+        await saveProgress(canonicalQuizProgressKey(topicKey), false, 0, 0, progressData);
       }
     }
   };
@@ -1009,8 +1019,8 @@ const Quiz = () => {
 
     if (!user) return;
 
-    const percentage = Math.round((correctAnswers / questions.length) * 100);
-    const pointsEarned = correctAnswers * 20;
+    const percentage = percentageScore(correctAnswers, questions.length);
+    const pointsEarned = pointsFromCorrectAnswers(correctAnswers);
 
     try {
       // Save quiz score
@@ -1024,7 +1034,7 @@ const Quiz = () => {
 
       // Save final progress with answers
       const progressData = { answers, currentQuestion, completed: true };
-      await saveProgress(topicKey, percentage >= 70, percentage, pointsEarned, progressData);
+      await saveProgress(canonicalQuizProgressKey(topicKey), percentage >= 70, percentage, pointsEarned, progressData);
 
       toast.success(`Quiz completed! +${pointsEarned} points`);
     } catch (error) {
@@ -1041,7 +1051,7 @@ const Quiz = () => {
   };
 
   if (isComplete) {
-    const percentage = Math.round((correctAnswers / questions.length) * 100);
+    const percentage = percentageScore(correctAnswers, questions.length);
     const passed = percentage >= 70;
 
     return (
