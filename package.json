@@ -9,7 +9,9 @@
     "build:dev": "vite build --mode development",
     "lint": "eslint . --ext ts,tsx --report-unused-disable-directives --max-warnings 0",
     "preview": "vite preview",
-    "test": "vitest"
+    "test": "vitest",
+    "test:live-db": "vitest --run src/features/progress/progressLiveDbConcurrency.integration.test.ts",
+    "test:build-budget": "node scripts/check-build-budget.mjs"
   },
   "dependencies": {
     "@hookform/resolvers": "^3.10.0",
