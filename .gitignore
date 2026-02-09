@@ -22,3 +22,9 @@ dist-ssr
 *.njsproj
 *.sln
 *.sw?
+
+# Internal assistant/process artifacts (must not enter PRs)
+docs/review/
+docs/personas/
+tasks/
+

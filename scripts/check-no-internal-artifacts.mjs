@@ -34,6 +34,7 @@ const offenders = changed.filter((p) => blocked.some((prefix) => p.startsWith(pr
 if (offenders.length > 0) {
   console.error('❌ Internal process artifacts are blocked:');
   offenders.forEach((f) => console.error(` - ${f}`));
+  console.error('\nMove these files outside the repo workspace or unstage them.');
   process.exit(1);
 }
 

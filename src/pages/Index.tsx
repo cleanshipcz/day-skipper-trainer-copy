@@ -21,7 +21,7 @@ import {
 import { useNavigate } from "react-router-dom";
 import { useAuth } from "@/contexts/AuthHooks";
 import { supabase } from "@/integrations/supabase/client";
-import { CompletionBadge } from "@/components/CompletionBadge";
+import { deriveTopicCompletionState } from "@/features/dashboard/topicCompletion";
 
 interface Topic {
   id: string;
@@ -169,14 +169,8 @@ const Index = () => {
       setUserProgress(progressMap);
 
       const completedCount = topics.reduce((count, topic) => {
-        if (topic.submoduleIds) {
-          // For topics with submodules, all submodules must be completed
-          const allSubmodulesCompleted = topic.submoduleIds.every((subId) => progressMap[subId]?.completed);
-          return count + (allSubmodulesCompleted ? 1 : 0);
-        } else {
-          // For regular topics, check the topic ID
-          return count + (progressMap[topic.id]?.completed ? 1 : 0);
-        }
+        const { isCompleted } = deriveTopicCompletionState(topic, progressMap);
+        return count + (isCompleted ? 1 : 0);
       }, 0);
 
       setTopicsCompleted(completedCount);
@@ -278,8 +272,8 @@ const Index = () => {
         <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6">
           {topics.map((topic) => {
             const Icon = topic.icon;
-            const isCompleted = userProgress[topic.id]?.completed || false;
-            const topicScore = userProgress[topic.id]?.score || 0;
+            const { isCompleted, score: topicScore } = deriveTopicCompletionState(topic, userProgress);
+
             return (
               <Card
                 key={topic.id}
@@ -291,15 +285,11 @@ const Index = () => {
                     <div className={`p-3 rounded-lg bg-muted ${topic.color}`}>
                       <Icon className="w-6 h-6" />
                     </div>
-                    {topic.submoduleIds ? (
-                      <CompletionBadge topicIds={topic.submoduleIds} />
-                    ) : (
-                      isCompleted && (
-                        <Badge variant="default" className="bg-success text-success-foreground">
-                          <CheckCircle2 className="w-3 h-3 mr-1" />
-                          {topicScore}%
-                        </Badge>
-                      )
+                    {isCompleted && (
+                      <Badge variant="default" className="bg-success text-success-foreground">
+                        <CheckCircle2 className="w-3 h-3 mr-1" />
+                        {topicScore}%
+                      </Badge>
                     )}
                   </div>
                   <CardTitle className="text-lg group-hover:text-secondary transition-colors">{topic.title}</CardTitle>

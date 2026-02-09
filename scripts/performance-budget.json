@@ -1,0 +1,4 @@
+{
+  "maxEntryChunkBytes": 400000,
+  "minHeadroomBytes": 15000
+}

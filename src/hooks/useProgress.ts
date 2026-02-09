@@ -2,12 +2,16 @@ import { useCallback } from "react";
 import { useAuth } from "@/contexts/AuthHooks";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
+import { saveProgressRecord } from "@/features/progress/progressPersistence";
+import type { Tables } from "@/integrations/supabase/types";
+
+type UserProgressRow = Tables<"user_progress">;
 
 export const useProgress = () => {
   const { user } = useAuth();
 
   const loadProgress = useCallback(
-    async (topicId: string) => {
+    async (topicId: string): Promise<UserProgressRow | null> => {
       if (!user) return null;
 
       try {
@@ -28,16 +32,6 @@ export const useProgress = () => {
     [user]
   );
 
-  interface ProgressData {
-    user_id: string;
-    topic_id: string;
-    completed: boolean;
-    score: number;
-    last_accessed: string;
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    answers_history?: any;
-  }
-
   const saveProgress = useCallback(
     async (
       topicId: string,
@@ -49,36 +43,18 @@ export const useProgress = () => {
       if (!user) return;
 
       try {
-        // Use upsert to handle both insert and update
-        const progressData: ProgressData = {
-          user_id: user.id,
-          topic_id: topicId,
+        await saveProgressRecord({
+          supabaseClient: supabase,
+          userId: user.id,
+          topicId,
           completed,
           score,
-          last_accessed: new Date().toISOString(),
-        };
-
-        if (answersHistory !== undefined) {
-          // eslint-disable-next-line @typescript-eslint/no-explicit-any
-          progressData.answers_history = answersHistory as any;
-        }
-
-        await supabase.from("user_progress").upsert(progressData, {
-          onConflict: "user_id,topic_id",
+          pointsEarned,
+          answersHistory,
         });
 
-        // Update user points if earned
         if (pointsEarned > 0) {
-          const { data: profile } = await supabase.from("profiles").select("points").eq("user_id", user.id).single();
-
-          if (profile) {
-            await supabase
-              .from("profiles")
-              .update({ points: (profile.points || 0) + pointsEarned })
-              .eq("user_id", user.id);
-
-            toast.success(`+${pointsEarned} points earned!`);
-          }
+          toast.success(`+${pointsEarned} points earned!`);
         }
 
         if (completed) {
@@ -86,6 +62,7 @@ export const useProgress = () => {
         }
       } catch (error) {
         console.error("Error saving progress:", error);
+        toast.error("Failed to save progress");
       }
     },
     [user]
