@@ -15,7 +15,12 @@ import {
   pointsFromCorrectAnswers,
   questionProgressPercent,
 } from "@/features/quiz/scoring";
-import { canonicalQuizProgressKey, resolveQuizProgressForLoad } from "@/features/quiz/progressKeys";
+import {
+  canonicalQuizProgressKey,
+  resolveQuizProgressForLoad,
+  type QuizAnswersHistory,
+  type QuizProgressRow,
+} from "@/features/quiz/progressKeys";
 import { createSeededRng, shuffleWithRng } from "@/features/quiz/randomization";
 
 interface Question {
@@ -900,8 +905,8 @@ const Quiz = () => {
   useEffect(() => {
     const initQuiz = async () => {
       const canonicalKey = canonicalQuizProgressKey(topicKey);
-      const canonicalRecord = await loadProgress(canonicalKey);
-      const legacyRecord = canonicalRecord ? null : await loadProgress(topicKey);
+      const canonicalRecord: QuizProgressRow | null = await loadProgress(canonicalKey);
+      const legacyRecord: QuizProgressRow | null = canonicalRecord ? null : await loadProgress(topicKey);
       const resolution = resolveQuizProgressForLoad(topicKey, canonicalRecord, legacyRecord);
       const savedData = resolution.record;
 
@@ -909,14 +914,14 @@ const Quiz = () => {
         try {
           const saved =
             typeof savedData.answers_history === "string"
-              ? JSON.parse(savedData.answers_history)
-              : savedData.answers_history;
+              ? (JSON.parse(savedData.answers_history) as QuizAnswersHistory)
+              : (savedData.answers_history as QuizAnswersHistory);
           if (saved.answers && Array.isArray(saved.answers)) {
             setAnswers(saved.answers);
             setCurrentQuestion(saved.currentQuestion || 0);
 
             if (resolution.shouldMigrateFromLegacy) {
-              await saveProgress(canonicalKey, savedData.completed, savedData.score, 0, saved);
+              await saveProgress(canonicalKey, savedData.completed ?? false, savedData.score ?? 0, 0, saved);
               await resetProgress(topicKey);
             }
             return;

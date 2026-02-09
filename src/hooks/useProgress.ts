@@ -3,12 +3,15 @@ import { useAuth } from "@/contexts/AuthHooks";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { saveProgressRecord } from "@/features/progress/progressPersistence";
+import type { Tables } from "@/integrations/supabase/types";
+
+type UserProgressRow = Tables<"user_progress">;
 
 export const useProgress = () => {
   const { user } = useAuth();
 
   const loadProgress = useCallback(
-    async (topicId: string) => {
+    async (topicId: string): Promise<UserProgressRow | null> => {
       if (!user) return null;
 
       try {

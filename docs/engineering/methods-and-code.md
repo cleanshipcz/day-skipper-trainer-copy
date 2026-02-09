@@ -21,6 +21,29 @@ Atomic server-side increment prevents race-condition point loss.
 - `src/features/progress/progressIntegrityProof.test.ts`
 - `src/features/progress/progressLiveDbConcurrency.integration.test.ts` (env-gated)
 
+### Rollback plan (migration + write-path)
+If the `increment_user_points` RPC path causes regressions, use this sequence:
+
+1. **App-level containment (immediate)**
+   - Revert `src/features/progress/progressPersistence.ts` and `src/hooks/useProgress.ts` to the pre-RPC read/modify/write path.
+   - Deploy app rollback first to stop new RPC calls while DB state is assessed.
+
+2. **DB strategy (`supabase/migrations/20260209105000_increment_user_points_rpc.sql`)**
+   - Prefer **forward-fix** if possible (replace function definition with corrected SQL).
+   - If full rollback is required, apply a down migration that restores the prior function behavior/signature (or drops the function if previously absent).
+   - Confirm migration history consistency in the target environment before re-enabling writes.
+
+3. **Post-rollback verification**
+   - Check function availability/signature:
+     - `select routine_name, specific_name from information_schema.routines where routine_schema = 'public' and routine_name = 'increment_user_points';`
+   - Verify progress writes still succeed:
+     - `select user_id, topic_id, score, completed, last_accessed from public.user_progress order by last_accessed desc limit 10;`
+   - Verify point totals are not drifting unexpectedly:
+     - `select user_id, points from public.profiles order by updated_at desc limit 10;`
+
+4. **Recovery confirmation**
+   - Run `npm test -- --run`, `npm run lint`, `npm run typecheck`, and `npm run build` against the rollback branch before promoting.
+
 ---
 
 ## 2) Quiz persistence consistency
