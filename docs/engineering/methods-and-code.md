@@ -141,6 +141,30 @@ Prevents size regressions from silently accumulating.
 
 ---
 
+## 7) Quiz session durability + backtracking-safe persistence
+
+### Problem
+Answer selections were only persisted on question navigation (Next/Previous). Mid-question reload/exit could lose the latest selected answer.
+
+### Change
+- Added centralized quiz session helpers:
+  - `src/features/quiz/sessionProgress.ts`
+- Integrated helper usage in quiz flow:
+  - parsing/normalization for saved payloads
+  - standardized payload builder for all save points
+  - persistence on answer select for authenticated users
+  - `src/pages/Quiz.tsx`
+
+### Why
+- Prevents data loss during interrupted sessions.
+- Standardizes payload shape for better reuse and reduced drift.
+- Keeps legacy-to-canonical migration path intact while hardening payload hygiene.
+
+### Tests
+- `src/features/quiz/sessionProgress.test.ts`
+
+---
+
 ## Known residuals
 - Live DB integration test is env-gated and skipped without service-role env vars.
 - React Router future-flag warnings are non-blocking and remain follow-up work.

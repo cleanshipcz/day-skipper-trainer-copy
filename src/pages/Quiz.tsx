@@ -15,13 +15,13 @@ import {
   pointsFromCorrectAnswers,
   questionProgressPercent,
 } from "@/features/quiz/scoring";
-import {
-  canonicalQuizProgressKey,
-  resolveQuizProgressForLoad,
-  type QuizAnswersHistory,
-  type QuizProgressRow,
-} from "@/features/quiz/progressKeys";
+import { canonicalQuizProgressKey, resolveQuizProgressForLoad, type QuizProgressRow } from "@/features/quiz/progressKeys";
 import { createSeededRng, shuffleWithRng } from "@/features/quiz/randomization";
+import {
+  buildQuizSessionProgress,
+  parseSavedQuizSession,
+  persistQuizSessionProgress,
+} from "@/features/quiz/sessionProgress";
 
 interface Question {
   id: string;
@@ -912,16 +912,24 @@ const Quiz = () => {
 
       if (savedData?.answers_history) {
         try {
-          const saved =
+          const savedRaw =
             typeof savedData.answers_history === "string"
-              ? (JSON.parse(savedData.answers_history) as QuizAnswersHistory)
-              : (savedData.answers_history as QuizAnswersHistory);
-          if (saved.answers && Array.isArray(saved.answers)) {
+              ? JSON.parse(savedData.answers_history)
+              : savedData.answers_history;
+
+          const saved = parseSavedQuizSession(savedRaw, questions.length);
+          if (saved) {
             setAnswers(saved.answers);
-            setCurrentQuestion(saved.currentQuestion || 0);
+            setCurrentQuestion(saved.currentQuestion);
 
             if (resolution.shouldMigrateFromLegacy) {
-              await saveProgress(canonicalKey, savedData.completed ?? false, savedData.score ?? 0, 0, saved);
+              await saveProgress(
+                canonicalKey,
+                savedData.completed ?? false,
+                savedData.score ?? 0,
+                0,
+                buildQuizSessionProgress(saved.answers, saved.currentQuestion)
+              );
               await resetProgress(topicKey);
             }
             return;
@@ -965,11 +973,18 @@ const Quiz = () => {
   const question = questions[currentQuestion];
   const progress = questionProgressPercent(currentQuestion, questions.length);
 
-  const handleAnswerSelect = (answerIndex: number) => {
+  const handleAnswerSelect = async (answerIndex: number) => {
     if (showExplanation) return;
     const newAnswers = [...answers];
     newAnswers[currentQuestion] = answerIndex;
     setAnswers(newAnswers);
+
+    await persistQuizSessionProgress({
+      isAuthenticated: Boolean(user),
+      topicKey,
+      saveProgress,
+      progress: buildQuizSessionProgress(newAnswers, currentQuestion),
+    });
   };
 
   const handleSubmit = () => {
@@ -994,11 +1009,12 @@ const Quiz = () => {
     setCurrentQuestion(newQuestion);
     setShowExplanation(false);
 
-    // Save progress
-    if (user) {
-      const progressData = { answers, currentQuestion: newQuestion };
-      await saveProgress(canonicalQuizProgressKey(topicKey), false, 0, 0, progressData);
-    }
+    await persistQuizSessionProgress({
+      isAuthenticated: Boolean(user),
+      topicKey,
+      saveProgress,
+      progress: buildQuizSessionProgress(answers, newQuestion),
+    });
 
     if (currentQuestion >= questions.length - 1) {
       handleComplete();
@@ -1011,11 +1027,12 @@ const Quiz = () => {
       setCurrentQuestion(newQuestion);
       setShowExplanation(false);
 
-      // Save progress
-      if (user) {
-        const progressData = { answers, currentQuestion: newQuestion };
-        await saveProgress(canonicalQuizProgressKey(topicKey), false, 0, 0, progressData);
-      }
+      await persistQuizSessionProgress({
+        isAuthenticated: Boolean(user),
+        topicKey,
+        saveProgress,
+        progress: buildQuizSessionProgress(answers, newQuestion),
+      });
     }
   };
 
@@ -1038,8 +1055,16 @@ const Quiz = () => {
       });
 
       // Save final progress with answers
-      const progressData = { answers, currentQuestion, completed: true };
-      await saveProgress(canonicalQuizProgressKey(topicKey), percentage >= 70, percentage, pointsEarned, progressData);
+      await saveProgress(
+        canonicalQuizProgressKey(topicKey),
+        percentage >= 70,
+        percentage,
+        pointsEarned,
+        {
+          ...buildQuizSessionProgress(answers, currentQuestion),
+          completed: true,
+        }
+      );
 
       toast.success(`Quiz completed! +${pointsEarned} points`);
     } catch (error) {
