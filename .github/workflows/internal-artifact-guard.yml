@@ -2,7 +2,6 @@ name: Internal Artifact Guard
 
 on:
   pull_request:
-  push:
 
 jobs:
   block-internal-artifacts:
