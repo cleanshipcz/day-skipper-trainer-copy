@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { appRoutes, toLazyRouteElement } from "./routes";
+import { appRoutes } from "./routes";
 
 describe("appRoutes", () => {
   it("contains unique route paths", () => {
@@ -17,10 +17,16 @@ describe("appRoutes", () => {
     expect(selectedRoutes).toHaveLength(topLevelRoutes.length);
 
     for (const route of selectedRoutes) {
-      const lazyComponent = toLazyRouteElement(route);
       expect(typeof route.importPage).toBe("function");
-      expect(typeof lazyComponent).toBe("object");
-      expect((lazyComponent as { $$typeof?: symbol }).$$typeof).toBeDefined();
+      expect(typeof route.lazyElement).toBe("object");
+      expect((route.lazyElement as { $$typeof?: symbol }).$$typeof).toBeDefined();
     }
+  });
+
+  it("reuses the same lazy element reference for a route", () => {
+    const navigationRoute = appRoutes.find((route) => route.path === "/navigation");
+
+    expect(navigationRoute).toBeDefined();
+    expect(navigationRoute?.lazyElement).toBe(navigationRoute?.lazyElement);
   });
 });

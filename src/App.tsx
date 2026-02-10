@@ -5,7 +5,7 @@ import { TooltipProvider } from "@/components/ui/tooltip";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { BrowserRouter, Routes, Route } from "react-router-dom";
 import { AuthProvider } from "@/contexts/AuthContext";
-import { appRoutes, toLazyRouteElement } from "@/app/routes";
+import { appRoutes } from "@/app/routes";
 import { ROUTER_FUTURE } from "@/app/routerFuture";
 
 const queryClient = new QueryClient();
@@ -20,7 +20,7 @@ const App = () => (
           <Suspense fallback={<div className="p-6 text-sm text-muted-foreground">Loading page...</div>}>
             <Routes>
               {appRoutes.map((route) => {
-                const RouteComponent = toLazyRouteElement(route);
+                const RouteComponent = route.lazyElement;
                 return <Route key={route.path} path={route.path} element={<RouteComponent />} />;
               })}
             </Routes>
