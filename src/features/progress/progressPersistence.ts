@@ -24,7 +24,7 @@ export const saveProgressRecord = async ({
   score = 0,
   pointsEarned = 0,
   answersHistory,
-}: SaveProgressRecordArgs) => {
+}: SaveProgressRecordArgs): Promise<{ pointsAwarded: boolean }> => {
   let shouldAwardPoints = pointsEarned > 0;
 
   if (shouldAwardPoints && completed) {
@@ -73,6 +73,8 @@ export const saveProgressRecord = async ({
 
     if (pointsError) throw pointsError;
   }
+
+  return { pointsAwarded: shouldAwardPoints };
 };
 
 export const deleteProgressRecord = async ({ supabaseClient, userId, topicId }: DeleteProgressRecordArgs) => {

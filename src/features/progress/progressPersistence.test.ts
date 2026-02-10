@@ -36,7 +36,7 @@ describe("saveProgressRecord", () => {
   it("uses server-side rpc increment for first completion points", async () => {
     const { client, rpc, selectEqUser, selectEqTopic, maybeSingle } = buildSupabaseMock();
 
-    await saveProgressRecord({
+    const result = await saveProgressRecord({
       supabaseClient: client as never,
       userId: "user-1",
       topicId: "quiz-colregs",
@@ -45,6 +45,8 @@ describe("saveProgressRecord", () => {
       pointsEarned: 40,
       answersHistory: { answers: [1, 2] },
     });
+
+    expect(result).toEqual({ pointsAwarded: true });
 
     expect(selectEqUser).toHaveBeenCalledWith("user_id", "user-1");
     expect(selectEqTopic).toHaveBeenCalledWith("topic_id", "quiz-colregs");
@@ -59,7 +61,7 @@ describe("saveProgressRecord", () => {
     const { client, rpc, maybeSingle } = buildSupabaseMock();
     maybeSingle.mockResolvedValueOnce({ data: { completed: true }, error: null });
 
-    await saveProgressRecord({
+    const result = await saveProgressRecord({
       supabaseClient: client as never,
       userId: "user-1",
       topicId: "quiz-colregs",
@@ -68,6 +70,7 @@ describe("saveProgressRecord", () => {
       pointsEarned: 10,
     });
 
+    expect(result).toEqual({ pointsAwarded: false });
     expect(rpc).not.toHaveBeenCalled();
   });
 
