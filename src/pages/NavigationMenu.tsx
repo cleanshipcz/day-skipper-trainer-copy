@@ -1,8 +1,7 @@
 import { Card, CardContent } from "@/components/ui/card";
-import { Button } from "@/components/ui/button";
-import { ArrowLeft, Map, Compass, Crosshair, Waves } from "lucide-react";
+import { Map, Compass, Crosshair, Waves } from "lucide-react";
 import { useNavigate } from "react-router-dom";
-import { ModuleMenuGrid } from "@/components/module-menu/ModuleMenuGrid";
+import { ModuleMenuPage } from "@/components/module-menu/ModuleMenuPage";
 import type { ModuleMenuItem } from "@/components/module-menu/types";
 
 const subModules: ModuleMenuItem[] = [
@@ -48,22 +47,14 @@ const NavigationMenu = () => {
   const navigate = useNavigate();
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-background via-ocean-light/10 to-background">
-      <header className="border-b border-border bg-card/50 backdrop-blur-sm sticky top-0 z-40">
-        <div className="container mx-auto px-4 py-4">
-          <div className="flex items-center gap-3">
-            <Button variant="ghost" size="icon" onClick={() => navigate("/")}>
-              <ArrowLeft className="w-5 h-5" />
-            </Button>
-            <div>
-              <h1 className="text-xl font-bold">Navigation Fundamentals</h1>
-              <p className="text-sm text-muted-foreground">Charts, Compass, and Position</p>
-            </div>
-          </div>
-        </div>
-      </header>
-
-      <main className="container mx-auto px-4 py-8">
+    <ModuleMenuPage
+      title="Navigation Fundamentals"
+      subtitle="Charts, Compass, and Position"
+      onBack={() => navigate("/")}
+      modules={subModules}
+      onNavigate={navigate}
+      gridClassName="grid md:grid-cols-2 lg:grid-cols-3 gap-6"
+      introCard={
         <Card className="mb-8 border-2 border-primary/20 bg-gradient-to-r from-primary/5 to-transparent">
           <CardContent className="pt-6">
             <div className="flex items-start gap-4">
@@ -81,10 +72,8 @@ const NavigationMenu = () => {
             </div>
           </CardContent>
         </Card>
-
-        <ModuleMenuGrid modules={subModules} onNavigate={navigate} gridClassName="grid md:grid-cols-2 lg:grid-cols-3 gap-6" />
-      </main>
-    </div>
+      }
+    />
   );
 };
 

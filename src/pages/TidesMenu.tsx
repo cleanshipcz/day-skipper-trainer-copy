@@ -1,8 +1,7 @@
 import { Card, CardContent } from "@/components/ui/card";
-import { Button } from "@/components/ui/button";
-import { ArrowLeft, BookOpen, Calculator, Waves, TrendingUp, Navigation } from "lucide-react";
+import { BookOpen, Calculator, Waves, TrendingUp, Navigation } from "lucide-react";
 import { useNavigate } from "react-router-dom";
-import { ModuleMenuGrid } from "@/components/module-menu/ModuleMenuGrid";
+import { ModuleMenuPage } from "@/components/module-menu/ModuleMenuPage";
 import type { ModuleMenuItem } from "@/components/module-menu/types";
 
 const subModules: ModuleMenuItem[] = [
@@ -57,22 +56,15 @@ const TidesMenu = () => {
   const navigate = useNavigate();
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-background via-blue-50/20 to-background">
-      <header className="border-b border-border bg-card/50 backdrop-blur-sm sticky top-0 z-40">
-        <div className="container mx-auto px-4 py-4">
-          <div className="flex items-center gap-3">
-            <Button variant="ghost" size="icon" onClick={() => navigate("/navigation")}>
-              <ArrowLeft className="w-5 h-5" />
-            </Button>
-            <div>
-              <h1 className="text-xl font-bold">Tidal Theory & Streams</h1>
-              <p className="text-sm text-muted-foreground">Mastering tides and vectors</p>
-            </div>
-          </div>
-        </div>
-      </header>
-
-      <main className="container mx-auto px-4 py-8">
+    <ModuleMenuPage
+      title="Tidal Theory & Streams"
+      subtitle="Mastering tides and vectors"
+      onBack={() => navigate("/navigation")}
+      modules={subModules}
+      onNavigate={navigate}
+      backgroundClassName="min-h-screen bg-gradient-to-br from-background via-blue-50/20 to-background"
+      gridClassName="grid md:grid-cols-2 lg:grid-cols-3 gap-6"
+      introCard={
         <Card className="mb-8 border-2 border-blue-500/20 bg-gradient-to-r from-blue-500/5 to-transparent">
           <CardContent className="pt-6">
             <div className="flex items-start gap-4">
@@ -90,10 +82,8 @@ const TidesMenu = () => {
             </div>
           </CardContent>
         </Card>
-
-        <ModuleMenuGrid modules={subModules} onNavigate={navigate} gridClassName="grid md:grid-cols-2 lg:grid-cols-3 gap-6" />
-      </main>
-    </div>
+      }
+    />
   );
 };
 
