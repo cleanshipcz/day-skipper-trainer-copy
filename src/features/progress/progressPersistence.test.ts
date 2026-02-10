@@ -46,7 +46,7 @@ describe("saveProgressRecord", () => {
       answersHistory: { answers: [1, 2] },
     });
 
-    expect(result).toEqual({ pointsAwarded: true });
+    expect(result).toEqual({ pointsAwarded: true, completionAwarded: true });
 
     expect(selectEqUser).toHaveBeenCalledWith("user_id", "user-1");
     expect(selectEqTopic).toHaveBeenCalledWith("topic_id", "quiz-colregs");
@@ -70,7 +70,7 @@ describe("saveProgressRecord", () => {
       pointsEarned: 10,
     });
 
-    expect(result).toEqual({ pointsAwarded: false });
+    expect(result).toEqual({ pointsAwarded: false, completionAwarded: false });
     expect(rpc).not.toHaveBeenCalled();
   });
 

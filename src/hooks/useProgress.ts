@@ -43,7 +43,7 @@ export const useProgress = () => {
       if (!user) return;
 
       try {
-        const { pointsAwarded } = await saveProgressRecord({
+        const { pointsAwarded, completionAwarded } = await saveProgressRecord({
           supabaseClient: supabase,
           userId: user.id,
           topicId,
@@ -57,7 +57,7 @@ export const useProgress = () => {
           toast.success(`+${pointsEarned} points earned!`);
         }
 
-        if (completed) {
+        if (completionAwarded) {
           toast.success("Topic completed! 🎉");
         }
       } catch (error) {
