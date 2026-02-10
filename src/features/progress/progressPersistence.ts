@@ -10,6 +10,12 @@ interface SaveProgressRecordArgs {
   answersHistory?: Record<string, unknown>;
 }
 
+interface DeleteProgressRecordArgs {
+  supabaseClient: SupabaseClient;
+  userId: string;
+  topicId: string;
+}
+
 export const saveProgressRecord = async ({
   supabaseClient,
   userId,
@@ -52,4 +58,10 @@ export const saveProgressRecord = async ({
 
     if (pointsError) throw pointsError;
   }
+};
+
+export const deleteProgressRecord = async ({ supabaseClient, userId, topicId }: DeleteProgressRecordArgs) => {
+  const { error } = await supabaseClient.from("user_progress").delete().eq("user_id", userId).eq("topic_id", topicId);
+
+  if (error) throw error;
 };
