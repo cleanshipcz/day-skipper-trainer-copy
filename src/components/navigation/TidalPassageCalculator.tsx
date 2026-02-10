@@ -125,21 +125,62 @@ const TidalPassageCalculator = () => {
   const HEIGHT = 300;
   const PADDING = 40;
 
-  // Scales
-  const tMin = calculations.points[0]?.time || 0;
-  const tMax = calculations.points[calculations.points.length - 1]?.time || 24;
-  const hMax = Math.max(hw.height, 6); // At least 6m scale
-  const hMin = 0;
+  const chartModel = useMemo(() => {
+    const tMin = calculations.points[0]?.time || 0;
+    const tMax = calculations.points[calculations.points.length - 1]?.time || 24;
+    const hMax = Math.max(hw.height, 6); // At least 6m scale
 
-  const scaleX = (t: number) => PADDING + ((t - tMin) / (tMax - tMin)) * (WIDTH - 2 * PADDING);
-  const scaleY = (h: number) => HEIGHT - PADDING - (h / hMax) * (HEIGHT - 2 * PADDING);
+    const scaleX = (t: number) => PADDING + ((t - tMin) / (tMax - tMin)) * (WIDTH - 2 * PADDING);
+    const scaleY = (h: number) => HEIGHT - PADDING - (h / hMax) * (HEIGHT - 2 * PADDING);
 
-  // Generate Path
-  const pathD = calculations.points.reduce((path, p, i) => {
-    const x = scaleX(p.time);
-    const y = scaleY(p.height);
-    return path + (i === 0 ? `M ${x},${y}` : ` L ${x},${y}`);
-  }, "");
+    const pathD = calculations.points.reduce((path, point, i) => {
+      const x = scaleX(point.time);
+      const y = scaleY(point.height);
+      return path + (i === 0 ? `M ${x},${y}` : ` L ${x},${y}`);
+    }, "");
+
+    const timeLabels = calculations.points
+      .filter((_, i) => i % 4 === 0)
+      .map((point) => ({
+        key: point.time,
+        x: scaleX(point.time),
+        label: `${Math.floor(point.time) % 24}:${Math.round((point.time % 1) * 60)
+          .toString()
+          .padStart(2, "0")}`,
+      }));
+
+    const safeWindowRects = calculations.safeWindows.map((window) => {
+      const x1 = scaleX(window.start);
+      const x2 = scaleX(window.end);
+      return {
+        x: x1,
+        width: x2 - x1,
+      };
+    });
+
+    const reqY = scaleY(calculations.requiredTideHeight);
+    const isReqLineVisible = calculations.requiredTideHeight >= 0 && calculations.requiredTideHeight <= hMax;
+
+    return {
+      hMax,
+      pathD,
+      reqY,
+      isReqLineVisible,
+      timeLabels,
+      safeWindowRects,
+      hwPoint: {
+        x: scaleX(parseTime(hw.time)),
+        y: scaleY(hw.height),
+      },
+      lwPoint: {
+        x: scaleX(parseTime(lw.time)),
+        y: scaleY(lw.height),
+      },
+      gridLines: [0, 1, 2, 3, 4, 5, 6]
+        .filter((level) => level <= hMax)
+        .map((level) => ({ level, y: scaleY(level) })),
+    };
+  }, [calculations.points, calculations.requiredTideHeight, calculations.safeWindows, hw.height, hw.time, lw.height, lw.time]);
 
   // Drill Mode State
   const [drillMode, setDrillMode] = useState(false);
@@ -209,9 +250,7 @@ const TidalPassageCalculator = () => {
     setScenarioId(null);
   };
 
-  // Required Line logic... (keep existing)
-  const reqY = scaleY(calculations.requiredTideHeight);
-  const isReqLineVisible = calculations.requiredTideHeight >= 0 && calculations.requiredTideHeight <= hMax;
+  // Required line + chart geometry are memoized in `chartModel` for drill-mode rerenders.
 
   return (
     <div className="space-y-6">
@@ -401,49 +440,44 @@ const TidalPassageCalculator = () => {
               <line x1={PADDING} y1={PADDING} x2={PADDING} y2={HEIGHT - PADDING} stroke="#94a3b8" />
 
               {/* Grid Lines H */}
-              {[0, 1, 2, 3, 4, 5, 6].map((h) => {
-                if (h > hMax) return null;
-                const y = scaleY(h);
-                return (
-                  <g key={h}>
-                    <line x1={PADDING} y1={y} x2={WIDTH - PADDING} y2={y} stroke="#e2e8f0" strokeDasharray="3,3" />
-                    <text x={PADDING - 5} y={y + 4} textAnchor="end" fontSize="10" fill="#64748b">
-                      {h}m
-                    </text>
-                  </g>
-                );
-              })}
+              {chartModel.gridLines.map((gridLine) => (
+                <g key={gridLine.level}>
+                  <line
+                    x1={PADDING}
+                    y1={gridLine.y}
+                    x2={WIDTH - PADDING}
+                    y2={gridLine.y}
+                    stroke="#e2e8f0"
+                    strokeDasharray="3,3"
+                  />
+                  <text x={PADDING - 5} y={gridLine.y + 4} textAnchor="end" fontSize="10" fill="#64748b">
+                    {gridLine.level}m
+                  </text>
+                </g>
+              ))}
 
               {/* Time Labels (Approx every hour) */}
-              {calculations.points
-                .filter((_, i) => i % 4 === 0)
-                .map((p) => {
-                  const x = scaleX(p.time);
-                  return (
-                    <text key={p.time} x={x} y={HEIGHT - PADDING + 15} textAnchor="middle" fontSize="10" fill="#64748b">
-                      {Math.floor(p.time) % 24}:
-                      {Math.round((p.time % 1) * 60)
-                        .toString()
-                        .padStart(2, "0")}
-                    </text>
-                  );
-                })}
+              {chartModel.timeLabels.map((label) => (
+                <text key={label.key} x={label.x} y={HEIGHT - PADDING + 15} textAnchor="middle" fontSize="10" fill="#64748b">
+                  {label.label}
+                </text>
+              ))}
 
               {/* Required Tide Line (Red Limit) */}
-              {isReqLineVisible && (
+              {chartModel.isReqLineVisible && (
                 <>
                   <line
                     x1={PADDING}
-                    y1={reqY}
+                    y1={chartModel.reqY}
                     x2={WIDTH - PADDING}
-                    y2={reqY}
+                    y2={chartModel.reqY}
                     stroke="#dc2626"
                     strokeWidth="2"
                     strokeDasharray="4,2"
                   />
                   <text
                     x={WIDTH - PADDING - 10}
-                    y={reqY - 5}
+                    y={chartModel.reqY - 5}
                     textAnchor="end"
                     fill="#dc2626"
                     fontSize="10"
@@ -455,9 +489,9 @@ const TidalPassageCalculator = () => {
                   {/* Shading Unsafe Area (Below Line) */}
                   <rect
                     x={PADDING}
-                    y={reqY}
+                    y={chartModel.reqY}
                     width={WIDTH - 2 * PADDING}
-                    height={Math.max(0, HEIGHT - PADDING - reqY)}
+                    height={Math.max(0, HEIGHT - PADDING - chartModel.reqY)}
                     fill="#dc2626"
                     fillOpacity="0.05"
                   />
@@ -466,28 +500,24 @@ const TidalPassageCalculator = () => {
 
               {/* Safe Windows Highlight - Hidden during drill until answered */}
               {(!drillMode || drillFeedback !== null) &&
-                calculations.safeWindows.map((win, i) => {
-                  const x1 = scaleX(win.start);
-                  const x2 = scaleX(win.end);
-                  return (
-                    <rect
-                      key={i}
-                      x={x1}
-                      y={PADDING}
-                      width={x2 - x1}
-                      height={HEIGHT - 2 * PADDING}
-                      fill="#16a34a"
-                      fillOpacity="0.1"
-                    />
-                  );
-                })}
+                chartModel.safeWindowRects.map((windowRect, i) => (
+                  <rect
+                    key={i}
+                    x={windowRect.x}
+                    y={PADDING}
+                    width={windowRect.width}
+                    height={HEIGHT - 2 * PADDING}
+                    fill="#16a34a"
+                    fillOpacity="0.1"
+                  />
+                ))}
 
               {/* Tide Curve */}
-              <path d={pathD} fill="none" stroke="#2563eb" strokeWidth="2" />
+              <path d={chartModel.pathD} fill="none" stroke="#2563eb" strokeWidth="2" />
 
               {/* HW/LW Dots */}
-              <circle cx={scaleX(parseTime(hw.time))} cy={scaleY(hw.height)} r="4" fill="#2563eb" />
-              <circle cx={scaleX(parseTime(lw.time))} cy={scaleY(lw.height)} r="4" fill="#2563eb" />
+              <circle cx={chartModel.hwPoint.x} cy={chartModel.hwPoint.y} r="4" fill="#2563eb" />
+              <circle cx={chartModel.lwPoint.x} cy={chartModel.lwPoint.y} r="4" fill="#2563eb" />
             </svg>
           </div>
 
