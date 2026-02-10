@@ -1,4 +1,4 @@
-import { useEffect, useState, ReactNode } from "react";
+import { useCallback, useEffect, useMemo, useState, ReactNode } from "react";
 import { User, Session } from "@supabase/supabase-js";
 import { supabase } from "@/integrations/supabase/client";
 import { useNavigate } from "react-router-dom";
@@ -30,10 +30,15 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     return () => subscription.unsubscribe();
   }, []);
 
-  const signOut = async () => {
+  const signOut = useCallback(async () => {
     await supabase.auth.signOut();
     navigate("/auth");
-  };
+  }, [navigate]);
 
-  return <AuthContext.Provider value={{ user, session, loading, signOut }}>{children}</AuthContext.Provider>;
+  const authContextValue = useMemo(
+    () => ({ user, session, loading, signOut }),
+    [user, session, loading, signOut]
+  );
+
+  return <AuthContext.Provider value={authContextValue}>{children}</AuthContext.Provider>;
 };

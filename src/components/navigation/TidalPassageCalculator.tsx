@@ -145,6 +145,7 @@ const TidalPassageCalculator = () => {
   const [drillMode, setDrillMode] = useState(false);
   const [drillQuestion, setDrillQuestion] = useState<{ time: number; isSafe: boolean } | null>(null);
   const [drillFeedback, setDrillFeedback] = useState<"correct" | "incorrect" | null>(null);
+  const [scenarioId, setScenarioId] = useState<number | null>(null);
 
   const startDrill = () => {
     // Generate Random Scenario
@@ -167,9 +168,11 @@ const TidalPassageCalculator = () => {
     // Generate Question: "Is it safe at [Time]?"
     // Pick a time between HW-3 and LW+3
     const qTime = rHwT - 2 + Math.random() * (rLwT - rHwT + 4);
+    const nextScenarioId = Math.floor(Math.random() * 1000);
 
     // Calculate answer (re-using logic is tricky outside useMemo, but we can check later)
     setDrillQuestion({ time: qTime, isSafe: false }); // isSafe calculated on check
+    setScenarioId(nextScenarioId);
     setDrillFeedback(null);
     setDrillMode(true);
   };
@@ -203,6 +206,7 @@ const TidalPassageCalculator = () => {
     setDrillMode(false);
     setDrillQuestion(null);
     setDrillFeedback(null);
+    setScenarioId(null);
   };
 
   // Required Line logic... (keep existing)
@@ -232,7 +236,7 @@ const TidalPassageCalculator = () => {
           <CardContent className="pt-6">
             <div className="flex flex-col md:flex-row gap-6 items-center justify-between">
               <div>
-                <h4 className="font-bold text-lg mb-2 text-blue-800">Scenario #{Math.floor(Math.random() * 1000)}</h4>
+                <h4 className="font-bold text-lg mb-2 text-blue-800">Scenario #{scenarioId ?? 0}</h4>
                 <p className="mb-4">
                   Assess the inputs below. Is it safe to cross the bar at
                   <span className="font-bold text-xl ml-2 bg-white px-2 py-1 rounded shadow-sm">
