@@ -5,9 +5,13 @@ import { saveProgressRecord } from "./progressPersistence";
 
 const buildSupabaseMock = () => {
   const upsert = vi.fn().mockResolvedValue({ error: null });
+  const maybeSingle = vi.fn().mockResolvedValue({ data: null, error: null });
+  const selectEqTopic = vi.fn(() => ({ maybeSingle }));
+  const selectEqUser = vi.fn(() => ({ eq: selectEqTopic }));
+  const select = vi.fn(() => ({ eq: selectEqUser }));
   const rpc = vi.fn().mockResolvedValue({ error: null });
   const from = vi.fn((table: string) => {
-    if (table === "user_progress") return { upsert };
+    if (table === "user_progress") return { upsert, select };
     return {};
   });
 

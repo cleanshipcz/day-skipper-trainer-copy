@@ -581,8 +581,7 @@ const NauticalTerms = () => {
   const handleCloseOptions = useCallback(() => {
     setActivePart(null);
     setWrongAnswer(null);
-    saveProgress("lights-theory", true, 100, 10);
-  }, [saveProgress]);
+  }, []);
 
   const resetGame = useCallback(() => {
     const initial: Record<string, PartProgress> = {};
@@ -595,8 +594,7 @@ const NauticalTerms = () => {
     setSelectedPart(null);
     setWrongAnswer(null);
     toast.success("Game reset! Good luck!");
-    saveProgress("colregs-theory", true, 100, 10);
-  }, [saveProgress]);
+  }, []);
 
   const correctCount = Object.values(partProgress).filter((p) => p.state === "correct").length;
   const wrongPart = wrongAnswer ? allParts.find((p) => p.id === wrongAnswer) : null;
