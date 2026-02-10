@@ -33,6 +33,7 @@ const isFiniteNumber = (value: unknown): value is number => typeof value === "nu
 
 export const parseSavedQuizSession = (raw: Json | undefined, questionCount: number): QuizSessionProgress | null => {
   if (!raw || typeof raw !== "object") return null;
+  if ("completed" in raw && raw.completed === true) return null;
 
   const maybeAnswers = "answers" in raw ? raw.answers : undefined;
   if (!Array.isArray(maybeAnswers)) return null;
