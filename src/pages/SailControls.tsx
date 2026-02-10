@@ -559,9 +559,20 @@ const SailControls = () => {
     toast.success("Reset! Ready to learn.");
   }, []);
 
-  const correctCount = Object.values(partProgress).filter((p) => p.state === "correct").length;
-  const wrongPart = wrongAnswer ? sailControls.find((p) => p.id === wrongAnswer) : null;
-  const progressPercent = (correctCount / sailControls.length) * 100;
+  const controlsById = useMemo(() => {
+    const controlsMap: Record<string, SailControl> = {};
+    sailControls.forEach((control) => {
+      controlsMap[control.id] = control;
+    });
+    return controlsMap;
+  }, []);
+
+  const correctCount = useMemo(
+    () => Object.values(partProgress).filter((p) => p.state === "correct").length,
+    [partProgress]
+  );
+  const wrongPart = useMemo(() => (wrongAnswer ? controlsById[wrongAnswer] ?? null : null), [wrongAnswer, controlsById]);
+  const progressPercent = useMemo(() => (correctCount / sailControls.length) * 100, [correctCount]);
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-background via-ocean-light/10 to-background">
@@ -630,14 +641,14 @@ const SailControls = () => {
                         highlightId={highlightedId}
                         onHover={(id) => {
                           if (id) {
-                            const control = sailControls.find((c) => c.id === id);
+                            const control = controlsById[id];
                             if (control) setHoveredPart(control);
                           } else {
                             setHoveredPart(null);
                           }
                         }}
                         onClick={(id) => {
-                          const control = sailControls.find((c) => c.id === id);
+                          const control = controlsById[id];
                           // Toggle selection: click same = deselect, click different = select
                           if (control) {
                             setSelectedPart(selectedPart?.id === id ? null : control);
@@ -760,7 +771,7 @@ const SailControls = () => {
                         highlightId={hoveredPart?.id}
                         onHover={(id) => {
                           if (id) {
-                            const control = sailControls.find((c) => c.id === id);
+                            const control = controlsById[id];
                             if (control) setHoveredPart(control);
                           } else {
                             setHoveredPart(null);

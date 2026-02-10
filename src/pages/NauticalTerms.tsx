@@ -596,9 +596,20 @@ const NauticalTerms = () => {
     toast.success("Game reset! Good luck!");
   }, []);
 
-  const correctCount = Object.values(partProgress).filter((p) => p.state === "correct").length;
-  const wrongPart = wrongAnswer ? allParts.find((p) => p.id === wrongAnswer) : null;
-  const progressPercent = (correctCount / allParts.length) * 100;
+  const partsById = useMemo(() => {
+    const partsMap: Record<string, BoatPart> = {};
+    allParts.forEach((part) => {
+      partsMap[part.id] = part;
+    });
+    return partsMap;
+  }, []);
+
+  const correctCount = useMemo(
+    () => Object.values(partProgress).filter((p) => p.state === "correct").length,
+    [partProgress]
+  );
+  const wrongPart = useMemo(() => (wrongAnswer ? partsById[wrongAnswer] ?? null : null), [wrongAnswer, partsById]);
+  const progressPercent = useMemo(() => (correctCount / allParts.length) * 100, [correctCount]);
 
   // Load saved progress on mount
   useEffect(() => {
