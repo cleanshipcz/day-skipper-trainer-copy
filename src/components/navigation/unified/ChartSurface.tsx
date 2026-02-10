@@ -1,4 +1,4 @@
-import { forwardRef } from "react";
+import { forwardRef, useMemo } from "react";
 
 // Admiralty Colors
 const COLORS = {
@@ -22,23 +22,88 @@ interface ChartSurfaceProps {
 
 const ChartSurface = forwardRef<SVGSVGElement, ChartSurfaceProps>(
   ({ width, height, scale, viewBox, children, className, labelScale = 1 }, ref) => {
-    // Parse ViewBox for Sticky Axes
-    // Default to 0 0 w h if not provided
-    const [vx, vy, vw, vh] = (viewBox || `0 0 ${width} ${height}`).split(" ").map(Number);
+    const resolvedViewBox = viewBox || `0 0 ${width} ${height}`;
 
-    // World Dimensions (NM)
-    const widthNM = width / scale;
-    const heightNM = height / scale;
+    const [vx, vy, vw, vh] = useMemo(
+      () => resolvedViewBox.split(" ").map(Number),
+      [resolvedViewBox]
+    );
 
-    const cols = Math.floor(width / scale);
-    const rows = Math.floor(height / scale);
+    const cols = useMemo(() => Math.floor(width / scale), [width, scale]);
+    const rows = useMemo(() => Math.floor(height / scale), [height, scale]);
+
+    const verticalGuides = useMemo(
+      () =>
+        Array.from({ length: cols + 1 }).map((_, i) => {
+          const x = i * scale;
+          const isMajor = i % 5 === 0;
+          const minute = 35 - i;
+          return (
+            <g key={`v-${i}`}>
+              <line
+                x1={x}
+                y1={0}
+                x2={x}
+                y2={height}
+                stroke={isMajor ? "#94a3b8" : "transparent"}
+                strokeWidth={isMajor ? 2 * labelScale : 0}
+              />
+              {x >= vx - 50 && x <= vx + vw + 50 && (
+                <text
+                  x={x + 2 * labelScale}
+                  y={vy + 12 * labelScale}
+                  fontSize={10 * labelScale}
+                  fill="#64748b"
+                  fontWeight={isMajor ? "bold" : "normal"}
+                >
+                  001°{minute.toString().padStart(2, "0")}'W
+                </text>
+              )}
+            </g>
+          );
+        }),
+      [cols, height, scale, labelScale, vx, vy, vw]
+    );
+
+    const horizontalGuides = useMemo(
+      () =>
+        Array.from({ length: rows + 1 }).map((_, j) => {
+          const y = j * scale;
+          const isMajor = j % 5 === 0;
+          const minute = 15 - j;
+          return (
+            <g key={`h-${j}`}>
+              <line
+                x1={0}
+                y1={y}
+                x2={width}
+                y2={y}
+                stroke={isMajor ? "#94a3b8" : "transparent"}
+                strokeWidth={isMajor ? 2 * labelScale : 0}
+              />
+              {y >= vy - 50 && y <= vy + vh + 50 && (
+                <text
+                  x={vx + 2 * labelScale}
+                  y={y - 2 * labelScale}
+                  fontSize={10 * labelScale}
+                  fill="#64748b"
+                  fontWeight={isMajor ? "bold" : "normal"}
+                >
+                  50°{minute.toString().padStart(2, "0")}'N
+                </text>
+              )}
+            </g>
+          );
+        }),
+      [rows, scale, width, labelScale, vx, vy, vh]
+    );
 
     return (
       <svg
         ref={ref}
         width="100%"
         height="100%"
-        viewBox={viewBox || `0 0 ${width} ${height}`}
+        viewBox={resolvedViewBox}
         className={`w-full h-full bg-white select-none pointer-events-none ${className}`}
         style={{ backgroundColor: COLORS.DEEP }}
         preserveAspectRatio="xMinYMin slice"
@@ -97,70 +162,8 @@ const ChartSurface = forwardRef<SVGSVGElement, ChartSurfaceProps>(
         <rect width={width} height={height} fill="url(#grid)" pointerEvents="none" />
 
         {/* 5. Sticky Axes & Major Grid Lines */}
-
-        {/* Vertical Lines (Meridians) & Top Labels */}
-        {Array.from({ length: cols + 1 }).map((_, i) => {
-          const x = i * scale;
-          const isMajor = i % 5 === 0;
-          const minute = 35 - i;
-          return (
-            <g key={`v-${i}`}>
-              <line
-                x1={x}
-                y1={0}
-                x2={x}
-                y2={height}
-                stroke={isMajor ? "#94a3b8" : "transparent"} // Only draw major lines explicitly
-                strokeWidth={isMajor ? 2 * labelScale : 0}
-              />
-
-              {/* Sticky Label: Only if X is within current ViewBox horizontal range */}
-              {x >= vx - 50 && x <= vx + vw + 50 && (
-                <text
-                  x={x + 2 * labelScale}
-                  y={vy + 12 * labelScale} // Sticky to Top
-                  fontSize={10 * labelScale}
-                  fill="#64748b"
-                  fontWeight={isMajor ? "bold" : "normal"}
-                >
-                  001°{minute.toString().padStart(2, "0")}'W
-                </text>
-              )}
-            </g>
-          );
-        })}
-
-        {/* Horizontal Lines (Parallels) & Left Labels */}
-        {Array.from({ length: rows + 1 }).map((_, j) => {
-          const y = j * scale;
-          const isMajor = j % 5 === 0;
-          const minute = 15 - j;
-          return (
-            <g key={`h-${j}`}>
-              <line
-                x1={0}
-                y1={y}
-                x2={width}
-                y2={y}
-                stroke={isMajor ? "#94a3b8" : "transparent"}
-                strokeWidth={isMajor ? 2 * labelScale : 0}
-              />
-
-              {/* Sticky Label: Only if Y is within current ViewBox vertical range */}
-              {y >= vy - 50 && y <= vy + vh + 50 && (
-                <text
-                  x={vx + 2 * labelScale} // Sticky to Left
-                  y={y - 2 * labelScale}
-                  fontSize={10 * labelScale}
-                  fill="#64748b"
-                  fontWeight={isMajor ? "bold" : "normal"}
-                >
-                  50°{minute.toString().padStart(2, "0")}'N
-                </text>
-              )}
-            </g>
-          );
-        })}
+        {verticalGuides}
+        {horizontalGuides}
 
         {/* 6. Children */}
         {children}
