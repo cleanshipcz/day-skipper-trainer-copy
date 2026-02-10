@@ -41,6 +41,19 @@ describe("quiz session progress helpers", () => {
     });
   });
 
+  it("does not resume a completed quiz session", () => {
+    expect(
+      parseSavedQuizSession(
+        {
+          answers: [0, 2],
+          currentQuestion: 1,
+          completed: true,
+        },
+        2
+      )
+    ).toBeNull();
+  });
+
   it("returns null when no valid payload exists", () => {
     expect(parseSavedQuizSession(undefined, 5)).toBeNull();
     expect(parseSavedQuizSession({ currentQuestion: 1 }, 5)).toBeNull();
