@@ -2,7 +2,7 @@ import { useCallback } from "react";
 import { useAuth } from "@/contexts/AuthHooks";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
-import { saveProgressRecord } from "@/features/progress/progressPersistence";
+import { deleteProgressRecord, saveProgressRecord } from "@/features/progress/progressPersistence";
 import type { Tables } from "@/integrations/supabase/types";
 
 type UserProgressRow = Tables<"user_progress">;
@@ -73,7 +73,11 @@ export const useProgress = () => {
       if (!user) return;
 
       try {
-        await supabase.from("user_progress").delete().eq("user_id", user.id).eq("topic_id", topicId);
+        await deleteProgressRecord({
+          supabaseClient: supabase,
+          userId: user.id,
+          topicId,
+        });
 
         toast.success("Progress reset successfully");
       } catch (error) {
