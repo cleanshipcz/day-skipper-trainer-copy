@@ -6,6 +6,7 @@ import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { BrowserRouter, Routes, Route } from "react-router-dom";
 import { AuthProvider } from "@/contexts/AuthContext";
 import { appRoutes, toLazyRouteElement } from "@/app/routes";
+import { ROUTER_FUTURE } from "@/app/routerFuture";
 
 const queryClient = new QueryClient();
 
@@ -14,7 +15,7 @@ const App = () => (
     <TooltipProvider>
       <Toaster />
       <Sonner />
-      <BrowserRouter>
+      <BrowserRouter future={ROUTER_FUTURE}>
         <AuthProvider>
           <Suspense fallback={<div className="p-6 text-sm text-muted-foreground">Loading page...</div>}>
             <Routes>
