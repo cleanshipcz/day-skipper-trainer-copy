@@ -1,7 +1,7 @@
-import { Card, CardContent } from "@/components/ui/card";
 import { BookOpen, Calculator, Waves, TrendingUp, Navigation } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { ModuleMenuPage } from "@/components/module-menu/ModuleMenuPage";
+import { ModuleMenuIntroCard } from "@/components/module-menu/ModuleMenuIntroCard";
 import type { ModuleMenuItem } from "@/components/module-menu/types";
 
 const subModules: ModuleMenuItem[] = [
@@ -65,23 +65,14 @@ const TidesMenu = () => {
       backgroundClassName="min-h-screen bg-gradient-to-br from-background via-blue-50/20 to-background"
       gridClassName="grid md:grid-cols-2 lg:grid-cols-3 gap-6"
       introCard={
-        <Card className="mb-8 border-2 border-blue-500/20 bg-gradient-to-r from-blue-500/5 to-transparent">
-          <CardContent className="pt-6">
-            <div className="flex items-start gap-4">
-              <div className="p-3 rounded-full bg-blue-500/10">
-                <Waves className="w-6 h-6 text-blue-500" />
-              </div>
-              <div>
-                <h2 className="font-semibold text-lg mb-2">Tides & Currents</h2>
-                <p className="text-muted-foreground">
-                  A working knowledge of tides and tidal streams is essential for safe navigation. This module covers
-                  the theory of tide generation, how to calculate tidal heights using curves and the rule of twelves,
-                  and how to plot a Course to Steer (CTS) using vector triangles to compensate for current.
-                </p>
-              </div>
-            </div>
-          </CardContent>
-        </Card>
+        <ModuleMenuIntroCard
+          icon={Waves}
+          title="Tides & Currents"
+          description="A working knowledge of tides and tidal streams is essential for safe navigation. This module covers the theory of tide generation, how to calculate tidal heights using curves and the rule of twelves, and how to plot a Course to Steer (CTS) using vector triangles to compensate for current."
+          className="border-blue-500/20 bg-gradient-to-r from-blue-500/5 to-transparent"
+          iconContainerClassName="bg-blue-500/10"
+          iconClassName="text-blue-500"
+        />
       }
     />
   );

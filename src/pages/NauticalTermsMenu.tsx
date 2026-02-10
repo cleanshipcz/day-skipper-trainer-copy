@@ -2,6 +2,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Ship, Sailboat, BookOpen, HelpCircle, Trophy } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { ModuleMenuPage } from "@/components/module-menu/ModuleMenuPage";
+import { ModuleMenuIntroCard } from "@/components/module-menu/ModuleMenuIntroCard";
 import type { ModuleMenuItem } from "@/components/module-menu/types";
 
 const subModules: ModuleMenuItem[] = [
@@ -45,23 +46,11 @@ const NauticalTermsMenu = () => {
       modules={subModules}
       onNavigate={navigate}
       introCard={
-        <Card className="mb-8 border-2 border-primary/20 bg-gradient-to-r from-primary/5 to-transparent">
-          <CardContent className="pt-6">
-            <div className="flex items-start gap-4">
-              <div className="p-3 rounded-full bg-primary/10">
-                <BookOpen className="w-6 h-6 text-primary" />
-              </div>
-              <div>
-                <h2 className="font-semibold text-lg mb-2">Master Nautical Vocabulary</h2>
-                <p className="text-muted-foreground">
-                  Understanding nautical terms is essential for clear communication aboard. Start with the main parts of
-                  a boat, then move on to sail controls and running rigging. Each module includes an interactive quiz
-                  to test your knowledge.
-                </p>
-              </div>
-            </div>
-          </CardContent>
-        </Card>
+        <ModuleMenuIntroCard
+          icon={BookOpen}
+          title="Master Nautical Vocabulary"
+          description="Understanding nautical terms is essential for clear communication aboard. Start with the main parts of a boat, then move on to sail controls and running rigging. Each module includes an interactive quiz to test your knowledge."
+        />
       }
       afterGrid={
         <Card className="mt-8">

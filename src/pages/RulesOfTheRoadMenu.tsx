@@ -1,7 +1,7 @@
-import { Card, CardContent } from "@/components/ui/card";
 import { Compass, Lightbulb, Trophy } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { ModuleMenuPage } from "@/components/module-menu/ModuleMenuPage";
+import { ModuleMenuIntroCard } from "@/components/module-menu/ModuleMenuIntroCard";
 import type { ModuleMenuItem } from "@/components/module-menu/types";
 
 const subModules: ModuleMenuItem[] = [
@@ -45,23 +45,11 @@ const RulesOfTheRoadMenu = () => {
       modules={subModules}
       onNavigate={navigate}
       introCard={
-        <Card className="mb-8 border-2 border-primary/20 bg-gradient-to-r from-primary/5 to-transparent">
-          <CardContent className="pt-6">
-            <div className="flex items-start gap-4">
-              <div className="p-3 rounded-full bg-primary/10">
-                <Compass className="w-6 h-6 text-primary" />
-              </div>
-              <div>
-                <h2 className="font-semibold text-lg mb-2">Safety at Sea</h2>
-                <p className="text-muted-foreground">
-                  The COLREGs are the "highway code" of the sea. Mastering them is essential for avoiding collisions
-                  and navigating safely. Start with the Steering & Sailing rules, then learn about Lights & Shapes
-                  before testing your knowledge.
-                </p>
-              </div>
-            </div>
-          </CardContent>
-        </Card>
+        <ModuleMenuIntroCard
+          icon={Compass}
+          title="Safety at Sea"
+          description="The COLREGs are the highway code of the sea. Mastering them is essential for avoiding collisions and navigating safely. Start with the Steering & Sailing rules, then learn about Lights & Shapes before testing your knowledge."
+        />
       }
     />
   );
