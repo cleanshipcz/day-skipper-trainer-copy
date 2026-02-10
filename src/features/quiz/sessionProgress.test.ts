@@ -59,6 +59,10 @@ describe("quiz session progress helpers", () => {
     expect(parseSavedQuizSession({ currentQuestion: 1 }, 5)).toBeNull();
   });
 
+  it("does not restore session when progress record is already completed", () => {
+    expect(parseSavedQuizSession({ answers: [0, 1], currentQuestion: 1 }, 2, true)).toBeNull();
+  });
+
   it("persists answer change for authenticated users using canonical key", async () => {
     const saveProgress = vi.fn();
 

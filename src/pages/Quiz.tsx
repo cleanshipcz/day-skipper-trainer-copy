@@ -918,7 +918,7 @@ const Quiz = () => {
               ? JSON.parse(savedData.answers_history)
               : savedData.answers_history;
 
-          const saved = parseSavedQuizSession(savedRaw, questions.length);
+          const saved = parseSavedQuizSession(savedRaw, questions.length, Boolean(savedData.completed));
           if (saved) {
             setAnswers(saved.answers);
             setCurrentQuestion(saved.currentQuestion);

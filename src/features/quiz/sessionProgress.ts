@@ -31,7 +31,12 @@ export const buildQuizSessionProgress = (
 
 const isFiniteNumber = (value: unknown): value is number => typeof value === "number" && Number.isFinite(value);
 
-export const parseSavedQuizSession = (raw: Json | undefined, questionCount: number): QuizSessionProgress | null => {
+export const parseSavedQuizSession = (
+  raw: Json | undefined,
+  questionCount: number,
+  isRecordCompleted = false
+): QuizSessionProgress | null => {
+  if (isRecordCompleted) return null;
   if (!raw || typeof raw !== "object") return null;
   if ("completed" in raw && raw.completed === true) return null;
 
