@@ -25,6 +25,21 @@ export const saveProgressRecord = async ({
   pointsEarned = 0,
   answersHistory,
 }: SaveProgressRecordArgs) => {
+  let shouldAwardPoints = pointsEarned > 0;
+
+  if (shouldAwardPoints && completed) {
+    const { data: existingProgress, error: existingProgressError } = await supabaseClient
+      .from("user_progress")
+      .select("completed")
+      .eq("user_id", userId)
+      .eq("topic_id", topicId)
+      .maybeSingle<{ completed: boolean }>();
+
+    if (existingProgressError) throw existingProgressError;
+
+    shouldAwardPoints = !existingProgress?.completed;
+  }
+
   const progressData: {
     user_id: string;
     topic_id: string;
@@ -50,7 +65,7 @@ export const saveProgressRecord = async ({
 
   if (progressError) throw progressError;
 
-  if (pointsEarned > 0) {
+  if (shouldAwardPoints) {
     const { error: pointsError } = await supabaseClient.rpc("increment_user_points", {
       p_user_id: userId,
       p_increment: pointsEarned,

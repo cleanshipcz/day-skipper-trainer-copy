@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useMemo, useState } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -17,7 +17,7 @@ const VictuallingTheory = () => {
   const handleCheckItem = (itemId: string) => {
     const updatedChecklist = checklist.map((item) => {
       if (item.id === itemId && !item.checked) {
-        setScore(score + 5);
+        setScore((prev) => prev + 5);
         toast.success("+5 points! Item checked");
         return { ...item, checked: true };
       }
@@ -26,9 +26,24 @@ const VictuallingTheory = () => {
     setChecklist(updatedChecklist);
   };
 
-  const categories = Array.from(new Set(checklist.map((item) => item.category)));
+  const groupedChecklist = useMemo(() => {
+    const groups = new Map<string, ChecklistItem[]>();
+
+    checklist.forEach((item) => {
+      const bucket = groups.get(item.category);
+      if (bucket) {
+        bucket.push(item);
+      } else {
+        groups.set(item.category, [item]);
+      }
+    });
+
+    return groups;
+  }, [checklist]);
+
+  const categories = useMemo(() => Array.from(groupedChecklist.keys()), [groupedChecklist]);
   const totalItems = checklist.length;
-  const checkedItems = checklist.filter((item) => item.checked).length;
+  const checkedItems = useMemo(() => checklist.filter((item) => item.checked).length, [checklist]);
   const progressPercent = (checkedItems / totalItems) * 100;
 
   return (
@@ -121,24 +136,22 @@ const VictuallingTheory = () => {
             </CardHeader>
             <CardContent>
               <div className="space-y-3">
-                {checklist
-                  .filter((item) => item.category === category)
-                  .map((item) => (
-                    <div
-                      key={item.id}
-                      className={`flex items-center gap-3 p-3 rounded-lg border-2 transition-all ${
-                        item.checked ? "border-success/30 bg-success/5" : "border-border hover:border-secondary/50"
-                      }`}
-                    >
-                      <Checkbox id={item.id} checked={item.checked} onCheckedChange={() => handleCheckItem(item.id)} />
-                      <label htmlFor={item.id} className="flex-1 cursor-pointer flex items-center justify-between">
-                        <span className={item.checked ? "line-through text-muted-foreground" : ""}>{item.item}</span>
-                        <Badge variant="outline" className="text-xs">
-                          {item.quantity}
-                        </Badge>
-                      </label>
-                    </div>
-                  ))}
+                {(groupedChecklist.get(category) ?? []).map((item) => (
+                  <div
+                    key={item.id}
+                    className={`flex items-center gap-3 p-3 rounded-lg border-2 transition-all ${
+                      item.checked ? "border-success/30 bg-success/5" : "border-border hover:border-secondary/50"
+                    }`}
+                  >
+                    <Checkbox id={item.id} checked={item.checked} onCheckedChange={() => handleCheckItem(item.id)} />
+                    <label htmlFor={item.id} className="flex-1 cursor-pointer flex items-center justify-between">
+                      <span className={item.checked ? "line-through text-muted-foreground" : ""}>{item.item}</span>
+                      <Badge variant="outline" className="text-xs">
+                        {item.quantity}
+                      </Badge>
+                    </label>
+                  </div>
+                ))}
               </div>
             </CardContent>
           </Card>
