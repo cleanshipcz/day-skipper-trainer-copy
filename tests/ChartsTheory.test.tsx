@@ -1,8 +1,8 @@
 import { describe, it, expect, vi } from "vitest";
 import { render, screen } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
-import { BrowserRouter } from "react-router-dom";
 import ChartsTheory from "../src/pages/ChartsTheory";
+import TestRouter from "./TestRouter";
 
 // Mock dependencies to focus on component structure
 vi.mock("@/components/navigation/ChartSymbolQuiz", () => ({
@@ -24,9 +24,9 @@ describe("ChartsTheory Page", () => {
   it("renders all main educational sections via tabs", async () => {
     const user = userEvent.setup();
     render(
-      <BrowserRouter>
+      <TestRouter>
         <ChartsTheory />
-      </BrowserRouter>
+      </TestRouter>
     );
 
     // Tab 1: Coordinates (Default)
@@ -50,9 +50,9 @@ describe("ChartsTheory Page", () => {
   it("renders interactive tools in correct tabs", async () => {
     const user = userEvent.setup();
     render(
-      <BrowserRouter>
+      <TestRouter>
         <ChartsTheory />
-      </BrowserRouter>
+      </TestRouter>
     );
 
     // Tab 1: Virtual Chart Plotter
