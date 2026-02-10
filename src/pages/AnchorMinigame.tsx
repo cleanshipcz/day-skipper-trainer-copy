@@ -286,35 +286,37 @@ const AnchorMinigame = () => {
   const boatTopY = surfaceY - 18;
   const boatBottomY = surfaceY + 10;
 
-  const anchorAttachPoint = {
-    x: toX(bowAttachX),
-    y: surfaceY - Math.min(scenario.bowHeight * yScale, 18),
-  };
+  const { anchorAttachPoint, anchorPoint, slackMeters, chainPath, boatPath } = useMemo(() => {
+    const mapX = (meters: number) => horizontalMargin + (meters - cameraOrigin) * xScale;
+    const mapY = (meters: number) => surfaceY + meters * yScale;
 
-  const anchorPoint = {
-    x: toX(anchorOnBottom && anchorX !== null ? anchorX : bowAttachX),
-    y: toY(anchorDepthBelowSurface),
-  };
+    const nextAnchorAttachPoint = {
+      x: mapX(bowAttachX),
+      y: surfaceY - Math.min(scenario.bowHeight * yScale, 18),
+    };
 
-  const dxMeters = (anchorPoint.x - anchorAttachPoint.x) / xScale;
-  const dyMeters = (anchorPoint.y - anchorAttachPoint.y) / yScale;
-  const straightMeters = Math.hypot(dxMeters, dyMeters);
-  const slackMeters = Math.max(rode - straightMeters, 0);
+    const nextAnchorPoint = {
+      x: mapX(anchorOnBottom && anchorX !== null ? anchorX : bowAttachX),
+      y: mapY(anchorDepthBelowSurface),
+    };
 
-  const chainPath = (() => {
-    const start = anchorAttachPoint;
+    const dxMeters = (nextAnchorPoint.x - nextAnchorAttachPoint.x) / xScale;
+    const dyMeters = (nextAnchorPoint.y - nextAnchorAttachPoint.y) / yScale;
+    const nextSlackMeters = Math.max(rode - Math.hypot(dxMeters, dyMeters), 0);
+
+    const start = nextAnchorAttachPoint;
     const saggyEnd = (() => {
-      if (!anchorOnBottom || slackMeters <= 0) return anchorPoint;
+      if (!anchorOnBottom || nextSlackMeters <= 0) return nextAnchorPoint;
       const slackDirection = anchorX !== null ? Math.sign(anchorX - bowAttachX || 1) : 1;
-      const seabedSlack = Math.min(slackMeters, 30);
+      const seabedSlack = Math.min(nextSlackMeters, 30);
       return {
-        x: anchorPoint.x - slackDirection * seabedSlack * xScale * 0.6,
-        y: anchorPoint.y,
+        x: nextAnchorPoint.x - slackDirection * seabedSlack * xScale * 0.6,
+        y: nextAnchorPoint.y,
       };
     })();
 
     const segments = 18;
-    const sagPx = Math.min(slackMeters * xScale * 1.2 + 12, 260);
+    const sagPx = Math.min(nextSlackMeters * xScale * 1.2 + 12, 260);
     const commands: string[] = [];
 
     for (let i = 0; i <= segments; i += 1) {
@@ -326,21 +328,26 @@ const AnchorMinigame = () => {
       commands.push(`${i === 0 ? "M" : "L"} ${x.toFixed(2)} ${y.toFixed(2)}`);
     }
 
-    // Lay extra slack on the seabed back toward the anchor.
-    if (anchorOnBottom && slackMeters > 0 && saggyEnd.x !== anchorPoint.x) {
-      commands.push(`L ${anchorPoint.x.toFixed(2)} ${anchorPoint.y.toFixed(2)}`);
+    if (anchorOnBottom && nextSlackMeters > 0 && saggyEnd.x !== nextAnchorPoint.x) {
+      commands.push(`L ${nextAnchorPoint.x.toFixed(2)} ${nextAnchorPoint.y.toFixed(2)}`);
     }
 
-    return commands.join(" ");
-  })();
-
-  const boatPath = `
-    M ${toX(boatX - 0.6)} ${boatTopY}
-    L ${toX(boatX + BOAT_LENGTH + 0.6)} ${boatTopY + 6}
-    L ${toX(boatX + BOAT_LENGTH - 0.8)} ${boatBottomY}
-    L ${toX(boatX - 1)} ${boatBottomY}
+    const nextBoatPath = `
+    M ${mapX(boatX - 0.6)} ${boatTopY}
+    L ${mapX(boatX + BOAT_LENGTH + 0.6)} ${boatTopY + 6}
+    L ${mapX(boatX + BOAT_LENGTH - 0.8)} ${boatBottomY}
+    L ${mapX(boatX - 1)} ${boatBottomY}
     Z
   `;
+
+    return {
+      anchorAttachPoint: nextAnchorAttachPoint,
+      anchorPoint: nextAnchorPoint,
+      slackMeters: nextSlackMeters,
+      chainPath: commands.join(" "),
+      boatPath: nextBoatPath,
+    };
+  }, [anchorOnBottom, anchorDepthBelowSurface, anchorX, boatBottomY, boatTopY, boatX, bowAttachX, cameraOrigin, horizontalMargin, rode, scenario.bowHeight, seabedY, surfaceY, xScale, yScale]);
 
   const scopeColor =
     scope >= requiredScope ? "text-success" : scenario.condition === "strong" ? "text-destructive" : "text-accent";
