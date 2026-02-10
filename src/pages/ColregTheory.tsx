@@ -3,17 +3,33 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { ArrowLeft, Compass, AlertTriangle, Wind, Ship } from "lucide-react";
-import { useProgress } from "@/hooks/useProgress";
 import { useEffect } from "react";
+import { useTheoryCompletionGate } from "@/features/progress/useTheoryCompletionGate";
 
 const ColregTheory = () => {
   const navigate = useNavigate();
-  const { saveProgress } = useProgress();
+  const { canComplete, markCompleted, markSectionVisited } = useTheoryCompletionGate({
+    topicId: "colregs-theory",
+    requiredSectionIds: ["read-content"],
+    pointsOnComplete: 10,
+  });
 
   useEffect(() => {
-    // Mark as completed on visit
-    saveProgress("colregs-theory", true, 100, 10);
-  }, [saveProgress]);
+    const onScroll = () => {
+      const viewportBottom = window.scrollY + window.innerHeight;
+      const docHeight = document.documentElement.scrollHeight;
+      if (docHeight <= 0) return;
+
+      const scrollPercent = (viewportBottom / docHeight) * 100;
+      if (scrollPercent >= 80) {
+        void markSectionVisited("read-content");
+      }
+    };
+
+    onScroll();
+    window.addEventListener("scroll", onScroll, { passive: true });
+    return () => window.removeEventListener("scroll", onScroll);
+  }, [markSectionVisited]);
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-background via-ocean-light/10 to-background pb-20">
@@ -278,8 +294,15 @@ const ColregTheory = () => {
         </section>
 
         <div className="flex justify-center pt-8">
-          <Button size="lg" onClick={() => navigate("/rules-of-the-road")}>
-            Complete Module
+          <Button
+            size="lg"
+            disabled={!canComplete}
+            onClick={async () => {
+              await markCompleted();
+              navigate("/rules-of-the-road");
+            }}
+          >
+            {canComplete ? "Complete Module" : "Scroll through module to complete"}
           </Button>
         </div>
       </main>
