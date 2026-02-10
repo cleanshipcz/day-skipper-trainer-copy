@@ -3,27 +3,40 @@ import { deleteProgressRecord, saveProgressRecord } from "./progressPersistence"
 
 const buildSupabaseMock = () => {
   const upsert = vi.fn().mockResolvedValue({ error: null });
+  const maybeSingle = vi.fn().mockResolvedValue({ data: null, error: null });
+  const selectEqTopic = vi.fn(() => ({ maybeSingle }));
+  const selectEqUser = vi.fn(() => ({ eq: selectEqTopic }));
+  const select = vi.fn(() => ({ eq: selectEqUser }));
+
   const deleteEqTopic = vi.fn().mockResolvedValue({ error: null });
   const deleteEqUser = vi.fn(() => ({ eq: deleteEqTopic }));
   const deleteRow = vi.fn(() => ({ eq: deleteEqUser }));
-  const eq = vi.fn().mockResolvedValue({ error: null });
-  const update = vi.fn(() => ({ eq }));
-  const select = vi.fn(() => ({ eq: vi.fn(() => ({ single: vi.fn() })) }));
+
   const rpc = vi.fn().mockResolvedValue({ error: null });
   const from = vi.fn((table: string) => {
-    if (table === "user_progress") return { upsert, delete: deleteRow };
-    if (table === "profiles") return { select, update };
+    if (table === "user_progress") return { upsert, delete: deleteRow, select };
     return {};
   });
 
-  return { client: { from, rpc }, upsert, rpc, select, update, deleteRow, deleteEqUser, deleteEqTopic };
+  return {
+    client: { from, rpc },
+    upsert,
+    rpc,
+    select,
+    selectEqUser,
+    selectEqTopic,
+    maybeSingle,
+    deleteRow,
+    deleteEqUser,
+    deleteEqTopic,
+  };
 };
 
 describe("saveProgressRecord", () => {
-  it("uses server-side rpc increment for points", async () => {
-    const { client, rpc, select, update } = buildSupabaseMock();
+  it("uses server-side rpc increment for first completion points", async () => {
+    const { client, rpc, selectEqUser, selectEqTopic, maybeSingle } = buildSupabaseMock();
 
-    await saveProgressRecord({
+    const result = await saveProgressRecord({
       supabaseClient: client as never,
       userId: "user-1",
       topicId: "quiz-colregs",
@@ -33,12 +46,47 @@ describe("saveProgressRecord", () => {
       answersHistory: { answers: [1, 2] },
     });
 
+    expect(result).toEqual({ pointsAwarded: true });
+
+    expect(selectEqUser).toHaveBeenCalledWith("user_id", "user-1");
+    expect(selectEqTopic).toHaveBeenCalledWith("topic_id", "quiz-colregs");
+    expect(maybeSingle).toHaveBeenCalled();
     expect(rpc).toHaveBeenCalledWith("increment_user_points", {
       p_user_id: "user-1",
       p_increment: 40,
     });
-    expect(select).not.toHaveBeenCalled();
-    expect(update).not.toHaveBeenCalled();
+  });
+
+  it("does not re-award points when topic is already completed", async () => {
+    const { client, rpc, maybeSingle } = buildSupabaseMock();
+    maybeSingle.mockResolvedValueOnce({ data: { completed: true }, error: null });
+
+    const result = await saveProgressRecord({
+      supabaseClient: client as never,
+      userId: "user-1",
+      topicId: "quiz-colregs",
+      completed: true,
+      score: 100,
+      pointsEarned: 10,
+    });
+
+    expect(result).toEqual({ pointsAwarded: false });
+    expect(rpc).not.toHaveBeenCalled();
+  });
+
+  it("throws when existing-progress lookup fails", async () => {
+    const { client, maybeSingle } = buildSupabaseMock();
+    maybeSingle.mockResolvedValueOnce({ data: null, error: new Error("lookup failed") });
+
+    await expect(
+      saveProgressRecord({
+        supabaseClient: client as never,
+        userId: "user-1",
+        topicId: "quiz-colregs",
+        completed: true,
+        pointsEarned: 20,
+      })
+    ).rejects.toThrow("lookup failed");
   });
 
   it("throws when upsert fails", async () => {

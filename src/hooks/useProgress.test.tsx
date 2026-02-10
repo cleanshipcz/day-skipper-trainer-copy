@@ -37,6 +37,7 @@ describe("useProgress", () => {
     mocks.toastSuccess.mockReset();
     mocks.toastError.mockReset();
     mocks.saveProgressRecord.mockReset();
+    mocks.saveProgressRecord.mockResolvedValue({ pointsAwarded: true });
     mocks.deleteProgressRecord.mockReset();
   });
 
@@ -69,6 +70,16 @@ describe("useProgress", () => {
       }),
     );
     expect(mocks.toastSuccess).toHaveBeenCalledWith("+15 points earned!");
+    expect(mocks.toastSuccess).toHaveBeenCalledWith("Topic completed! 🎉");
+  });
+
+  it("does not show points toast when persistence reports no new award", async () => {
+    mocks.saveProgressRecord.mockResolvedValueOnce({ pointsAwarded: false });
+    const { result } = renderHook(() => useProgress());
+
+    await result.current.saveProgress("topic-a", true, 100, 15);
+
+    expect(mocks.toastSuccess).not.toHaveBeenCalledWith("+15 points earned!");
     expect(mocks.toastSuccess).toHaveBeenCalledWith("Topic completed! 🎉");
   });
 
