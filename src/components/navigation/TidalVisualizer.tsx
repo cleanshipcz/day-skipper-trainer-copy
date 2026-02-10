@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useMemo, useState } from "react";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Slider } from "@/components/ui/slider";
 import { Button } from "@/components/ui/button";
@@ -77,11 +77,20 @@ const TidalVisualizer = () => {
     }
   };
 
-  // derived Y coords
-  const waterLevelY = CHART_DATUM_Y - tideHeight[0] * PIXELS_PER_METER;
+  const tideMeters = tideHeight[0];
 
-  // Static Seabed (Charted Depth 5m)
-  const seabedY = CHART_DATUM_Y + 5 * PIXELS_PER_METER;
+  const visualModel = useMemo(() => {
+    const waterLevelY = CHART_DATUM_Y - tideMeters * PIXELS_PER_METER;
+    const chartedDepthMeters = 3.75;
+    const actualDepthMeters = chartedDepthMeters + tideMeters;
+
+    return {
+      waterLevelY,
+      chartedDepthMeters,
+      actualDepthMeters,
+      chartedDepthLineY: CHART_DATUM_Y + 150,
+    };
+  }, [CHART_DATUM_Y, PIXELS_PER_METER, tideMeters]);
 
   return (
     <Card className="w-full border-blue-200 bg-slate-50">
@@ -225,14 +234,27 @@ const TidalVisualizer = () => {
               {/* 5. Water (Dynamic) */}
               <rect
                 x={0}
-                y={waterLevelY}
+                y={visualModel.waterLevelY}
                 width={SVG_WIDTH}
-                height={SVG_HEIGHT - waterLevelY}
+                height={SVG_HEIGHT - visualModel.waterLevelY}
                 fill="#3b82f6"
                 fillOpacity="0.4"
               />
-              <line x1={0} y1={waterLevelY} x2={SVG_WIDTH} y2={waterLevelY} stroke="#2563eb" strokeWidth="2" />
-              <text x={SVG_WIDTH - 100} y={waterLevelY - 5} fontSize="12" fill="#1e40af" fontWeight="bold">
+              <line
+                x1={0}
+                y1={visualModel.waterLevelY}
+                x2={SVG_WIDTH}
+                y2={visualModel.waterLevelY}
+                stroke="#2563eb"
+                strokeWidth="2"
+              />
+              <text
+                x={SVG_WIDTH - 100}
+                y={visualModel.waterLevelY - 5}
+                fontSize="12"
+                fill="#1e40af"
+                fontWeight="bold"
+              >
                 SEA SURFACE
               </text>
 
@@ -244,13 +266,19 @@ const TidalVisualizer = () => {
                   x1={0}
                   y1={CHART_DATUM_Y}
                   x2={0}
-                  y2={waterLevelY}
+                  y2={visualModel.waterLevelY}
                   stroke="#1e40af"
                   strokeWidth="2"
                   markerEnd="url(#arrowhead)"
                   markerStart="url(#arrowhead)"
                 />
-                <text x={10} y={(CHART_DATUM_Y + waterLevelY) / 2} fill="#1e40af" fontWeight="bold" fontSize="14">
+                <text
+                  x={10}
+                  y={(CHART_DATUM_Y + visualModel.waterLevelY) / 2}
+                  fill="#1e40af"
+                  fontWeight="bold"
+                  fontSize="14"
+                >
                   Height of Tide {tideHeight[0].toFixed(1)}m
                 </text>
               </g>
@@ -258,9 +286,16 @@ const TidalVisualizer = () => {
               {/* B: Charted Depth (CD to Seabed) */}
               {/* At x=200, Seabed is at +150px (approx 3.75m) */}
               <g transform="translate(200, 0)">
-                <line x1={0} y1={CHART_DATUM_Y} x2={0} y2={CHART_DATUM_Y + 150} stroke="#ca8a04" strokeWidth="2" />
+                <line
+                  x1={0}
+                  y1={CHART_DATUM_Y}
+                  x2={0}
+                  y2={visualModel.chartedDepthLineY}
+                  stroke="#ca8a04"
+                  strokeWidth="2"
+                />
                 <text x={5} y={CHART_DATUM_Y + 75} fill="#ca8a04" fontWeight="bold" fontSize="14">
-                  Charted Depth 3.8m
+                  Charted Depth {visualModel.chartedDepthMeters.toFixed(1)}m
                 </text>
               </g>
 
@@ -268,26 +303,33 @@ const TidalVisualizer = () => {
               <g transform="translate(250, 0)">
                 <line
                   x1={0}
-                  y1={waterLevelY}
+                  y1={visualModel.waterLevelY}
                   x2={0}
-                  y2={CHART_DATUM_Y + 150}
+                  y2={visualModel.chartedDepthLineY}
                   stroke="#15803d"
                   strokeWidth="3"
                   pointerEvents="none"
                 />
                 {/* Horizontal indicators */}
-                <line x1={-5} y1={waterLevelY} x2={5} y2={waterLevelY} stroke="#15803d" strokeWidth="3" />
                 <line
                   x1={-5}
-                  y1={CHART_DATUM_Y + 150}
+                  y1={visualModel.waterLevelY}
                   x2={5}
-                  y2={CHART_DATUM_Y + 150}
+                  y2={visualModel.waterLevelY}
+                  stroke="#15803d"
+                  strokeWidth="3"
+                />
+                <line
+                  x1={-5}
+                  y1={visualModel.chartedDepthLineY}
+                  x2={5}
+                  y2={visualModel.chartedDepthLineY}
                   stroke="#15803d"
                   strokeWidth="3"
                 />
 
-                <text x={10} y={waterLevelY + 100} fill="#15803d" fontWeight="bold" fontSize="14">
-                  Actual Depth {(3.75 + tideHeight[0]).toFixed(1)}m
+                <text x={10} y={visualModel.waterLevelY + 100} fill="#15803d" fontWeight="bold" fontSize="14">
+                  Actual Depth {visualModel.actualDepthMeters.toFixed(1)}m
                 </text>
               </g>
             </svg>
