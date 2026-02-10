@@ -5,6 +5,7 @@ import { Badge } from "@/components/ui/badge";
 import { CompletionBadge } from "@/components/CompletionBadge";
 import type { ModuleMenuItem, ModuleType } from "./types";
 import { resolveModuleMeta } from "./moduleMenuMeta";
+import { resolveModuleButtonLabel } from "./moduleMenuCta";
 
 const typeIcon: Record<ModuleType, typeof BookOpen> = {
   learn: BookOpen,
@@ -71,7 +72,7 @@ export const ModuleMenuGrid = ({
             </CardHeader>
             <CardContent>
               <Button className="w-full" variant="outline">
-                {completion ? (completion.isCompleted ? "Review" : "Start Learning") : meta.buttonLabel}
+                {resolveModuleButtonLabel({ defaultButtonLabel: meta.buttonLabel, completion })}
               </Button>
             </CardContent>
           </Card>
