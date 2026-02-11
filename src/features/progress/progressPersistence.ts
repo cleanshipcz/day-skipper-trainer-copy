@@ -28,19 +28,21 @@ export const saveProgressRecord = async ({
   let shouldAwardPoints = pointsEarned > 0;
   let shouldAwardCompletionToast = completed;
 
+  const { data: existingProgress, error: existingProgressError } = await supabaseClient
+    .from("user_progress")
+    .select("completed")
+    .eq("user_id", userId)
+    .eq("topic_id", topicId)
+    .maybeSingle<{ completed: boolean }>();
+
+  if (existingProgressError) throw existingProgressError;
+
   if (completed) {
-    const { data: existingProgress, error: existingProgressError } = await supabaseClient
-      .from("user_progress")
-      .select("completed")
-      .eq("user_id", userId)
-      .eq("topic_id", topicId)
-      .maybeSingle<{ completed: boolean }>();
-
-    if (existingProgressError) throw existingProgressError;
-
     shouldAwardCompletionToast = !existingProgress?.completed;
     shouldAwardPoints = shouldAwardPoints && shouldAwardCompletionToast;
   }
+
+  const completedForPersistence = completed || Boolean(existingProgress?.completed);
 
   const progressData: {
     user_id: string;
@@ -52,7 +54,7 @@ export const saveProgressRecord = async ({
   } = {
     user_id: userId,
     topic_id: topicId,
-    completed,
+    completed: completedForPersistence,
     score,
     last_accessed: new Date().toISOString(),
   };

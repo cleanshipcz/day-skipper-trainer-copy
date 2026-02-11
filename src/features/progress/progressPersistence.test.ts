@@ -89,6 +89,28 @@ describe("saveProgressRecord", () => {
     ).rejects.toThrow("lookup failed");
   });
 
+  it("preserves completed=true on in-progress saves for already completed topics", async () => {
+    const { client, upsert, maybeSingle } = buildSupabaseMock();
+    maybeSingle.mockResolvedValueOnce({ data: { completed: true }, error: null });
+
+    await saveProgressRecord({
+      supabaseClient: client as never,
+      userId: "user-1",
+      topicId: "colregs-theory",
+      completed: false,
+      score: 60,
+      pointsEarned: 0,
+      answersHistory: { completionState: "in_progress", visitedSectionIds: ["read-content"] },
+    });
+
+    expect(upsert).toHaveBeenCalledWith(
+      expect.objectContaining({
+        completed: true,
+      }),
+      expect.any(Object)
+    );
+  });
+
   it("throws when upsert fails", async () => {
     const { client, upsert } = buildSupabaseMock();
     upsert.mockResolvedValueOnce({ error: new Error("upsert failed") });
