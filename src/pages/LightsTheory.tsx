@@ -4,17 +4,20 @@ import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/com
 import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { ArrowLeft, Lightbulb, AlertTriangle, Volume2, Flame, Ship, Anchor, Wind } from "lucide-react";
-import { useProgress } from "@/hooks/useProgress";
 import { useEffect } from "react";
+import { useTheoryCompletionGate } from "@/features/progress/useTheoryCompletionGate";
 
 const LightsTheory = () => {
   const navigate = useNavigate();
-  const { saveProgress } = useProgress();
+  const { canComplete, markCompleted, markSectionVisited } = useTheoryCompletionGate({
+    topicId: "lights-theory",
+    requiredSectionIds: ["lights", "shapes", "sounds", "distress"],
+    pointsOnComplete: 10,
+  });
 
   useEffect(() => {
-    // Mark as completed on visit
-    saveProgress("lights-theory", true, 100, 10);
-  }, [saveProgress]);
+    void markSectionVisited("lights");
+  }, [markSectionVisited]);
 
   const LightDot = ({ color, border = false }: { color: string; border?: boolean }) => (
     <span className={`w-4 h-4 rounded-full inline-block mr-1 ${color} ${border ? "border border-gray-400" : ""}`} />
@@ -38,7 +41,7 @@ const LightsTheory = () => {
       </header>
 
       <main className="container mx-auto px-4 py-8 max-w-4xl">
-        <Tabs defaultValue="lights" className="space-y-6">
+        <Tabs defaultValue="lights" className="space-y-6" onValueChange={(value) => void markSectionVisited(value)}>
           <TabsList className="grid w-full grid-cols-2 md:grid-cols-4 h-auto">
             <TabsTrigger value="lights" className="py-2">
               <Lightbulb className="w-4 h-4 mr-2" />
@@ -397,8 +400,16 @@ const LightsTheory = () => {
         </Tabs>
 
         <div className="flex justify-center pt-12 pb-8">
-          <Button size="lg" className="w-full md:w-auto" onClick={() => navigate("/rules/lights")}>
-            Back to Module Menu
+          <Button
+            size="lg"
+            className="w-full md:w-auto"
+            disabled={!canComplete}
+            onClick={async () => {
+              await markCompleted();
+              navigate("/rules/lights");
+            }}
+          >
+            {canComplete ? "Complete Module" : "Explore all sections to complete"}
           </Button>
           <Button
             size="lg"

@@ -2,8 +2,8 @@ import { useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { ArrowLeft, Map, Anchor, Waves, Info, Ruler, Mountain, Globe, Eye } from "lucide-react";
-import { useProgress } from "@/hooks/useProgress";
 import { useEffect, useState } from "react";
+import { useTheoryCompletionGate } from "@/features/progress/useTheoryCompletionGate";
 import ChartSymbolQuiz from "@/components/navigation/ChartSymbolQuiz";
 import VirtualChartPlotter from "@/components/navigation/VirtualChartPlotter";
 import TidalVisualizer from "@/components/navigation/TidalVisualizer";
@@ -11,13 +11,16 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 
 const ChartsTheory = () => {
   const navigate = useNavigate();
-  const { saveProgress } = useProgress();
   const [activeTab, setActiveTab] = useState("coordinates");
+  const { canComplete, markCompleted, markSectionVisited } = useTheoryCompletionGate({
+    topicId: "charts-theory",
+    requiredSectionIds: ["coordinates", "depths", "symbols"],
+    pointsOnComplete: 10,
+  });
 
   useEffect(() => {
-    // Mark as completed on visit
-    saveProgress("charts-theory", true, 100, 10);
-  }, [saveProgress]);
+    void markSectionVisited("coordinates");
+  }, [markSectionVisited]);
 
   return (
     <div className="min-h-screen bg-slate-50 pb-20 text-slate-900">
@@ -37,7 +40,14 @@ const ChartsTheory = () => {
       </header>
 
       <main className="container mx-auto px-4 py-8 max-w-4xl">
-        <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-8">
+        <Tabs
+          value={activeTab}
+          onValueChange={(value) => {
+            setActiveTab(value);
+            void markSectionVisited(value);
+          }}
+          className="space-y-8"
+        >
           <div className="sticky top-20 z-30 bg-slate-50 pt-2 pb-4 -mx-4 px-4 md:static md:bg-transparent md:p-0">
             <TabsList className="grid w-full grid-cols-3 h-auto p-1 bg-slate-200">
               <TabsTrigger
@@ -370,8 +380,16 @@ const ChartsTheory = () => {
         </Tabs>
 
         <div className="flex justify-center pt-12 pb-8">
-          <Button size="lg" className="px-8" onClick={() => navigate("/navigation")}>
-            Return to Module Menu
+          <Button
+            size="lg"
+            className="px-8"
+            disabled={!canComplete}
+            onClick={async () => {
+              await markCompleted();
+              navigate("/navigation");
+            }}
+          >
+            {canComplete ? "Complete Module" : "Explore all sections to complete"}
           </Button>
         </div>
       </main>
