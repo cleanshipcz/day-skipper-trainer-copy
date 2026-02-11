@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useMemo, useState } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -15,14 +15,23 @@ const RopeworkTheory = () => {
 
   const handleKnotClick = (knot: Knot) => {
     if (!knot.discovered) {
-      const updatedKnots = knotList.map((k) => (k.id === knot.id ? { ...k, discovered: true } : k));
-      setKnotList(updatedKnots);
-      setScore(score + 15);
+      setKnotList((prevKnots) =>
+        prevKnots.map((currentKnot) =>
+          currentKnot.id === knot.id ? { ...currentKnot, discovered: true } : currentKnot,
+        ),
+      );
+      setScore((prevScore) => prevScore + 15);
     }
-    setSelectedKnot(knot);
+
+    setSelectedKnot((prevSelectedKnot) =>
+      prevSelectedKnot?.id === knot.id ? { ...prevSelectedKnot, discovered: true } : knot,
+    );
   };
 
-  const discoveredCount = knotList.filter((k) => k.discovered).length;
+  const discoveredCount = useMemo(
+    () => knotList.filter((knot) => knot.discovered).length,
+    [knotList],
+  );
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-background via-ocean-light/10 to-background">
