@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useMemo, useState } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -15,18 +15,27 @@ const EngineTheory = () => {
   const [score, setScore] = useState(0);
 
   const handleCheckTask = (taskId: string) => {
-    const updatedChecks = checks.map((check) => {
-      if (check.id === taskId && !check.checked) {
-        setScore(score + 10);
+    setChecks((previousChecks) => {
+      let awardedPoints = false;
+
+      const nextChecks = previousChecks.map((check) => {
+        if (check.id === taskId && !check.checked) {
+          awardedPoints = true;
+          return { ...check, checked: true };
+        }
+        return check;
+      });
+
+      if (awardedPoints) {
+        setScore((previousScore) => previousScore + 10);
         toast.success("+10 points! Check completed");
-        return { ...check, checked: true };
       }
-      return check;
+
+      return nextChecks;
     });
-    setChecks(updatedChecks);
   };
 
-  const checkedCount = checks.filter((c) => c.checked).length;
+  const checkedCount = useMemo(() => checks.filter((check) => check.checked).length, [checks]);
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-background via-ocean-light/10 to-background">
