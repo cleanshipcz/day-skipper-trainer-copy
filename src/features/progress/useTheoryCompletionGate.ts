@@ -15,6 +15,7 @@ export const useTheoryCompletionGate = ({
 }: UseTheoryCompletionGateArgs) => {
   const { saveProgress } = useProgress();
   const [visitedSectionIds, setVisitedSectionIds] = useState<string[]>([]);
+  const visitedRef = useRef<readonly string[]>(visitedSectionIds);
   const inProgressPersistedRef = useRef(false);
 
   const decision = useMemo(
@@ -39,13 +40,27 @@ export const useTheoryCompletionGate = ({
     async (sectionId: string) => {
       if (!sectionId) return;
 
-      const nextVisitedSectionIds = Array.from(new Set([...visitedSectionIds, sectionId]));
+      /**
+       * Read the latest visited list from a ref rather than relying on
+       * side-effects inside a setState updater (which is not guaranteed
+       * to execute synchronously under React 18 concurrent features).
+       * The ref is updated immediately so rapid/batched calls each see
+       * the previous call's result without waiting for a re-render.
+       */
+      const prev = visitedRef.current;
+      if (prev.includes(sectionId)) return;
+
+      const nextVisitedSectionIds = [...prev, sectionId];
+      visitedRef.current = nextVisitedSectionIds;
       setVisitedSectionIds(nextVisitedSectionIds);
 
-      const nextDecision = deriveCompletionGateDecision({ visitedSectionIds: nextVisitedSectionIds, requiredSectionIds });
+      const nextDecision = deriveCompletionGateDecision({
+        visitedSectionIds: nextVisitedSectionIds,
+        requiredSectionIds,
+      });
       await persistInProgressIfNeeded(nextDecision.state, nextDecision.score, nextVisitedSectionIds);
     },
-    [persistInProgressIfNeeded, requiredSectionIds, visitedSectionIds]
+    [persistInProgressIfNeeded, requiredSectionIds]
   );
 
   const markCompleted = useCallback(async () => {
