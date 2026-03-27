@@ -15,14 +15,14 @@ const ALL_TOPIC_FILES = [
 
 const EXPECTED_QUESTION_COUNTS: Record<string, number> = {
   "nautical-terms-quiz": 20,
-  ropework: 5,
-  anchorwork: 5,
-  victualling: 5,
-  engine: 5,
-  rig: 5,
+  ropework: 12,
+  anchorwork: 12,
+  victualling: 12,
+  engine: 12,
+  rig: 12,
   colregs: 20,
   "lights-signals": 20,
-  "safety-mob-quiz": 5,
+  "safety-mob-quiz": 12,
 };
 
 describe("Quiz data files", () => {
@@ -129,6 +129,133 @@ describe("Quiz data registry", () => {
 
     // then
     expect(registryKeys.sort()).toEqual([...knownTopicIds].sort());
+  });
+});
+
+/**
+ * E0-S2 AC-5: Existing quiz scores are not invalidated — new questions append, don't replace.
+ * We verify that the original question IDs from E0-S1 are still present in each expanded topic.
+ */
+const ORIGINAL_IDS: Record<string, readonly string[]> = {
+  ropework: ["r1", "r2", "r3", "r4", "r5"],
+  anchorwork: ["a1", "a2", "a3", "a4", "a5"],
+  victualling: ["v1", "v2", "v3", "v4", "v5"],
+  engine: ["e1", "e2", "e3", "e4", "e5"],
+  rig: ["rg1", "rg2", "rg3", "rg4", "rg5"],
+  "safety-mob-quiz": ["mob1", "mob2", "mob3", "mob4", "mob5"],
+};
+
+const EXPANDED_TOPICS = [
+  { topicId: "ropework", fileName: "ropework" },
+  { topicId: "anchorwork", fileName: "anchorwork" },
+  { topicId: "victualling", fileName: "victualling" },
+  { topicId: "engine", fileName: "engine" },
+  { topicId: "rig", fileName: "rig" },
+  { topicId: "safety-mob-quiz", fileName: "safetyMob" },
+] as const;
+
+describe("E0-S2: Expanded quiz backward compatibility", () => {
+  describe.each(EXPANDED_TOPICS)(
+    "$fileName ($topicId)",
+    ({ topicId, fileName }) => {
+      it("should still contain all original question IDs from E0-S1", async () => {
+        // given
+        // - the expanded data file for this topic
+        const mod = await import(`./${fileName}.ts`);
+        const questions: Question[] = mod.default;
+
+        // when
+        const ids = questions.map((q) => q.id);
+
+        // then
+        for (const originalId of ORIGINAL_IDS[topicId]) {
+          expect(ids).toContain(originalId);
+        }
+      });
+
+      it("should have original questions in the same order at the start", async () => {
+        // given
+        // - the expanded data file for this topic
+        const mod = await import(`./${fileName}.ts`);
+        const questions: Question[] = mod.default;
+
+        // when
+        const firstFiveIds = questions.slice(0, 5).map((q) => q.id);
+
+        // then
+        expect(firstFiveIds).toEqual(ORIGINAL_IDS[topicId]);
+      });
+
+      it("should have at least 10 questions (AC-1)", async () => {
+        // given
+        const mod = await import(`./${fileName}.ts`);
+        const questions: Question[] = mod.default;
+
+        // then
+        expect(questions.length).toBeGreaterThanOrEqual(10);
+      });
+
+      it("should have every option with non-empty text", async () => {
+        // given
+        const mod = await import(`./${fileName}.ts`);
+        const questions: Question[] = mod.default;
+
+        // then
+        for (const q of questions) {
+          for (const opt of q.options) {
+            expect(opt.trim().length).toBeGreaterThan(0);
+          }
+        }
+      });
+
+      it("should have non-empty explanation for every question", async () => {
+        // given
+        const mod = await import(`./${fileName}.ts`);
+        const questions: Question[] = mod.default;
+
+        // then
+        for (const q of questions) {
+          expect(q.explanation.trim().length).toBeGreaterThan(0);
+        }
+      });
+    },
+  );
+});
+
+describe("E0-S2 AC-4: Randomization works with expanded pools", () => {
+  it("should produce deterministic shuffles with 12-question pools", async () => {
+    // given
+    // - randomization utilities
+    const { createSeededRng, shuffleWithRng } = await import(
+      "../../features/quiz/randomization"
+    );
+    // - a 12-question pool
+    const mod = await import("./victualling.ts");
+    const questions: Question[] = mod.default;
+
+    // when
+    const first = shuffleWithRng([...questions], createSeededRng(42));
+    const second = shuffleWithRng([...questions], createSeededRng(42));
+
+    // then
+    expect(first).toEqual(second);
+    expect(first.length).toBe(questions.length);
+  });
+
+  it("should produce different orders with different seeds on 12-question pools", async () => {
+    // given
+    const { createSeededRng, shuffleWithRng } = await import(
+      "../../features/quiz/randomization"
+    );
+    const mod = await import("./engine.ts");
+    const questions: Question[] = mod.default;
+
+    // when
+    const first = shuffleWithRng([...questions], createSeededRng(1));
+    const second = shuffleWithRng([...questions], createSeededRng(2));
+
+    // then
+    expect(first).not.toEqual(second);
   });
 });
 

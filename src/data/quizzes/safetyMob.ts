@@ -50,6 +50,92 @@ const safetyMobQuestions: readonly Question[] = [
     explanation:
       "Lifting vertically causes cold blood from legs to rush to the core, which can cause cardiac arrest (Reflow Syndrome/Hydrostatic Squeeze).",
   },
+  {
+    id: "mob6",
+    question: "What should you throw to a person in the water immediately?",
+    options: [
+      "The anchor",
+      "A lifebuoy with a drogue and/or dan buoy",
+      "A bucket on a rope",
+      "A fender",
+    ],
+    correctAnswer: 1,
+    explanation:
+      "Throw a lifebuoy (preferably with an attached drogue and light) and a dan buoy to mark the casualty's position and provide flotation.",
+  },
+  {
+    id: "mob7",
+    question: "What is the designated role of the 'pointer' during a MOB recovery?",
+    options: [
+      "To steer the boat",
+      "To keep an arm continuously pointing at the casualty and never lose sight",
+      "To call the Coastguard",
+      "To prepare the recovery equipment",
+    ],
+    correctAnswer: 1,
+    explanation:
+      "The pointer must continuously point at the casualty with an outstretched arm. Losing visual contact dramatically reduces recovery chances.",
+  },
+  {
+    id: "mob8",
+    question: "On what VHF channel should you broadcast a MAYDAY?",
+    options: ["Channel 6", "Channel 12", "Channel 16", "Channel 72"],
+    correctAnswer: 2,
+    explanation:
+      "Channel 16 (156.8 MHz) is the international distress, safety, and calling frequency. All MAYDAY calls are made on Channel 16.",
+  },
+  {
+    id: "mob9",
+    question: "What manoeuvre brings you back along your reciprocal course?",
+    options: [
+      "A crash stop",
+      "A Williamson Turn",
+      "A figure-of-eight approach",
+      "A beam reach and tack",
+    ],
+    correctAnswer: 1,
+    explanation:
+      "The Williamson Turn (hard over, then when 60° off course, hard over the other way) brings the vessel back exactly along its reciprocal track.",
+  },
+  {
+    id: "mob10",
+    question: "Why should you avoid using the propeller close to a person in the water?",
+    options: [
+      "It will stall the engine",
+      "The propeller can cause fatal injuries to the casualty",
+      "It wastes fuel",
+      "It creates too much wake",
+    ],
+    correctAnswer: 1,
+    explanation:
+      "A spinning propeller can inflict serious or fatal injuries. Always put the engine in neutral before the casualty is alongside.",
+  },
+  {
+    id: "mob11",
+    question: "What does PAN PAN signify compared to MAYDAY?",
+    options: [
+      "A more serious emergency than MAYDAY",
+      "An urgent situation that is not an immediate threat to life",
+      "A routine navigational warning",
+      "A request for a weather forecast",
+    ],
+    correctAnswer: 1,
+    explanation:
+      "PAN PAN indicates urgency (e.g., a medical situation, engine failure) but not immediate danger to life or vessel. MAYDAY is for grave and imminent danger.",
+  },
+  {
+    id: "mob12",
+    question: "What information must be included in a MAYDAY message?",
+    options: [
+      "Only the vessel name",
+      "Vessel name, MMSI, position, nature of distress, number of persons on board",
+      "Just the GPS coordinates",
+      "The skipper's phone number",
+    ],
+    correctAnswer: 1,
+    explanation:
+      "A MAYDAY message must include: vessel name and callsign/MMSI, position, nature of distress, assistance required, number of POB, and any other useful information.",
+  },
 ] as const;
 
 export default safetyMobQuestions;

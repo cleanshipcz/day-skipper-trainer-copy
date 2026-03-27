@@ -43,6 +43,97 @@ const engineQuestions: readonly Question[] = [
     explanation:
       "First check the sea cock is open to allow cooling water intake. Then check impeller and coolant level.",
   },
+  {
+    id: "e6",
+    question: "What colour should healthy engine coolant be?",
+    options: [
+      "Black",
+      "Pink or green (depending on type), clear and free of debris",
+      "Brown and cloudy",
+      "Colourless like water",
+    ],
+    correctAnswer: 1,
+    explanation:
+      "Coolant should be pink or green (depending on the antifreeze type), clear, and free of debris or oil contamination.",
+  },
+  {
+    id: "e7",
+    question: "Why should you check the stern gland before starting the engine?",
+    options: [
+      "To ensure the propeller is attached",
+      "To verify it is dripping slightly (not dry, not streaming)",
+      "To check the hull paint",
+      "To tighten it as much as possible",
+    ],
+    correctAnswer: 1,
+    explanation:
+      "A stern gland should drip slightly when the shaft turns. Too dry causes overheating; too wet means it needs repacking or tightening.",
+  },
+  {
+    id: "e8",
+    question: "What should you do immediately if the engine oil pressure warning light comes on?",
+    options: [
+      "Increase revs to build pressure",
+      "Stop the engine immediately and investigate",
+      "Wait five minutes and check again",
+      "Top up the fuel tank",
+    ],
+    correctAnswer: 1,
+    explanation:
+      "Stop the engine immediately to prevent serious damage. Investigate oil level, leaks, and filter condition before restarting.",
+  },
+  {
+    id: "e9",
+    question: "How often should fuel filters be checked on a diesel engine?",
+    options: [
+      "Once a year",
+      "Before every passage and regularly during the season",
+      "Only when the engine stalls",
+      "Every 1,000 engine hours only",
+    ],
+    correctAnswer: 1,
+    explanation:
+      "Check fuel filters before every passage. Diesel bug and water contamination can block filters unexpectedly.",
+  },
+  {
+    id: "e10",
+    question: "What is 'diesel bug'?",
+    options: [
+      "An insect attracted to fuel fumes",
+      "Microbial growth in diesel fuel that blocks filters",
+      "A fault in the injection system",
+      "Condensation on the engine block",
+    ],
+    correctAnswer: 1,
+    explanation:
+      "Diesel bug is microbial contamination (bacteria and fungi) that grows in diesel fuel, especially where water is present, and blocks fuel filters.",
+  },
+  {
+    id: "e11",
+    question: "Why is it important to run the engine in neutral before engaging gear?",
+    options: [
+      "To warm the gearbox oil and allow oil pressure to build",
+      "To charge the batteries faster",
+      "To test the throttle cable",
+      "It makes no difference",
+    ],
+    correctAnswer: 0,
+    explanation:
+      "Warming up in neutral allows oil pressure to stabilise and gearbox oil to circulate before putting load on the drivetrain.",
+  },
+  {
+    id: "e12",
+    question: "What should you check when looking at the exhaust discharge?",
+    options: [
+      "That exhaust gases are blue",
+      "That cooling water is flowing out with the exhaust",
+      "That no exhaust gases are visible",
+      "That the exhaust is completely dry",
+    ],
+    correctAnswer: 1,
+    explanation:
+      "Water should be visible in the exhaust discharge, confirming the raw-water cooling system is functioning. No water means overheating risk.",
+  },
 ] as const;
 
 export default engineQuestions;
