@@ -8,6 +8,7 @@ import { toast } from "sonner";
 import { useProgress } from "@/hooks/useProgress";
 import { useAuth } from "@/contexts/AuthHooks";
 import { supabase } from "@/integrations/supabase/client";
+import { TOPIC_IDS } from "@/constants/topicRegistry";
 
 interface BoatPart {
   id: string;
@@ -642,7 +643,7 @@ const NauticalTerms = () => {
       const completed = correctCount === allParts.length;
       const scorePercentage = Math.round((score / (allParts.length * 10)) * 100);
 
-      saveProgress("nautical-terms-boat-parts", completed, scorePercentage, 0, progressData);
+      saveProgress(TOPIC_IDS.NAUTICAL_TERMS_BOAT_PARTS, completed, scorePercentage, 0, progressData);
     }
   }, [partProgress, score, user, correctCount, saveProgress]);
 

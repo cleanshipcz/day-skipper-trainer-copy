@@ -6,11 +6,12 @@ import { useEffect } from "react";
 import { useTheoryCompletionGate } from "@/features/progress/useTheoryCompletionGate";
 import CompassConverter from "@/components/navigation/CompassConverter";
 import DeviationDrill from "@/components/navigation/DeviationDrill";
+import { TOPIC_IDS } from "@/constants/topicRegistry";
 
 const CompassTheory = () => {
   const navigate = useNavigate();
   const { canComplete, markCompleted, markSectionVisited } = useTheoryCompletionGate({
-    topicId: "compass-theory",
+    topicId: TOPIC_IDS.COMPASS_THEORY,
     requiredSectionIds: ["read-content"],
     pointsOnComplete: 10,
   });

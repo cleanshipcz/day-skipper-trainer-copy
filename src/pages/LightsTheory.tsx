@@ -6,11 +6,12 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { ArrowLeft, Lightbulb, AlertTriangle, Volume2, Flame, Ship, Anchor, Wind } from "lucide-react";
 import { useEffect } from "react";
 import { useTheoryCompletionGate } from "@/features/progress/useTheoryCompletionGate";
+import { TOPIC_IDS } from "@/constants/topicRegistry";
 
 const LightsTheory = () => {
   const navigate = useNavigate();
   const { canComplete, markCompleted, markSectionVisited } = useTheoryCompletionGate({
-    topicId: "lights-theory",
+    topicId: TOPIC_IDS.LIGHTS_THEORY,
     requiredSectionIds: ["lights", "shapes", "sounds", "distress"],
     pointsOnComplete: 10,
   });
