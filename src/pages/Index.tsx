@@ -24,8 +24,75 @@ import { supabase } from "@/integrations/supabase/client";
 import { deriveTopicCompletionState } from "@/features/dashboard/topicCompletion";
 import { ModuleMenuGrid } from "@/components/module-menu/ModuleMenuGrid";
 import type { ModuleMenuItem } from "@/components/module-menu/types";
+import { getRootTopics, type TopicEntry } from "@/constants/topicRegistry";
 
-interface Topic {
+/**
+ * Dashboard display metadata for root topics. Keyed by topic registry ID.
+ * Only visual/UI concerns live here — structural data comes from the registry.
+ */
+const topicDisplayMeta: Record<string, {
+  description: string;
+  icon: React.ElementType;
+  color: string;
+  menuColor: string;
+}> = {
+  "nautical-terms": {
+    description: "Interactive boat diagram to learn parts and terminology",
+    icon: Ship,
+    color: "text-ocean",
+    menuColor: "from-cyan-500 to-blue-600",
+  },
+  ropework: {
+    description: "Master essential knots with visual guides",
+    icon: Link2,
+    color: "text-rope",
+    menuColor: "from-amber-500 to-orange-600",
+  },
+  anchorwork: {
+    description: "Anchoring techniques and procedures",
+    icon: Anchor,
+    color: "text-primary",
+    menuColor: "from-sky-500 to-indigo-600",
+  },
+  victualling: {
+    description: "Planning and managing provisions for sea",
+    icon: Fuel,
+    color: "text-secondary",
+    menuColor: "from-emerald-500 to-teal-600",
+  },
+  engine: {
+    description: "Essential engine maintenance procedures",
+    icon: Wrench,
+    color: "text-accent",
+    menuColor: "from-violet-500 to-fuchsia-600",
+  },
+  rig: {
+    description: "Pre-sea rig inspection and preparation",
+    icon: CheckCircle2,
+    color: "text-success",
+    menuColor: "from-green-500 to-emerald-600",
+  },
+  "rules-of-the-road": {
+    description: "Steering Rules (Part B) and Lights (Part C)",
+    icon: Compass,
+    color: "text-red-500",
+    menuColor: "from-rose-500 to-red-600",
+  },
+  navigation: {
+    description: "Charts, Compass, and Position Fixing",
+    icon: Map,
+    color: "text-blue-500",
+    menuColor: "from-blue-500 to-cyan-600",
+  },
+  safety: {
+    description: "Man Overboard, Distress Signals, and Emergency Drills",
+    icon: LifeBuoy,
+    color: "text-red-500",
+    menuColor: "from-red-500 to-orange-600",
+  },
+};
+
+interface DashboardTopic {
   id: string;
   title: string;
   description: string;
@@ -33,106 +100,33 @@ interface Topic {
   path: string;
   color: string;
   completed: boolean;
-  submoduleIds?: string[];
+  submoduleIds?: readonly string[];
   menuColor: string;
 }
 
-const topics: Topic[] = [
-  {
-    id: "nautical-terms",
-    title: "Nautical Terms & Boat Parts",
-    description: "Interactive boat diagram to learn parts and terminology",
-    icon: Ship,
-    path: "/nautical-terms",
-    color: "text-ocean",
-    completed: false,
-    menuColor: "from-cyan-500 to-blue-600",
-    submoduleIds: ["nautical-terms-boat-parts", "nautical-terms-sail-controls", "nautical-terms-quiz"],
-  },
-  {
-    id: "ropework",
-    title: "Ropework & Knots",
-    description: "Master essential knots with visual guides",
-    icon: Link2,
-    path: "/ropework",
-    color: "text-rope",
-    completed: false,
-    menuColor: "from-amber-500 to-orange-600",
-  },
-  {
-    id: "anchorwork",
-    title: "Anchorwork",
-    description: "Anchoring techniques and procedures",
-    icon: Anchor,
-    path: "/anchorwork",
-    color: "text-primary",
-    completed: false,
-    menuColor: "from-sky-500 to-indigo-600",
-  },
-  {
-    id: "victualling",
-    title: "Victualling (Provisioning)",
-    description: "Planning and managing provisions for sea",
-    icon: Fuel,
-    path: "/victualling",
-    color: "text-secondary",
-    completed: false,
-    menuColor: "from-emerald-500 to-teal-600",
-  },
-  {
-    id: "engine",
-    title: "Engine Checks & Maintenance",
-    description: "Essential engine maintenance procedures",
-    icon: Wrench,
-    path: "/engine",
-    color: "text-accent",
-    completed: false,
-    menuColor: "from-violet-500 to-fuchsia-600",
-  },
-  {
-    id: "rig",
-    title: "Rig Checks & Preparation",
-    description: "Pre-sea rig inspection and preparation",
-    icon: CheckCircle2,
-    path: "/rig",
-    color: "text-success",
-    completed: false,
-    menuColor: "from-green-500 to-emerald-600",
-  },
-  {
-    id: "rules-of-the-road",
-    title: "Rules of the Road",
-    description: "Steering Rules (Part B) and Lights (Part C)",
-    icon: Compass,
-    path: "/rules-of-the-road",
-    color: "text-red-500",
-    completed: false,
-    menuColor: "from-rose-500 to-red-600",
-    submoduleIds: ["colregs-theory", "lights-theory", "colregs"],
-  },
-  {
-    id: "navigation",
-    title: "Navigation Fundamentals",
-    description: "Charts, Compass, and Position Fixing",
-    icon: Map,
-    path: "/navigation",
-    color: "text-blue-500",
-    completed: false,
-    menuColor: "from-blue-500 to-cyan-600",
-    submoduleIds: ["charts-theory", "compass-theory", "position-theory"],
-  },
-  {
-    id: "safety",
-    title: "Safety Procedures",
-    description: "Man Overboard, Distress Signals, and Emergency Drills",
-    icon: LifeBuoy,
-    path: "/safety",
-    color: "text-red-500",
-    completed: false,
-    menuColor: "from-red-500 to-orange-600",
-    submoduleIds: ["safety-mob"],
-  },
-];
+/** Derive dashboard topics from the registry + display metadata. */
+const buildDashboardTopics = (): DashboardTopic[] =>
+  getRootTopics().map((entry: TopicEntry) => {
+    const meta = topicDisplayMeta[entry.id] ?? {
+      description: entry.label,
+      icon: BookOpen,
+      color: "text-muted-foreground",
+      menuColor: "from-gray-500 to-gray-600",
+    };
+    return {
+      id: entry.id,
+      title: entry.label,
+      description: meta.description,
+      icon: meta.icon,
+      path: entry.route,
+      color: meta.color,
+      completed: false,
+      submoduleIds: entry.submoduleIds.length > 0 ? entry.submoduleIds : undefined,
+      menuColor: meta.menuColor,
+    };
+  });
+
+const topics = buildDashboardTopics();
 
 interface UserProfile {
   id: string;

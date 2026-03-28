@@ -6,13 +6,14 @@ import { ArrowLeft, LifeBuoy, Megaphone, Ship, Anchor, AlertTriangle, Gamepad2 }
 import { MOBSortingGame } from "@/components/safety/MOBSortingGame";
 import { useProgress } from "@/hooks/useProgress";
 import { useEffect } from "react";
+import { TOPIC_IDS } from "@/constants/topicRegistry";
 
 const ManOverboardTheory = () => {
   const navigate = useNavigate();
   const { saveProgress } = useProgress();
 
   useEffect(() => {
-    saveProgress("safety-mob", true, 100, 10);
+    saveProgress(TOPIC_IDS.SAFETY_MOB, true, 100, 10);
   }, [saveProgress]);
 
   return (

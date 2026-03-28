@@ -7,6 +7,7 @@ import { useNavigate } from "react-router-dom";
 import { toast } from "sonner";
 import { useProgress } from "@/hooks/useProgress";
 import { useAuth } from "@/contexts/AuthHooks";
+import { TOPIC_IDS } from "@/constants/topicRegistry";
 
 interface SailControl {
   id: string;
@@ -525,7 +526,7 @@ const SailControls = () => {
               const finalScore = score + points;
               const maxScore = sailControls.length * POINTS_FIRST_TRY;
               const percentage = Math.round((finalScore / maxScore) * 100);
-              saveProgress("nautical-terms-sail-controls", true, percentage, finalScore);
+              saveProgress(TOPIC_IDS.NAUTICAL_TERMS_SAIL_CONTROLS, true, percentage, finalScore);
             }
           }
         }, 1000);

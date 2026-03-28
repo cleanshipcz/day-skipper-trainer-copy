@@ -8,12 +8,13 @@ import ChartSymbolQuiz from "@/components/navigation/ChartSymbolQuiz";
 import VirtualChartPlotter from "@/components/navigation/VirtualChartPlotter";
 import TidalVisualizer from "@/components/navigation/TidalVisualizer";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { TOPIC_IDS } from "@/constants/topicRegistry";
 
 const ChartsTheory = () => {
   const navigate = useNavigate();
   const [activeTab, setActiveTab] = useState("coordinates");
   const { canComplete, markCompleted, markSectionVisited } = useTheoryCompletionGate({
-    topicId: "charts-theory",
+    topicId: TOPIC_IDS.CHARTS_THEORY,
     requiredSectionIds: ["coordinates", "depths", "symbols"],
     pointsOnComplete: 10,
   });

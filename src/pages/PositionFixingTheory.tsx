@@ -6,11 +6,12 @@ import { useEffect } from "react";
 import { useTheoryCompletionGate } from "@/features/progress/useTheoryCompletionGate";
 // import FixSimulator from "@/components/navigation/FixSimulator"; // Keeping for reference if needed, but unused
 import UnifiedChartTable from "@/components/navigation/unified/UnifiedChartTable";
+import { TOPIC_IDS } from "@/constants/topicRegistry";
 
 const PositionFixingTheory = () => {
   const navigate = useNavigate();
   const { canComplete, markCompleted, markSectionVisited } = useTheoryCompletionGate({
-    topicId: "position-theory",
+    topicId: TOPIC_IDS.POSITION_THEORY,
     requiredSectionIds: ["read-content"],
     pointsOnComplete: 10,
   });

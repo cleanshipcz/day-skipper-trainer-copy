@@ -5,11 +5,12 @@ import { Badge } from "@/components/ui/badge";
 import { ArrowLeft, Compass, AlertTriangle, Wind, Ship } from "lucide-react";
 import { useEffect } from "react";
 import { useTheoryCompletionGate } from "@/features/progress/useTheoryCompletionGate";
+import { TOPIC_IDS } from "@/constants/topicRegistry";
 
 const ColregTheory = () => {
   const navigate = useNavigate();
   const { canComplete, markCompleted, markSectionVisited } = useTheoryCompletionGate({
-    topicId: "colregs-theory",
+    topicId: TOPIC_IDS.COLREGS_THEORY,
     requiredSectionIds: ["read-content"],
     pointsOnComplete: 10,
   });
