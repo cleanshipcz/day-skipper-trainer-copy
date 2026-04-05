@@ -1,5 +1,5 @@
 import { useNavigate } from "react-router-dom";
-import { LifeBuoy } from "lucide-react";
+import { LifeBuoy, Flame } from "lucide-react";
 import { ModuleMenuPage } from "@/components/module-menu/ModuleMenuPage";
 import type { ModuleMenuItem } from "@/components/module-menu/types";
 
@@ -12,6 +12,15 @@ const safetyModules: ModuleMenuItem[] = [
     path: "/safety/mob",
     type: "learn",
     color: "from-red-500 to-rose-500",
+  },
+  {
+    id: "safety-fire",
+    title: "Fire Safety",
+    description: "Fire types, extinguishers, prevention, and engine room procedure",
+    icon: Flame,
+    path: "/safety/fire",
+    type: "learn",
+    color: "from-orange-500 to-amber-500",
   },
 ];
 

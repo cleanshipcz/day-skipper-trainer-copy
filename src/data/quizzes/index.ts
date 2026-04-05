@@ -8,6 +8,7 @@ import rigQuestions from "./rig";
 import colregsQuestions from "./colregs";
 import lightsSignalsQuestions from "./lightsSignals";
 import safetyMobQuestions from "./safetyMob";
+import safetyFireQuestions from "./safetyFire";
 
 /** Registry mapping each quiz topic ID to its question array. */
 export const quizRegistry: Record<string, readonly Question[]> = {
@@ -20,6 +21,7 @@ export const quizRegistry: Record<string, readonly Question[]> = {
   colregs: colregsQuestions,
   "lights-signals": lightsSignalsQuestions,
   "safety-mob-quiz": safetyMobQuestions,
+  "safety-fire-quiz": safetyFireQuestions,
 };
 
 /** Metadata displayed in the quiz header for each topic. */
@@ -51,6 +53,10 @@ export const topicMeta: Record<string, TopicMeta> = {
   "safety-mob-quiz": {
     title: "Man Overboard Quiz",
     subtitle: "Procedures, distress signals, and recovery actions",
+  },
+  "safety-fire-quiz": {
+    title: "Fire Safety Quiz",
+    subtitle: "Fire types, extinguishers, prevention, and emergency procedure",
   },
   colregs: {
     title: "Colregs Quiz",
