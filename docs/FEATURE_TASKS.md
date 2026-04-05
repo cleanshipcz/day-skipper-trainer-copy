@@ -195,7 +195,7 @@ CREATE POLICY "Users manage own <table_name>"
 | E0-S1 | Extract Quiz Data to Separate Files | ✅ Done (PR #36) |
 | E0-S2 | Expand Existing Quizzes to 10–15 Questions | ✅ Done |
 | E0-S3 | Create Topic Registry | ✅ Done |
-| E1-S1 | Fire Safety Sub-module | ⬜ Not Started |
+| E1-S1 | Fire Safety Sub-module | ✅ Done |
 | E1-S2 | Life Raft & Abandon Ship Sub-module | ⬜ Not Started |
 | E1-S3 | Flares & Pyrotechnics Sub-module | ⬜ Not Started |
 | E1-S4 | Personal Safety Equipment Sub-module | ⬜ Not Started |
@@ -346,12 +346,12 @@ CREATE POLICY "Users manage own <table_name>"
 
 **Acceptance Criteria:**
 
-- [ ] AC-1: Route `/safety/fire` renders a theory page covering: fire triangle, fire types (Class A/B/C/electrical), extinguisher types (dry powder, foam, CO2, fire blanket), fire prevention, engine room fire procedure.
-- [ ] AC-2: Interactive "match extinguisher to fire type" drill component (`FireExtinguisherDrill.tsx`).
-- [ ] AC-3: Data file `src/data/fireExtinguishers.ts` defines all extinguisher types with properties, suitable fire classes, and colour codes.
-- [ ] AC-4: Completing the theory page marks `safety-fire` as complete in progress.
-- [ ] AC-5: Points awarded on first completion of theory and drill.
-- [ ] AC-6: Page follows existing theory page patterns (tabs/cards, completion button, `useProgress`).
+- [x] AC-1: Route `/safety/fire` renders a theory page covering: fire triangle, fire types (Class A/B/C/electrical), extinguisher types (dry powder, foam, CO2, fire blanket), fire prevention, engine room fire procedure.
+- [x] AC-2: Interactive "match extinguisher to fire type" drill component (`FireExtinguisherDrill.tsx`).
+- [x] AC-3: Data file `src/data/fireExtinguishers.ts` defines all extinguisher types with properties, suitable fire classes, and colour codes.
+- [x] AC-4: Completing the theory page marks `safety-fire` as complete in progress.
+- [x] AC-5: Points awarded on first completion of theory and drill.
+- [x] AC-6: Page follows existing theory page patterns (tabs/cards, completion button, `useProgress`).
 
 **Dependencies:** None. Reuses existing `ModuleMenuPage`, `CompletionBadge` patterns.
 

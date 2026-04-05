@@ -44,6 +44,7 @@ export const appRoutes: AppRouteDefinition[] = [
   defineRoute({ path: "/navigation/tides/vector-tool", importPage: () => import("@/pages/VectorTriangleTool") }),
   defineRoute({ path: "/safety", importPage: () => import("@/pages/SafetyMenu") }),
   defineRoute({ path: "/safety/mob", importPage: () => import("@/pages/ManOverboardTheory") }),
+  defineRoute({ path: "/safety/fire", importPage: () => import("@/pages/FireSafetyTheory") }),
   defineRoute({ path: "/quiz/:topicId", importPage: () => import("@/pages/Quiz") }),
   defineRoute({ path: "*", importPage: () => import("@/pages/NotFound") }),
 ];
