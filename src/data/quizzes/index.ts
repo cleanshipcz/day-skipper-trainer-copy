@@ -9,6 +9,7 @@ import colregsQuestions from "./colregs";
 import lightsSignalsQuestions from "./lightsSignals";
 import safetyMobQuestions from "./safetyMob";
 import safetyFireQuestions from "./safetyFire";
+import safetyLifeRaftQuestions from "./safetyLifeRaft";
 
 /** Registry mapping each quiz topic ID to its question array. */
 export const quizRegistry: Record<string, readonly Question[]> = {
@@ -22,6 +23,7 @@ export const quizRegistry: Record<string, readonly Question[]> = {
   "lights-signals": lightsSignalsQuestions,
   "safety-mob-quiz": safetyMobQuestions,
   "safety-fire-quiz": safetyFireQuestions,
+  "safety-life-raft-quiz": safetyLifeRaftQuestions,
 };
 
 /** Metadata displayed in the quiz header for each topic. */
@@ -57,6 +59,10 @@ export const topicMeta: Record<string, TopicMeta> = {
   "safety-fire-quiz": {
     title: "Fire Safety Quiz",
     subtitle: "Fire types, extinguishers, prevention, and emergency procedure",
+  },
+  "safety-life-raft-quiz": {
+    title: "Life Raft & Abandon Ship Quiz",
+    subtitle: "Life raft types, deployment, boarding, and survival procedures",
   },
   colregs: {
     title: "Colregs Quiz",
