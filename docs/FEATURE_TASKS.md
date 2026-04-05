@@ -188,6 +188,51 @@ CREATE POLICY "Users manage own <table_name>"
 
 ---
 
+### Story Status Tracker
+
+| Story | Title | Status |
+|-------|-------|--------|
+| E0-S1 | Extract Quiz Data to Separate Files | ✅ Done (PR #36) |
+| E0-S2 | Expand Existing Quizzes to 10–15 Questions | ✅ Done |
+| E0-S3 | Create Topic Registry | ✅ Done |
+| E1-S1 | Fire Safety Sub-module | ⬜ Not Started |
+| E1-S2 | Life Raft & Abandon Ship Sub-module | ⬜ Not Started |
+| E1-S3 | Flares & Pyrotechnics Sub-module | ⬜ Not Started |
+| E1-S4 | Personal Safety Equipment Sub-module | ⬜ Not Started |
+| E1-S5 | Gas Safety Sub-module | ⬜ Not Started |
+| E1-S6 | Comprehensive Safety Quiz | ⬜ Not Started |
+| E1-S7 | Update Safety Menu & Dashboard | ⬜ Not Started |
+| E2-S1 | IALA Buoyage Sub-module | ⬜ Not Started |
+| E2-S2 | Transits & Leading Lines Sub-module | ⬜ Not Started |
+| E2-S3 | Clearing Bearings Sub-module | ⬜ Not Started |
+| E2-S4 | Pilotage Plan Builder | ⬜ Not Started |
+| E2-S5 | Pilotage Quiz | ⬜ Not Started |
+| E2-S6 | Pilotage Menu & Dashboard Integration | ⬜ Not Started |
+| E3-S1 | Weather Systems Sub-module | ⬜ Not Started |
+| E3-S2 | Beaufort Scale Sub-module | ⬜ Not Started |
+| E3-S3 | Weather Forecasts Sub-module | ⬜ Not Started |
+| E3-S4 | Fog & Visibility Sub-module | ⬜ Not Started |
+| E3-S5 | Meteorology Quiz | ⬜ Not Started |
+| E3-S6 | Meteorology Menu & Dashboard Integration | ⬜ Not Started |
+| E4-S1 | PREPARE Mnemonic Sub-module | ⬜ Not Started |
+| E4-S2 | Passage Planning Calculator | ⬜ Not Started |
+| E4-S3 | Passage Plan Builder | ⬜ Not Started |
+| E4-S4 | Pre-departure Checklist | ⬜ Not Started |
+| E4-S5 | Passage Planning Quiz | ⬜ Not Started |
+| E4-S6 | Passage Planning Menu & Dashboard Integration | ⬜ Not Started |
+| E5-S1 | Exam Simulation Mode | ⬜ Not Started |
+| E5-S2 | Exam Results & History | ⬜ Not Started |
+| E6-S1 | Spaced Repetition Engine | ⬜ Not Started |
+| E6-S2 | Review Session UI | ⬜ Not Started |
+| E7-S1 | Badges & Achievements | ⬜ Not Started |
+| E7-S2 | Learning Streaks | ⬜ Not Started |
+| E8-S1 | PWA & Offline Support | ⬜ Not Started |
+| E8-S2 | Mobile Responsiveness Audit | ⬜ Not Started |
+| E8-S3 | VHF/DSC Radio Procedure Trainer | ⬜ Not Started |
+| E8-S4 | Progress Export & Certificate | ⬜ Not Started |
+
+---
+
 ## Phase 0 — Foundation
 
 ### Epic E0: Technical Foundation & Content Expansion
@@ -208,20 +253,20 @@ CREATE POLICY "Users manage own <table_name>"
 
 **Acceptance Criteria:**
 
-- AC-1: A shared `Question` interface is exported from `src/data/quizzes/types.ts`.
-- AC-2: Each existing quiz topic has its own file under `src/data/quizzes/` (nauticalTerms.ts, ropework.ts, anchorwork.ts, victualling.ts, engine.ts, rig.ts, colregs.ts, lightsSignals.ts, safetyMob.ts).
-- AC-3: `Quiz.tsx` imports questions from these files via a registry/map pattern — no inline question data remains.
-- AC-4: `Quiz.tsx` line count reduced by at least 60%.
-- AC-5: All existing quiz tests pass without modification.
-- AC-6: Dynamic import support — quiz data is only loaded when the quiz route is accessed.
+- [x] AC-1: A shared `Question` interface is exported from `src/data/quizzes/types.ts`.
+- [x] AC-2: Each existing quiz topic has its own file under `src/data/quizzes/` (nauticalTerms.ts, ropework.ts, anchorwork.ts, victualling.ts, engine.ts, rig.ts, colregs.ts, lightsSignals.ts, safetyMob.ts).
+- [x] AC-3: `Quiz.tsx` imports questions from these files via a registry/map pattern — no inline question data remains.
+- [x] AC-4: `Quiz.tsx` line count reduced by at least 60%.
+- [x] AC-5: All existing quiz tests pass without modification.
+- [x] AC-6: Dynamic import support — quiz data is only loaded when the quiz route is accessed.
 
 **Tasks:**
 
-1. Define `Question` interface in `src/data/quizzes/types.ts`.
-2. Extract each topic's questions into separate files matching the interface.
-3. Create `src/data/quizzes/index.ts` registry mapping `topicId` → question array.
-4. Refactor `Quiz.tsx` to consume the registry.
-5. Verify all quiz routes render correctly with existing progress tracking.
+1. [x] Define `Question` interface in `src/data/quizzes/types.ts`.
+2. [x] Extract each topic's questions into separate files matching the interface.
+3. [x] Create `src/data/quizzes/index.ts` registry mapping `topicId` → question array.
+4. [x] Refactor `Quiz.tsx` to consume the registry.
+5. [x] Verify all quiz routes render correctly with existing progress tracking.
 
 **Dependencies:** None.
 
@@ -237,11 +282,11 @@ CREATE POLICY "Users manage own <table_name>"
 
 **Acceptance Criteria:**
 
-- AC-1: Every quiz topic has >= 10 questions in its data file.
-- AC-2: New questions cover edge cases and commonly-examined areas per RYA syllabus.
-- AC-3: Questions follow the existing `Question` interface from E0-S1.
-- AC-4: Quiz randomisation (seeded RNG) still works correctly with larger pools.
-- AC-5: Existing quiz scores are not invalidated (new questions append, don't replace).
+- [x] AC-1: Every quiz topic has >= 10 questions in its data file.
+- [x] AC-2: New questions cover edge cases and commonly-examined areas per RYA syllabus.
+- [x] AC-3: Questions follow the existing `Question` interface from E0-S1.
+- [x] AC-4: Quiz randomisation (seeded RNG) still works correctly with larger pools.
+- [x] AC-5: Existing quiz scores are not invalidated (new questions append, don't replace).
 
 **Topics requiring expansion (currently ~5 questions each):**
 
@@ -268,12 +313,12 @@ CREATE POLICY "Users manage own <table_name>"
 
 **Acceptance Criteria:**
 
-- AC-1: `src/constants/topicRegistry.ts` defines every topic with: `id`, `label`, `parentId` (nullable), `route`, `quizRoute` (nullable), `submoduleIds` (array), `syllabusArea` (number 1–13, mapping to RYA syllabus).
-- AC-2: `Index.tsx` consumes the registry instead of inline topic definitions.
-- AC-3: All pages that call `useProgress` / `useTheoryCompletionGate` reference registry constants, not string literals.
-- AC-4: Existing progress data is compatible (IDs unchanged).
-- AC-5: Adding a new topic requires editing only `topicRegistry.ts` and creating the page — no dashboard changes needed.
-- AC-6: The registry maps every topic to a route in `src/app/routes.tsx`, making syllabus coverage programmatically verifiable (i.e., a test can assert that every registry entry with a `route` has a corresponding route definition, and every syllabus area 1–13 has at least one topic).
+- [x] AC-1: `src/constants/topicRegistry.ts` defines every topic with: `id`, `label`, `parentId` (nullable), `route`, `quizRoute` (nullable), `submoduleIds` (array), `syllabusArea` (number 1–13, mapping to RYA syllabus).
+- [x] AC-2: `Index.tsx` consumes the registry instead of inline topic definitions.
+- [x] AC-3: All pages that call `useProgress` / `useTheoryCompletionGate` reference registry constants, not string literals.
+- [x] AC-4: Existing progress data is compatible (IDs unchanged).
+- [x] AC-5: Adding a new topic requires editing only `topicRegistry.ts` and creating the page — no dashboard changes needed.
+- [x] AC-6: The registry maps every topic to a route in `src/app/routes.tsx`, making syllabus coverage programmatically verifiable (i.e., a test can assert that every registry entry with a `route` has a corresponding route definition, and every syllabus area 1–13 has at least one topic).
 
 **Dependencies:** None. Can be done in parallel with E0-S1.
 
@@ -301,12 +346,12 @@ CREATE POLICY "Users manage own <table_name>"
 
 **Acceptance Criteria:**
 
-- AC-1: Route `/safety/fire` renders a theory page covering: fire triangle, fire types (Class A/B/C/electrical), extinguisher types (dry powder, foam, CO2, fire blanket), fire prevention, engine room fire procedure.
-- AC-2: Interactive "match extinguisher to fire type" drill component (`FireExtinguisherDrill.tsx`).
-- AC-3: Data file `src/data/fireExtinguishers.ts` defines all extinguisher types with properties, suitable fire classes, and colour codes.
-- AC-4: Completing the theory page marks `safety-fire` as complete in progress.
-- AC-5: Points awarded on first completion of theory and drill.
-- AC-6: Page follows existing theory page patterns (tabs/cards, completion button, `useProgress`).
+- [ ] AC-1: Route `/safety/fire` renders a theory page covering: fire triangle, fire types (Class A/B/C/electrical), extinguisher types (dry powder, foam, CO2, fire blanket), fire prevention, engine room fire procedure.
+- [ ] AC-2: Interactive "match extinguisher to fire type" drill component (`FireExtinguisherDrill.tsx`).
+- [ ] AC-3: Data file `src/data/fireExtinguishers.ts` defines all extinguisher types with properties, suitable fire classes, and colour codes.
+- [ ] AC-4: Completing the theory page marks `safety-fire` as complete in progress.
+- [ ] AC-5: Points awarded on first completion of theory and drill.
+- [ ] AC-6: Page follows existing theory page patterns (tabs/cards, completion button, `useProgress`).
 
 **Dependencies:** None. Reuses existing `ModuleMenuPage`, `CompletionBadge` patterns.
 
@@ -322,10 +367,10 @@ CREATE POLICY "Users manage own <table_name>"
 
 **Acceptance Criteria:**
 
-- AC-1: Route `/safety/life-raft` renders theory covering: when to abandon ship, life raft types, SOLAS pack contents, deployment procedure, boarding procedure, actions in the raft.
-- AC-2: Interactive step-ordering game (reuse `MOBSortingGame` pattern) for abandon ship procedure.
-- AC-3: Completing the theory marks `safety-life-raft` as complete in progress.
-- AC-4: Points awarded on first completion.
+- [ ] AC-1: Route `/safety/life-raft` renders theory covering: when to abandon ship, life raft types, SOLAS pack contents, deployment procedure, boarding procedure, actions in the raft.
+- [ ] AC-2: Interactive step-ordering game (reuse `MOBSortingGame` pattern) for abandon ship procedure.
+- [ ] AC-3: Completing the theory marks `safety-life-raft` as complete in progress.
+- [ ] AC-4: Points awarded on first completion.
 
 **Dependencies:** None.
 
@@ -341,11 +386,11 @@ CREATE POLICY "Users manage own <table_name>"
 
 **Acceptance Criteria:**
 
-- AC-1: Route `/safety/flares` renders theory covering: red parachute rocket, red hand flare, orange smoke (hand + buoyant), white hand flare (collision warning); range, burn time, day/night suitability, expiry rules.
-- AC-2: Data file `src/data/flareTypes.ts` defines all flare types with properties.
-- AC-3: Interactive "identify the flare" quiz component — given a scenario, pick the correct flare.
-- AC-4: Completing the theory marks `safety-flares` as complete in progress.
-- AC-5: Points awarded on first completion.
+- [ ] AC-1: Route `/safety/flares` renders theory covering: red parachute rocket, red hand flare, orange smoke (hand + buoyant), white hand flare (collision warning); range, burn time, day/night suitability, expiry rules.
+- [ ] AC-2: Data file `src/data/flareTypes.ts` defines all flare types with properties.
+- [ ] AC-3: Interactive "identify the flare" quiz component — given a scenario, pick the correct flare.
+- [ ] AC-4: Completing the theory marks `safety-flares` as complete in progress.
+- [ ] AC-5: Points awarded on first completion.
 
 **Dependencies:** None.
 
@@ -361,9 +406,9 @@ CREATE POLICY "Users manage own <table_name>"
 
 **Acceptance Criteria:**
 
-- AC-1: Route `/safety/personal` renders theory covering: life jacket types (100N, 150N, 275N), auto-inflate vs manual, servicing schedule, crotch straps, harnesses & tethers, jacklines, kill cords.
-- AC-2: Completing the theory marks `safety-personal` as complete in progress.
-- AC-3: Points awarded on first completion.
+- [ ] AC-1: Route `/safety/personal` renders theory covering: life jacket types (100N, 150N, 275N), auto-inflate vs manual, servicing schedule, crotch straps, harnesses & tethers, jacklines, kill cords.
+- [ ] AC-2: Completing the theory marks `safety-personal` as complete in progress.
+- [ ] AC-3: Points awarded on first completion.
 
 **Dependencies:** None.
 
@@ -379,9 +424,9 @@ CREATE POLICY "Users manage own <table_name>"
 
 **Acceptance Criteria:**
 
-- AC-1: Route `/safety/gas` renders theory covering: LPG properties (heavier than air), isolation valves, bilge sniff test, gas locker requirements, carbon monoxide awareness, detector placement.
-- AC-2: Completing the theory marks `safety-gas` as complete in progress.
-- AC-3: Points awarded on first completion.
+- [ ] AC-1: Route `/safety/gas` renders theory covering: LPG properties (heavier than air), isolation valves, bilge sniff test, gas locker requirements, carbon monoxide awareness, detector placement.
+- [ ] AC-2: Completing the theory marks `safety-gas` as complete in progress.
+- [ ] AC-3: Points awarded on first completion.
 
 **Dependencies:** None.
 
@@ -397,11 +442,11 @@ CREATE POLICY "Users manage own <table_name>"
 
 **Acceptance Criteria:**
 
-- AC-1: Data file `src/data/quizzes/safety.ts` contains >= 20 questions spanning MOB, fire, life raft, flares, personal, gas.
-- AC-2: Questions follow the shared `Question` interface.
-- AC-3: Quiz accessible via `/quiz/safety` route.
-- AC-4: Existing `/quiz/safety-mob` route continues to work (backward compatible).
-- AC-5: Progress and scoring persist correctly.
+- [ ] AC-1: Data file `src/data/quizzes/safety.ts` contains >= 20 questions spanning MOB, fire, life raft, flares, personal, gas.
+- [ ] AC-2: Questions follow the shared `Question` interface.
+- [ ] AC-3: Quiz accessible via `/quiz/safety` route.
+- [ ] AC-4: Existing `/quiz/safety-mob` route continues to work (backward compatible).
+- [ ] AC-5: Progress and scoring persist correctly.
 
 **Dependencies:** DEP-E0S1 (quiz data structure), DEP-E1S1–E1S5 (content knowledge for question writing).
 
@@ -417,10 +462,10 @@ CREATE POLICY "Users manage own <table_name>"
 
 **Acceptance Criteria:**
 
-- AC-1: `SafetyMenu.tsx` lists all 6 sub-modules (MOB, fire, life-raft, flares, personal, gas) with completion badges.
-- AC-2: Dashboard topic card for Safety shows completion based on all sub-modules.
-- AC-3: Topic registry (E0-S3) updated with new safety sub-module IDs.
-- AC-4: Routes registered in `routes.tsx` with lazy loading.
+- [ ] AC-1: `SafetyMenu.tsx` lists all 6 sub-modules (MOB, fire, life-raft, flares, personal, gas) with completion badges.
+- [ ] AC-2: Dashboard topic card for Safety shows completion based on all sub-modules.
+- [ ] AC-3: Topic registry (E0-S3) updated with new safety sub-module IDs.
+- [ ] AC-4: Routes registered in `routes.tsx` with lazy loading.
 
 **Dependencies:** DEP-E0S3 (topic registry), DEP-E1S1–E1S5 (page components exist).
 
@@ -448,11 +493,11 @@ CREATE POLICY "Users manage own <table_name>"
 
 **Acceptance Criteria:**
 
-- AC-1: Route `/pilotage/buoyage` renders theory covering: IALA Region A system, lateral marks (port/starboard), cardinal marks (N/E/S/W), isolated danger, safe water, special marks, new danger marks.
-- AC-2: Data file `src/data/ialabuoys.ts` defines all buoy types with: name, colour, top mark shape, light characteristic, meaning, and an SVG/visual representation descriptor.
-- AC-3: Interactive `BuoyIdentifier.tsx` component — given a buoy visual, user identifies the type/meaning. Minimum 12 identification challenges.
-- AC-4: Cardinal marks include the clock-face mnemonic for remembering light patterns.
-- AC-5: Completing theory marks `pilotage-buoyage` as complete; points awarded.
+- [ ] AC-1: Route `/pilotage/buoyage` renders theory covering: IALA Region A system, lateral marks (port/starboard), cardinal marks (N/E/S/W), isolated danger, safe water, special marks, new danger marks.
+- [ ] AC-2: Data file `src/data/ialabuoys.ts` defines all buoy types with: name, colour, top mark shape, light characteristic, meaning, and an SVG/visual representation descriptor.
+- [ ] AC-3: Interactive `BuoyIdentifier.tsx` component — given a buoy visual, user identifies the type/meaning. Minimum 12 identification challenges.
+- [ ] AC-4: Cardinal marks include the clock-face mnemonic for remembering light patterns.
+- [ ] AC-5: Completing theory marks `pilotage-buoyage` as complete; points awarded.
 
 **Dependencies:** None.
 
@@ -468,10 +513,10 @@ CREATE POLICY "Users manage own <table_name>"
 
 **Acceptance Criteria:**
 
-- AC-1: Route `/pilotage/transits` renders theory covering: what a transit is, how leading lines guide approach, natural vs charted transits, maintaining a transit, clearing transits.
-- AC-2: Interactive `TransitExercise.tsx` — harbour chart view where user drags vessel to align with transit markers. Minimum 3 exercises of increasing difficulty.
-- AC-3: Visual feedback shows when vessel is on/off the transit line.
-- AC-4: Completing theory marks `pilotage-transits` as complete; points awarded.
+- [ ] AC-1: Route `/pilotage/transits` renders theory covering: what a transit is, how leading lines guide approach, natural vs charted transits, maintaining a transit, clearing transits.
+- [ ] AC-2: Interactive `TransitExercise.tsx` — harbour chart view where user drags vessel to align with transit markers. Minimum 3 exercises of increasing difficulty.
+- [ ] AC-3: Visual feedback shows when vessel is on/off the transit line.
+- [ ] AC-4: Completing theory marks `pilotage-transits` as complete; points awarded.
 
 **Dependencies:** None.
 
@@ -487,10 +532,10 @@ CREATE POLICY "Users manage own <table_name>"
 
 **Acceptance Criteria:**
 
-- AC-1: Route `/pilotage/clearing-bearings` renders theory covering: purpose of clearing bearings, how to plot them on a chart, "not less than" / "not more than" conventions, using compass to monitor.
-- AC-2: Interactive `ClearingBearingTool.tsx` — chart exercise where user plots clearing bearings to avoid marked hazards. Minimum 2 scenarios.
-- AC-3: Tool validates user-plotted bearings against correct solutions with tolerance.
-- AC-4: Completing theory marks `pilotage-clearing-bearings` as complete; points awarded.
+- [ ] AC-1: Route `/pilotage/clearing-bearings` renders theory covering: purpose of clearing bearings, how to plot them on a chart, "not less than" / "not more than" conventions, using compass to monitor.
+- [ ] AC-2: Interactive `ClearingBearingTool.tsx` — chart exercise where user plots clearing bearings to avoid marked hazards. Minimum 2 scenarios.
+- [ ] AC-3: Tool validates user-plotted bearings against correct solutions with tolerance.
+- [ ] AC-4: Completing theory marks `pilotage-clearing-bearings` as complete; points awarded.
 
 **Dependencies:** Can reuse SVG/canvas patterns from existing chart plotter (`VirtualChartPlotter.tsx`).
 
@@ -506,11 +551,11 @@ CREATE POLICY "Users manage own <table_name>"
 
 **Acceptance Criteria:**
 
-- AC-1: Route `/pilotage/plan` renders a step-by-step pilotage plan builder.
-- AC-2: User can add waypoints with: name, bearing, distance, tidal offset, notes.
-- AC-3: Plan calculates cumulative distance and estimated times.
-- AC-4: At least 1 pre-built example harbour approach for guided practice.
-- AC-5: Completing a plan marks `pilotage-plan` as complete; points awarded.
+- [ ] AC-1: Route `/pilotage/plan` renders a step-by-step pilotage plan builder.
+- [ ] AC-2: User can add waypoints with: name, bearing, distance, tidal offset, notes.
+- [ ] AC-3: Plan calculates cumulative distance and estimated times.
+- [ ] AC-4: At least 1 pre-built example harbour approach for guided practice.
+- [ ] AC-5: Completing a plan marks `pilotage-plan` as complete; points awarded.
 
 **Dependencies:** None.
 
@@ -526,10 +571,10 @@ CREATE POLICY "Users manage own <table_name>"
 
 **Acceptance Criteria:**
 
-- AC-1: Data file `src/data/quizzes/pilotage.ts` contains >= 20 questions covering all pilotage sub-topics.
-- AC-2: Questions include buoy identification (given description → name type), cardinal mark light patterns, transit principles, clearing bearing scenarios.
-- AC-3: Quiz accessible via `/quiz/pilotage`.
-- AC-4: Progress and scoring persist correctly.
+- [ ] AC-1: Data file `src/data/quizzes/pilotage.ts` contains >= 20 questions covering all pilotage sub-topics.
+- [ ] AC-2: Questions include buoy identification (given description → name type), cardinal mark light patterns, transit principles, clearing bearing scenarios.
+- [ ] AC-3: Quiz accessible via `/quiz/pilotage`.
+- [ ] AC-4: Progress and scoring persist correctly.
 
 **Dependencies:** DEP-E0S1 (quiz infrastructure), DEP-E2S1–E2S4 (content knowledge).
 
@@ -545,11 +590,11 @@ CREATE POLICY "Users manage own <table_name>"
 
 **Acceptance Criteria:**
 
-- AC-1: Route `/pilotage` renders a `ModuleMenuPage` listing all pilotage sub-modules with completion badges.
-- AC-2: Dashboard shows Pilotage as a top-level topic with progress derived from sub-module completion.
-- AC-3: Topic registry updated with pilotage topic and all sub-module IDs.
-- AC-4: Routes registered in `routes.tsx` with lazy loading.
-- AC-5: Dashboard now shows 11/13 → 12/13 (or more) syllabus areas.
+- [ ] AC-1: Route `/pilotage` renders a `ModuleMenuPage` listing all pilotage sub-modules with completion badges.
+- [ ] AC-2: Dashboard shows Pilotage as a top-level topic with progress derived from sub-module completion.
+- [ ] AC-3: Topic registry updated with pilotage topic and all sub-module IDs.
+- [ ] AC-4: Routes registered in `routes.tsx` with lazy loading.
+- [ ] AC-5: Dashboard now shows 11/13 → 12/13 (or more) syllabus areas.
 
 **Dependencies:** DEP-E0S3, DEP-E2S1–E2S5.
 
@@ -577,10 +622,10 @@ CREATE POLICY "Users manage own <table_name>"
 
 **Acceptance Criteria:**
 
-- AC-1: Route `/weather/systems` renders theory covering: atmospheric pressure, isobars, wind direction (Buys Ballot's law), high pressure (anticyclones), low pressure (depressions), warm fronts, cold fronts, occluded fronts, associated weather sequences.
-- AC-2: Interactive `SynopticChartReader.tsx` — presents a simplified synoptic chart and asks user to identify pressure systems, front types, and predict wind direction. Minimum 3 chart scenarios.
-- AC-3: Visual frontal symbols (warm = red semicircles, cold = blue triangles, occluded = alternating) clearly rendered.
-- AC-4: Completing theory marks `weather-systems` as complete; points awarded.
+- [ ] AC-1: Route `/weather/systems` renders theory covering: atmospheric pressure, isobars, wind direction (Buys Ballot's law), high pressure (anticyclones), low pressure (depressions), warm fronts, cold fronts, occluded fronts, associated weather sequences.
+- [ ] AC-2: Interactive `SynopticChartReader.tsx` — presents a simplified synoptic chart and asks user to identify pressure systems, front types, and predict wind direction. Minimum 3 chart scenarios.
+- [ ] AC-3: Visual frontal symbols (warm = red semicircles, cold = blue triangles, occluded = alternating) clearly rendered.
+- [ ] AC-4: Completing theory marks `weather-systems` as complete; points awarded.
 
 **Dependencies:** None.
 
@@ -596,11 +641,11 @@ CREATE POLICY "Users manage own <table_name>"
 
 **Acceptance Criteria:**
 
-- AC-1: Route `/weather/beaufort` renders the full Beaufort scale (Force 0–12) with: wind speed (knots), description, sea state, wave height.
-- AC-2: Data file `src/data/beaufortScale.ts` defines all 13 levels with properties.
-- AC-3: Interactive `BeaufortDrill.tsx` — "guess the force" drill: given a sea state description or wind speed, identify the Beaufort number. Minimum 10 drill items.
-- AC-4: Bidirectional lookup: wind speed → force and force → conditions.
-- AC-5: Completing theory marks `weather-beaufort` as complete; points awarded.
+- [ ] AC-1: Route `/weather/beaufort` renders the full Beaufort scale (Force 0–12) with: wind speed (knots), description, sea state, wave height.
+- [ ] AC-2: Data file `src/data/beaufortScale.ts` defines all 13 levels with properties.
+- [ ] AC-3: Interactive `BeaufortDrill.tsx` — "guess the force" drill: given a sea state description or wind speed, identify the Beaufort number. Minimum 10 drill items.
+- [ ] AC-4: Bidirectional lookup: wind speed → force and force → conditions.
+- [ ] AC-5: Completing theory marks `weather-beaufort` as complete; points awarded.
 
 **Dependencies:** None.
 
@@ -616,11 +661,11 @@ CREATE POLICY "Users manage own <table_name>"
 
 **Acceptance Criteria:**
 
-- AC-1: Route `/weather/forecasts` renders theory covering: VHF Coastguard forecasts (schedule, channels), Navtex, online sources (Met Office, Windy), shipping forecast structure (synopsis, area forecasts), inshore waters forecast.
-- AC-2: Data file `src/data/forecastAreas.ts` defines UK shipping forecast sea areas.
-- AC-3: Interactive `ForecastAreaMap.tsx` — clickable map of shipping forecast areas; user identifies areas by name or locates a named area on the map.
-- AC-4: Example shipping forecast with guided interpretation exercise.
-- AC-5: Completing theory marks `weather-forecasts` as complete; points awarded.
+- [ ] AC-1: Route `/weather/forecasts` renders theory covering: VHF Coastguard forecasts (schedule, channels), Navtex, online sources (Met Office, Windy), shipping forecast structure (synopsis, area forecasts), inshore waters forecast.
+- [ ] AC-2: Data file `src/data/forecastAreas.ts` defines UK shipping forecast sea areas.
+- [ ] AC-3: Interactive `ForecastAreaMap.tsx` — clickable map of shipping forecast areas; user identifies areas by name or locates a named area on the map.
+- [ ] AC-4: Example shipping forecast with guided interpretation exercise.
+- [ ] AC-5: Completing theory marks `weather-forecasts` as complete; points awarded.
 
 **Dependencies:** None.
 
@@ -636,9 +681,9 @@ CREATE POLICY "Users manage own <table_name>"
 
 **Acceptance Criteria:**
 
-- AC-1: Route `/weather/fog` renders theory covering: advection fog (warm air over cold sea), radiation fog (land, then drifts to sea), sea fog, visibility scale (good / moderate / poor / fog), fog signals (COLREGs Rule 35 cross-reference).
-- AC-2: Practical guidance: actions in fog (radar reflector, sound signals, reduce speed, post lookout).
-- AC-3: Completing theory marks `weather-fog` as complete; points awarded.
+- [ ] AC-1: Route `/weather/fog` renders theory covering: advection fog (warm air over cold sea), radiation fog (land, then drifts to sea), sea fog, visibility scale (good / moderate / poor / fog), fog signals (COLREGs Rule 35 cross-reference).
+- [ ] AC-2: Practical guidance: actions in fog (radar reflector, sound signals, reduce speed, post lookout).
+- [ ] AC-3: Completing theory marks `weather-fog` as complete; points awarded.
 
 **Dependencies:** None.
 
@@ -654,9 +699,9 @@ CREATE POLICY "Users manage own <table_name>"
 
 **Acceptance Criteria:**
 
-- AC-1: Data file `src/data/quizzes/weather.ts` contains >= 20 questions spanning weather systems, Beaufort scale, forecasts, and fog.
-- AC-2: Quiz accessible via `/quiz/weather`.
-- AC-3: Progress and scoring persist correctly.
+- [ ] AC-1: Data file `src/data/quizzes/weather.ts` contains >= 20 questions spanning weather systems, Beaufort scale, forecasts, and fog.
+- [ ] AC-2: Quiz accessible via `/quiz/weather`.
+- [ ] AC-3: Progress and scoring persist correctly.
 
 **Dependencies:** DEP-E0S1, DEP-E3S1–E3S4.
 
@@ -668,10 +713,10 @@ CREATE POLICY "Users manage own <table_name>"
 
 **Acceptance Criteria:**
 
-- AC-1: Route `/weather` renders a `ModuleMenuPage` with all weather sub-modules and completion badges.
-- AC-2: Dashboard shows Meteorology as a top-level topic.
-- AC-3: Topic registry updated.
-- AC-4: Routes registered with lazy loading.
+- [ ] AC-1: Route `/weather` renders a `ModuleMenuPage` with all weather sub-modules and completion badges.
+- [ ] AC-2: Dashboard shows Meteorology as a top-level topic.
+- [ ] AC-3: Topic registry updated.
+- [ ] AC-4: Routes registered with lazy loading.
 
 **Dependencies:** DEP-E0S3, DEP-E3S1–E3S5.
 
@@ -699,10 +744,10 @@ CREATE POLICY "Users manage own <table_name>"
 
 **Acceptance Criteria:**
 
-- AC-1: Route `/passage-planning/prepare` renders theory covering: **P**assage appraisal, **R**egulations, **E**quipment, **P**assage plan, **A**lternatives, **R**evise, **E**xecute — each with detailed explanation and examples.
-- AC-2: Data file `src/data/prepareSteps.ts` defines each step with title, description, key considerations, and examples.
-- AC-3: Interactive expandable cards for each PREPARE step.
-- AC-4: Completing theory marks `passage-planning-prepare` as complete; points awarded.
+- [ ] AC-1: Route `/passage-planning/prepare` renders theory covering: **P**assage appraisal, **R**egulations, **E**quipment, **P**assage plan, **A**lternatives, **R**evise, **E**xecute — each with detailed explanation and examples.
+- [ ] AC-2: Data file `src/data/prepareSteps.ts` defines each step with title, description, key considerations, and examples.
+- [ ] AC-3: Interactive expandable cards for each PREPARE step.
+- [ ] AC-4: Completing theory marks `passage-planning-prepare` as complete; points awarded.
 
 **Dependencies:** None.
 
@@ -718,12 +763,12 @@ CREATE POLICY "Users manage own <table_name>"
 
 **Acceptance Criteria:**
 
-- AC-1: Route `/passage-planning/calculator` renders `FuelCalculator.tsx`.
-- AC-2: Inputs: distance (nm), SOG (knots), fuel consumption rate (litres/hour).
-- AC-3: Outputs: passage time, fuel required, fuel with reserve (configurable reserve %, default 20%), ETA given departure time.
-- AC-4: Validates inputs (positive numbers, reasonable ranges).
-- AC-5: At least 2 example scenarios pre-loaded for practice.
-- AC-6: Completing a calculation marks `passage-planning-calculator` as complete; points awarded.
+- [ ] AC-1: Route `/passage-planning/calculator` renders `FuelCalculator.tsx`.
+- [ ] AC-2: Inputs: distance (nm), SOG (knots), fuel consumption rate (litres/hour).
+- [ ] AC-3: Outputs: passage time, fuel required, fuel with reserve (configurable reserve %, default 20%), ETA given departure time.
+- [ ] AC-4: Validates inputs (positive numbers, reasonable ranges).
+- [ ] AC-5: At least 2 example scenarios pre-loaded for practice.
+- [ ] AC-6: Completing a calculation marks `passage-planning-calculator` as complete; points awarded.
 
 **Dependencies:** None.
 
@@ -739,13 +784,13 @@ CREATE POLICY "Users manage own <table_name>"
 
 **Acceptance Criteria:**
 
-- AC-1: Route `/passage-planning/builder` renders `PassagePlanBuilder.tsx`.
-- AC-2: User can add/edit/remove waypoints with: name, latitude, longitude, bearing to next, distance to next, notes.
-- AC-3: User can specify tidal gates (waypoint + window of safe passage times).
-- AC-4: Auto-calculates: leg ETAs (given departure time and SOG), total distance, total time.
-- AC-5: At least 1 pre-built example passage for guided walkthrough.
-- AC-6: Plan is printable / exportable as a formatted view (browser print CSS).
-- AC-7: Completing a plan marks `passage-planning-builder` as complete; points awarded.
+- [ ] AC-1: Route `/passage-planning/builder` renders `PassagePlanBuilder.tsx`.
+- [ ] AC-2: User can add/edit/remove waypoints with: name, latitude, longitude, bearing to next, distance to next, notes.
+- [ ] AC-3: User can specify tidal gates (waypoint + window of safe passage times).
+- [ ] AC-4: Auto-calculates: leg ETAs (given departure time and SOG), total distance, total time.
+- [ ] AC-5: At least 1 pre-built example passage for guided walkthrough.
+- [ ] AC-6: Plan is printable / exportable as a formatted view (browser print CSS).
+- [ ] AC-7: Completing a plan marks `passage-planning-builder` as complete; points awarded.
 
 **Dependencies:** None.
 
@@ -761,11 +806,11 @@ CREATE POLICY "Users manage own <table_name>"
 
 **Acceptance Criteria:**
 
-- AC-1: Route `/passage-planning/checklist` renders `PreDepartureChecklist.tsx`.
-- AC-2: Data file `src/data/preDepartureChecklist.ts` defines checklist items grouped by category: crew brief, safety equipment, communications, weather, engine, navigation lights, provisions.
-- AC-3: Interactive checkable items; progress shown as percentage.
-- AC-4: Explanation text for each item (why it matters).
-- AC-5: Completing all items marks `passage-planning-checklist` as complete; points awarded.
+- [ ] AC-1: Route `/passage-planning/checklist` renders `PreDepartureChecklist.tsx`.
+- [ ] AC-2: Data file `src/data/preDepartureChecklist.ts` defines checklist items grouped by category: crew brief, safety equipment, communications, weather, engine, navigation lights, provisions.
+- [ ] AC-3: Interactive checkable items; progress shown as percentage.
+- [ ] AC-4: Explanation text for each item (why it matters).
+- [ ] AC-5: Completing all items marks `passage-planning-checklist` as complete; points awarded.
 
 **Dependencies:** None.
 
@@ -781,9 +826,9 @@ CREATE POLICY "Users manage own <table_name>"
 
 **Acceptance Criteria:**
 
-- AC-1: Data file `src/data/quizzes/passagePlanning.ts` contains >= 20 questions covering PREPARE, fuel calculations, tidal gates, checklists, contingency planning.
-- AC-2: Quiz accessible via `/quiz/passage-planning`.
-- AC-3: Progress and scoring persist correctly.
+- [ ] AC-1: Data file `src/data/quizzes/passagePlanning.ts` contains >= 20 questions covering PREPARE, fuel calculations, tidal gates, checklists, contingency planning.
+- [ ] AC-2: Quiz accessible via `/quiz/passage-planning`.
+- [ ] AC-3: Progress and scoring persist correctly.
 
 **Dependencies:** DEP-E0S1, DEP-E4S1–E4S4.
 
@@ -795,11 +840,11 @@ CREATE POLICY "Users manage own <table_name>"
 
 **Acceptance Criteria:**
 
-- AC-1: Route `/passage-planning` renders a `ModuleMenuPage` with all sub-modules and completion badges.
-- AC-2: Dashboard shows Passage Planning as a top-level topic.
-- AC-3: Cross-links to Pilotage and Meteorology modules where relevant (e.g., "See also: Weather Systems" in passage appraisal section).
-- AC-4: Topic registry updated. Routes registered with lazy loading.
-- AC-5: Dashboard now reflects **13/13 syllabus areas covered**.
+- [ ] AC-1: Route `/passage-planning` renders a `ModuleMenuPage` with all sub-modules and completion badges.
+- [ ] AC-2: Dashboard shows Passage Planning as a top-level topic.
+- [ ] AC-3: Cross-links to Pilotage and Meteorology modules where relevant (e.g., "See also: Weather Systems" in passage appraisal section).
+- [ ] AC-4: Topic registry updated. Routes registered with lazy loading.
+- [ ] AC-5: Dashboard now reflects **13/13 syllabus areas covered**.
 
 **Dependencies:** DEP-E0S3, DEP-E4S1–E4S5. Cross-links benefit from E2 and E3 being complete.
 
@@ -823,13 +868,13 @@ CREATE POLICY "Users manage own <table_name>"
 
 **Acceptance Criteria:**
 
-- AC-1: Route `/exam` renders a mock exam interface.
-- AC-2: Draws 48 questions proportionally from all quiz banks (weighted by syllabus importance: navigation/COLREGs heavier, victualling lighter).
-- AC-3: Countdown timer (100 minutes default, configurable).
-- AC-4: No explanations shown during exam — only question, options, and navigation.
-- AC-5: User can navigate forward/backward between questions and flag questions for review.
-- AC-6: Auto-submits when timer expires.
-- AC-7: Pass mark: 65% (configurable).
+- [ ] AC-1: Route `/exam` renders a mock exam interface.
+- [ ] AC-2: Draws 48 questions proportionally from all quiz banks (weighted by syllabus importance: navigation/COLREGs heavier, victualling lighter).
+- [ ] AC-3: Countdown timer (100 minutes default, configurable).
+- [ ] AC-4: No explanations shown during exam — only question, options, and navigation.
+- [ ] AC-5: User can navigate forward/backward between questions and flag questions for review.
+- [ ] AC-6: Auto-submits when timer expires.
+- [ ] AC-7: Pass mark: 65% (configurable).
 
 **Dependencies:** DEP-E0S1 (all quiz data extracted and accessible via registry).
 
@@ -845,12 +890,12 @@ CREATE POLICY "Users manage own <table_name>"
 
 **Acceptance Criteria:**
 
-- AC-1: Results page after exam shows: overall %, per-topic breakdown, pass/fail verdict, time taken.
-- AC-2: Explanations shown for incorrect answers on the results page.
-- AC-3: New Supabase table `exam_results` stores: user_id, score, percentage, total_questions, time_taken_seconds, passed, topic_breakdown (JSONB), completed_at.
-- AC-4: Migration file created for `exam_results` table (following [Migration Conventions](#supabase-migration-conventions)). Migration includes RLS enablement and `FOR ALL` policy scoped to `auth.uid() = user_id` (per [RLS Requirements](#rls-policy-requirements)).
-- AC-5: Route `/exam/history` shows past attempts with date, score, pass/fail, and trend line (chart).
-- AC-6: Points awarded for completing an exam; bonus points for passing.
+- [ ] AC-1: Results page after exam shows: overall %, per-topic breakdown, pass/fail verdict, time taken.
+- [ ] AC-2: Explanations shown for incorrect answers on the results page.
+- [ ] AC-3: New Supabase table `exam_results` stores: user_id, score, percentage, total_questions, time_taken_seconds, passed, topic_breakdown (JSONB), completed_at.
+- [ ] AC-4: Migration file created for `exam_results` table (following [Migration Conventions](#supabase-migration-conventions)). Migration includes RLS enablement and `FOR ALL` policy scoped to `auth.uid() = user_id` (per [RLS Requirements](#rls-policy-requirements)).
+- [ ] AC-5: Route `/exam/history` shows past attempts with date, score, pass/fail, and trend line (chart).
+- [ ] AC-6: Points awarded for completing an exam; bonus points for passing.
 
 **Dependencies:** DEP-E5S1.
 
@@ -872,11 +917,11 @@ CREATE POLICY "Users manage own <table_name>"
 
 **Acceptance Criteria:**
 
-- AC-1: Module `src/features/spaced-repetition/sm2.ts` implements the SM-2 algorithm: given (quality 0–5, current ease_factor, current interval, repetitions), returns (new ease_factor, new interval, new repetitions).
-- AC-2: New Supabase table `question_reviews` (schema per `[FEATURES §Appendix]`).
-- AC-3: Migration file created for `question_reviews` table (following [Migration Conventions](#supabase-migration-conventions)). Migration includes RLS enablement and `FOR ALL` policy scoped to `auth.uid() = user_id` (per [RLS Requirements](#rls-policy-requirements)).
-- AC-4: Service layer `src/features/spaced-repetition/reviewService.ts` handles: recording a review, fetching due questions, calculating next review date.
-- AC-5: Algorithm is pure (no side effects) and thoroughly unit-tested with known SM-2 test vectors.
+- [ ] AC-1: Module `src/features/spaced-repetition/sm2.ts` implements the SM-2 algorithm: given (quality 0–5, current ease_factor, current interval, repetitions), returns (new ease_factor, new interval, new repetitions).
+- [ ] AC-2: New Supabase table `question_reviews` (schema per `[FEATURES §Appendix]`).
+- [ ] AC-3: Migration file created for `question_reviews` table (following [Migration Conventions](#supabase-migration-conventions)). Migration includes RLS enablement and `FOR ALL` policy scoped to `auth.uid() = user_id` (per [RLS Requirements](#rls-policy-requirements)).
+- [ ] AC-4: Service layer `src/features/spaced-repetition/reviewService.ts` handles: recording a review, fetching due questions, calculating next review date.
+- [ ] AC-5: Algorithm is pure (no side effects) and thoroughly unit-tested with known SM-2 test vectors.
 
 **Dependencies:** DEP-E0S1 (questions have stable IDs for tracking).
 
@@ -892,11 +937,11 @@ CREATE POLICY "Users manage own <table_name>"
 
 **Acceptance Criteria:**
 
-- AC-1: Route `/review` renders a review session pulling all due questions (next_review_at <= now) across all topics.
-- AC-2: After answering, user self-rates difficulty (0–5) or system auto-rates based on correctness.
-- AC-3: Session ends when no more due questions; shows summary (reviewed count, accuracy).
-- AC-4: Dashboard widget shows "X questions due for review" count.
-- AC-5: New questions are seeded into the review system when a quiz is first completed.
+- [ ] AC-1: Route `/review` renders a review session pulling all due questions (next_review_at <= now) across all topics.
+- [ ] AC-2: After answering, user self-rates difficulty (0–5) or system auto-rates based on correctness.
+- [ ] AC-3: Session ends when no more due questions; shows summary (reviewed count, accuracy).
+- [ ] AC-4: Dashboard widget shows "X questions due for review" count.
+- [ ] AC-5: New questions are seeded into the review system when a quiz is first completed.
 
 **Dependencies:** DEP-E6S1.
 
@@ -920,13 +965,13 @@ CREATE POLICY "Users manage own <table_name>"
 
 **Acceptance Criteria:**
 
-- AC-1: Data file `src/data/badges.ts` defines >= 15 badges with: id, name, description, icon, unlock condition.
-- AC-2: Badge categories: per-topic completion, quiz milestones (first quiz, perfect score), points thresholds, streaks, full syllabus.
-- AC-3: New Supabase table `user_badges` (schema per `[FEATURES §Appendix]`).
-- AC-4: Migration file created (following [Migration Conventions](#supabase-migration-conventions)). Migration includes RLS enablement with split policies: `SELECT` + `INSERT` only — badges are immutable once earned (per [RLS Requirements](#rls-policy-requirements)).
-- AC-5: Toast notification on badge unlock with badge name and icon.
-- AC-6: Profile/dashboard section displaying earned badges.
-- AC-7: Badge evaluation runs on progress save and quiz completion.
+- [ ] AC-1: Data file `src/data/badges.ts` defines >= 15 badges with: id, name, description, icon, unlock condition.
+- [ ] AC-2: Badge categories: per-topic completion, quiz milestones (first quiz, perfect score), points thresholds, streaks, full syllabus.
+- [ ] AC-3: New Supabase table `user_badges` (schema per `[FEATURES §Appendix]`).
+- [ ] AC-4: Migration file created (following [Migration Conventions](#supabase-migration-conventions)). Migration includes RLS enablement with split policies: `SELECT` + `INSERT` only — badges are immutable once earned (per [RLS Requirements](#rls-policy-requirements)).
+- [ ] AC-5: Toast notification on badge unlock with badge name and icon.
+- [ ] AC-6: Profile/dashboard section displaying earned badges.
+- [ ] AC-7: Badge evaluation runs on progress save and quiz completion.
 
 **Dependencies:** None.
 
@@ -942,12 +987,12 @@ CREATE POLICY "Users manage own <table_name>"
 
 **Acceptance Criteria:**
 
-- AC-1: New Supabase table `daily_activity` (schema per `[FEATURES §Appendix]`).
-- AC-2: Migration file created (following [Migration Conventions](#supabase-migration-conventions)). Migration includes RLS enablement and `FOR ALL` policy scoped to `auth.uid() = user_id` (per [RLS Requirements](#rls-policy-requirements)).
-- AC-3: Activity recorded on any meaningful action (theory completion, quiz taken, review session).
-- AC-4: Dashboard widget shows current streak (consecutive days) with fire icon.
-- AC-5: Streak bonus: +5 points per day of maintained streak.
-- AC-6: Streak does not break on weekends if user has opted in to "weekday only" mode (optional stretch).
+- [ ] AC-1: New Supabase table `daily_activity` (schema per `[FEATURES §Appendix]`).
+- [ ] AC-2: Migration file created (following [Migration Conventions](#supabase-migration-conventions)). Migration includes RLS enablement and `FOR ALL` policy scoped to `auth.uid() = user_id` (per [RLS Requirements](#rls-policy-requirements)).
+- [ ] AC-3: Activity recorded on any meaningful action (theory completion, quiz taken, review session).
+- [ ] AC-4: Dashboard widget shows current streak (consecutive days) with fire icon.
+- [ ] AC-5: Streak bonus: +5 points per day of maintained streak.
+- [ ] AC-6: Streak does not break on weekends if user has opted in to "weekday only" mode (optional stretch).
 
 **Dependencies:** None.
 
@@ -969,12 +1014,12 @@ CREATE POLICY "Users manage own <table_name>"
 
 **Acceptance Criteria:**
 
-- AC-1: `vite-plugin-pwa` integrated; `manifest.json` provides app name, icons, theme colour.
-- AC-2: Service worker caches all theory pages and quiz data for offline access.
-- AC-3: Offline progress stored in IndexedDB.
-- AC-4: Progress syncs to Supabase on reconnect (queue-based, conflict resolution: last-write-wins).
-- AC-5: Install prompt shown on compatible browsers.
-- AC-6: Offline indicator banner shown when network is unavailable.
+- [ ] AC-1: `vite-plugin-pwa` integrated; `manifest.json` provides app name, icons, theme colour.
+- [ ] AC-2: Service worker caches all theory pages and quiz data for offline access.
+- [ ] AC-3: Offline progress stored in IndexedDB.
+- [ ] AC-4: Progress syncs to Supabase on reconnect (queue-based, conflict resolution: last-write-wins).
+- [ ] AC-5: Install prompt shown on compatible browsers.
+- [ ] AC-6: Offline indicator banner shown when network is unavailable.
 
 **Dependencies:** DEP-E0S1 (quiz data in separate files makes caching cleaner).
 
@@ -990,11 +1035,11 @@ CREATE POLICY "Users manage own <table_name>"
 
 **Acceptance Criteria:**
 
-- AC-1: All interactive components (chart plotter, vector triangle, compass converter, tidal visualiser, anchor minigame, buoy identifier, transit exercise, clearing bearing tool, synoptic chart reader) have touch event handlers.
-- AC-2: All tools usable at 375px viewport width.
-- AC-3: No horizontal scroll on any page at 375px.
-- AC-4: Touch targets >= 44px × 44px per WCAG guidelines.
-- AC-5: Tested on iOS Safari and Chrome Android (or equivalent emulation).
+- [ ] AC-1: All interactive components (chart plotter, vector triangle, compass converter, tidal visualiser, anchor minigame, buoy identifier, transit exercise, clearing bearing tool, synoptic chart reader) have touch event handlers.
+- [ ] AC-2: All tools usable at 375px viewport width.
+- [ ] AC-3: No horizontal scroll on any page at 375px.
+- [ ] AC-4: Touch targets >= 44px × 44px per WCAG guidelines.
+- [ ] AC-5: Tested on iOS Safari and Chrome Android (or equivalent emulation).
 
 **Dependencies:** Benefits from all interactive tools being built (Phases 1–4).
 
@@ -1010,10 +1055,10 @@ CREATE POLICY "Users manage own <table_name>"
 
 **Acceptance Criteria:**
 
-- AC-1: Route `/safety/vhf` renders theory covering: Mayday format, Pan Pan format, Securite format, DSC controller procedure, Channel 16 protocol.
-- AC-2: Interactive "fill in the blanks" call builder — user fills in vessel name, position, nature of distress, etc. in the correct Mayday/Pan Pan format.
-- AC-3: At least 3 scenario-based exercises (e.g., fire on board, crew injury, navigational hazard warning).
-- AC-4: Completing theory marks `safety-vhf` as complete; points awarded.
+- [ ] AC-1: Route `/safety/vhf` renders theory covering: Mayday format, Pan Pan format, Securite format, DSC controller procedure, Channel 16 protocol.
+- [ ] AC-2: Interactive "fill in the blanks" call builder — user fills in vessel name, position, nature of distress, etc. in the correct Mayday/Pan Pan format.
+- [ ] AC-3: At least 3 scenario-based exercises (e.g., fire on board, crew injury, navigational hazard warning).
+- [ ] AC-4: Completing theory marks `safety-vhf` as complete; points awarded.
 
 **Dependencies:** DEP-E1 (Safety module expansion provides the parent menu context).
 
@@ -1029,11 +1074,11 @@ CREATE POLICY "Users manage own <table_name>"
 
 **Acceptance Criteria:**
 
-- AC-1: Dashboard button "Export Progress Report" triggers client-side PDF generation.
-- AC-2: PDF includes: student name, date, topic completion table, quiz scores per topic, total points, total study topics completed, pass rates.
-- AC-3: Branded header: "RYA Day Skipper Training Log".
-- AC-4: Uses a lightweight library (`jsPDF` or `@react-pdf/renderer`); no server-side dependency.
-- AC-5: PDF renders correctly and is readable.
+- [ ] AC-1: Dashboard button "Export Progress Report" triggers client-side PDF generation.
+- [ ] AC-2: PDF includes: student name, date, topic completion table, quiz scores per topic, total points, total study topics completed, pass rates.
+- [ ] AC-3: Branded header: "RYA Day Skipper Training Log".
+- [ ] AC-4: Uses a lightweight library (`jsPDF` or `@react-pdf/renderer`); no server-side dependency.
+- [ ] AC-5: PDF renders correctly and is readable.
 
 **Dependencies:** None.
 
