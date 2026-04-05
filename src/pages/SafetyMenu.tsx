@@ -1,5 +1,5 @@
 import { useNavigate } from "react-router-dom";
-import { LifeBuoy, Flame, Ship, Sparkles } from "lucide-react";
+import { LifeBuoy, Flame, Ship, Sparkles, Shield } from "lucide-react";
 import { ModuleMenuPage } from "@/components/module-menu/ModuleMenuPage";
 import type { ModuleMenuItem } from "@/components/module-menu/types";
 
@@ -39,6 +39,15 @@ const safetyModules: ModuleMenuItem[] = [
     path: "/safety/flares",
     type: "learn",
     color: "from-rose-500 to-pink-500",
+  },
+  {
+    id: "safety-personal",
+    title: "Personal Safety Equipment",
+    description: "Life jackets, harnesses, tethers, jacklines, and kill cords",
+    icon: Shield,
+    path: "/safety/personal",
+    type: "learn",
+    color: "from-teal-500 to-emerald-500",
   },
 ];
 
