@@ -100,6 +100,7 @@ describe("topicRegistry", () => {
       "safety-mob",
       "safety-flares",
       "safety-flares-drill",
+      "safety-personal",
     ];
 
     // when
