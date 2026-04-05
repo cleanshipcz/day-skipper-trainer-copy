@@ -200,7 +200,7 @@ CREATE POLICY "Users manage own <table_name>"
 | E1-S3 | Flares & Pyrotechnics Sub-module | ✅ Done |
 | E1-S4 | Personal Safety Equipment Sub-module | ✅ Done |
 | E1-S5 | Gas Safety Sub-module | ✅ Done |
-| E1-S6 | Comprehensive Safety Quiz | ⬜ Not Started |
+| E1-S6 | Comprehensive Safety Quiz | ✅ Done |
 | E1-S7 | Update Safety Menu & Dashboard | ⬜ Not Started |
 | E2-S1 | IALA Buoyage Sub-module | ⬜ Not Started |
 | E2-S2 | Transits & Leading Lines Sub-module | ⬜ Not Started |
@@ -442,11 +442,11 @@ CREATE POLICY "Users manage own <table_name>"
 
 **Acceptance Criteria:**
 
-- [ ] AC-1: Data file `src/data/quizzes/safety.ts` contains >= 20 questions spanning MOB, fire, life raft, flares, personal, gas.
-- [ ] AC-2: Questions follow the shared `Question` interface.
-- [ ] AC-3: Quiz accessible via `/quiz/safety` route.
-- [ ] AC-4: Existing `/quiz/safety-mob` route continues to work (backward compatible).
-- [ ] AC-5: Progress and scoring persist correctly.
+- [x] AC-1: Data file `src/data/quizzes/safety.ts` contains >= 20 questions spanning MOB, fire, life raft, flares, personal, gas.
+- [x] AC-2: Questions follow the shared `Question` interface.
+- [x] AC-3: Quiz accessible via `/quiz/safety` route.
+- [x] AC-4: Existing `/quiz/safety-mob` route continues to work (backward compatible).
+- [x] AC-5: Progress and scoring persist correctly.
 
 **Dependencies:** DEP-E0S1 (quiz data structure), DEP-E1S1–E1S5 (content knowledge for question writing).
 
