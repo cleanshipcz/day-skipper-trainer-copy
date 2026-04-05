@@ -201,7 +201,7 @@ CREATE POLICY "Users manage own <table_name>"
 | E1-S4 | Personal Safety Equipment Sub-module | ✅ Done |
 | E1-S5 | Gas Safety Sub-module | ✅ Done |
 | E1-S6 | Comprehensive Safety Quiz | ✅ Done |
-| E1-S7 | Update Safety Menu & Dashboard | ⬜ Not Started |
+| E1-S7 | Update Safety Menu & Dashboard | ✅ Done |
 | E2-S1 | IALA Buoyage Sub-module | ⬜ Not Started |
 | E2-S2 | Transits & Leading Lines Sub-module | ⬜ Not Started |
 | E2-S3 | Clearing Bearings Sub-module | ⬜ Not Started |
@@ -462,10 +462,10 @@ CREATE POLICY "Users manage own <table_name>"
 
 **Acceptance Criteria:**
 
-- [ ] AC-1: `SafetyMenu.tsx` lists all 6 sub-modules (MOB, fire, life-raft, flares, personal, gas) with completion badges.
-- [ ] AC-2: Dashboard topic card for Safety shows completion based on all sub-modules.
-- [ ] AC-3: Topic registry (E0-S3) updated with new safety sub-module IDs.
-- [ ] AC-4: Routes registered in `routes.tsx` with lazy loading.
+- [x] AC-1: `SafetyMenu.tsx` lists all 6 sub-modules (MOB, fire, life-raft, flares, personal, gas) with completion badges.
+- [x] AC-2: Dashboard topic card for Safety shows completion based on all sub-modules.
+- [x] AC-3: Topic registry (E0-S3) updated with new safety sub-module IDs.
+- [x] AC-4: Routes registered in `routes.tsx` with lazy loading.
 
 **Dependencies:** DEP-E0S3 (topic registry), DEP-E1S1–E1S5 (page components exist).
 

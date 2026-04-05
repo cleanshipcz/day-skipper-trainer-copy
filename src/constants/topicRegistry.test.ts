@@ -101,6 +101,7 @@ describe("topicRegistry", () => {
       "safety-flares",
       "safety-flares-drill",
       "safety-personal",
+      "safety-gas",
     ];
 
     // when
@@ -324,6 +325,54 @@ describe("getRootTopics", () => {
     for (const id of expectedRootIds) {
       expect(rootIds).toContain(id);
     }
+  });
+});
+
+// ── E1-S7: Safety sub-module completeness ──────────────────────────────
+
+describe("topicRegistry — safety sub-modules (E1-S7)", () => {
+  it("should have the safety root topic with all 6 sub-module IDs", () => {
+    // given
+    const safetyRoot = getTopicById("safety");
+
+    // then
+    expect(safetyRoot).toBeDefined();
+    expect(safetyRoot!.submoduleIds).toContain("safety-mob");
+    expect(safetyRoot!.submoduleIds).toContain("safety-fire");
+    expect(safetyRoot!.submoduleIds).toContain("safety-life-raft");
+    expect(safetyRoot!.submoduleIds).toContain("safety-flares");
+    expect(safetyRoot!.submoduleIds).toContain("safety-personal");
+    expect(safetyRoot!.submoduleIds).toContain("safety-gas");
+    expect(safetyRoot!.submoduleIds).toHaveLength(6);
+  });
+
+  it("should have a safety-personal topic entry with correct metadata", () => {
+    // when
+    const topic = getTopicById("safety-personal");
+
+    // then
+    expect(topic).toBeDefined();
+    expect(topic!.label).toBe("Personal Safety");
+    expect(topic!.parentId).toBe("safety");
+    expect(topic!.route).toBe("/safety/personal");
+    expect(topic!.syllabusArea).toBe(4);
+  });
+
+  it("should have a safety-gas topic entry with correct metadata", () => {
+    // when
+    const topic = getTopicById("safety-gas");
+
+    // then
+    expect(topic).toBeDefined();
+    expect(topic!.label).toBe("Gas Safety");
+    expect(topic!.parentId).toBe("safety");
+    expect(topic!.route).toBe("/safety/gas");
+    expect(topic!.syllabusArea).toBe(4);
+  });
+
+  it("should include TOPIC_IDS constants for new safety sub-modules", () => {
+    expect(TOPIC_IDS.SAFETY_PERSONAL).toBe("safety-personal");
+    expect(TOPIC_IDS.SAFETY_GAS).toBe("safety-gas");
   });
 });
 
