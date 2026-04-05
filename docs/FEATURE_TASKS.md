@@ -196,7 +196,7 @@ CREATE POLICY "Users manage own <table_name>"
 | E0-S2 | Expand Existing Quizzes to 10–15 Questions | ✅ Done |
 | E0-S3 | Create Topic Registry | ✅ Done |
 | E1-S1 | Fire Safety Sub-module | ✅ Done |
-| E1-S2 | Life Raft & Abandon Ship Sub-module | ⬜ Not Started |
+| E1-S2 | Life Raft & Abandon Ship Sub-module | ✅ Done |
 | E1-S3 | Flares & Pyrotechnics Sub-module | ⬜ Not Started |
 | E1-S4 | Personal Safety Equipment Sub-module | ⬜ Not Started |
 | E1-S5 | Gas Safety Sub-module | ⬜ Not Started |
@@ -367,10 +367,10 @@ CREATE POLICY "Users manage own <table_name>"
 
 **Acceptance Criteria:**
 
-- [ ] AC-1: Route `/safety/life-raft` renders theory covering: when to abandon ship, life raft types, SOLAS pack contents, deployment procedure, boarding procedure, actions in the raft.
-- [ ] AC-2: Interactive step-ordering game (reuse `MOBSortingGame` pattern) for abandon ship procedure.
-- [ ] AC-3: Completing the theory marks `safety-life-raft` as complete in progress.
-- [ ] AC-4: Points awarded on first completion.
+- [x] AC-1: Route `/safety/life-raft` renders theory covering: when to abandon ship, life raft types, SOLAS pack contents, deployment procedure, boarding procedure, actions in the raft.
+- [x] AC-2: Interactive step-ordering game (reuse `MOBSortingGame` pattern) for abandon ship procedure.
+- [x] AC-3: Completing the theory marks `safety-life-raft` as complete in progress.
+- [x] AC-4: Points awarded on first completion.
 
 **Dependencies:** None.
 

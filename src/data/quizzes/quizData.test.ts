@@ -12,6 +12,7 @@ const ALL_TOPIC_FILES = [
   { topicId: "lights-signals", fileName: "lightsSignals" },
   { topicId: "safety-mob-quiz", fileName: "safetyMob" },
   { topicId: "safety-fire-quiz", fileName: "safetyFire" },
+  { topicId: "safety-life-raft-quiz", fileName: "safetyLifeRaft" },
 ] as const;
 
 const EXPECTED_QUESTION_COUNTS: Record<string, number> = {
@@ -25,6 +26,7 @@ const EXPECTED_QUESTION_COUNTS: Record<string, number> = {
   "lights-signals": 20,
   "safety-mob-quiz": 12,
   "safety-fire-quiz": 8,
+  "safety-life-raft-quiz": 10,
 };
 
 describe("Quiz data files", () => {

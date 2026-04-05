@@ -1,5 +1,5 @@
 import { useNavigate } from "react-router-dom";
-import { LifeBuoy, Flame } from "lucide-react";
+import { LifeBuoy, Flame, Ship } from "lucide-react";
 import { ModuleMenuPage } from "@/components/module-menu/ModuleMenuPage";
 import type { ModuleMenuItem } from "@/components/module-menu/types";
 
@@ -21,6 +21,15 @@ const safetyModules: ModuleMenuItem[] = [
     path: "/safety/fire",
     type: "learn",
     color: "from-orange-500 to-amber-500",
+  },
+  {
+    id: "safety-life-raft",
+    title: "Life Raft & Abandon Ship",
+    description: "Life raft types, deployment, boarding, and survival procedures",
+    icon: Ship,
+    path: "/safety/life-raft",
+    type: "learn",
+    color: "from-blue-500 to-cyan-500",
   },
 ];
 
