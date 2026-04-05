@@ -48,6 +48,7 @@ export const appRoutes: AppRouteDefinition[] = [
   defineRoute({ path: "/safety/life-raft", importPage: () => import("@/pages/LifeRaftTheory") }),
   defineRoute({ path: "/safety/flares", importPage: () => import("@/pages/FlaresTheory") }),
   defineRoute({ path: "/safety/personal", importPage: () => import("@/pages/PersonalSafetyTheory") }),
+  defineRoute({ path: "/safety/gas", importPage: () => import("@/pages/GasSafetyTheory") }),
   defineRoute({ path: "/quiz/:topicId", importPage: () => import("@/pages/Quiz") }),
   defineRoute({ path: "*", importPage: () => import("@/pages/NotFound") }),
 ];

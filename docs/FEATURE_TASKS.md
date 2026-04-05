@@ -199,7 +199,7 @@ CREATE POLICY "Users manage own <table_name>"
 | E1-S2 | Life Raft & Abandon Ship Sub-module | ✅ Done |
 | E1-S3 | Flares & Pyrotechnics Sub-module | ✅ Done |
 | E1-S4 | Personal Safety Equipment Sub-module | ✅ Done |
-| E1-S5 | Gas Safety Sub-module | ⬜ Not Started |
+| E1-S5 | Gas Safety Sub-module | ✅ Done |
 | E1-S6 | Comprehensive Safety Quiz | ⬜ Not Started |
 | E1-S7 | Update Safety Menu & Dashboard | ⬜ Not Started |
 | E2-S1 | IALA Buoyage Sub-module | ⬜ Not Started |
@@ -424,9 +424,9 @@ CREATE POLICY "Users manage own <table_name>"
 
 **Acceptance Criteria:**
 
-- [ ] AC-1: Route `/safety/gas` renders theory covering: LPG properties (heavier than air), isolation valves, bilge sniff test, gas locker requirements, carbon monoxide awareness, detector placement.
-- [ ] AC-2: Completing the theory marks `safety-gas` as complete in progress.
-- [ ] AC-3: Points awarded on first completion.
+- [x] AC-1: Route `/safety/gas` renders theory covering: LPG properties (heavier than air), isolation valves, bilge sniff test, gas locker requirements, carbon monoxide awareness, detector placement.
+- [x] AC-2: Completing the theory marks `safety-gas` as complete in progress.
+- [x] AC-3: Points awarded on first completion.
 
 **Dependencies:** None.
 

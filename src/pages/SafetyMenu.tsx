@@ -1,5 +1,5 @@
 import { useNavigate } from "react-router-dom";
-import { LifeBuoy, Flame, Ship, Sparkles, Shield } from "lucide-react";
+import { LifeBuoy, Flame, Ship, Sparkles, Shield, Wind } from "lucide-react";
 import { ModuleMenuPage } from "@/components/module-menu/ModuleMenuPage";
 import type { ModuleMenuItem } from "@/components/module-menu/types";
 
@@ -48,6 +48,15 @@ const safetyModules: ModuleMenuItem[] = [
     path: "/safety/personal",
     type: "learn",
     color: "from-teal-500 to-emerald-500",
+  },
+  {
+    id: "safety-gas",
+    title: "Gas Safety",
+    description: "LPG properties, isolation valves, carbon monoxide, and detector placement",
+    icon: Wind,
+    path: "/safety/gas",
+    type: "learn",
+    color: "from-yellow-500 to-orange-500",
   },
 ];
 
