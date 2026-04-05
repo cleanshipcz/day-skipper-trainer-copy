@@ -1,9 +1,8 @@
 /**
  * Pilotage module menu page.
  *
- * Lists all pilotage sub-modules. Currently only IALA Buoyage is
- * implemented — additional sub-modules (transits, clearing bearings,
- * plan builder) will be added by future stories.
+ * Lists available pilotage sub-modules. Additional modules are added as
+ * subsequent E2 stories land.
  *
  * @see docs/FEATURE_TASKS.md — Epic E2
  */
@@ -21,6 +20,15 @@ const pilotageModules: ModuleMenuItem[] = [
     path: "/pilotage/buoyage",
     type: "learn",
     color: "from-cyan-500 to-blue-500",
+  },
+  {
+    id: "pilotage-transits",
+    title: "Transits & Leading Lines",
+    description: "Visual alignment for safe harbour approaches and channel navigation",
+    icon: Navigation,
+    path: "/pilotage/transits",
+    type: "learn",
+    color: "from-teal-500 to-cyan-500",
   },
 ];
 

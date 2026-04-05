@@ -171,8 +171,8 @@ describe("topicRegistry — syllabus coverage (AC-6)", () => {
     }
   });
 
-  it("should cover syllabus areas 1–10 (currently implemented areas)", () => {
-    for (let area = 1; area <= 10; area++) {
+  it("should cover syllabus areas 1–11 (currently implemented areas)", () => {
+    for (let area = 1; area <= 11; area++) {
       // given
       const topicsInArea = topicRegistry.filter((t) => t.syllabusArea === area);
 
@@ -314,6 +314,7 @@ describe("getRootTopics", () => {
       "rig",
       "rules-of-the-road",
       "navigation",
+      "pilotage",
       "safety",
     ];
 

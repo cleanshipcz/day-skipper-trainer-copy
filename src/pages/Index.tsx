@@ -17,6 +17,7 @@ import {
   Compass,
   Map,
   LifeBuoy,
+  Navigation,
 } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { useAuth } from "@/contexts/AuthHooks";
@@ -83,6 +84,12 @@ const topicDisplayMeta: Record<string, {
     icon: Map,
     color: "text-blue-500",
     menuColor: "from-blue-500 to-cyan-600",
+  },
+  pilotage: {
+    description: "Transits, Leading Lines, and Harbour Navigation",
+    icon: Navigation,
+    color: "text-teal-500",
+    menuColor: "from-teal-500 to-cyan-600",
   },
   safety: {
     description: "Man Overboard, Distress Signals, and Emergency Drills",
