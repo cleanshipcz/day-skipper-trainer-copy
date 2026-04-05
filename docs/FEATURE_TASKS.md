@@ -197,7 +197,7 @@ CREATE POLICY "Users manage own <table_name>"
 | E0-S3 | Create Topic Registry | ✅ Done |
 | E1-S1 | Fire Safety Sub-module | ✅ Done |
 | E1-S2 | Life Raft & Abandon Ship Sub-module | ✅ Done |
-| E1-S3 | Flares & Pyrotechnics Sub-module | ⬜ Not Started |
+| E1-S3 | Flares & Pyrotechnics Sub-module | ✅ Done |
 | E1-S4 | Personal Safety Equipment Sub-module | ⬜ Not Started |
 | E1-S5 | Gas Safety Sub-module | ⬜ Not Started |
 | E1-S6 | Comprehensive Safety Quiz | ⬜ Not Started |
@@ -386,11 +386,11 @@ CREATE POLICY "Users manage own <table_name>"
 
 **Acceptance Criteria:**
 
-- [ ] AC-1: Route `/safety/flares` renders theory covering: red parachute rocket, red hand flare, orange smoke (hand + buoyant), white hand flare (collision warning); range, burn time, day/night suitability, expiry rules.
-- [ ] AC-2: Data file `src/data/flareTypes.ts` defines all flare types with properties.
-- [ ] AC-3: Interactive "identify the flare" quiz component — given a scenario, pick the correct flare.
-- [ ] AC-4: Completing the theory marks `safety-flares` as complete in progress.
-- [ ] AC-5: Points awarded on first completion.
+- [x] AC-1: Route `/safety/flares` renders theory covering: red parachute rocket, red hand flare, orange smoke (hand + buoyant), white hand flare (collision warning); range, burn time, day/night suitability, expiry rules.
+- [x] AC-2: Data file `src/data/flareTypes.ts` defines all flare types with properties.
+- [x] AC-3: Interactive "identify the flare" quiz component — given a scenario, pick the correct flare.
+- [x] AC-4: Completing the theory marks `safety-flares` as complete in progress.
+- [x] AC-5: Points awarded on first completion.
 
 **Dependencies:** None.
 

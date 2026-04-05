@@ -1,5 +1,5 @@
 import { useNavigate } from "react-router-dom";
-import { LifeBuoy, Flame, Ship } from "lucide-react";
+import { LifeBuoy, Flame, Ship, Sparkles } from "lucide-react";
 import { ModuleMenuPage } from "@/components/module-menu/ModuleMenuPage";
 import type { ModuleMenuItem } from "@/components/module-menu/types";
 
@@ -30,6 +30,15 @@ const safetyModules: ModuleMenuItem[] = [
     path: "/safety/life-raft",
     type: "learn",
     color: "from-blue-500 to-cyan-500",
+  },
+  {
+    id: "safety-flares",
+    title: "Flares & Pyrotechnics",
+    description: "Flare types, identification, usage scenarios, and expiry rules",
+    icon: Sparkles,
+    path: "/safety/flares",
+    type: "learn",
+    color: "from-rose-500 to-pink-500",
   },
 ];
 

@@ -10,7 +10,7 @@ describe("appRoutes", () => {
   });
 
   it("defines lazy route factories for top-level feature routes", () => {
-    const topLevelRoutes = ["/nautical-terms", "/rules-of-the-road", "/navigation", "/safety"];
+    const topLevelRoutes = ["/nautical-terms", "/rules-of-the-road", "/navigation", "/safety", "/safety/flares"];
 
     const selectedRoutes = appRoutes.filter((route) => topLevelRoutes.includes(route.path));
 

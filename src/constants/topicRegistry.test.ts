@@ -98,6 +98,8 @@ describe("topicRegistry", () => {
       "compass-theory",
       "position-theory",
       "safety-mob",
+      "safety-flares",
+      "safety-flares-drill",
     ];
 
     // when

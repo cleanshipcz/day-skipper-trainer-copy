@@ -13,6 +13,7 @@ const ALL_TOPIC_FILES = [
   { topicId: "safety-mob-quiz", fileName: "safetyMob" },
   { topicId: "safety-fire-quiz", fileName: "safetyFire" },
   { topicId: "safety-life-raft-quiz", fileName: "safetyLifeRaft" },
+  { topicId: "safety-flares-quiz", fileName: "safetyFlares" },
 ] as const;
 
 const EXPECTED_QUESTION_COUNTS: Record<string, number> = {
@@ -27,6 +28,7 @@ const EXPECTED_QUESTION_COUNTS: Record<string, number> = {
   "safety-mob-quiz": 12,
   "safety-fire-quiz": 8,
   "safety-life-raft-quiz": 10,
+  "safety-flares-quiz": 10,
 };
 
 describe("Quiz data files", () => {
@@ -105,7 +107,7 @@ describe("Quiz data files", () => {
 });
 
 describe("Quiz data registry", () => {
-  it("should export a quizRegistry mapping all 9 topic IDs to question arrays", async () => {
+  it("should export a quizRegistry mapping all 12 topic IDs to question arrays", async () => {
     // given
     // - the registry module
     const { quizRegistry } = await import("./index");
@@ -123,7 +125,7 @@ describe("Quiz data registry", () => {
     }
   });
 
-  it("should not contain any topic IDs beyond the 9 known ones", async () => {
+  it("should not contain any topic IDs beyond the 12 known ones", async () => {
     // given
     const { quizRegistry } = await import("./index");
     const knownTopicIds = ALL_TOPIC_FILES.map((t) => t.topicId);
@@ -264,7 +266,7 @@ describe("E0-S2 AC-4: Randomization works with expanded pools", () => {
 });
 
 describe("Quiz data topic metadata", () => {
-  it("should export topicMeta with title and subtitle for all 9 topics", async () => {
+  it("should export topicMeta with title and subtitle for all 12 topics", async () => {
     // given
     const { topicMeta } = await import("./index");
 
