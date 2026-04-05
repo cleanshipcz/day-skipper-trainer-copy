@@ -186,7 +186,7 @@ describe("topicRegistry — syllabus coverage (AC-6)", () => {
     const implemented = getImplementedSyllabusAreas();
 
     // then
-    expect(implemented).toEqual([1, 2, 3, 4, 5, 6, 7, 8, 9, 10]);
+    expect(implemented).toEqual([1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11]);
   });
 
   it("should track total syllabus areas as 13", () => {
@@ -196,7 +196,7 @@ describe("topicRegistry — syllabus coverage (AC-6)", () => {
   it("should have every syllabus area 1–13 covered when all phases are complete", () => {
     // given
     // - this test documents the target coverage
-    // - areas 11 (Pilotage), 12 (Meteorology), 13 (Passage Planning) are not yet implemented
+    // - areas 12 (Meteorology), 13 (Passage Planning) are not yet implemented
     const implemented = getImplementedSyllabusAreas();
     const missingAreas = [];
     for (let area = 1; area <= TOTAL_SYLLABUS_AREAS; area++) {
@@ -207,7 +207,7 @@ describe("topicRegistry — syllabus coverage (AC-6)", () => {
 
     // then - document which areas are still missing
     // When this assertion fails with an empty array, all 13 areas are covered
-    expect(missingAreas).toEqual([11, 12, 13]);
+    expect(missingAreas).toEqual([12, 13]);
   });
 });
 
