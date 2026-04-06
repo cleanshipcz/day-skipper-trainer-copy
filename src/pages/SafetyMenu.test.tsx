@@ -34,7 +34,7 @@ describe("SafetyMenu", () => {
 
     // then
     expect(html).toContain("Personal Safety");
-    expect(html).toContain("Harness use, lifejackets, clothing, and personal safety equipment");
+    expect(html).toContain("Life jackets, harnesses, tethers, jacklines, and kill cords");
   });
 
   it("should render the Gas Safety sub-module with correct description", () => {
@@ -43,7 +43,7 @@ describe("SafetyMenu", () => {
 
     // then
     expect(html).toContain("Gas Safety");
-    expect(html).toContain("LPG systems, gas detection, leak procedures, and ventilation");
+    expect(html).toContain("LPG properties, isolation valves, carbon monoxide, and detector placement");
   });
 
   it("should render the page title and subtitle", () => {

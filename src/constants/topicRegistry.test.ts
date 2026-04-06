@@ -352,7 +352,7 @@ describe("topicRegistry — safety sub-modules (E1-S7)", () => {
 
     // then
     expect(topic).toBeDefined();
-    expect(topic!.label).toBe("Personal Safety");
+    expect(topic!.label).toBe("Personal Safety Equipment");
     expect(topic!.parentId).toBe("safety");
     expect(topic!.route).toBe("/safety/personal");
     expect(topic!.syllabusArea).toBe(4);
