@@ -513,10 +513,10 @@ CREATE POLICY "Users manage own <table_name>"
 
 **Acceptance Criteria:**
 
-- [ ] AC-1: Route `/pilotage/transits` renders theory covering: what a transit is, how leading lines guide approach, natural vs charted transits, maintaining a transit, clearing transits.
-- [ ] AC-2: Interactive `TransitExercise.tsx` — harbour chart view where user drags vessel to align with transit markers. Minimum 3 exercises of increasing difficulty.
-- [ ] AC-3: Visual feedback shows when vessel is on/off the transit line.
-- [ ] AC-4: Completing theory marks `pilotage-transits` as complete; points awarded.
+- [x] AC-1: Route `/pilotage/transits` renders theory covering: what a transit is, how leading lines guide approach, natural vs charted transits, maintaining a transit, clearing transits.
+- [x] AC-2: Interactive `TransitExercise.tsx` — harbour chart view where user drags vessel to align with transit markers. Minimum 3 exercises of increasing difficulty.
+- [x] AC-3: Visual feedback shows when vessel is on/off the transit line.
+- [x] AC-4: Completing theory marks `pilotage-transits` as complete; points awarded.
 
 **Dependencies:** None.
 

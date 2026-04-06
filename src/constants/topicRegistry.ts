@@ -42,8 +42,9 @@ export const topicRegistry: readonly TopicEntry[] = [
   { id: "tides", label: "Tides", parentId: "navigation", route: "/navigation/tides", quizRoute: null, submoduleIds: [], syllabusArea: 8 },
   { id: "position-theory", label: "Position Fixing Theory", parentId: "navigation", route: "/navigation/position", quizRoute: null, submoduleIds: [], syllabusArea: 9 },
   { id: "vector-triangle", label: "Course to Steer (Vector Triangle)", parentId: "navigation", route: "/navigation/tides/vector-tool", quizRoute: null, submoduleIds: [], syllabusArea: 10 },
-  { id: "pilotage", label: "Pilotage", parentId: null, route: "/pilotage", quizRoute: null, submoduleIds: ["pilotage-buoyage"], syllabusArea: 11 },
+  { id: "pilotage", label: "Pilotage", parentId: null, route: "/pilotage", quizRoute: null, submoduleIds: ["pilotage-buoyage", "pilotage-transits"], syllabusArea: 11 },
   { id: "pilotage-buoyage", label: "IALA Buoyage", parentId: "pilotage", route: "/pilotage/buoyage", quizRoute: null, submoduleIds: [], syllabusArea: 11 },
+  { id: "pilotage-transits", label: "Transits & Leading Lines", parentId: "pilotage", route: "/pilotage/transits", quizRoute: null, submoduleIds: [], syllabusArea: 11 },
 ];
 
 const topicByIdMap = new Map(topicRegistry.map((entry) => [entry.id, entry]));
@@ -88,4 +89,5 @@ export const TOPIC_IDS = {
   VECTOR_TRIANGLE: "vector-triangle",
   PILOTAGE: "pilotage",
   PILOTAGE_BUOYAGE: "pilotage-buoyage",
+  PILOTAGE_TRANSITS: "pilotage-transits",
 } as const;
