@@ -15,46 +15,16 @@
  */
 
 export interface TopicEntry {
-  /** Unique identifier used as progress key (must match existing progress data). */
   readonly id: string;
-  /** Human-readable display label. */
   readonly label: string;
-  /** Parent topic ID, or null for root/dashboard-level topics. */
   readonly parentId: string | null;
-  /** Route path registered in src/app/routes.tsx. */
   readonly route: string;
-  /** Quiz route path, or null if the topic has no quiz. */
   readonly quizRoute: string | null;
-  /** IDs of child/sub-module topics. Empty array for leaf topics. */
   readonly submoduleIds: readonly string[];
-  /** RYA Day Skipper syllabus area number (1–13). */
   readonly syllabusArea: number;
 }
 
-/**
- * Complete topic registry. Order matches dashboard display order.
- *
- * Syllabus area mapping (RYA SBT DS 03, per docs/FEATURES.md §2):
- *   1 = Nautical Terms
- *   2 = Ropework
- *   3 = Anchorwork
- *   4 = Safety
- *   5 = International Regulations (COLREGs)
- *   6 = Definition of Position, Charts
- *   7 = Compass
- *   8 = Tides
- *   9 = Position Fixing
- *  10 = Course to Steer
- *  11 = Pilotage           (not yet implemented)
- *  12 = Meteorology         (not yet implemented)
- *  13 = Passage Planning    (not yet implemented)
- *
- * Preparation topics (victualling, engine, rig) are mapped to area 1
- * (Seamanship / preparation for sea) since they are not separate RYA
- * syllabus areas but sub-topics of general seamanship.
- */
 export const topicRegistry: readonly TopicEntry[] = [
-  // ── Syllabus Area 1: Nautical Terms & Seamanship Preparation ─────────
   {
     id: "nautical-terms",
     label: "Nautical Terms & Boat Parts",
@@ -118,8 +88,6 @@ export const topicRegistry: readonly TopicEntry[] = [
     submoduleIds: [],
     syllabusArea: 1,
   },
-
-  // ── Syllabus Area 2: Ropework ────────────────────────────────────────
   {
     id: "ropework",
     label: "Ropework & Knots",
@@ -129,8 +97,6 @@ export const topicRegistry: readonly TopicEntry[] = [
     submoduleIds: [],
     syllabusArea: 2,
   },
-
-  // ── Syllabus Area 3: Anchorwork ──────────────────────────────────────
   {
     id: "anchorwork",
     label: "Anchorwork",
@@ -140,15 +106,13 @@ export const topicRegistry: readonly TopicEntry[] = [
     submoduleIds: [],
     syllabusArea: 3,
   },
-
-  // ── Syllabus Area 4: Safety ──────────────────────────────────────────
   {
     id: "safety",
     label: "Safety Procedures",
     parentId: null,
     route: "/safety",
     quizRoute: null,
-    submoduleIds: ["safety-mob", "safety-fire", "safety-life-raft", "safety-flares", "safety-personal"],
+    submoduleIds: ["safety-mob", "safety-fire", "safety-life-raft", "safety-flares", "safety-personal", "safety-gas"],
     syllabusArea: 4,
   },
   {
@@ -214,8 +178,15 @@ export const topicRegistry: readonly TopicEntry[] = [
     submoduleIds: [],
     syllabusArea: 4,
   },
-
-  // ── Syllabus Area 5: International Regulations (COLREGs) ─────────────
+  {
+    id: "safety-gas",
+    label: "Gas Safety",
+    parentId: "safety",
+    route: "/safety/gas",
+    quizRoute: null,
+    submoduleIds: [],
+    syllabusArea: 4,
+  },
   {
     id: "rules-of-the-road",
     label: "Rules of the Road",
@@ -252,8 +223,6 @@ export const topicRegistry: readonly TopicEntry[] = [
     submoduleIds: [],
     syllabusArea: 5,
   },
-
-  // ── Syllabus Area 6: Definition of Position, Charts ──────────────────
   {
     id: "navigation",
     label: "Navigation Fundamentals",
@@ -272,8 +241,6 @@ export const topicRegistry: readonly TopicEntry[] = [
     submoduleIds: [],
     syllabusArea: 6,
   },
-
-  // ── Syllabus Area 7: Compass ─────────────────────────────────────────
   {
     id: "compass-theory",
     label: "Compass Theory",
@@ -283,8 +250,6 @@ export const topicRegistry: readonly TopicEntry[] = [
     submoduleIds: [],
     syllabusArea: 7,
   },
-
-  // ── Syllabus Area 8: Tides ───────────────────────────────────────────
   {
     id: "tides",
     label: "Tides",
@@ -294,8 +259,6 @@ export const topicRegistry: readonly TopicEntry[] = [
     submoduleIds: [],
     syllabusArea: 8,
   },
-
-  // ── Syllabus Area 9: Position Fixing ─────────────────────────────────
   {
     id: "position-theory",
     label: "Position Fixing Theory",
@@ -305,8 +268,6 @@ export const topicRegistry: readonly TopicEntry[] = [
     submoduleIds: [],
     syllabusArea: 9,
   },
-
-  // ── Syllabus Area 10: Course to Steer ────────────────────────────────
   {
     id: "vector-triangle",
     label: "Course to Steer (Vector Triangle)",
@@ -318,40 +279,20 @@ export const topicRegistry: readonly TopicEntry[] = [
   },
 ];
 
-// ── Lookup helpers ───────────────────────────────────────────────────────
-
 const topicByIdMap = new Map(topicRegistry.map((entry) => [entry.id, entry]));
 
-/** Look up a topic by its unique ID. Returns undefined if not found. */
 export const getTopicById = (id: string): TopicEntry | undefined => topicByIdMap.get(id);
-
-/** Get all direct children of a given parent topic. */
 export const getTopicsByParent = (parentId: string): readonly TopicEntry[] =>
   topicRegistry.filter((entry) => entry.parentId === parentId);
-
-/** Get all topics belonging to a given RYA syllabus area (1–13). */
 export const getTopicsBySyllabusArea = (area: number): readonly TopicEntry[] =>
   topicRegistry.filter((entry) => entry.syllabusArea === area);
-
-/** Get all root (dashboard-level) topics — those with null parentId. */
 export const getRootTopics = (): readonly TopicEntry[] =>
   topicRegistry.filter((entry) => entry.parentId === null);
-
-/**
- * Syllabus areas that currently have at least one topic in the registry.
- * Used to programmatically verify coverage progress.
- */
 export const getImplementedSyllabusAreas = (): readonly number[] => {
   const areas = new Set(topicRegistry.map((entry) => entry.syllabusArea));
   return [...areas].sort((a, b) => a - b);
 };
-
-/** Total number of RYA Day Skipper syllabus areas. */
 export const TOTAL_SYLLABUS_AREAS = 13;
-
-// ── Topic ID constants ───────────────────────────────────────────────────
-// Use these instead of string literals when calling useProgress,
-// useTheoryCompletionGate, or saveProgress.
 
 export const TOPIC_IDS = {
   NAUTICAL_TERMS: "nautical-terms",
@@ -371,6 +312,7 @@ export const TOPIC_IDS = {
   SAFETY_FLARES: "safety-flares",
   SAFETY_FLARES_DRILL: "safety-flares-drill",
   SAFETY_PERSONAL: "safety-personal",
+  SAFETY_GAS: "safety-gas",
   RULES_OF_THE_ROAD: "rules-of-the-road",
   COLREGS_THEORY: "colregs-theory",
   LIGHTS_THEORY: "lights-theory",
