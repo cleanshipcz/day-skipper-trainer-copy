@@ -532,10 +532,10 @@ CREATE POLICY "Users manage own <table_name>"
 
 **Acceptance Criteria:**
 
-- [ ] AC-1: Route `/pilotage/clearing-bearings` renders theory covering: purpose of clearing bearings, how to plot them on a chart, "not less than" / "not more than" conventions, using compass to monitor.
-- [ ] AC-2: Interactive `ClearingBearingTool.tsx` — chart exercise where user plots clearing bearings to avoid marked hazards. Minimum 2 scenarios.
-- [ ] AC-3: Tool validates user-plotted bearings against correct solutions with tolerance.
-- [ ] AC-4: Completing theory marks `pilotage-clearing-bearings` as complete; points awarded.
+- [x] AC-1: Route `/pilotage/clearing-bearings` renders theory covering: purpose of clearing bearings, how to plot them on a chart, "not less than" / "not more than" conventions, using compass to monitor.
+- [x] AC-2: Interactive `ClearingBearingTool.tsx` — chart exercise where user plots clearing bearings to avoid marked hazards. Minimum 2 scenarios.
+- [x] AC-3: Tool validates user-plotted bearings against correct solutions with tolerance.
+- [x] AC-4: Completing theory marks `pilotage-clearing-bearings` as complete; points awarded.
 
 **Dependencies:** Can reuse SVG/canvas patterns from existing chart plotter (`VirtualChartPlotter.tsx`).
 
