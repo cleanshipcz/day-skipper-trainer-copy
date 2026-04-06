@@ -14,6 +14,7 @@ const ALL_TOPIC_FILES = [
   { topicId: "safety-fire-quiz", fileName: "safetyFire" },
   { topicId: "safety-life-raft-quiz", fileName: "safetyLifeRaft" },
   { topicId: "safety-flares-quiz", fileName: "safetyFlares" },
+  { topicId: "safety", fileName: "safety" },
 ] as const;
 
 const EXPECTED_QUESTION_COUNTS: Record<string, number> = {
@@ -29,6 +30,7 @@ const EXPECTED_QUESTION_COUNTS: Record<string, number> = {
   "safety-fire-quiz": 8,
   "safety-life-raft-quiz": 10,
   "safety-flares-quiz": 10,
+  safety: 24,
 };
 
 describe("Quiz data files", () => {
@@ -107,7 +109,7 @@ describe("Quiz data files", () => {
 });
 
 describe("Quiz data registry", () => {
-  it("should export a quizRegistry mapping all 12 topic IDs to question arrays", async () => {
+  it("should export a quizRegistry mapping all 13 topic IDs to question arrays", async () => {
     // given
     // - the registry module
     const { quizRegistry } = await import("./index");
@@ -125,7 +127,7 @@ describe("Quiz data registry", () => {
     }
   });
 
-  it("should not contain any topic IDs beyond the 12 known ones", async () => {
+  it("should not contain any topic IDs beyond the 13 known ones", async () => {
     // given
     const { quizRegistry } = await import("./index");
     const knownTopicIds = ALL_TOPIC_FILES.map((t) => t.topicId);
@@ -266,7 +268,7 @@ describe("E0-S2 AC-4: Randomization works with expanded pools", () => {
 });
 
 describe("Quiz data topic metadata", () => {
-  it("should export topicMeta with title and subtitle for all 12 topics", async () => {
+  it("should export topicMeta with title and subtitle for all 13 topics", async () => {
     // given
     const { topicMeta } = await import("./index");
 
@@ -280,5 +282,105 @@ describe("Quiz data topic metadata", () => {
       expect(typeof topicMeta[topicId].subtitle).toBe("string");
       expect(topicMeta[topicId].subtitle.length).toBeGreaterThan(0);
     }
+  });
+});
+
+/**
+ * E1-S6: Comprehensive Safety Quiz — additional structural tests.
+ *
+ * AC-1: >= 20 questions spanning MOB, fire, life raft, flares, personal safety, gas safety.
+ * AC-2: Questions follow the shared Question interface (covered by generic tests above).
+ * AC-4: Existing /quiz/safety-mob route backward compatible (sub-quiz IDs unchanged).
+ */
+describe("E1-S6: Comprehensive Safety Quiz", () => {
+  it("should contain at least 20 questions (AC-1)", async () => {
+    // given
+    const mod = await import("./safety.ts");
+    const questions: Question[] = mod.default;
+
+    // then
+    expect(questions.length).toBeGreaterThanOrEqual(20);
+  });
+
+  it("should span all 6 required sub-topics via question ID prefixes (AC-1)", async () => {
+    // given
+    // - the comprehensive safety quiz
+    const mod = await import("./safety.ts");
+    const questions: Question[] = mod.default;
+
+    // - the 6 required sub-topic prefixes
+    const requiredPrefixes = ["mob", "fire", "raft", "flare", "personal", "gas"];
+
+    // when
+    const ids = questions.map((q) => q.id);
+
+    // then
+    for (const prefix of requiredPrefixes) {
+      const matching = ids.filter((id) => id.startsWith(`safety-${prefix}`));
+      expect(
+        matching.length,
+        `Expected at least one question with prefix "safety-${prefix}", found none`,
+      ).toBeGreaterThanOrEqual(1);
+    }
+  });
+
+  it("should have question IDs that do not collide with sub-quiz IDs (AC-4 backward compat)", async () => {
+    // given
+    // - the comprehensive safety quiz
+    const safetyMod = await import("./safety.ts");
+    const safetyQuestions: Question[] = safetyMod.default;
+
+    // - existing sub-quiz files
+    const mobMod = await import("./safetyMob.ts");
+    const fireMod = await import("./safetyFire.ts");
+    const raftMod = await import("./safetyLifeRaft.ts");
+    const flareMod = await import("./safetyFlares.ts");
+
+    const subQuizIds = new Set([
+      ...mobMod.default.map((q: Question) => q.id),
+      ...fireMod.default.map((q: Question) => q.id),
+      ...raftMod.default.map((q: Question) => q.id),
+      ...flareMod.default.map((q: Question) => q.id),
+    ]);
+
+    // when
+    const safetyIds = safetyQuestions.map((q) => q.id);
+
+    // then — no overlap means the sub-quizzes remain independent
+    for (const id of safetyIds) {
+      expect(subQuizIds.has(id), `Comprehensive safety ID "${id}" collides with a sub-quiz ID`).toBe(false);
+    }
+  });
+
+  it("should be registered in quizRegistry under key 'safety' (AC-3)", async () => {
+    // given
+    const { quizRegistry } = await import("./index");
+
+    // then
+    expect(quizRegistry).toHaveProperty("safety");
+    expect(Array.isArray(quizRegistry["safety"])).toBe(true);
+    expect(quizRegistry["safety"].length).toBeGreaterThanOrEqual(20);
+  });
+
+  it("should have topicMeta for 'safety' with title and subtitle (AC-3)", async () => {
+    // given
+    const { topicMeta } = await import("./index");
+
+    // then
+    expect(topicMeta).toHaveProperty("safety");
+    expect(topicMeta["safety"].title.length).toBeGreaterThan(0);
+    expect(topicMeta["safety"].subtitle.length).toBeGreaterThan(0);
+  });
+
+  it("should not affect existing safety-mob-quiz registration (AC-4)", async () => {
+    // given
+    const { quizRegistry } = await import("./index");
+
+    // then — existing sub-quizzes still present and unchanged
+    expect(quizRegistry).toHaveProperty("safety-mob-quiz");
+    expect(quizRegistry["safety-mob-quiz"].length).toBe(12);
+    expect(quizRegistry).toHaveProperty("safety-fire-quiz");
+    expect(quizRegistry).toHaveProperty("safety-life-raft-quiz");
+    expect(quizRegistry).toHaveProperty("safety-flares-quiz");
   });
 });

@@ -11,6 +11,7 @@ import safetyMobQuestions from "./safetyMob";
 import safetyFireQuestions from "./safetyFire";
 import safetyLifeRaftQuestions from "./safetyLifeRaft";
 import safetyFlaresQuestions from "./safetyFlares";
+import safetyQuestions from "./safety";
 
 /** Registry mapping each quiz topic ID to its question array. */
 export const quizRegistry: Record<string, readonly Question[]> = {
@@ -26,6 +27,7 @@ export const quizRegistry: Record<string, readonly Question[]> = {
   "safety-fire-quiz": safetyFireQuestions,
   "safety-life-raft-quiz": safetyLifeRaftQuestions,
   "safety-flares-quiz": safetyFlaresQuestions,
+  safety: safetyQuestions,
 };
 
 /** Metadata displayed in the quiz header for each topic. */
@@ -77,6 +79,10 @@ export const topicMeta: Record<string, TopicMeta> = {
   "lights-signals": {
     title: "Lights & Signals Mastery",
     subtitle: "Lights, Shapes, Sound Signals & Distress",
+  },
+  safety: {
+    title: "Comprehensive Safety Quiz",
+    subtitle: "MOB, fire, life raft, flares, personal safety & gas safety",
   },
 };
 
