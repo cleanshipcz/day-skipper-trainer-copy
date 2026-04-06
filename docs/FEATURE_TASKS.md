@@ -202,7 +202,7 @@ CREATE POLICY "Users manage own <table_name>"
 | E1-S5 | Gas Safety Sub-module | ✅ Done |
 | E1-S6 | Comprehensive Safety Quiz | ✅ Done |
 | E1-S7 | Update Safety Menu & Dashboard | ✅ Done |
-| E2-S1 | IALA Buoyage Sub-module | ⬜ Not Started |
+| E2-S1 | IALA Buoyage Sub-module | ✅ Done |
 | E2-S2 | Transits & Leading Lines Sub-module | ⬜ Not Started |
 | E2-S3 | Clearing Bearings Sub-module | ⬜ Not Started |
 | E2-S4 | Pilotage Plan Builder | ⬜ Not Started |
@@ -493,11 +493,11 @@ CREATE POLICY "Users manage own <table_name>"
 
 **Acceptance Criteria:**
 
-- [ ] AC-1: Route `/pilotage/buoyage` renders theory covering: IALA Region A system, lateral marks (port/starboard), cardinal marks (N/E/S/W), isolated danger, safe water, special marks, new danger marks.
-- [ ] AC-2: Data file `src/data/ialabuoys.ts` defines all buoy types with: name, colour, top mark shape, light characteristic, meaning, and an SVG/visual representation descriptor.
-- [ ] AC-3: Interactive `BuoyIdentifier.tsx` component — given a buoy visual, user identifies the type/meaning. Minimum 12 identification challenges.
-- [ ] AC-4: Cardinal marks include the clock-face mnemonic for remembering light patterns.
-- [ ] AC-5: Completing theory marks `pilotage-buoyage` as complete; points awarded.
+- [x] AC-1: Route `/pilotage/buoyage` renders theory covering: IALA Region A system, lateral marks (port/starboard), cardinal marks (N/E/S/W), isolated danger, safe water, special marks, new danger marks.
+- [x] AC-2: Data file `src/data/ialabuoys.ts` defines all buoy types with: name, colour, top mark shape, light characteristic, meaning, and an SVG/visual representation descriptor.
+- [x] AC-3: Interactive `BuoyIdentifier.tsx` component — given a buoy visual, user identifies the type/meaning. Minimum 12 identification challenges.
+- [x] AC-4: Cardinal marks include the clock-face mnemonic for remembering light patterns.
+- [x] AC-5: Completing theory marks `pilotage-buoyage` as complete; points awarded.
 
 **Dependencies:** None.
 
