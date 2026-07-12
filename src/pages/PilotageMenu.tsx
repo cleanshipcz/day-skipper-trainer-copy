@@ -7,7 +7,7 @@
  * @see docs/FEATURE_TASKS.md — Epic E2
  */
 import { useNavigate } from "react-router-dom";
-import { Navigation } from "lucide-react";
+import { Navigation, Compass } from "lucide-react";
 import { ModuleMenuPage } from "@/components/module-menu/ModuleMenuPage";
 import type { ModuleMenuItem } from "@/components/module-menu/types";
 
@@ -30,6 +30,16 @@ const pilotageModules: ModuleMenuItem[] = [
     type: "learn",
     color: "from-teal-500 to-cyan-500",
   },
+  {
+    id: "pilotage-clearing-bearings",
+    title: "Clearing Bearings",
+    description:
+      "Using compass bearings to define safe water boundaries and avoid hazards",
+    icon: Compass,
+    path: "/pilotage/clearing-bearings",
+    type: "learn",
+    color: "from-indigo-500 to-sky-500",
+  },
 ];
 
 const PilotageMenu = () => {
@@ -38,7 +48,7 @@ const PilotageMenu = () => {
   return (
     <ModuleMenuPage
       title="Pilotage"
-      subtitle="Navigation marks, transits, and harbour approaches"
+      subtitle="Harbour approaches, buoyage, transits & clearing bearings"
       onBack={() => navigate("/")}
       modules={pilotageModules}
       onNavigate={navigate}
