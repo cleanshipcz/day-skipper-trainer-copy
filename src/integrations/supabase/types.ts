@@ -127,6 +127,7 @@ export type Database = {
           p_topic_id: string
         }
         Returns: {
+          awarded_points: number
           completion_awarded: boolean
           points_awarded: boolean
         }[]

@@ -13,7 +13,7 @@ const buildSupabaseMock = () => {
   const deleteRow = vi.fn(() => ({ eq: deleteEqUser }));
 
   const rpc = vi.fn().mockResolvedValue({
-    data: [{ points_awarded: true, completion_awarded: true }],
+    data: [{ points_awarded: true, completion_awarded: true, awarded_points: 40 }],
     error: null,
   });
   const from = vi.fn((table: string) => {
@@ -49,7 +49,7 @@ describe("saveProgressRecord", () => {
       answersHistory: { answers: [1, 2] },
     });
 
-    expect(result).toEqual({ pointsAwarded: true, completionAwarded: true });
+    expect(result).toEqual({ pointsAwarded: true, completionAwarded: true, awardedPoints: 40 });
     expect(rpc).toHaveBeenCalledWith("save_topic_progress", {
       p_topic_id: "quiz-colregs",
       p_completed: true,
@@ -63,7 +63,7 @@ describe("saveProgressRecord", () => {
   it("honours the server's existing-progress idempotency outcome", async () => {
     const { client, rpc } = buildSupabaseMock();
     rpc.mockResolvedValueOnce({
-      data: [{ points_awarded: false, completion_awarded: false }],
+      data: [{ points_awarded: false, completion_awarded: false, awarded_points: 0 }],
       error: null,
     });
 
@@ -76,7 +76,7 @@ describe("saveProgressRecord", () => {
       pointsEarned: 10,
     });
 
-    expect(result).toEqual({ pointsAwarded: false, completionAwarded: false });
+    expect(result).toEqual({ pointsAwarded: false, completionAwarded: false, awardedPoints: 0 });
     expect(rpc).toHaveBeenCalledOnce();
   });
 
@@ -85,7 +85,7 @@ describe("saveProgressRecord", () => {
     rpc
       .mockResolvedValueOnce({ data: null, error: new Error("transaction rolled back") })
       .mockResolvedValueOnce({
-        data: [{ points_awarded: true, completion_awarded: true }],
+        data: [{ points_awarded: true, completion_awarded: true, awarded_points: 20 }],
         error: null,
       });
 
@@ -105,7 +105,7 @@ describe("saveProgressRecord", () => {
       completed: true,
       pointsEarned: 20,
     });
-    expect(retried).toEqual({ pointsAwarded: true, completionAwarded: true });
+    expect(retried).toEqual({ pointsAwarded: true, completionAwarded: true, awardedPoints: 20 });
     expect(upsert).not.toHaveBeenCalled();
   });
 
@@ -127,11 +127,11 @@ describe("saveProgressRecord", () => {
     const { client, rpc } = buildSupabaseMock();
     rpc
       .mockResolvedValueOnce({
-        data: [{ points_awarded: true, completion_awarded: true }],
+        data: [{ points_awarded: true, completion_awarded: true, awarded_points: 10 }],
         error: null,
       })
       .mockResolvedValueOnce({
-        data: [{ points_awarded: false, completion_awarded: false }],
+        data: [{ points_awarded: false, completion_awarded: false, awarded_points: 0 }],
         error: null,
       });
     const args = {

@@ -24,11 +24,13 @@ describe("weather interactions", () => {
   it("gives drill feedback and moves to another observation", async () => {
     const user = userEvent.setup();
     render(<BeaufortDrill />);
-    await user.click(screen.getByRole("button", { name: "1" }));
+    await user.click(screen.getByRole("button", { name: "0" }));
     expect(screen.getByRole("status").textContent).toContain("Correct");
     await user.click(screen.getByRole("button", { name: /next observation/i }));
     expect(screen.queryByRole("status")).toBeNull();
     expect(screen.getByText(/Wind speed:/)).toBeTruthy();
+    expect(screen.getByRole("button", { name: "11" })).toBeTruthy();
+    expect(screen.getByRole("button", { name: "12" })).toBeTruthy();
   });
 
   it("exposes all forecast areas as focusable controls", async () => {

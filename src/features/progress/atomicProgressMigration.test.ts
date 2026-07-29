@@ -22,6 +22,24 @@ describe("atomic progress migration", () => {
     expect(sql).toContain("insert into public.user_progress");
     expect(sql).toContain("update public.profiles");
     expect(sql).toContain("v_completion_awarded");
+    expect(sql).toContain("insert into public.progress_awards");
+    expect(sql).toContain("on conflict (user_id, topic_id) do nothing");
+    expect(sql).toContain("primary key (user_id, topic_id)");
+  });
+
+  it("does not trust caller-controlled reward identity or amount", () => {
+    expect(sql).toContain("p_points remains");
+    expect(sql).toContain("case p_topic_id");
+    expect(sql).toContain("unknown progress topic");
+    expect(sql).toContain("v_awarded_points := v_reward");
+    expect(sql).not.toContain("points = coalesce(points, 0) + p_points");
+  });
+
+  it("keeps award history outside resettable progress with no delete grant or policy", () => {
+    expect(sql).toContain("revoke all on public.progress_awards");
+    expect(sql).toContain("grant select on public.progress_awards");
+    expect(sql).not.toContain("for delete");
+    expect(sql).not.toContain("delete from public.progress_awards");
   });
 
   it("restricts execution to authenticated users", () => {

@@ -24,7 +24,7 @@ export const saveProgressRecord = async ({
   score = 0,
   pointsEarned = 0,
   answersHistory,
-}: SaveProgressRecordArgs): Promise<{ pointsAwarded: boolean; completionAwarded: boolean }> => {
+}: SaveProgressRecordArgs): Promise<{ pointsAwarded: boolean; completionAwarded: boolean; awardedPoints: number }> => {
   // Authentication is enforced inside the RPC with auth.uid(). `userId` is
   // deliberately not sent to the database function and remains here only for
   // the separate RLS-scoped delete operation/API compatibility.
@@ -43,6 +43,7 @@ export const saveProgressRecord = async ({
   return {
     pointsAwarded: Boolean(outcome.points_awarded),
     completionAwarded: Boolean(outcome.completion_awarded),
+    awardedPoints: Number(outcome.awarded_points) || 0,
   };
 };
 

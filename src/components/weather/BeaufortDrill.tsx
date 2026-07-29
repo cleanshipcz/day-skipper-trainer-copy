@@ -3,7 +3,7 @@ import { beaufortScale } from "@/data/beaufortScale";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 
-const beaufortDrillItems = beaufortScale.slice(1, 11);
+const beaufortDrillItems = beaufortScale;
 
 export const BeaufortDrill = () => {
   const [index, setIndex] = useState(0);
@@ -21,8 +21,8 @@ export const BeaufortDrill = () => {
       <CardHeader><CardTitle>Guess the force</CardTitle></CardHeader>
       <CardContent className="space-y-4">
         <p>{prompt}</p>
-        <div role="group" aria-label="Choose Beaufort force" className="grid grid-cols-6 sm:grid-cols-11 gap-2">
-          {beaufortScale.slice(0, 11).map(({ force }) => (
+        <div role="group" aria-label="Choose Beaufort force" className="grid grid-cols-7 sm:grid-cols-13 gap-2">
+          {beaufortScale.map(({ force }) => (
             <Button key={force} variant={answer === force ? "default" : "outline"} onClick={() => setAnswer(force)} aria-pressed={answer === force}>{force}</Button>
           ))}
         </div>

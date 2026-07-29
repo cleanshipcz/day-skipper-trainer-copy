@@ -12,8 +12,8 @@ import { useProgress } from "@/hooks/useProgress";
 import {
   countCorrectAnswers,
   percentageScore,
-  pointsFromCorrectAnswers,
   questionProgressPercent,
+  quizCompletionOutcome,
 } from "@/features/quiz/scoring";
 import { canonicalQuizProgressKey, resolveQuizProgressForLoad, type QuizProgressRow } from "@/features/quiz/progressKeys";
 import { createSeededRng, shuffleWithRng } from "@/features/quiz/randomization";
@@ -157,7 +157,7 @@ const Quiz = () => {
     const isCorrect = selectedAnswer === question.correctAnswer;
 
     if (isCorrect) {
-      toast.success("Correct! +20 points", {
+      toast.success("Correct!", {
         description: question.explanation,
       });
     } else {
@@ -194,8 +194,7 @@ const Quiz = () => {
 
     if (!user) return;
 
-    const percentage = percentageScore(correctAnswers, questions.length);
-    const pointsEarned = pointsFromCorrectAnswers(correctAnswers);
+    const { percentage, passed, pointsEarned } = quizCompletionOutcome(correctAnswers, questions.length);
 
     try {
       // Save quiz score
@@ -208,9 +207,9 @@ const Quiz = () => {
       });
 
       // Save final progress with answers
-      await saveProgress(
+      const saved = await saveProgress(
         canonicalQuizProgressKey(topicKey),
-        percentage >= 70,
+        passed,
         percentage,
         pointsEarned,
         {
@@ -219,7 +218,13 @@ const Quiz = () => {
         }
       );
 
-      toast.success(`Quiz completed! +${pointsEarned} points`);
+      if (saved) {
+        toast.success(
+          passed
+            ? "Quiz passed and saved."
+            : "Quiz saved. Score 70% or more to earn completion points."
+        );
+      }
     } catch (error) {
       console.error("Error saving quiz results:", error);
     }

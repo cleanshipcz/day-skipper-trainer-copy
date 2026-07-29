@@ -11,7 +11,7 @@ const buildSupabaseMock = () => {
   const selectEqUser = vi.fn(() => ({ eq: selectEqTopic }));
   const select = vi.fn(() => ({ eq: selectEqUser }));
   const rpc = vi.fn().mockResolvedValue({
-    data: [{ points_awarded: true, completion_awarded: true }],
+    data: [{ points_awarded: true, completion_awarded: true, awarded_points: 10 }],
     error: null,
   });
   const from = vi.fn((table: string) => {
@@ -65,7 +65,7 @@ describe("progress integrity proof path", () => {
     const migration = readFileSync(migrationPath, "utf8");
 
     expect(migration).toContain("pg_advisory_xact_lock");
-    expect(migration).toContain("set points = coalesce(points, 0) + p_points");
+    expect(migration).toContain("set points = coalesce(points, 0) + v_awarded_points");
     expect(migration).toContain("save_topic_progress");
   });
 });
