@@ -14,6 +14,18 @@ create policy "Users can view their own progress awards"
   to authenticated
   using ((select auth.uid()) = user_id);
 
+-- Mark every legacy completion before installing the new write contract. The
+-- marker intentionally records zero because historical profile point awards
+-- cannot be reconstructed safely. Its immutable identity prevents a reset
+-- from making that topic look newly rewardable in a future verified flow.
+alter table public.progress_awards drop constraint if exists progress_awards_points_check;
+alter table public.progress_awards add constraint progress_awards_points_check check (points >= 0);
+insert into public.progress_awards (user_id, topic_id, points)
+select up.user_id, up.topic_id, 0
+from public.user_progress up
+where up.completed is true
+on conflict (user_id, topic_id) do nothing;
+
 create or replace function public.save_topic_progress(
   p_topic_id text,
   p_completed boolean default false,
@@ -30,9 +42,6 @@ declare
   v_user_id uuid := auth.uid();
   v_was_completed boolean := false;
   v_completion_awarded boolean := false;
-  v_reward integer := 0;
-  v_awarded_points integer := 0;
-  v_quiz_questions integer;
 begin
   if v_user_id is null then
     raise exception 'Authentication required' using errcode = '42501';
@@ -40,66 +49,21 @@ begin
   if p_topic_id is null or btrim(p_topic_id) = '' then
     raise exception 'Topic ID is required' using errcode = '22023';
   end if;
-  -- Reward-bearing identities and amounts are server-owned. p_points remains
-  -- in the signature for backwards compatibility but is never trusted.
-  v_quiz_questions := case p_topic_id
-    when 'quiz-nautical-terms-quiz' then 20
-    when 'quiz-ropework' then 12
-    when 'quiz-anchorwork' then 12
-    when 'quiz-victualling' then 12
-    when 'quiz-engine' then 12
-    when 'quiz-rig' then 12
-    when 'quiz-colregs' then 20
-    when 'quiz-lights-signals' then 20
-    when 'quiz-safety-mob-quiz' then 12
-    when 'quiz-safety-fire-quiz' then 8
-    when 'quiz-safety-life-raft-quiz' then 10
-    when 'quiz-safety-flares-quiz' then 10
-    when 'quiz-safety' then 20
-    when 'quiz-pilotage' then 20
-    when 'quiz-weather' then 20
-    else null
-  end;
-
-  v_reward := case p_topic_id
-    when 'pilotage-plan' then 15
-    when 'nautical-terms-boat-parts' then 10
-    when 'nautical-terms-sail-controls' then 10
-    when 'safety-mob' then 10
-    when 'safety-fire' then 10
-    when 'safety-fire-drill' then 10
-    when 'safety-life-raft' then 10
-    when 'safety-flares' then 10
-    when 'safety-flares-drill' then 10
-    when 'safety-personal' then 10
-    when 'safety-gas' then 10
-    when 'colregs-theory' then 10
-    when 'lights-theory' then 10
-    when 'charts-theory' then 10
-    when 'compass-theory' then 10
-    when 'tides' then 10
-    when 'tides-theory' then 10
-    when 'tides-streams-theory' then 10
-    when 'tides-heights-theory' then 10
-    when 'tides-vector-tool' then 10
-    when 'tidal-heights-calc' then 10
-    when 'position-theory' then 10
-    when 'vector-triangle' then 10
-    when 'pilotage-buoyage' then 10
-    when 'pilotage-transits' then 10
-    when 'pilotage-clearing-bearings' then 10
-    when 'weather-systems' then 10
-    when 'weather-beaufort' then 10
-    when 'weather-forecasts' then 10
-    when 'weather-fog' then 10
-    else case
-      when v_quiz_questions is not null and p_score between 70 and 100
-        then round((p_score::numeric * v_quiz_questions) / 100) * 20
-      when v_quiz_questions is not null then 0
-      else null
-    end
-  end;
-  if v_reward is null then
+  if not (p_topic_id = any (array[
+    'pilotage-plan', 'nautical-terms-boat-parts', 'nautical-terms-sail-controls',
+    'safety-mob', 'safety-fire', 'safety-fire-drill', 'safety-life-raft',
+    'safety-flares', 'safety-flares-drill', 'safety-personal', 'safety-gas',
+    'colregs-theory', 'lights-theory', 'charts-theory', 'compass-theory',
+    'tides', 'tides-theory', 'tides-streams-theory', 'tides-heights-theory',
+    'tides-vector-tool', 'tidal-heights-calc', 'position-theory',
+    'vector-triangle', 'pilotage-buoyage', 'pilotage-transits',
+    'pilotage-clearing-bearings', 'weather-systems', 'weather-beaufort',
+    'weather-forecasts', 'weather-fog', 'quiz-nautical-terms-quiz',
+    'quiz-ropework', 'quiz-anchorwork', 'quiz-victualling', 'quiz-engine',
+    'quiz-rig', 'quiz-colregs', 'quiz-lights-signals', 'quiz-safety-mob-quiz',
+    'quiz-safety-fire-quiz', 'quiz-safety-life-raft-quiz',
+    'quiz-safety-flares-quiz', 'quiz-safety', 'quiz-pilotage', 'quiz-weather'
+  ]::text[])) then
     raise exception 'Unknown progress topic' using errcode = '22023';
   end if;
 
@@ -130,28 +94,13 @@ begin
         last_accessed = excluded.last_accessed,
         answers_history = coalesce(excluded.answers_history, public.user_progress.answers_history);
 
-  if v_completion_awarded and v_reward > 0 then
-    insert into public.progress_awards (user_id, topic_id, points)
-    values (v_user_id, p_topic_id, v_reward)
-    on conflict (user_id, topic_id) do nothing;
-
-    if found then
-      v_awarded_points := v_reward;
-    end if;
-
-    update public.profiles
-       set points = coalesce(points, 0) + v_awarded_points
-     where user_id = v_user_id
-       and v_awarded_points > 0;
-    if v_awarded_points > 0 and not found then
-      raise exception 'Profile not found' using errcode = 'P0002';
-    end if;
-  end if;
-
+  -- p_completed and p_score are self-reported learning progress, not proof of
+  -- achievement. Until answers are verified against server-owned quiz data,
+  -- this function must never turn those claims (or p_points) into profile points.
   return query select
-    (v_awarded_points > 0),
+    false,
     v_completion_awarded,
-    v_awarded_points;
+    0;
 end;
 $$;
 
@@ -160,10 +109,9 @@ revoke all on function public.save_topic_progress(text, boolean, integer, intege
 grant execute on function public.save_topic_progress(text, boolean, integer, integer, jsonb) to authenticated;
 
 comment on function public.save_topic_progress(text, boolean, integer, integer, jsonb)
-is 'Persists allowlisted auth.uid() progress and awards server-derived points once via an immutable ledger.';
+is 'Persists self-reported auth.uid() learning progress without awarding points from unverified client claims.';
 
--- Retire the legacy RPC that accepted an arbitrary user ID. All point awards
--- now flow through save_topic_progress and are bound to auth.uid().
+-- Retire the legacy RPC that accepted an arbitrary user ID.
 revoke all on function public.increment_user_points(uuid, integer) from public;
 revoke all on function public.increment_user_points(uuid, integer) from anon;
 revoke all on function public.increment_user_points(uuid, integer) from authenticated;

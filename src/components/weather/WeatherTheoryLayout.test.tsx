@@ -16,7 +16,7 @@ describe("WeatherTheoryLayout", () => {
     loadProgress.mockReset().mockResolvedValue(null);
   });
 
-  it("persists completion and awards points once the action succeeds", async () => {
+  it("persists completion once the action succeeds", async () => {
     render(<MemoryRouter><WeatherTheoryLayout title="Test weather" subtitle="Test" topicId="weather-test" sections={[{ title: "Pressure", body: <p>Content</p> }]} /></MemoryRouter>);
     const action = await screen.findByRole("button", { name: /mark theory complete/i });
     fireEvent.click(action);

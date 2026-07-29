@@ -31,11 +31,11 @@ describe("quiz scoring", () => {
     });
   });
 
-  it("awards points when a quiz reaches the pass threshold", () => {
+  it("does not turn even a passing client-scored quiz into trusted points", () => {
     expect(quizCompletionOutcome(14, 20)).toEqual({
       percentage: 70,
       passed: true,
-      pointsEarned: 280,
+      pointsEarned: 0,
     });
   });
 

@@ -67,7 +67,7 @@ export const WeatherTheoryLayout = ({ title, subtitle, topicId, sections, childr
         </div>
         {children}
         <div className="flex flex-col sm:flex-row gap-3 justify-center">
-          <Button onClick={finish} disabled={loading || saving || complete}>{complete ? <><CheckCircle2 className="mr-2" />Completed</> : loading ? "Loading progress…" : saving ? "Saving completion…" : "Mark theory complete (+10 points)"}</Button>
+          <Button onClick={finish} disabled={loading || saving || complete}>{complete ? <><CheckCircle2 className="mr-2" />Completed</> : loading ? "Loading progress…" : saving ? "Saving completion…" : "Mark theory complete"}</Button>
           <Button variant="outline" onClick={() => navigate("/weather")}>Back to Meteorology</Button>
         </div>
       </main>

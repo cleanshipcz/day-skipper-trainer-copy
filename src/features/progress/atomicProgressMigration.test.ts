@@ -17,22 +17,23 @@ describe("atomic progress migration", () => {
     expect(sql).toContain("authentication required");
   });
 
-  it("serializes first completion and updates progress and points in one transaction", () => {
+  it("serializes first completion and updates progress without trusting it for rewards", () => {
     expect(sql).toContain("pg_advisory_xact_lock");
     expect(sql).toContain("insert into public.user_progress");
-    expect(sql).toContain("update public.profiles");
     expect(sql).toContain("v_completion_awarded");
     expect(sql).toContain("insert into public.progress_awards");
     expect(sql).toContain("on conflict (user_id, topic_id) do nothing");
     expect(sql).toContain("primary key (user_id, topic_id)");
+    expect(sql).not.toContain("update public.profiles");
   });
 
-  it("does not trust caller-controlled reward identity or amount", () => {
-    expect(sql).toContain("p_points remains");
-    expect(sql).toContain("case p_topic_id");
+  it("never converts caller-controlled completion, score, or points into profile points", () => {
+    expect(sql).toContain("self-reported learning progress");
+    expect(sql).toContain("must never turn those claims");
     expect(sql).toContain("unknown progress topic");
-    expect(sql).toContain("v_awarded_points := v_reward");
-    expect(sql).not.toContain("points = coalesce(points, 0) + p_points");
+    expect(sql).toContain("return query select");
+    expect(sql).toContain("false,");
+    expect(sql).not.toContain("coalesce(points, 0) +");
   });
 
   it("keeps award history outside resettable progress with no delete grant or policy", () => {
@@ -40,6 +41,16 @@ describe("atomic progress migration", () => {
     expect(sql).toContain("grant select on public.progress_awards");
     expect(sql).not.toContain("for delete");
     expect(sql).not.toContain("delete from public.progress_awards");
+  });
+
+  it("backfills immutable markers for completed rows before defining the RPC", () => {
+    const backfill = sql.indexOf("select up.user_id, up.topic_id, 0");
+    const functionDefinition = sql.indexOf("create or replace function public.save_topic_progress");
+    expect(backfill).toBeGreaterThan(0);
+    expect(backfill).toBeLessThan(functionDefinition);
+    expect(sql).toContain("from public.user_progress up");
+    expect(sql).toContain("where up.completed is true");
+    expect(sql).toContain("on conflict (user_id, topic_id) do nothing");
   });
 
   it("restricts execution to authenticated users", () => {

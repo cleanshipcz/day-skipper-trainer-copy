@@ -30,7 +30,9 @@ export function quizCompletionOutcome(correctAnswers: number, totalQuestions: nu
   return {
     percentage,
     passed,
-    pointsEarned: passed ? pointsFromCorrectAnswers(correctAnswers) : 0,
+    // Quiz answers are currently scored on the client, so they cannot safely
+    // authorize profile point awards.
+    pointsEarned: 0,
   };
 }
 

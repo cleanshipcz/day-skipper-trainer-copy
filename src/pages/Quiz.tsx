@@ -222,7 +222,7 @@ const Quiz = () => {
         toast.success(
           passed
             ? "Quiz passed and saved."
-            : "Quiz saved. Score 70% or more to earn completion points."
+            : "Quiz saved. Score 70% or more to pass."
         );
       }
     } catch (error) {

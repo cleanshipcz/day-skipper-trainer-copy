@@ -60,12 +60,13 @@ describe("progress integrity proof path", () => {
     });
   });
 
-  it("migration atomically locks, completes, and increments points", () => {
+  it("migration atomically saves progress but cannot increment points from client claims", () => {
     const migrationPath = resolve(process.cwd(), "supabase/migrations/20260729235500_atomic_save_topic_progress.sql");
     const migration = readFileSync(migrationPath, "utf8");
 
     expect(migration).toContain("pg_advisory_xact_lock");
-    expect(migration).toContain("set points = coalesce(points, 0) + v_awarded_points");
+    expect(migration).not.toContain("update public.profiles");
+    expect(migration).toContain("must never turn those claims");
     expect(migration).toContain("save_topic_progress");
   });
 });
