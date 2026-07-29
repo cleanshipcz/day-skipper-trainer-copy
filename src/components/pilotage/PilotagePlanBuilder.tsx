@@ -44,7 +44,7 @@ export const PilotagePlanBuilder = ({ onComplete }: PilotagePlanBuilderProps) =>
         <CardContent className="space-y-3">
           <p className="text-sm text-muted-foreground">A guided example is loaded for Port Victoria. Adjust it or add your own waypoints.</p>
           <Label htmlFor="speed">Planned speed through water (knots)</Label>
-          <Input id="speed" aria-label="Planned speed" type="number" min="0.5" step="0.5" value={speedKnots} onChange={(event) => { setSpeedKnots(Number(event.target.value)); setCompleted(false); }} />
+          <Input id="speed" aria-label="Planned speed" type="number" min="0.5" step="0.5" value={speedKnots} disabled={saving} onChange={(event) => { setSpeedKnots(Number(event.target.value)); setCompleted(false); }} />
         </CardContent>
       </Card>
 
@@ -53,20 +53,20 @@ export const PilotagePlanBuilder = ({ onComplete }: PilotagePlanBuilderProps) =>
         <CardContent className="space-y-3">
           {waypoints.map((waypoint, index) => (
             <div key={waypoint.id} className="rounded-lg border p-3 text-sm">
-              <div className="flex justify-between gap-3"><strong>{index + 1}. {waypoint.name}</strong><Button variant="ghost" size="sm" onClick={() => { setWaypoints((current) => current.filter((item) => item.id !== waypoint.id)); setCompleted(false); }}>Remove</Button></div>
+              <div className="flex justify-between gap-3"><strong>{index + 1}. {waypoint.name}</strong><Button variant="ghost" size="sm" disabled={saving} onClick={() => { setWaypoints((current) => current.filter((item) => item.id !== waypoint.id)); setCompleted(false); }}>Remove</Button></div>
               <p>{waypoint.bearing.toString().padStart(3, "0")}° · {waypoint.distance} NM · tidal time adjustment {waypoint.tidalOffset >= 0 ? "+" : ""}{waypoint.tidalOffset} min</p>
               {waypoint.notes && <p className="text-muted-foreground">{waypoint.notes}</p>}
             </div>
           ))}
           <div className="grid gap-3 md:grid-cols-2">
-            <div><Label htmlFor="waypoint-name">Waypoint name</Label><Input id="waypoint-name" value={draft.name} onChange={(event) => setDraft({ ...draft, name: event.target.value })} /></div>
-            <div><Label htmlFor="bearing">Bearing (°T)</Label><Input id="bearing" type="number" min="0" max="359" value={draft.bearing} onChange={(event) => setDraft({ ...draft, bearing: event.target.value })} /></div>
-            <div><Label htmlFor="distance">Distance (NM)</Label><Input id="distance" type="number" min="0.1" step="0.1" value={draft.distance} onChange={(event) => setDraft({ ...draft, distance: event.target.value })} /></div>
-            <div><Label htmlFor="tidal-offset">Tidal offset (minutes)</Label><Input id="tidal-offset" type="number" value={draft.tidalOffset} onChange={(event) => setDraft({ ...draft, tidalOffset: event.target.value })} /></div>
+            <div><Label htmlFor="waypoint-name">Waypoint name</Label><Input id="waypoint-name" value={draft.name} disabled={saving} onChange={(event) => setDraft({ ...draft, name: event.target.value })} /></div>
+            <div><Label htmlFor="bearing">Bearing (°T)</Label><Input id="bearing" type="number" min="0" max="359" value={draft.bearing} disabled={saving} onChange={(event) => setDraft({ ...draft, bearing: event.target.value })} /></div>
+            <div><Label htmlFor="distance">Distance (NM)</Label><Input id="distance" type="number" min="0.1" step="0.1" value={draft.distance} disabled={saving} onChange={(event) => setDraft({ ...draft, distance: event.target.value })} /></div>
+            <div><Label htmlFor="tidal-offset">Tidal offset (minutes)</Label><Input id="tidal-offset" type="number" value={draft.tidalOffset} disabled={saving} onChange={(event) => setDraft({ ...draft, tidalOffset: event.target.value })} /></div>
           </div>
           <Label htmlFor="notes">Pilotage notes</Label>
-          <Textarea id="notes" value={draft.notes} onChange={(event) => setDraft({ ...draft, notes: event.target.value })} placeholder="Lights, clearing bearings, VHF call, contingency…" />
-          <Button onClick={addWaypoint}>Add waypoint</Button>
+          <Textarea id="notes" value={draft.notes} disabled={saving} onChange={(event) => setDraft({ ...draft, notes: event.target.value })} placeholder="Lights, clearing bearings, VHF call, contingency…" />
+          <Button disabled={saving} onClick={addWaypoint}>Add waypoint</Button>
         </CardContent>
       </Card>
 
