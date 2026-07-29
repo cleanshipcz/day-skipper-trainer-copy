@@ -17,6 +17,9 @@ describe("meteorology integration", () => {
 
   it("ships comprehensive quiz and complete forecast-area data", () => {
     expect(quizRegistry.weather).toHaveLength(20);
-    expect(forecastAreas).toHaveLength(25);
+    expect(forecastAreas).toHaveLength(31);
+    expect(forecastAreas.map(({ name }) => name)).toEqual(expect.arrayContaining([
+      "North Utsire", "South Utsire", "Cromarty", "Forth", "Tyne", "German Bight",
+    ]));
   });
 });

@@ -16,6 +16,9 @@ describe("weather interactions", () => {
     expect(screen.getByRole("status").textContent).toContain("Correct");
     await user.click(screen.getByRole("button", { name: "Next chart" }));
     expect(screen.getByText(/blue triangles/i)).toBeTruthy();
+    const front = document.querySelector('[data-chart-marker="cold-front"]');
+    expect(front?.getAttribute("data-direction")).toBe("east");
+    expect(front?.textContent).toContain("▶");
   });
 
   it("gives drill feedback and moves to another observation", async () => {

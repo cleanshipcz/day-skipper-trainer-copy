@@ -174,7 +174,7 @@ describe("E0-S2: Expanded quiz backward compatibility", () => {
         // given
         // - the expanded data file for this topic
         const mod = await import(`./${fileName}.ts`);
-        const questions: Question[] = mod.default;
+        const questions: readonly Question[] = mod.default;
 
         // when
         const ids = questions.map((q) => q.id);
@@ -189,7 +189,7 @@ describe("E0-S2: Expanded quiz backward compatibility", () => {
         // given
         // - the expanded data file for this topic
         const mod = await import(`./${fileName}.ts`);
-        const questions: Question[] = mod.default;
+        const questions: readonly Question[] = mod.default;
 
         // when
         const firstFiveIds = questions.slice(0, 5).map((q) => q.id);
@@ -201,7 +201,7 @@ describe("E0-S2: Expanded quiz backward compatibility", () => {
       it("should have at least 10 questions (AC-1)", async () => {
         // given
         const mod = await import(`./${fileName}.ts`);
-        const questions: Question[] = mod.default;
+        const questions: readonly Question[] = mod.default;
 
         // then
         expect(questions.length).toBeGreaterThanOrEqual(10);
@@ -210,7 +210,7 @@ describe("E0-S2: Expanded quiz backward compatibility", () => {
       it("should have every option with non-empty text", async () => {
         // given
         const mod = await import(`./${fileName}.ts`);
-        const questions: Question[] = mod.default;
+        const questions: readonly Question[] = mod.default;
 
         // then
         for (const q of questions) {
@@ -223,7 +223,7 @@ describe("E0-S2: Expanded quiz backward compatibility", () => {
       it("should have non-empty explanation for every question", async () => {
         // given
         const mod = await import(`./${fileName}.ts`);
-        const questions: Question[] = mod.default;
+        const questions: readonly Question[] = mod.default;
 
         // then
         for (const q of questions) {
@@ -243,7 +243,7 @@ describe("E0-S2 AC-4: Randomization works with expanded pools", () => {
     );
     // - a 12-question pool
     const mod = await import("./victualling.ts");
-    const questions: Question[] = mod.default;
+    const questions: readonly Question[] = mod.default;
 
     // when
     const first = shuffleWithRng([...questions], createSeededRng(42));
@@ -260,7 +260,7 @@ describe("E0-S2 AC-4: Randomization works with expanded pools", () => {
       "../../features/quiz/randomization"
     );
     const mod = await import("./engine.ts");
-    const questions: Question[] = mod.default;
+    const questions: readonly Question[] = mod.default;
 
     // when
     const first = shuffleWithRng([...questions], createSeededRng(1));
@@ -300,7 +300,7 @@ describe("E1-S6: Comprehensive Safety Quiz", () => {
   it("should contain at least 20 questions (AC-1)", async () => {
     // given
     const mod = await import("./safety.ts");
-    const questions: Question[] = mod.default;
+    const questions: readonly Question[] = mod.default;
 
     // then
     expect(questions.length).toBeGreaterThanOrEqual(20);
@@ -310,7 +310,7 @@ describe("E1-S6: Comprehensive Safety Quiz", () => {
     // given
     // - the comprehensive safety quiz
     const mod = await import("./safety.ts");
-    const questions: Question[] = mod.default;
+    const questions: readonly Question[] = mod.default;
 
     // - the 6 required sub-topic prefixes
     const requiredPrefixes = ["mob", "fire", "raft", "flare", "personal", "gas"];
@@ -332,7 +332,7 @@ describe("E1-S6: Comprehensive Safety Quiz", () => {
     // given
     // - the comprehensive safety quiz
     const safetyMod = await import("./safety.ts");
-    const safetyQuestions: Question[] = safetyMod.default;
+    const safetyQuestions: readonly Question[] = safetyMod.default;
 
     // - existing sub-quiz files
     const mobMod = await import("./safetyMob.ts");

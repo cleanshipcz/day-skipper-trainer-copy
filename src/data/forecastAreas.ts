@@ -7,8 +7,14 @@ export interface ForecastArea {
 
 export const forecastAreas: readonly ForecastArea[] = [
   { name: "Viking", x: 67, y: 12, description: "Northern North Sea, east of Shetland" },
+  { name: "North Utsire", x: 82, y: 15, description: "Northern waters off the west coast of Norway" },
+  { name: "South Utsire", x: 83, y: 26, description: "Southern waters off the west coast of Norway" },
   { name: "Forties", x: 64, y: 27, description: "North Sea east of Scotland" },
+  { name: "Cromarty", x: 50, y: 30, description: "Waters north-east of Scotland" },
+  { name: "Forth", x: 53, y: 39, description: "Waters east of central Scotland" },
+  { name: "Tyne", x: 57, y: 47, description: "Waters east of north-east England" },
   { name: "Fisher", x: 76, y: 35, description: "Central North Sea" },
+  { name: "German Bight", x: 82, y: 50, description: "South-eastern North Sea off Germany and Denmark" },
   { name: "Dogger", x: 67, y: 47, description: "North Sea east of northern England" },
   { name: "Humber", x: 63, y: 58, description: "North Sea east of Yorkshire and Lincolnshire" },
   { name: "Thames", x: 69, y: 72, description: "Southern North Sea and Thames approaches" },

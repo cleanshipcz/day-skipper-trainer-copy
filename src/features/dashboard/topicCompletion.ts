@@ -1,6 +1,6 @@
 interface TopicWithSubmodules {
   id: string;
-  submoduleIds?: string[];
+  submoduleIds?: readonly string[];
 }
 
 interface UserProgressData {

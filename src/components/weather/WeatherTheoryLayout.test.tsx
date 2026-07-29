@@ -5,20 +5,43 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
 import { WeatherTheoryLayout } from "./WeatherTheoryLayout";
 
 const saveProgress = vi.fn().mockResolvedValue(true);
+const loadProgress = vi.fn().mockResolvedValue(null);
 vi.mock("@/hooks/useProgress", () => ({
-  useProgress: () => ({ saveProgress }),
+  useProgress: () => ({ loadProgress, saveProgress }),
 }));
 
 describe("WeatherTheoryLayout", () => {
-  beforeEach(() => saveProgress.mockClear());
+  beforeEach(() => {
+    saveProgress.mockReset().mockResolvedValue(true);
+    loadProgress.mockReset().mockResolvedValue(null);
+  });
 
   it("persists completion and awards points once the action succeeds", async () => {
     render(<MemoryRouter><WeatherTheoryLayout title="Test weather" subtitle="Test" topicId="weather-test" sections={[{ title: "Pressure", body: <p>Content</p> }]} /></MemoryRouter>);
-    fireEvent.click(screen.getByRole("button", { name: /mark theory complete/i }));
+    const action = await screen.findByRole("button", { name: /mark theory complete/i });
+    fireEvent.click(action);
     await vi.waitFor(() => {
       expect(saveProgress).toHaveBeenCalledWith("weather-test", true, 100, 10, { completionState: "completed" });
       expect((screen.getByRole("button", { name: /completed/i }) as HTMLButtonElement).disabled).toBe(true);
     });
+  });
+
+  it("does not show completion or award again when persistence fails or the user is logged out", async () => {
+    saveProgress.mockResolvedValue(false);
+    render(<MemoryRouter><WeatherTheoryLayout title="Test" subtitle="Test" topicId="weather-test" sections={[]} /></MemoryRouter>);
+    fireEvent.click(await screen.findByRole("button", { name: /mark theory complete/i }));
+    await vi.waitFor(() => expect(saveProgress).toHaveBeenCalledOnce());
+    expect(screen.queryByRole("button", { name: /completed/i })).toBeNull();
+    expect((screen.getByRole("button", { name: /mark theory complete/i }) as HTMLButtonElement).disabled).toBe(false);
+  });
+
+  it("restores persisted completion and prevents another award", async () => {
+    loadProgress.mockResolvedValue({ completed: true });
+    render(<MemoryRouter><WeatherTheoryLayout title="Test" subtitle="Test" topicId="weather-test" sections={[]} /></MemoryRouter>);
+    const action = await screen.findByRole("button", { name: /completed/i });
+    expect((action as HTMLButtonElement).disabled).toBe(true);
+    fireEvent.click(action);
+    expect(saveProgress).not.toHaveBeenCalled();
   });
 
   it("uses mobile-first controls and a responsive two-column content grid", () => {

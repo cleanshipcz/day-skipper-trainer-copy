@@ -26,7 +26,7 @@ export const beaufortScale: readonly BeaufortLevel[] = [
 
 export const forceForWindSpeed = (knots: number): BeaufortLevel | undefined =>
   Number.isFinite(knots) && knots >= 0
-    ? beaufortScale.find((level) => knots >= level.minKnots && knots <= level.maxKnots)
+    ? [...beaufortScale].reverse().find((level) => knots >= level.minKnots)
     : undefined;
 
 export const conditionsForForce = (force: number): BeaufortLevel | undefined =>

@@ -390,7 +390,7 @@ describe("TOPIC_IDS", () => {
 
   it("should cover every topic in the registry", () => {
     // given
-    const constantValues = new Set(Object.values(TOPIC_IDS));
+    const constantValues = new Set<string>(Object.values(TOPIC_IDS));
     const registryIds = topicRegistry.map((entry) => entry.id);
 
     // then

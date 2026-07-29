@@ -13,5 +13,13 @@ const weatherModules: ModuleMenuItem[] = [
 
 export default function WeatherMenu() {
   const navigate = useNavigate();
-  return <ModuleMenuPage title="Meteorology" description="Read the weather, judge conditions and plan safer passages." modules={weatherModules} onBack={() => navigate("/")} intro={{ badge: "RYA syllabus area 12", title: "Weather for skippers", description: "Build a practical understanding of systems, wind force, forecasts and restricted visibility.", ctaLabel: "Start with weather systems", ctaPath: "/weather/systems" }} />;
+  return (
+    <ModuleMenuPage
+      title="Meteorology"
+      subtitle="Read the weather, judge conditions and plan safer passages"
+      modules={weatherModules}
+      onBack={() => navigate("/")}
+      onNavigate={navigate}
+    />
+  );
 }

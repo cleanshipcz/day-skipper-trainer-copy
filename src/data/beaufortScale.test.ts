@@ -6,7 +6,7 @@ describe("Beaufort scale", () => {
     expect(beaufortScale.map(({ force }) => force)).toEqual([...Array(13).keys()]);
   });
 
-  it.each([[0, 0], [1, 1], [10, 3], [11, 4], [27, 6], [64, 12], [100, 12]])(
+  it.each([[0, 0], [0.5, 0], [1, 1], [3.5, 1], [10.75, 3], [11, 4], [27.9, 6], [64, 12], [100, 12]])(
     "maps %s knots to force %s",
     (knots, force) => expect(forceForWindSpeed(knots)?.force).toBe(force)
   );
