@@ -1,5 +1,5 @@
 import type { ReactNode } from "react";
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { ArrowLeft, CheckCircle2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -22,6 +22,8 @@ export const WeatherTheoryLayout = ({ title, subtitle, topicId, sections, childr
   const { loadProgress, saveProgress } = useProgress();
   const [complete, setComplete] = useState(false);
   const [loading, setLoading] = useState(true);
+  const [saving, setSaving] = useState(false);
+  const savingRef = useRef(false);
   useEffect(() => {
     let active = true;
     void loadProgress(topicId).then((progress) => {
@@ -35,9 +37,16 @@ export const WeatherTheoryLayout = ({ title, subtitle, topicId, sections, childr
     };
   }, [loadProgress, topicId]);
   const finish = async () => {
-    if (complete) return;
-    const saved = await saveProgress(topicId, true, 100, 10, { completionState: "completed" });
-    if (saved) setComplete(true);
+    if (complete || savingRef.current) return;
+    savingRef.current = true;
+    setSaving(true);
+    try {
+      const saved = await saveProgress(topicId, true, 100, 10, { completionState: "completed" });
+      if (saved) setComplete(true);
+    } finally {
+      savingRef.current = false;
+      setSaving(false);
+    }
   };
   return (
     <div className="min-h-screen bg-gradient-to-br from-background via-ocean-light/10 to-background pb-16">
@@ -58,7 +67,7 @@ export const WeatherTheoryLayout = ({ title, subtitle, topicId, sections, childr
         </div>
         {children}
         <div className="flex flex-col sm:flex-row gap-3 justify-center">
-          <Button onClick={finish} disabled={loading || complete}>{complete ? <><CheckCircle2 className="mr-2" />Completed</> : loading ? "Loading progress…" : "Mark theory complete (+10 points)"}</Button>
+          <Button onClick={finish} disabled={loading || saving || complete}>{complete ? <><CheckCircle2 className="mr-2" />Completed</> : loading ? "Loading progress…" : saving ? "Saving completion…" : "Mark theory complete (+10 points)"}</Button>
           <Button variant="outline" onClick={() => navigate("/weather")}>Back to Meteorology</Button>
         </div>
       </main>

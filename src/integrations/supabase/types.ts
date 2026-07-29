@@ -118,7 +118,19 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
-      [_ in never]: never
+      save_topic_progress: {
+        Args: {
+          p_answers_history?: Json | null
+          p_completed?: boolean
+          p_points?: number
+          p_score?: number
+          p_topic_id: string
+        }
+        Returns: {
+          completion_awarded: boolean
+          points_awarded: boolean
+        }[]
+      }
     }
     Enums: {
       [_ in never]: never
