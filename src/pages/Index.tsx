@@ -18,6 +18,7 @@ import {
   Map,
   LifeBuoy,
   Navigation,
+  CloudSun,
 } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { useAuth } from "@/contexts/AuthHooks";
@@ -96,6 +97,12 @@ const topicDisplayMeta: Record<string, {
     icon: LifeBuoy,
     color: "text-red-500",
     menuColor: "from-red-500 to-orange-600",
+  },
+  weather: {
+    description: "Weather systems, wind force, forecasts, fog and visibility",
+    icon: CloudSun,
+    color: "text-sky-500",
+    menuColor: "from-sky-500 to-indigo-600",
   },
 };
 

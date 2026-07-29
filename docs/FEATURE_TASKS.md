@@ -208,12 +208,12 @@ CREATE POLICY "Users manage own <table_name>"
 | E2-S4 | Pilotage Plan Builder | ✅ Complete |
 | E2-S5 | Pilotage Quiz | ✅ Complete |
 | E2-S6 | Pilotage Menu & Dashboard Integration | ✅ Complete |
-| E3-S1 | Weather Systems Sub-module | ⬜ Not Started |
-| E3-S2 | Beaufort Scale Sub-module | ⬜ Not Started |
-| E3-S3 | Weather Forecasts Sub-module | ⬜ Not Started |
-| E3-S4 | Fog & Visibility Sub-module | ⬜ Not Started |
-| E3-S5 | Meteorology Quiz | ⬜ Not Started |
-| E3-S6 | Meteorology Menu & Dashboard Integration | ⬜ Not Started |
+| E3-S1 | Weather Systems Sub-module | ✅ Complete |
+| E3-S2 | Beaufort Scale Sub-module | ✅ Complete |
+| E3-S3 | Weather Forecasts Sub-module | ✅ Complete |
+| E3-S4 | Fog & Visibility Sub-module | ✅ Complete |
+| E3-S5 | Meteorology Quiz | ✅ Complete |
+| E3-S6 | Meteorology Menu & Dashboard Integration | ✅ Complete |
 | E4-S1 | PREPARE Mnemonic Sub-module | ⬜ Not Started |
 | E4-S2 | Passage Planning Calculator | ⬜ Not Started |
 | E4-S3 | Passage Plan Builder | ⬜ Not Started |

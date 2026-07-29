@@ -13,6 +13,7 @@ import safetyLifeRaftQuestions from "./safetyLifeRaft";
 import safetyFlaresQuestions from "./safetyFlares";
 import safetyQuestions from "./safety";
 import pilotageQuestions from "./pilotage";
+import weatherQuestions from "./weather";
 
 /** Registry mapping each quiz topic ID to its question array. */
 export const quizRegistry: Record<string, readonly Question[]> = {
@@ -30,6 +31,7 @@ export const quizRegistry: Record<string, readonly Question[]> = {
   "safety-flares-quiz": safetyFlaresQuestions,
   safety: safetyQuestions,
   pilotage: pilotageQuestions,
+  weather: weatherQuestions,
 };
 
 /** Metadata displayed in the quiz header for each topic. */
@@ -89,6 +91,10 @@ export const topicMeta: Record<string, TopicMeta> = {
   pilotage: {
     title: "Pilotage Quiz",
     subtitle: "IALA buoyage, transits, clearing bearings, and harbour plans",
+  },
+  weather: {
+    title: "Meteorology Quiz",
+    subtitle: "Weather systems, Beaufort scale, forecasts, fog and visibility",
   },
 };
 
