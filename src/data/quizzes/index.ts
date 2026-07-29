@@ -12,6 +12,7 @@ import safetyFireQuestions from "./safetyFire";
 import safetyLifeRaftQuestions from "./safetyLifeRaft";
 import safetyFlaresQuestions from "./safetyFlares";
 import safetyQuestions from "./safety";
+import pilotageQuestions from "./pilotage";
 
 /** Registry mapping each quiz topic ID to its question array. */
 export const quizRegistry: Record<string, readonly Question[]> = {
@@ -28,6 +29,7 @@ export const quizRegistry: Record<string, readonly Question[]> = {
   "safety-life-raft-quiz": safetyLifeRaftQuestions,
   "safety-flares-quiz": safetyFlaresQuestions,
   safety: safetyQuestions,
+  pilotage: pilotageQuestions,
 };
 
 /** Metadata displayed in the quiz header for each topic. */
@@ -83,6 +85,10 @@ export const topicMeta: Record<string, TopicMeta> = {
   safety: {
     title: "Comprehensive Safety Quiz",
     subtitle: "MOB, fire, life raft, flares, personal safety & gas safety",
+  },
+  pilotage: {
+    title: "Pilotage Quiz",
+    subtitle: "IALA buoyage, transits, clearing bearings, and harbour plans",
   },
 };
 

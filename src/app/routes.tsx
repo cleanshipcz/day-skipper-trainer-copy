@@ -46,6 +46,7 @@ export const appRoutes: AppRouteDefinition[] = [
   defineRoute({ path: "/pilotage/buoyage", importPage: () => import("@/pages/BuoyageTheory") }),
   defineRoute({ path: "/pilotage/transits", importPage: () => import("@/pages/TransitsTheory") }),
   defineRoute({ path: "/pilotage/clearing-bearings", importPage: () => import("@/pages/ClearingBearingsTheory") }),
+  defineRoute({ path: "/pilotage/plan", importPage: () => import("@/pages/PilotagePlan") }),
   defineRoute({ path: "/safety", importPage: () => import("@/pages/SafetyMenu") }),
   defineRoute({ path: "/safety/mob", importPage: () => import("@/pages/ManOverboardTheory") }),
   defineRoute({ path: "/safety/fire", importPage: () => import("@/pages/FireSafetyTheory") }),

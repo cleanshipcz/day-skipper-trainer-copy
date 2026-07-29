@@ -15,6 +15,7 @@ const ALL_TOPIC_FILES = [
   { topicId: "safety-life-raft-quiz", fileName: "safetyLifeRaft" },
   { topicId: "safety-flares-quiz", fileName: "safetyFlares" },
   { topicId: "safety", fileName: "safety" },
+  { topicId: "pilotage", fileName: "pilotage" },
 ] as const;
 
 const EXPECTED_QUESTION_COUNTS: Record<string, number> = {
@@ -31,6 +32,7 @@ const EXPECTED_QUESTION_COUNTS: Record<string, number> = {
   "safety-life-raft-quiz": 10,
   "safety-flares-quiz": 10,
   safety: 24,
+  pilotage: 20,
 };
 
 describe("Quiz data files", () => {
@@ -109,7 +111,7 @@ describe("Quiz data files", () => {
 });
 
 describe("Quiz data registry", () => {
-  it("should export a quizRegistry mapping all 13 topic IDs to question arrays", async () => {
+  it("should export a quizRegistry mapping all known topic IDs to question arrays", async () => {
     // given
     // - the registry module
     const { quizRegistry } = await import("./index");
@@ -127,7 +129,7 @@ describe("Quiz data registry", () => {
     }
   });
 
-  it("should not contain any topic IDs beyond the 13 known ones", async () => {
+  it("should not contain any topic IDs beyond the known ones", async () => {
     // given
     const { quizRegistry } = await import("./index");
     const knownTopicIds = ALL_TOPIC_FILES.map((t) => t.topicId);
