@@ -28,6 +28,7 @@ describe("weather interactions", () => {
     expect(screen.getByRole("status").textContent).toContain("Correct");
     await user.click(screen.getByRole("button", { name: /next observation/i }));
     expect(screen.queryByRole("status")).toBeNull();
+    expect(screen.getByText(/Wind speed:/)).toBeTruthy();
   });
 
   it("exposes all forecast areas as focusable controls", async () => {
