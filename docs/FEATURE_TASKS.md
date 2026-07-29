@@ -203,8 +203,8 @@ CREATE POLICY "Users manage own <table_name>"
 | E1-S6 | Comprehensive Safety Quiz | ✅ Done |
 | E1-S7 | Update Safety Menu & Dashboard | ✅ Done |
 | E2-S1 | IALA Buoyage Sub-module | ✅ Done |
-| E2-S2 | Transits & Leading Lines Sub-module | ⬜ Not Started |
-| E2-S3 | Clearing Bearings Sub-module | ⬜ Not Started |
+| E2-S2 | Transits & Leading Lines Sub-module | ✅ Complete |
+| E2-S3 | Clearing Bearings Sub-module | ✅ Complete |
 | E2-S4 | Pilotage Plan Builder | ✅ Complete |
 | E2-S5 | Pilotage Quiz | ✅ Complete |
 | E2-S6 | Pilotage Menu & Dashboard Integration | ✅ Complete |

@@ -57,7 +57,7 @@ describe("useProgress", () => {
   it("surfaces success toasts when save succeeds with points and completion", async () => {
     const { result } = renderHook(() => useProgress());
 
-    await result.current.saveProgress("topic-a", true, 100, 15, { q1: "A" });
+    const saved = await result.current.saveProgress("topic-a", true, 100, 15, { q1: "A" });
 
     expect(mocks.saveProgressRecord).toHaveBeenCalledWith(
       expect.objectContaining({
@@ -71,6 +71,15 @@ describe("useProgress", () => {
     );
     expect(mocks.toastSuccess).toHaveBeenCalledWith("+15 points earned!");
     expect(mocks.toastSuccess).toHaveBeenCalledWith("Topic completed! 🎉");
+    expect(saved).toBe(true);
+  });
+
+  it("returns false when save persistence fails", async () => {
+    mocks.saveProgressRecord.mockRejectedValueOnce(new Error("save failed"));
+    const { result } = renderHook(() => useProgress());
+
+    expect(await result.current.saveProgress("topic-a", true)).toBe(false);
+    expect(mocks.toastError).toHaveBeenCalledWith("Failed to save progress");
   });
 
   it("does not show points toast when persistence reports no new award", async () => {

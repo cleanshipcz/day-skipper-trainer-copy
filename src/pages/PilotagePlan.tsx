@@ -12,7 +12,7 @@ const PilotagePlan = () => {
   const navigate = useNavigate();
   const { saveProgress } = useProgress();
   const completePlan = useCallback((summary: PilotagePlanSummary) => {
-    void saveProgress(TOPIC_IDS.PILOTAGE_PLAN, true, 100, 15, {
+    return saveProgress(TOPIC_IDS.PILOTAGE_PLAN, true, 100, 15, {
       waypointCount: summary.waypoints.length,
       totalDistance: summary.totalDistance,
       estimatedMinutes: summary.estimatedMinutes,

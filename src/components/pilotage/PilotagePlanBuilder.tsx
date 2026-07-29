@@ -7,7 +7,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { calculatePlanSummary, type PilotagePlanSummary, type PilotageWaypoint } from "./pilotagePlan";
 
 interface PilotagePlanBuilderProps {
-  readonly onComplete: (summary: PilotagePlanSummary) => void;
+  readonly onComplete: (summary: PilotagePlanSummary) => Promise<boolean>;
 }
 
 const GUIDED_WAYPOINTS: readonly PilotageWaypoint[] = [
@@ -23,6 +23,7 @@ export const PilotagePlanBuilder = ({ onComplete }: PilotagePlanBuilderProps) =>
   const [speedKnots, setSpeedKnots] = useState(5);
   const [draft, setDraft] = useState({ name: "", bearing: "0", distance: "0.5", tidalOffset: "0", notes: "" });
   const [completed, setCompleted] = useState(false);
+  const [saving, setSaving] = useState(false);
   const summary = useMemo(() => calculatePlanSummary(waypoints, speedKnots), [waypoints, speedKnots]);
 
   const addWaypoint = () => {
@@ -43,7 +44,7 @@ export const PilotagePlanBuilder = ({ onComplete }: PilotagePlanBuilderProps) =>
         <CardContent className="space-y-3">
           <p className="text-sm text-muted-foreground">A guided example is loaded for Port Victoria. Adjust it or add your own waypoints.</p>
           <Label htmlFor="speed">Planned speed through water (knots)</Label>
-          <Input id="speed" aria-label="Planned speed" type="number" min="0.5" step="0.5" value={speedKnots} onChange={(event) => setSpeedKnots(Number(event.target.value))} />
+          <Input id="speed" aria-label="Planned speed" type="number" min="0.5" step="0.5" value={speedKnots} onChange={(event) => { setSpeedKnots(Number(event.target.value)); setCompleted(false); }} />
         </CardContent>
       </Card>
 
@@ -52,7 +53,7 @@ export const PilotagePlanBuilder = ({ onComplete }: PilotagePlanBuilderProps) =>
         <CardContent className="space-y-3">
           {waypoints.map((waypoint, index) => (
             <div key={waypoint.id} className="rounded-lg border p-3 text-sm">
-              <div className="flex justify-between gap-3"><strong>{index + 1}. {waypoint.name}</strong><Button variant="ghost" size="sm" onClick={() => setWaypoints((current) => current.filter((item) => item.id !== waypoint.id))}>Remove</Button></div>
+              <div className="flex justify-between gap-3"><strong>{index + 1}. {waypoint.name}</strong><Button variant="ghost" size="sm" onClick={() => { setWaypoints((current) => current.filter((item) => item.id !== waypoint.id)); setCompleted(false); }}>Remove</Button></div>
               <p>{waypoint.bearing.toString().padStart(3, "0")}° · {waypoint.distance} NM · tidal time adjustment {waypoint.tidalOffset >= 0 ? "+" : ""}{waypoint.tidalOffset} min</p>
               {waypoint.notes && <p className="text-muted-foreground">{waypoint.notes}</p>}
             </div>
@@ -74,8 +75,19 @@ export const PilotagePlanBuilder = ({ onComplete }: PilotagePlanBuilderProps) =>
         <CardContent className="space-y-3">
           <p><strong>{summary.totalDistance} NM</strong> total · <strong>{summary.estimatedMinutes} minutes</strong> estimated</p>
           <p className="text-sm text-muted-foreground">Check every heading against the chart, identify abort points, and brief the helm before entering confined water.</p>
-          <Button disabled={waypoints.length === 0 || speedKnots <= 0 || completed} onClick={() => { onComplete(summary); setCompleted(true); }}>
-            {completed ? "Plan completed" : "Complete pilotage plan"}
+          <Button
+            disabled={waypoints.length === 0 || speedKnots <= 0 || completed || saving}
+            onClick={async () => {
+              setSaving(true);
+              try {
+                const saved = await onComplete(summary);
+                if (saved) setCompleted(true);
+              } finally {
+                setSaving(false);
+              }
+            }}
+          >
+            {saving ? "Saving plan…" : completed ? "Plan completed" : "Complete pilotage plan"}
           </Button>
         </CardContent>
       </Card>

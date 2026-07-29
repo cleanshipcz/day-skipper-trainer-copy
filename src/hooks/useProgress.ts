@@ -40,7 +40,7 @@ export const useProgress = () => {
       pointsEarned: number = 0,
       answersHistory?: Record<string, unknown>
     ) => {
-      if (!user) return;
+      if (!user) return false;
 
       try {
         const { pointsAwarded, completionAwarded } = await saveProgressRecord({
@@ -60,9 +60,11 @@ export const useProgress = () => {
         if (completionAwarded) {
           toast.success("Topic completed! 🎉");
         }
+        return true;
       } catch (error) {
         console.error("Error saving progress:", error);
         toast.error("Failed to save progress");
+        return false;
       }
     },
     [user]
