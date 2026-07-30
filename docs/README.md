@@ -13,6 +13,8 @@ These documents describe the current repository behavior or constraints:
   protected coverage scope, migration immutability, and known limitations.
 - [`POINTS_TRUST_MODEL.md`](POINTS_TRUST_MODEL.md) — security and trust
   boundaries for progress and points.
+- [`BROWSER_PERSISTENCE.md`](BROWSER_PERSISTENCE.md) — browser record versions,
+  owner-scoped keys, cleanup, and storage exceptions.
 - [`FEATURES.md`](FEATURES.md) — current syllabus coverage map. Update it when
   product coverage changes.
 

@@ -15,6 +15,7 @@ import {
 import { useProgress } from "@/hooks/useProgress";
 import { TOPIC_IDS } from "@/constants/topicRegistry";
 import { useAuth } from "@/contexts/AuthHooks";
+import { readStored, writeStored } from "@/features/persistence/browserStorage";
 
 const ANONYMOUS_SESSION_KEY = "day-skipper-passage-plan-anonymous-session";
 const example: PlanWaypoint[] = [
@@ -24,10 +25,12 @@ const example: PlanWaypoint[] = [
 const blank = (): PlanWaypoint => ({ id:crypto.randomUUID(), name:"", latitude:"", longitude:"", bearing:0, distanceNm:0, notes:"", tidalGate:"", weatherWindow:"" });
 const initialPlan = (): PassagePlan => ({ version:PASSAGE_PLAN_CACHE_VERSION, name:"Solent practice passage", departure:"2026-07-30T09:00", speed:5, fuelRate:2, reservePercent:20, points:example });
 const anonymousSessionId = () => {
-  let id = sessionStorage.getItem(ANONYMOUS_SESSION_KEY);
+  let id = readStored(sessionStorage, ANONYMOUS_SESSION_KEY, {
+    decode: (value) => typeof value === "string" && /^[0-9a-f-]{36}$/i.test(value) ? value : null,
+  });
   if (!id) {
     id = crypto.randomUUID();
-    sessionStorage.setItem(ANONYMOUS_SESSION_KEY, id);
+    writeStored(sessionStorage, ANONYMOUS_SESSION_KEY, id);
   }
   return id;
 };
@@ -54,7 +57,9 @@ export function PassagePlanBuilder() {
     // previous account's plan must not remain visible while hydration waits.
     setPlan(initialPlan());
     setErrors([]);
-    const cached = parsePassagePlanCache(localStorage.getItem(cacheKey));
+    const cached = readStored(localStorage, cacheKey, {
+      decode: (value) => parsePassagePlanCache(JSON.stringify(value)),
+    });
     if (cached) {
       setPlan(cached);
     } else if (user) {
@@ -78,7 +83,7 @@ export function PassagePlanBuilder() {
     const validationErrors = validatePassagePlan(plan);
     setErrors(validationErrors);
     if (validationErrors.length) return;
-    localStorage.setItem(cacheKey, JSON.stringify(plan));
+    writeStored(localStorage, cacheKey, plan);
     await saveProgress(TOPIC_IDS.PASSAGE_PLANNING_BUILDER, true, 100, 15, { plan });
   };
 

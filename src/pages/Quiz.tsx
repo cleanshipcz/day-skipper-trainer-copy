@@ -26,9 +26,11 @@ import {
 import { quizRegistry, topicMeta } from "@/data/quizzes";
 import { seedQuizQuestions } from "@/features/spaced-repetition/reviewService";
 import { syncEngagementEvent } from "@/features/engagement/engagementService";
+import { ownerStorageKey, readStored, removeStored, writeStored } from "@/features/persistence/browserStorage";
 
-const quizAttemptKey = (owner: string, topic: string) => `quiz-attempt:${owner}:${topic}`;
+const quizAttemptKey = (owner: string, topic: string) => ownerStorageKey("quiz-attempt", owner, topic);
 interface QuizWorkflow {
+  readonly version?: 1;
   readonly attemptId: string;
   readonly scoreSaved: boolean;
   readonly startedAt?: string;
@@ -44,15 +46,20 @@ interface QuizWorkflow {
 const QUIZ_ATTEMPT_MAX_AGE_MS = 2 * 60 * 60 * 1000;
 const readQuizWorkflow = (owner: string | undefined, topic: string): QuizWorkflow | null => {
   if (!owner) return null;
+  const key = quizAttemptKey(owner, topic);
+  const parsed = readStored(localStorage, key, {
+    decode: (value) => {
+      const candidate = value && typeof value === "object" ? value as Partial<QuizWorkflow> : null;
+      return candidate && (candidate.version === undefined || candidate.version === 1) ? candidate : null;
+    },
+  });
   try {
-    const key = quizAttemptKey(owner, topic);
-    const parsed = JSON.parse(localStorage.getItem(quizAttemptKey(owner, topic)) ?? "null") as Partial<QuizWorkflow> | null;
     if (!parsed || typeof parsed.attemptId !== "string") return null;
     const scoreSaved = parsed.scoreSaved === true;
     const startedAt = typeof parsed.startedAt === "string" ? parsed.startedAt : undefined;
     const startedAtMs = startedAt ? Date.parse(startedAt) : Number.NaN;
     if (!scoreSaved && (!Number.isFinite(startedAtMs) || Date.now() - startedAtMs >= QUIZ_ATTEMPT_MAX_AGE_MS)) {
-      localStorage.removeItem(key);
+      removeStored(localStorage, key);
       return null;
     }
     const completion = parsed.completion
@@ -198,7 +205,7 @@ const Quiz = () => {
       const { data, error } = await supabase.rpc("start_quiz_attempt", { p_topic_id: topicKey });
       if (error || !data || seedOwnerRef.current !== owner || seedGenerationRef.current !== generation) return;
       const created = { attemptId: data.attempt_id, scoreSaved: false, startedAt: data.started_at };
-      localStorage.setItem(quizAttemptKey(owner, topicKey), JSON.stringify(created));
+      writeStored(localStorage, quizAttemptKey(owner, topicKey), { ...created, version: 1 });
       setWorkflow(created);
     })();
   }, [user?.id, topicKey, attemptCycle]);
@@ -325,7 +332,7 @@ const Quiz = () => {
         if (scoreError) throw scoreError;
         if (seedOwnerRef.current !== owner || seedGenerationRef.current !== generation) return;
         const scoreSavedWorkflow = { ...activeWorkflow, scoreSaved: true, completion };
-        localStorage.setItem(quizAttemptKey(owner, topicKey), JSON.stringify(scoreSavedWorkflow));
+        writeStored(localStorage, quizAttemptKey(owner, topicKey), { ...scoreSavedWorkflow, version: 1 });
         setWorkflow(scoreSavedWorkflow);
       }
 
@@ -355,7 +362,7 @@ const Quiz = () => {
             ? "Quiz passed and saved."
             : "Quiz saved. Score 70% or more to pass."
         );
-        localStorage.removeItem(quizAttemptKey(owner, topicKey));
+        removeStored(localStorage, quizAttemptKey(owner, topicKey));
         setWorkflow(null);
       } else {
         setCompletionSaveError(true);
@@ -369,7 +376,7 @@ const Quiz = () => {
 
   const handleRestart = () => {
     if (user && !workflow?.scoreSaved) {
-      localStorage.removeItem(quizAttemptKey(user.id, topicKey));
+      removeStored(localStorage, quizAttemptKey(user.id, topicKey));
     }
     setCurrentQuestion(0);
     setAnswers(createEmptyQuizAnswers(questions.length));
