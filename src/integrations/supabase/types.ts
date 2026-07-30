@@ -20,6 +20,7 @@ export type Database = {
           completed_at: string
           id: string
           passed: boolean
+          pass_mark: number
           percentage: number
           score: number
           time_taken_seconds: number
@@ -32,6 +33,7 @@ export type Database = {
           completed_at?: string
           id?: string
           passed: boolean
+          pass_mark?: number
           percentage: number
           score: number
           time_taken_seconds: number
@@ -153,6 +155,7 @@ export type Database = {
           p_time_taken_seconds: number
           p_topic_breakdown: Json
           p_total_questions: number
+          p_pass_mark?: number
         }
         Returns: Database["public"]["Tables"]["exam_results"]["Row"]
       }

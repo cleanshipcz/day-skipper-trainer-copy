@@ -895,7 +895,11 @@ CREATE POLICY "Users manage own <table_name>"
 - [x] AC-3: New Supabase table `exam_results` stores: user_id, score, percentage, total_questions, time_taken_seconds, passed, topic_breakdown (JSONB), completed_at.
 - [x] AC-4: Migration file created for `exam_results` table (following [Migration Conventions](#supabase-migration-conventions)). Migration includes RLS enablement and `FOR ALL` policy scoped to `auth.uid() = user_id` (per [RLS Requirements](#rls-policy-requirements)).
 - [x] AC-5: Route `/exam/history` shows past attempts with date, score, pass/fail, and trend line (chart).
-- [x] AC-6: Points awarded for completing an exam; bonus points for passing.
+- [x] AC-6: Points awarded once for completing the exam feature. Scores and repeated attempts never control rewards.
+
+> Implementation note: mock exam results are explicitly self-assessed practice records, not
+> certifying results. A fixed completion reward is awarded once per user; caller-provided
+> scores never control points and repeated attempts do not farm rewards.
 
 **Dependencies:** DEP-E5S1.
 

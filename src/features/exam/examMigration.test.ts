@@ -17,5 +17,22 @@ describe("exam result migration", () => {
     expect(sql).toContain("auth.uid() is null");
     expect(sql).toContain("on conflict (user_id, attempt_id)");
     expect(sql).toContain("grant execute on function public.submit_exam_result");
+    expect(sql).toContain("calculated_percentage >= p_pass_mark");
+  });
+
+  it("awards fixed completion points once per user under concurrency", () => {
+    expect(sql).toContain("create table public.exam_completion_awards");
+    expect(sql).toContain("user_id uuid primary key");
+    expect(sql).toContain("pg_advisory_xact_lock");
+    expect(sql).toContain("on conflict (user_id) do nothing");
+    expect(sql).toContain("points = coalesce(points, 0) + 10");
+    expect(sql).not.toContain("case when calculated_percentage");
+  });
+
+  it("validates bounded, internally consistent known-topic breakdowns", () => {
+    expect(sql).toContain("pg_column_size(p_topic_breakdown) > 16384");
+    expect(sql).toContain("not (item.key = any(known_topics))");
+    expect(sql).toContain("breakdown_total <> p_total_questions");
+    expect(sql).toContain("breakdown_correct <> p_score");
   });
 });
