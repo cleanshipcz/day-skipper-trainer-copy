@@ -10,6 +10,8 @@ import {
   TOPIC_IDS,
 } from "./topicRegistry";
 import { appRoutes } from "@/app/routes";
+import { quizRegistry, topicMeta } from "@/data/quizzes";
+import { DURABLE_PROGRESS_IDS } from "./durableProgressIds";
 
 // ── Helpers ──────────────────────────────────────────────────────────────
 
@@ -75,42 +77,9 @@ describe("topicRegistry", () => {
     }
   });
 
-  it("should preserve all existing progress IDs for backward compatibility (AC-4)", () => {
-    // given
-    // - all known progress IDs currently used in the codebase
-    const existingProgressIds = [
-      "nautical-terms",
-      "ropework",
-      "anchorwork",
-      "victualling",
-      "engine",
-      "rig",
-      "rules-of-the-road",
-      "navigation",
-      "safety",
-      "nautical-terms-boat-parts",
-      "nautical-terms-sail-controls",
-      "nautical-terms-quiz",
-      "colregs-theory",
-      "lights-theory",
-      "colregs",
-      "charts-theory",
-      "compass-theory",
-      "position-theory",
-      "safety-mob",
-      "safety-flares",
-      "safety-flares-drill",
-      "safety-personal",
-      "safety-gas",
-    ];
-
-    // when
-    const registryIds = topicRegistry.map((entry) => entry.id);
-
-    // then
-    for (const existingId of existingProgressIds) {
-      expect(registryIds).toContain(existingId);
-    }
+  it("matches the complete durable progress ID compatibility snapshot (AC-4)", () => {
+    expect(topicRegistry.map(({ id }) => id).sort()).toEqual([...DURABLE_PROGRESS_IDS].sort());
+    expect(new Set(DURABLE_PROGRESS_IDS).size).toBe(46);
   });
 
   it("should have valid parentId references (every parentId must reference an existing topic)", () => {
@@ -168,6 +137,33 @@ describe("topicRegistry — syllabus coverage (AC-6)", () => {
         routeMatches(defPath, entry.route),
       );
       expect(hasMatch).toBe(true);
+    }
+  });
+
+  it("keeps every registered quiz route backed by questions and metadata", () => {
+    const quizTopicIds = new Set(Object.keys(quizRegistry));
+
+    for (const entry of topicRegistry) {
+      if (entry.quizRoute) {
+        expect(quizTopicIds.has(entry.quizRoute.replace("/quiz/", ""))).toBe(true);
+      }
+    }
+    expect(Object.keys(topicMeta).sort()).toEqual(Object.keys(quizRegistry).sort());
+    const reachableQuizIds = new Set(
+      topicRegistry
+        .flatMap(({ quizRoute }) => quizRoute ? [quizRoute.replace("/quiz/", "")] : []),
+    );
+    expect([...quizTopicIds].filter((id) => !reachableQuizIds.has(id))).toEqual([]);
+  });
+
+  it("keeps every dashboard root reachable with a unique concrete route", () => {
+    const roots = getRootTopics();
+    const rootRoutes = roots.map(({ route }) => route);
+
+    expect(roots).toHaveLength(12);
+    expect(new Set(rootRoutes).size).toBe(rootRoutes.length);
+    for (const route of rootRoutes) {
+      expect(appRoutes.some(({ path }) => path === route)).toBe(true);
     }
   });
 

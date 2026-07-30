@@ -13,6 +13,7 @@ import {
   type PassagePlan,
 } from "@/features/passagePlanning/passagePlan";
 import { useProgress } from "@/hooks/useProgress";
+import { TOPIC_IDS } from "@/constants/topicRegistry";
 import { useAuth } from "@/contexts/AuthHooks";
 
 const ANONYMOUS_SESSION_KEY = "day-skipper-passage-plan-anonymous-session";
@@ -78,7 +79,7 @@ export function PassagePlanBuilder() {
     setErrors(validationErrors);
     if (validationErrors.length) return;
     localStorage.setItem(cacheKey, JSON.stringify(plan));
-    await saveProgress("passage-planning-builder", true, 100, 15, { plan });
+    await saveProgress(TOPIC_IDS.PASSAGE_PLANNING_BUILDER, true, 100, 15, { plan });
   };
 
   return <div className="space-y-5">

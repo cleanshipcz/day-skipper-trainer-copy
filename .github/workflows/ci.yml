@@ -15,6 +15,8 @@ jobs:
     steps:
       - name: Checkout
         uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
 
       - name: Setup Node.js
         uses: actions/setup-node@v4
@@ -34,5 +36,19 @@ jobs:
       - name: Test
         run: npm run test -- --run --maxWorkers=1
 
+      - name: Coverage
+        run: npm run guard:coverage-scope && npm run test:coverage -- --maxWorkers=1
+
       - name: Build
         run: npm run build
+
+      - name: Build budget
+        run: npm run test:build-budget
+
+      - name: Migration guard
+        env:
+          MIGRATION_BASE_SHA: ${{ github.event.pull_request.base.sha || github.event.before }}
+        run: npm run guard:migrations
+
+      - name: Internal artifact guard
+        run: npm run guard:no-internal-artifacts

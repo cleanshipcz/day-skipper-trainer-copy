@@ -3,6 +3,7 @@ import react from "@vitejs/plugin-react-swc";
 import path from "path";
 import { componentTagger } from "lovable-tagger";
 import { VitePWA } from "vite-plugin-pwa";
+import coverageScope from "./scripts/coverage-scope.json";
 
 /**
  * Override NODE_ENV for test runs.
@@ -80,6 +81,19 @@ export default defineConfig(({ mode }) => ({
       "**/dist/**",
       "**/*.integration.test.*",
     ],
+    coverage: {
+      provider: "v8",
+      reporter: ["text", "json-summary", "html"],
+      reportsDirectory: "./coverage",
+      include: coverageScope.files,
+      thresholds: {
+        perFile: true,
+        lines: 90,
+        functions: 90,
+        statements: 90,
+        branches: 90,
+      },
+    },
   },
   resolve: {
     alias: {

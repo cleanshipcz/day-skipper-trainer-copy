@@ -59,4 +59,16 @@ describe("deriveCompletionGateDecision", () => {
     expect(decision.state).toBe("in_progress");
     expect(decision.canComplete).toBe(false);
   });
+
+  it("does not treat an empty requirement list as completable", () => {
+    expect(deriveCompletionGateDecision({
+      visitedSectionIds: [],
+      requiredSectionIds: [],
+      scrollPercent: 50,
+    })).toEqual({
+      state: "in_progress",
+      score: 50,
+      canComplete: false,
+    });
+  });
 });
