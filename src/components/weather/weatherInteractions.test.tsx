@@ -40,5 +40,8 @@ describe("weather interactions", () => {
     await user.click(dogger);
     expect(dogger.getAttribute("aria-pressed")).toBe("true");
     expect(screen.getByRole("status").textContent).toContain("North Sea east");
+    expect(screen.getByText("Great Britain")).toBeTruthy();
+    expect(screen.getByRole("button", { name: /Dogger: North Sea east/i }).getAttribute("aria-pressed")).toBe("true");
+    expect(screen.getByRole("group", { name: "Shipping forecast area list" })).toBeTruthy();
   });
 });

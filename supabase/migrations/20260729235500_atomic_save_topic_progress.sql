@@ -42,6 +42,8 @@ declare
   v_user_id uuid := auth.uid();
   v_was_completed boolean := false;
   v_completion_awarded boolean := false;
+  v_award_points integer := 0;
+  v_points_awarded boolean := false;
 begin
   if v_user_id is null then
     raise exception 'Authentication required' using errcode = '42501';
@@ -85,6 +87,34 @@ begin
 
   v_completion_awarded := coalesce(p_completed, false) and not coalesce(v_was_completed, false);
 
+  -- Reward values are an application-owned catalogue. p_points remains in the
+  -- signature for backwards compatibility, but is deliberately never read.
+  -- Variable client-scored quiz/activity rewards are not eligible here.
+  v_award_points := case p_topic_id
+    when 'pilotage-plan' then 15
+    when 'colregs-theory' then 10
+    when 'lights-theory' then 10
+    when 'charts-theory' then 10
+    when 'compass-theory' then 10
+    when 'position-theory' then 10
+    when 'pilotage-buoyage' then 10
+    when 'pilotage-transits' then 10
+    when 'pilotage-clearing-bearings' then 10
+    when 'safety-mob' then 10
+    when 'safety-fire' then 10
+    when 'safety-fire-drill' then 10
+    when 'safety-life-raft' then 10
+    when 'safety-flares' then 10
+    when 'safety-flares-drill' then 10
+    when 'safety-personal' then 10
+    when 'safety-gas' then 10
+    when 'weather-systems' then 10
+    when 'weather-beaufort' then 10
+    when 'weather-forecasts' then 10
+    when 'weather-fog' then 10
+    else 0
+  end;
+
   insert into public.user_progress (
     user_id, topic_id, completed, score, last_accessed, answers_history
   )
@@ -105,13 +135,23 @@ begin
                                then public.user_progress.answers_history
                                else coalesce(excluded.answers_history, public.user_progress.answers_history) end;
 
-  -- p_completed and p_score are self-reported learning progress, not proof of
-  -- achievement. Until answers are verified against server-owned quiz data,
-  -- this function must never turn those claims (or p_points) into profile points.
+  if v_completion_awarded and v_award_points > 0 then
+    insert into public.progress_awards (user_id, topic_id, points)
+    values (v_user_id, p_topic_id, v_award_points)
+    on conflict (user_id, topic_id) do nothing
+    returning true into v_points_awarded;
+
+    if coalesce(v_points_awarded, false) then
+      update public.profiles
+         set points = coalesce(points, 0) + v_award_points
+       where id = v_user_id;
+    end if;
+  end if;
+
   return query select
-    false,
+    coalesce(v_points_awarded, false),
     v_completion_awarded,
-    0;
+    case when coalesce(v_points_awarded, false) then v_award_points else 0 end;
 end;
 $$;
 
@@ -120,7 +160,7 @@ revoke all on function public.save_topic_progress(text, boolean, integer, intege
 grant execute on function public.save_topic_progress(text, boolean, integer, integer, jsonb) to authenticated;
 
 comment on function public.save_topic_progress(text, boolean, integer, integer, jsonb)
-is 'Persists self-reported auth.uid() learning progress without awarding points from unverified client claims.';
+is 'Persists auth.uid() progress and idempotently awards server-catalogued completion points; caller-supplied point amounts are ignored.';
 
 -- Retire the legacy RPC that accepted an arbitrary user ID.
 revoke all on function public.increment_user_points(uuid, integer) from public;

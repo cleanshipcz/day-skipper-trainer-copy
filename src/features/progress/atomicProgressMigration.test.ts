@@ -17,23 +17,29 @@ describe("atomic progress migration", () => {
     expect(sql).toContain("authentication required");
   });
 
-  it("serializes first completion and updates progress without trusting it for rewards", () => {
+  it("serializes first completion and awards through an immutable ledger", () => {
     expect(sql).toContain("pg_advisory_xact_lock");
     expect(sql).toContain("insert into public.user_progress");
     expect(sql).toContain("v_completion_awarded");
     expect(sql).toContain("insert into public.progress_awards");
     expect(sql).toContain("on conflict (user_id, topic_id) do nothing");
     expect(sql).toContain("primary key (user_id, topic_id)");
-    expect(sql).not.toContain("update public.profiles");
+    expect(sql).toContain("update public.profiles");
   });
 
-  it("never converts caller-controlled completion, score, or points into profile points", () => {
-    expect(sql).toContain("self-reported learning progress");
-    expect(sql).toContain("must never turn those claims");
+  it("uses server-catalogued rewards and never uses the caller-controlled point amount", () => {
+    expect(sql).toContain("application-owned catalogue");
+    expect(sql).toContain("p_points remains in the");
+    expect(sql).toContain("when 'weather-systems' then 10");
+    expect(sql).toContain("when 'weather-beaufort' then 10");
+    expect(sql).toContain("when 'weather-forecasts' then 10");
+    expect(sql).toContain("when 'weather-fog' then 10");
+    expect(sql).toContain("when 'pilotage-plan' then 15");
     expect(sql).toContain("unknown progress topic");
     expect(sql).toContain("return query select");
-    expect(sql).toContain("false,");
-    expect(sql).not.toContain("coalesce(points, 0) +");
+    expect(sql).not.toMatch(/coalesce\(p_points,\s*0\)/);
+    expect(sql).not.toMatch(/v_award_points\s*:=\s*p_points/);
+    expect(sql).toContain("coalesce(points, 0) + v_award_points");
   });
 
   it("validates mutable progress and preserves completed evidence", () => {
