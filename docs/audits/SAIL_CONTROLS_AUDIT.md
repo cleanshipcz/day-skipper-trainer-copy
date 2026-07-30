@@ -16,8 +16,8 @@ coherent first/second-attempt scoring. However, the complete learning
 interaction is unavailable from a keyboard or screen reader, save success is
 assumed rather than verified and returning progress is not loaded, delayed
 quiz transitions can outlive the run that created them, and several sail-trim
-statements need correction. The quiz also does not perform the diagram
-identification promised by its instructions.
+statements and the page's rigging taxonomy need correction. The quiz also does
+not perform the diagram identification promised by its instructions.
 
 ## Evidence and exercised paths
 
@@ -101,9 +101,12 @@ not invalidate it.
 ## Content-quality notes
 
 The catalogue covers a useful introductory set of running-rigging and
-sail-shape controls, with concise purpose/location/effect fields. “Running
-rigging” versus standing rigging is introduced appropriately. The following
-statements need technical revision:
+sail-shape controls, with concise purpose/location/effect fields. However, the
+page calls the whole catalogue “running rigging” and “control lines” even
+though Mainsheet Traveller and Jib Fairlead are hardware and Backstay Adjuster
+acts on standing-rigging tension. That scope blurs the category boundary the
+introductory copy is meant to teach. The following statements also need
+technical revision:
 
 - Treating **Cunningham** as simply “also called: Downhaul” obscures the
   defining cringle-versus-tack distinction.
@@ -122,6 +125,9 @@ control claims above require configuration-aware wording.
 ## Focused follow-up issues
 
 - [#145 — Make Sail Controls learning interactions keyboard- and screen-reader-accessible](https://github.com/cleanshipcz/day-skipper-trainer-copy/issues/145)
-- [#146 — Harden Sail Controls quiz transition, persistence, and save-failure behavior](https://github.com/cleanshipcz/day-skipper-trainer-copy/issues/146)
+- [#146 — Cancel stale Sail Controls quiz transitions across reset and restart](https://github.com/cleanshipcz/day-skipper-trainer-copy/issues/146)
 - [#147 — Correct misleading Sail Controls terminology and trim-effect guidance](https://github.com/cleanshipcz/day-skipper-trainer-copy/issues/147)
-- [#148 — Align the Sail Controls diagram and quiz with the stated identification task](https://github.com/cleanshipcz/day-skipper-trainer-copy/issues/148)
+- [#148 — Align the Sail Controls quiz interaction with its identification instructions](https://github.com/cleanshipcz/day-skipper-trainer-copy/issues/148)
+- [#149 — Load Sail Controls progress and surface durable save failures](https://github.com/cleanshipcz/day-skipper-trainer-copy/issues/149)
+- [#150 — Make the Sail Controls schematic legible and touch-usable at responsive sizes](https://github.com/cleanshipcz/day-skipper-trainer-copy/issues/150)
+- [#142 — Correct the shared Boat Parts jib/forestay geometry and verify label geometry](https://github.com/cleanshipcz/day-skipper-trainer-copy/issues/142)
