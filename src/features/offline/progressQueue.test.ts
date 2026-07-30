@@ -55,6 +55,10 @@ describe("offline progress queue", () => {
   });
 
   it("classifies connectivity and server errors without treating authorization errors as retryable", () => {
+    expect(isRetryableProgressError(new Error("offline"), false)).toBe(true);
+    expect(isRetryableProgressError({ status: 408 }, true)).toBe(true);
+    expect(isRetryableProgressError({ status: 429 }, true)).toBe(true);
+    expect(isRetryableProgressError({ code: "ETIMEDOUT" }, true)).toBe(true);
     expect(isRetryableProgressError(new Error("Failed to fetch"), true)).toBe(true);
     expect(isRetryableProgressError({ status: 503, message: "unavailable" }, true)).toBe(true);
     expect(isRetryableProgressError({
@@ -66,6 +70,43 @@ describe("offline progress queue", () => {
     expect(isRetryableProgressError({ status: 401, message: "unauthorized" }, true)).toBe(false);
     expect(isRetryableProgressError({ code: "42501", message: "row-level security policy denied" }, true)).toBe(false);
     expect(isRetryableProgressError({ code: "23514", message: "check constraint violation" }, true)).toBe(false);
+    expect(isRetryableProgressError("unknown", true)).toBe(false);
+  });
+
+  it("returns all owners when no owner filter is supplied", async () => {
+    await queueProgress({ userId: "all-a", topicId: "a", completed: false, score: 0, pointsEarned: 0 });
+    await queueProgress({ userId: "all-b", topicId: "b", completed: false, score: 0, pointsEarned: 0 });
+    expect((await getQueuedProgress()).map(({ userId }) => userId)).toEqual(expect.arrayContaining(["all-a", "all-b"]));
+  });
+
+  it("hydrates legacy queue entries with safe retry defaults", async () => {
+    const database = await new Promise<IDBDatabase>((resolve, reject) => {
+      const request = indexedDB.open("day-skipper-offline", 1);
+      request.onsuccess = () => resolve(request.result);
+      request.onerror = () => reject(request.error);
+    });
+    const transaction = database.transaction("progress-queue", "readwrite");
+    transaction.objectStore("progress-queue").put({
+      id: "legacy-user:legacy", userId: "legacy-user", topicId: "legacy",
+      completed: false, score: 0, pointsEarned: 0, updatedAt: 1,
+    });
+    await new Promise<void>((resolve) => { transaction.oncomplete = () => resolve(); });
+    database.close();
+
+    expect(await getQueuedProgress("legacy-user")).toEqual([
+      expect.objectContaining({ revision: 0, attempts: 0, status: "pending" }),
+    ]);
+  });
+
+  it("keeps transient replay failures pending for a later retry", async () => {
+    await queueProgress({ userId: "retry-user", topicId: "charts", completed: true, score: 90, pointsEarned: 10 });
+    const rpc = vi.fn().mockResolvedValue({ data: null, error: new Error("Failed to fetch") });
+
+    expect(await replayProgressQueue({ rpc } as never, "retry-user"))
+      .toEqual({ synced: 0, remaining: 1, quarantined: 0 });
+    expect(await getQueuedProgress("retry-user")).toEqual([
+      expect.objectContaining({ status: "pending", attempts: 1 }),
+    ]);
   });
 
   it("does not delete a newer same-topic revision when an older replay succeeds", async () => {

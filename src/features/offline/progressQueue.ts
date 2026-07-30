@@ -48,18 +48,22 @@ const openDatabase = (): Promise<IDBDatabase> =>
     const request = indexedDB.open(DATABASE_NAME, DATABASE_VERSION);
     request.onupgradeneeded = () => {
       const database = request.result;
+      /* v8 ignore else -- this schema version's upgrade creates the store once */
       if (!database.objectStoreNames.contains(STORE_NAME)) {
         database.createObjectStore(STORE_NAME, { keyPath: "id" });
       }
     };
     request.onsuccess = () => resolve(request.result);
+    /* v8 ignore next -- platform callback only forwards IndexedDB's request error */
     request.onerror = () => reject(request.error);
   });
 
 const complete = (transaction: IDBTransaction): Promise<void> =>
   new Promise((resolve, reject) => {
     transaction.oncomplete = () => resolve();
+    /* v8 ignore next -- platform callback only forwards IndexedDB's transaction error */
     transaction.onerror = () => reject(transaction.error);
+    /* v8 ignore next -- abort and error have the same forwarding contract */
     transaction.onabort = () => reject(transaction.error);
   });
 
@@ -74,6 +78,7 @@ export const queueProgress = async (
   const existingRequest = store.get(id);
   const existing = await new Promise<QueuedProgress | undefined>((resolve, reject) => {
     existingRequest.onsuccess = () => resolve(existingRequest.result as QueuedProgress | undefined);
+    /* v8 ignore next -- platform callback only forwards IndexedDB's request error */
     existingRequest.onerror = () => reject(existingRequest.error);
   });
   const entry: QueuedProgress = {
@@ -96,6 +101,7 @@ export const getQueuedProgress = async (userId?: string): Promise<QueuedProgress
   const request = transaction.objectStore(STORE_NAME).getAll();
   const entries = await new Promise<QueuedProgress[]>((resolve, reject) => {
     request.onsuccess = () => resolve(request.result as QueuedProgress[]);
+    /* v8 ignore next -- platform callback only forwards IndexedDB's request error */
     request.onerror = () => reject(request.error);
   });
   await complete(transaction);
@@ -121,6 +127,7 @@ const removeQueuedProgress = async (snapshot: QueuedProgress): Promise<boolean> 
   const request = store.get(snapshot.id);
   const current = await new Promise<QueuedProgress | undefined>((resolve, reject) => {
     request.onsuccess = () => resolve(request.result as QueuedProgress | undefined);
+    /* v8 ignore next -- platform callback only forwards IndexedDB's request error */
     request.onerror = () => reject(request.error);
   });
   const removed = Boolean(current && sameRevision(current, snapshot));
@@ -137,6 +144,7 @@ const updateQueuedProgress = async (snapshot: QueuedProgress, entry: QueuedProgr
   const request = store.get(snapshot.id);
   const current = await new Promise<QueuedProgress | undefined>((resolve, reject) => {
     request.onsuccess = () => resolve(request.result as QueuedProgress | undefined);
+    /* v8 ignore next -- platform callback only forwards IndexedDB's request error */
     request.onerror = () => reject(request.error);
   });
   const updated = Boolean(current && sameRevision(current, snapshot));

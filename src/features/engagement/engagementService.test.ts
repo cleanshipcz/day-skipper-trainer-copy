@@ -29,6 +29,21 @@ describe("engagement evidence outbox", () => {
     expect(JSON.parse(localStorage.getItem("engagement-outbox:owner-a") ?? "[]")).toHaveLength(1);
   });
 
+  test("recovers malformed storage, ignores unknown badges, and rejects empty outcomes", async () => {
+    localStorage.setItem("engagement-outbox:owner-a", "{bad");
+    const online = { rpc: vi.fn().mockResolvedValue({ data: {
+      current_streak: 2, bonus_points: 3, unlocked_badge_ids: ["unknown"],
+    }, error: null }) };
+    await expect(syncEngagementEvent(
+      online, "owner-a", { sourceType: "progress", sourceId: "topic" },
+    )).resolves.toEqual({ streak: 2, bonusPoints: 3, unlockedBadges: [] });
+
+    await expect(syncEngagementEvent(
+      { rpc: vi.fn().mockResolvedValue({ data: null, error: null }) },
+      "owner-a", { sourceType: "progress", sourceId: "missing" },
+    )).rejects.toThrow("Engagement evidence returned no outcome");
+  });
+
   test("should preserve a later failed item when an earlier deferred sync succeeds", async () => {
     let releaseFirst!: () => void;
     const client = { rpc: vi.fn()

@@ -44,4 +44,15 @@ describe("dashboard due count identity isolation", () => {
     expect(screen.queryByText("9")).toBeNull();
     await act(async () => resolvePending(0));
   });
+
+  test("does not query without an owner and recovers current-owner failures to zero", async () => {
+    const view = render(<Probe userId={null} />);
+    expect(screen.getByText("0")).toBeTruthy();
+    expect(fetchDueCount).not.toHaveBeenCalled();
+
+    fetchDueCount.mockRejectedValueOnce(new Error("offline"));
+    view.rerender(<Probe userId="a" />);
+    await waitFor(() => expect(fetchDueCount).toHaveBeenCalledOnce());
+    expect(screen.getByText("0")).toBeTruthy();
+  });
 });

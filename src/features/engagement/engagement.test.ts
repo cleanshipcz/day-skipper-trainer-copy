@@ -26,6 +26,10 @@ describe("engagement rules", () => {
     ], "2026-10-26T12:00:00Z")).toBe(1);
   });
 
+  test("returns zero when neither today nor yesterday has activity", () => {
+    expect(calculateStreak([], "2026-07-30T12:00:00Z")).toBe(0);
+  });
+
   test("should count thirty backdated review receipts created today as one reward day", () => {
     const serverReceiptTimes = Array.from({ length: 30 }, () => "2026-07-30T10:00:00Z");
     expect(calculateStreak(serverReceiptTimes, "2026-07-30T12:00:00Z")).toBe(1);

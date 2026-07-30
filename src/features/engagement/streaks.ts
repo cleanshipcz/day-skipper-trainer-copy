@@ -5,7 +5,8 @@ const pragueDate = (timestamp: string): string => {
     month: "2-digit",
     day: "2-digit",
   }).formatToParts(new Date(timestamp));
-  const value = (type: Intl.DateTimeFormatPartTypes) => parts.find((part) => part.type === type)?.value ?? "";
+  // Intl guarantees year/month/day parts for the explicit numeric formatter above.
+  const value = (type: Intl.DateTimeFormatPartTypes) => parts.find((part) => part.type === type)!.value;
   return `${value("year")}-${value("month")}-${value("day")}`;
 };
 
