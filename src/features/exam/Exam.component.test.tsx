@@ -85,6 +85,7 @@ describe("exam persistence and identity integration", () => {
     await waitFor(() => expect(rpc).toHaveBeenCalledOnce());
     fireEvent.click(screen.getByRole("button", { name: /new attempt/i }));
     fireEvent.click(screen.getByRole("button", { name: /start exam/i }));
+    await waitFor(() => expect(sessionStorage.getItem("day-skipper-exam-session-v1")).not.toBeNull());
     const newAttemptId = JSON.parse(sessionStorage.getItem("day-skipper-exam-session-v1")!).attemptId;
 
     response.resolve({ error: null });

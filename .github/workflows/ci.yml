@@ -45,6 +45,9 @@ jobs:
       - name: Build budget
         run: npm run test:build-budget
 
+      - name: Quiz chunk strategy
+        run: npm run test:quiz-chunks
+
       - name: Migration guard
         env:
           MIGRATION_BASE_SHA: ${{ github.event.pull_request.base.sha || github.event.before }}

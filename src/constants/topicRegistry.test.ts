@@ -10,7 +10,7 @@ import {
   TOPIC_IDS,
 } from "./topicRegistry";
 import { appRoutes } from "@/app/routes";
-import { quizRegistry, topicMeta } from "@/data/quizzes";
+import { topicIds, topicMeta } from "@/data/quizzes";
 import { DURABLE_PROGRESS_IDS } from "./durableProgressIds";
 
 // ── Helpers ──────────────────────────────────────────────────────────────
@@ -141,14 +141,14 @@ describe("topicRegistry — syllabus coverage (AC-6)", () => {
   });
 
   it("keeps every registered quiz route backed by questions and metadata", () => {
-    const quizTopicIds = new Set(Object.keys(quizRegistry));
+    const quizTopicIds = new Set<string>(topicIds);
 
     for (const entry of topicRegistry) {
       if (entry.quizRoute) {
         expect(quizTopicIds.has(entry.quizRoute.replace("/quiz/", ""))).toBe(true);
       }
     }
-    expect(Object.keys(topicMeta).sort()).toEqual(Object.keys(quizRegistry).sort());
+    expect(Object.keys(topicMeta).sort()).toEqual([...topicIds].sort());
     const reachableQuizIds = new Set(
       topicRegistry
         .flatMap(({ quizRoute }) => quizRoute ? [quizRoute.replace("/quiz/", "")] : []),

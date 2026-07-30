@@ -51,6 +51,12 @@ export default defineConfig(({ mode }) => ({
       workbox: {
         navigateFallback: "/index.html",
         globPatterns: ["**/*.{js,css,html,ico,png,svg,woff2}"],
+        // Quiz banks are fetched and runtime-cached only when a learner needs
+        // them. Pre-caching them here would turn code splitting into an
+        // install-time bulk download.
+        globIgnores: [
+          "**/{nauticalTerms,ropework,anchorwork,victualling,engine,rig,colregs,lightsSignals,safetyMob,safetyFire,safetyLifeRaft,safetyFlares,safety,pilotage,weather,passagePlanning}-*.js",
+        ],
         runtimeCaching: [
           {
             urlPattern: ({ request, url }) =>
@@ -58,7 +64,7 @@ export default defineConfig(({ mode }) => ({
               || request.destination === "script"
               || /\.(?:css|json|png|svg|woff2?)$/i.test(url.pathname),
             handler: "StaleWhileRevalidate",
-            options: { cacheName: "theory-and-quiz-content" },
+            options: { cacheName: "theory-and-on-demand-quiz-content" },
           },
         ],
       },
@@ -101,6 +107,7 @@ export default defineConfig(({ mode }) => ({
     },
   },
   build: {
+    manifest: "manifest.json",
     rollupOptions: {
       output: {
         manualChunks: {

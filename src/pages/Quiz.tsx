@@ -23,7 +23,7 @@ import {
   parseSavedQuizSession,
   persistQuizSessionProgress,
 } from "@/features/quiz/sessionProgress";
-import { quizRegistry, topicMeta } from "@/data/quizzes";
+import { isQuizTopicId, loadQuizTopic, topicMeta, type Question } from "@/data/quizzes";
 import { seedQuizQuestions } from "@/features/spaced-repetition/reviewService";
 import { syncEngagementEvent } from "@/features/engagement/engagementService";
 import { ownerStorageKey, readStored, removeStored, writeStored } from "@/features/persistence/browserStorage";
@@ -83,8 +83,21 @@ const Quiz = () => {
   const { user } = useAuth();
   const { loadProgress, saveProgress, resetProgress } = useProgress();
   const [seed, setSeed] = useState(0);
+  const [sourceQuestions, setSourceQuestions] = useState<readonly Question[] | null>(null);
+  const [catalogueError, setCatalogueError] = useState(false);
+  const [loadGeneration, setLoadGeneration] = useState(0);
+  useEffect(() => {
+    let active = true;
+    setSourceQuestions(null);
+    setCatalogueError(false);
+    void loadQuizTopic(topicKey).then(
+      (loaded) => { if (active) setSourceQuestions(loaded); },
+      () => { if (active) setCatalogueError(true); },
+    );
+    return () => { active = false; };
+  }, [topicKey, loadGeneration]);
   const questions = useMemo(() => {
-    const source = quizRegistry[topicKey] || [];
+    const source = sourceQuestions ?? [];
     const rng = createSeededRng(seed + 1);
 
     return shuffleWithRng([...source], rng)
@@ -98,8 +111,8 @@ const Quiz = () => {
           correctAnswer: correctIndex,
         };
       });
-  }, [topicKey, seed]);
-  const meta = topicMeta[topicKey] || {
+  }, [sourceQuestions, seed]);
+  const meta = isQuizTopicId(topicKey) ? topicMeta[topicKey] : {
     title: "Topic Quiz",
     subtitle: "Answer the questions to test yourself",
   };
@@ -137,6 +150,7 @@ const Quiz = () => {
 
   // Initialize answers array when questions change
   useEffect(() => {
+    if (!sourceQuestions) return;
     const initQuiz = async () => {
       const recovery = readQuizWorkflow(user?.id, topicKey);
       if (recovery?.scoreSaved && recovery.completion) {
@@ -193,7 +207,7 @@ const Quiz = () => {
       setAnswers(createEmptyQuizAnswers(questions.length));
     };
     initQuiz();
-  }, [questions.length, topicKey, user?.id, loadProgress, saveProgress, resetProgress, seedReviews]);
+  }, [sourceQuestions, questions.length, topicKey, user?.id, loadProgress, saveProgress, resetProgress, seedReviews]);
 
   useEffect(() => {
     const owner = user?.id;
@@ -222,14 +236,20 @@ const Quiz = () => {
     });
   };
 
-  if (!questions.length) {
+  if (!sourceQuestions && !catalogueError) {
+    return <main className="min-h-screen grid place-items-center p-4" aria-live="polite">Loading quiz…</main>;
+  }
+
+  if (catalogueError || !questions.length) {
     return (
       <div className="min-h-screen bg-gradient-to-br from-background via-ocean-light/10 to-background flex items-center justify-center p-4">
         <Card className="max-w-2xl w-full border-2">
           <CardHeader>
-            <CardTitle className="text-2xl">No questions available</CardTitle>
+            <CardTitle className="text-2xl">Quiz unavailable</CardTitle>
             <p className="text-sm text-muted-foreground">
-              We could not find any quiz items for this topic. Please head back and choose another module.
+              {catalogueError
+                ? "This topic could not be loaded. Your saved progress is unchanged."
+                : "We could not find any quiz items for this topic. Please head back and choose another module."}
             </p>
           </CardHeader>
           <CardContent className="flex gap-3 flex-col sm:flex-row">
@@ -240,6 +260,9 @@ const Quiz = () => {
             <Button className="flex-1" onClick={() => navigate("/nautical-terms")}>
               Nautical Terms
             </Button>
+            {catalogueError && <Button className="flex-1" onClick={() => setLoadGeneration((value) => value + 1)}>
+              Retry loading
+            </Button>}
           </CardContent>
         </Card>
       </div>

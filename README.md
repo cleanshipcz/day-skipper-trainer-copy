@@ -46,6 +46,7 @@ npm run test -- --run --maxWorkers=1
 npm run guard:coverage-scope && npm run test:coverage -- --maxWorkers=1
 npm run build
 npm run test:build-budget
+npm run test:quiz-chunks
 npm run guard:migrations
 npm run guard:no-internal-artifacts
 ```

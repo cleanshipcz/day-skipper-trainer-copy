@@ -27,9 +27,8 @@ vi.mock("@/integrations/supabase/client", () => ({
   supabase: { rpc: mocks.rpc },
 }));
 vi.mock("@/data/quizzes", () => ({
-  quizRegistry: {
-    test: [{ id: "a1", question: "Question?", options: ["Wrong", "Right"], correctAnswer: 1, explanation: "Why." }],
-  },
+  loadQuizTopic: vi.fn().mockResolvedValue([{ id: "a1", question: "Question?", options: ["Wrong", "Right"], correctAnswer: 1, explanation: "Why." }]),
+  isQuizTopicId: (value: string) => value === "test",
   topicMeta: { test: { title: "Test quiz", subtitle: "Test" } },
 }));
 
@@ -59,6 +58,7 @@ describe("quiz review seeding identity isolation", () => {
     let resolveLoad!: (value: { completed: boolean }) => void;
     mocks.loadProgress.mockReturnValueOnce(new Promise((resolve) => { resolveLoad = resolve; }));
     const view = renderQuiz();
+    await waitFor(() => expect(mocks.loadProgress).toHaveBeenCalled());
     mocks.auth.user = { id: "b" };
     view.rerender(<MemoryRouter initialEntries={["/quiz/test"]}><Routes><Route path="/quiz/:topicId" element={<Quiz />} /></Routes></MemoryRouter>);
     mocks.auth.user = { id: "a" };

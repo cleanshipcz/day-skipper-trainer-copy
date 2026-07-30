@@ -1,7 +1,7 @@
 import { describe, expect, it } from "vitest";
 import { appRoutes } from "@/app/routes";
 import { getTopicById, getTopicsByParent } from "@/constants/topicRegistry";
-import { quizRegistry } from "@/data/quizzes";
+import { loadQuizTopic } from "@/data/quizzes";
 import { forecastAreas } from "@/data/forecastAreas";
 
 describe("meteorology integration", () => {
@@ -15,8 +15,8 @@ describe("meteorology integration", () => {
     expect(getTopicsByParent("weather")).toHaveLength(5);
   });
 
-  it("ships comprehensive quiz and complete forecast-area data", () => {
-    expect(quizRegistry.weather).toHaveLength(20);
+  it("ships comprehensive quiz and complete forecast-area data", async () => {
+    expect(await loadQuizTopic("weather")).toHaveLength(20);
     expect(forecastAreas).toHaveLength(31);
     expect(forecastAreas.map(({ name }) => name)).toEqual(expect.arrayContaining([
       "North Utsire", "South Utsire", "Cromarty", "Forth", "Tyne", "German Bight",

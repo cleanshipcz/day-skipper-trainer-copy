@@ -6,7 +6,7 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Progress } from "@/components/ui/progress";
 import { useAuth } from "@/contexts/AuthHooks";
-import { quizRegistry, topicMeta } from "@/data/quizzes";
+import { loadAllQuizTopics, topicMeta } from "@/data/quizzes";
 import { remainingSeconds, scoreExam, selectExamQuestions } from "@/features/exam/examEngine";
 import { clampInteger, parseExamSession, sessionBelongsTo, type ExamSession } from "@/features/exam/examSession";
 import { supabase } from "@/integrations/supabase/client";
@@ -25,6 +25,7 @@ export default function Exam() {
   const [durationMinutes, setDurationMinutes] = useState(100);
   const [passMark, setPassMark] = useState(65);
   const [session, setSession] = useState<ExamSession | null>(() => readSession());
+  const [catalogueStatus, setCatalogueStatus] = useState<"idle" | "loading" | "failed">("idle");
   const [seconds, setSeconds] = useState(() => session ? remainingSeconds(session.startedAt, session.durationSeconds) : 0);
   const submissionLock = useRef(false);
   const identityRef = useRef<string | null>(userId);
@@ -49,12 +50,21 @@ export default function Exam() {
     submissionLock.current = false;
   }, []);
 
-  const start = () => {
+  const start = async () => {
     const safeCount = clampInteger(questionCount, 48, 10, 100);
     const safeMinutes = clampInteger(durationMinutes, 100, 5, 240);
     const safePassMark = clampInteger(passMark, 65, 1, 100);
     setQuestionCount(safeCount); setDurationMinutes(safeMinutes); setPassMark(safePassMark);
-    const questions = selectExamQuestions(quizRegistry, safeCount);
+    setCatalogueStatus("loading");
+    let registry;
+    try {
+      registry = await loadAllQuizTopics();
+    } catch {
+      setCatalogueStatus("failed");
+      return;
+    }
+    setCatalogueStatus("idle");
+    const questions = selectExamQuestions(registry, safeCount);
     const next: ExamSession = {
       ownerId: userId, attemptId: crypto.randomUUID(), questions, answers: Array(questions.length).fill(null),
       flagged: [], current: 0, startedAt: Date.now(), durationSeconds: safeMinutes * 60,
@@ -126,7 +136,10 @@ export default function Exam() {
           value={durationMinutes} onChange={(e) => setDurationMinutes(clampInteger(e.target.value, 100, 5, 240))} /></label>
         <label className="block">Practice pass mark (%)<input aria-label="Pass mark" className="block w-full border rounded p-2" type="number" min={1} max={100}
           value={passMark} onChange={(e) => setPassMark(clampInteger(e.target.value, 65, 1, 100))} /></label>
-        <div className="flex gap-2"><Button onClick={start}>Start exam</Button>
+        {catalogueStatus === "failed" && <p role="alert" className="text-sm text-destructive">Question banks could not be loaded. Your existing attempts are unchanged. Check your connection and retry.</p>}
+        <div className="flex gap-2"><Button disabled={catalogueStatus === "loading"} onClick={() => void start()}>
+          {catalogueStatus === "loading" ? "Loading question banks…" : catalogueStatus === "failed" ? "Retry loading exam" : "Start exam"}
+        </Button>
           <Button variant="outline" onClick={() => navigate("/exam/history")}><History className="mr-2 h-4 w-4" />History</Button></div>
       </CardContent></Card>
   </main>;

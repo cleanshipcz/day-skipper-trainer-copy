@@ -1,7 +1,7 @@
 import { readFileSync } from "node:fs";
 import { describe, expect, test } from "vitest";
 import { badgeCatalogue } from "@/data/badges";
-import { quizRegistry } from "@/data/quizzes";
+import { loadAllQuizTopics } from "@/data/quizzes";
 
 const sql = readFileSync("supabase/migrations/20260730110000_engagement.sql", "utf8");
 const hardened = readFileSync("supabase/migrations/20260730111000_harden_engagement_evidence.sql", "utf8");
@@ -32,8 +32,8 @@ describe("engagement migration", () => {
     expect(issued).not.toContain("timezone('Europe/Prague',new.reviewed_at)");
   });
 
-  test("should keep the issued-attempt catalogue aligned with client quiz totals", () => {
-    Object.entries(quizRegistry).forEach(([topic, questions]) => {
+  test("should keep the issued-attempt catalogue aligned with client quiz totals", async () => {
+    Object.entries(await loadAllQuizTopics()).forEach(([topic, questions]) => {
       expect(issued).toContain(`when '${topic}' then ${questions.length}`);
     });
   });

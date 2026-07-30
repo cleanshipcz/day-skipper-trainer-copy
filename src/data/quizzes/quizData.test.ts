@@ -115,10 +115,11 @@ describe("Quiz data files", () => {
 });
 
 describe("Quiz data registry", () => {
-  it("should export a quizRegistry mapping all known topic IDs to question arrays", async () => {
+  it("should asynchronously load every known topic", async () => {
     // given
     // - the registry module
-    const { quizRegistry } = await import("./index");
+    const { loadAllQuizTopics } = await import("./index");
+    const quizRegistry = await loadAllQuizTopics();
 
     // then
     expect(quizRegistry).toBeDefined();
@@ -135,11 +136,11 @@ describe("Quiz data registry", () => {
 
   it("should not contain any topic IDs beyond the known ones", async () => {
     // given
-    const { quizRegistry } = await import("./index");
+    const { topicIds } = await import("./index");
     const knownTopicIds = ALL_TOPIC_FILES.map((t) => t.topicId);
 
     // when
-    const registryKeys = Object.keys(quizRegistry);
+    const registryKeys = [...topicIds];
 
     // then
     expect(registryKeys.sort()).toEqual([...knownTopicIds].sort());
@@ -360,12 +361,12 @@ describe("E1-S6: Comprehensive Safety Quiz", () => {
 
   it("should be registered in quizRegistry under key 'safety' (AC-3)", async () => {
     // given
-    const { quizRegistry } = await import("./index");
+    const { loadQuizTopic } = await import("./index");
+    const questions = await loadQuizTopic("safety");
 
     // then
-    expect(quizRegistry).toHaveProperty("safety");
-    expect(Array.isArray(quizRegistry["safety"])).toBe(true);
-    expect(quizRegistry["safety"].length).toBeGreaterThanOrEqual(20);
+    expect(Array.isArray(questions)).toBe(true);
+    expect(questions.length).toBeGreaterThanOrEqual(20);
   });
 
   it("should have topicMeta for 'safety' with title and subtitle (AC-3)", async () => {
@@ -380,13 +381,12 @@ describe("E1-S6: Comprehensive Safety Quiz", () => {
 
   it("should not affect existing safety-mob-quiz registration (AC-4)", async () => {
     // given
-    const { quizRegistry } = await import("./index");
+    const { loadQuizTopic } = await import("./index");
 
     // then — existing sub-quizzes still present and unchanged
-    expect(quizRegistry).toHaveProperty("safety-mob-quiz");
-    expect(quizRegistry["safety-mob-quiz"].length).toBe(12);
-    expect(quizRegistry).toHaveProperty("safety-fire-quiz");
-    expect(quizRegistry).toHaveProperty("safety-life-raft-quiz");
-    expect(quizRegistry).toHaveProperty("safety-flares-quiz");
+    expect(await loadQuizTopic("safety-mob-quiz")).toHaveLength(12);
+    expect(await loadQuizTopic("safety-fire-quiz")).toHaveLength(8);
+    expect(await loadQuizTopic("safety-life-raft-quiz")).toHaveLength(10);
+    expect(await loadQuizTopic("safety-flares-quiz")).toHaveLength(10);
   });
 });
