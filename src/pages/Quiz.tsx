@@ -1,4 +1,4 @@
-import { useMemo, useState, useEffect } from "react";
+import { useCallback, useMemo, useRef, useState, useEffect } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -24,6 +24,7 @@ import {
   persistQuizSessionProgress,
 } from "@/features/quiz/sessionProgress";
 import { quizRegistry, topicMeta } from "@/data/quizzes";
+import { seedQuizQuestions } from "@/features/spaced-repetition/reviewService";
 
 const Quiz = () => {
   const navigate = useNavigate();
@@ -59,15 +60,44 @@ const Quiz = () => {
   const [answers, setAnswers] = useState<(number | null)[]>([]);
   const [showExplanation, setShowExplanation] = useState(false);
   const [isComplete, setIsComplete] = useState(false);
+  const [seedStatus, setSeedStatus] = useState<"idle" | "saving" | "saved" | "failed">("idle");
+  const seedOwnerRef = useRef(user?.id ?? null);
+  const seedGenerationRef = useRef(0);
+  const currentSeedOwner = user?.id ?? null;
+  if (seedOwnerRef.current !== currentSeedOwner) {
+    seedOwnerRef.current = currentSeedOwner;
+    seedGenerationRef.current += 1;
+  }
+
+  const seedReviews = useCallback(async (owner: string, generation: number) => {
+    if (seedOwnerRef.current !== owner || seedGenerationRef.current !== generation) return;
+    setSeedStatus("saving");
+    try {
+      if (seedOwnerRef.current !== owner || seedGenerationRef.current !== generation) return;
+      await seedQuizQuestions(supabase, topicKey, questions.map(({ id }) => id));
+      if (seedOwnerRef.current === owner && seedGenerationRef.current === generation) setSeedStatus("saved");
+    } catch {
+      if (seedOwnerRef.current === owner && seedGenerationRef.current === generation) {
+        setSeedStatus("failed");
+        toast.error("Review schedule could not be saved. Retry when connected.");
+      }
+    }
+  }, [questions, topicKey]);
 
   // Initialize answers array when questions change
   useEffect(() => {
     const initQuiz = async () => {
+      const owner = seedOwnerRef.current;
+      const generation = seedGenerationRef.current;
       const canonicalKey = canonicalQuizProgressKey(topicKey);
       const canonicalRecord: QuizProgressRow | null = await loadProgress(canonicalKey);
+      if (seedOwnerRef.current !== owner || seedGenerationRef.current !== generation) return;
       const legacyRecord: QuizProgressRow | null = canonicalRecord ? null : await loadProgress(topicKey);
+      if (seedOwnerRef.current !== owner || seedGenerationRef.current !== generation) return;
       const resolution = resolveQuizProgressForLoad(topicKey, canonicalRecord, legacyRecord);
       const savedData = resolution.record;
+
+      if (savedData?.completed && owner) void seedReviews(owner, generation);
 
       if (savedData?.answers_history) {
         try {
@@ -89,7 +119,9 @@ const Quiz = () => {
                 0,
                 buildQuizSessionProgress(saved.answers, saved.currentQuestion)
               );
+              if (seedOwnerRef.current !== owner || seedGenerationRef.current !== generation) return;
               await resetProgress(topicKey);
+              if (seedOwnerRef.current !== owner || seedGenerationRef.current !== generation) return;
             }
             return;
           }
@@ -100,7 +132,7 @@ const Quiz = () => {
       setAnswers(createEmptyQuizAnswers(questions.length));
     };
     initQuiz();
-  }, [questions.length, topicKey, loadProgress, saveProgress, resetProgress]);
+  }, [questions.length, topicKey, loadProgress, saveProgress, resetProgress, seedReviews]);
 
   const selectedAnswer = answers[currentQuestion] ?? null;
   const correctAnswers = countCorrectAnswers(answers, questions);
@@ -193,18 +225,21 @@ const Quiz = () => {
     setIsComplete(true);
 
     if (!user) return;
+    const owner = user.id;
+    const generation = seedGenerationRef.current;
 
     const { percentage, passed, pointsEarned } = quizCompletionOutcome(correctAnswers, questions.length);
 
     try {
       // Save quiz score
       await supabase.from("quiz_scores").insert({
-        user_id: user.id,
+        user_id: owner,
         topic_id: topicKey,
         score: correctAnswers,
         total_questions: questions.length,
         percentage,
       });
+      if (seedOwnerRef.current !== owner || seedGenerationRef.current !== generation) return;
 
       // Save final progress with answers
       const saved = await saveProgress(
@@ -217,6 +252,7 @@ const Quiz = () => {
           completed: true,
         }
       );
+      if (seedOwnerRef.current !== owner || seedGenerationRef.current !== generation) return;
 
       if (saved) {
         toast.success(
@@ -225,6 +261,7 @@ const Quiz = () => {
             : "Quiz saved. Score 70% or more to pass."
         );
       }
+      await seedReviews(owner, generation);
     } catch (error) {
       console.error("Error saving quiz results:", error);
     }
@@ -285,6 +322,12 @@ const Quiz = () => {
                 Retry Quiz
               </Button>
             </div>
+            {seedStatus === "failed" && <div className="text-center space-y-2">
+              <p role="alert" className="text-sm text-destructive">Your quiz is saved, but its review schedule still needs syncing.</p>
+              <Button variant="outline" onClick={() => {
+                if (user) void seedReviews(user.id, seedGenerationRef.current);
+              }}>Retry review sync</Button>
+            </div>}
           </CardContent>
         </Card>
       </div>

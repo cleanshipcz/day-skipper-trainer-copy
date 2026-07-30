@@ -222,8 +222,8 @@ CREATE POLICY "Users manage own <table_name>"
 | E4-S6 | Passage Planning Menu & Dashboard Integration | ⬜ Not Started |
 | E5-S1 | Exam Simulation Mode | ✅ Complete |
 | E5-S2 | Exam Results & History | ✅ Complete |
-| E6-S1 | Spaced Repetition Engine | ⬜ Not Started |
-| E6-S2 | Review Session UI | ⬜ Not Started |
+| E6-S1 | Spaced Repetition Engine | ✅ Complete |
+| E6-S2 | Review Session UI | ✅ Complete |
 | E7-S1 | Badges & Achievements | ⬜ Not Started |
 | E7-S2 | Learning Streaks | ⬜ Not Started |
 | E8-S1 | PWA & Offline Support | ⬜ Not Started |

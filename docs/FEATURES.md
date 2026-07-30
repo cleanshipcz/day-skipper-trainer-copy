@@ -144,6 +144,7 @@ The official RYA Day Skipper Shorebased syllabus (SBT DS 03) contains **13 subje
 ### Theme B — Learning Effectiveness
 
 #### B1. Spaced Repetition Review System
+**Status:** ✅ Implemented — shared quiz registry, SM-2 scheduling, authenticated atomic persistence, `/review` sessions, and dashboard due counts.
 **Description:** Implement a spaced repetition algorithm (SM-2 or Leitner) for quiz questions. Track per-question difficulty; resurface weak questions at increasing intervals.
 
 **Rationale:** Learners currently take quizzes once and move on. Spaced repetition is proven to improve long-term retention — critical for exam preparation. Questions answered incorrectly should return more frequently.

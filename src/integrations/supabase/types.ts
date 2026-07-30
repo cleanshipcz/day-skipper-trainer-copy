@@ -14,6 +14,41 @@ export type Database = {
   }
   public: {
     Tables: {
+      question_reviews: {
+        Row: {
+          created_at: string
+          ease_factor: number
+          id: string
+          interval_days: number
+          last_reviewed_at: string | null
+          next_review_at: string
+          question_id: string
+          repetitions: number
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          ease_factor?: number
+          id?: string
+          interval_days?: number
+          last_reviewed_at?: string | null
+          next_review_at?: string
+          question_id: string
+          repetitions?: number
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          ease_factor?: number
+          interval_days?: number
+          last_reviewed_at?: string | null
+          next_review_at?: string
+          repetitions?: number
+          updated_at?: string
+        }
+        Relationships: []
+      }
       exam_results: {
         Row: {
           attempt_id: string
@@ -148,6 +183,19 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
+      record_question_review: {
+        Args: {
+          p_question_id: string
+          p_quality: number
+          p_review_id: string
+          p_reviewed_at?: string
+        }
+        Returns: Database["public"]["Tables"]["question_reviews"]["Row"]
+      }
+      seed_question_reviews: {
+        Args: { p_question_ids: string[] }
+        Returns: undefined
+      }
       submit_exam_result: {
         Args: {
           p_attempt_id: string
