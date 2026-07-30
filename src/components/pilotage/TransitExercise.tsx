@@ -7,7 +7,7 @@
  *
  * @see docs/FEATURE_TASKS.md — Story E2-S2, AC-2, AC-3
  */
-import { useState, useCallback, useRef, type PointerEvent as ReactPointerEvent } from "react";
+import { useState, useCallback, useRef, type KeyboardEvent, type PointerEvent as ReactPointerEvent } from "react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { CheckCircle2, XCircle, ChevronRight } from "lucide-react";
@@ -18,6 +18,7 @@ import {
   type MarkerPosition,
   type TransitScenario,
 } from "./transitScenarios";
+import { clientPointToChart } from "./transitCoordinates";
 
 /** Result payload passed to onComplete when all exercises are finished. */
 export interface TransitExerciseResult {
@@ -81,15 +82,27 @@ const Vessel = ({
   pos,
   onTransit,
   checked,
+  onKeyDown,
+  descriptionId,
 }: {
   readonly pos: MarkerPosition;
   readonly onTransit: boolean;
   readonly checked: boolean;
+  readonly onKeyDown: (event: KeyboardEvent<SVGGElement>) => void;
+  readonly descriptionId: string;
 }) => {
   const fillColor = !checked ? "#3b82f6" : onTransit ? "#22c55e" : "#ef4444";
 
   return (
-    <g data-testid="vessel" style={{ cursor: "grab" }}>
+    <g
+      data-testid="vessel"
+      style={{ cursor: "grab" }}
+      role="button"
+      tabIndex={checked ? -1 : 0}
+      aria-label="Movable vessel"
+      aria-describedby={descriptionId}
+      onKeyDown={onKeyDown}
+    >
       {/* Vessel body */}
       <polygon
         points={`${pos.x},${pos.y - 16} ${pos.x - 12},${pos.y + 8} ${pos.x + 12},${pos.y + 8}`}
@@ -177,10 +190,13 @@ export const TransitExercise = ({ onComplete }: TransitExerciseProps) => {
       const svg = svgRef.current;
       if (!svg) return null;
       const rect = svg.getBoundingClientRect();
-      return {
-        x: Math.max(0, Math.min(scenario.chartWidth, e.clientX - rect.left)),
-        y: Math.max(0, Math.min(scenario.chartHeight, e.clientY - rect.top)),
-      };
+      return clientPointToChart(
+        e.clientX,
+        e.clientY,
+        rect,
+        scenario.chartWidth,
+        scenario.chartHeight,
+      );
     },
     [scenario.chartWidth, scenario.chartHeight],
   );
@@ -215,6 +231,27 @@ export const TransitExercise = ({ onComplete }: TransitExerciseProps) => {
   const handlePointerUp = useCallback(() => {
     isDragging.current = false;
   }, []);
+
+  const handleVesselKeyDown = useCallback((event: KeyboardEvent<SVGGElement>) => {
+    if (state.checked) return;
+    const step = event.shiftKey ? 10 : 5;
+    const movement: Record<string, MarkerPosition> = {
+      ArrowLeft: { x: -step, y: 0 },
+      ArrowRight: { x: step, y: 0 },
+      ArrowUp: { x: 0, y: -step },
+      ArrowDown: { x: 0, y: step },
+    };
+    const delta = movement[event.key];
+    if (!delta) return;
+    event.preventDefault();
+    setState((previous) => ({
+      ...previous,
+      vesselPos: {
+        x: Math.max(0, Math.min(scenario.chartWidth, previous.vesselPos.x + delta.x)),
+        y: Math.max(0, Math.min(scenario.chartHeight, previous.vesselPos.y + delta.y)),
+      },
+    }));
+  }, [scenario.chartHeight, scenario.chartWidth, state.checked]);
 
   const handleCheckAlignment = useCallback(() => {
     const onLine = isOnTransit(state.vesselPos, scenario);
@@ -271,6 +308,13 @@ export const TransitExercise = ({ onComplete }: TransitExerciseProps) => {
         </div>
       </CardHeader>
       <CardContent className="space-y-4">
+        <p id="transit-vessel-instructions" className="text-sm text-muted-foreground">
+          Drag the vessel, or focus it and use the arrow keys. Hold Shift for larger steps.
+        </p>
+        <p className="sr-only" aria-live="polite">
+          Vessel position {Math.round(state.vesselPos.x)}, {Math.round(state.vesselPos.y)}.
+          {state.checked ? (state.onTransit ? " On transit." : " Off transit.") : " Alignment not checked."}
+        </p>
         {/* Harbour chart SVG */}
         <div className="border rounded-lg overflow-hidden bg-muted">
           <svg
@@ -302,7 +346,13 @@ export const TransitExercise = ({ onComplete }: TransitExerciseProps) => {
             <TransitMarker pos={scenario.rearMarker} label="Rear" testId="rear-marker" />
 
             {/* Draggable vessel */}
-            <Vessel pos={state.vesselPos} onTransit={state.onTransit} checked={state.checked} />
+            <Vessel
+              pos={state.vesselPos}
+              onTransit={state.onTransit}
+              checked={state.checked}
+              onKeyDown={handleVesselKeyDown}
+              descriptionId="transit-vessel-instructions"
+            />
           </svg>
         </div>
 

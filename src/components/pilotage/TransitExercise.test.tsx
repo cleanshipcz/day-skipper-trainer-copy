@@ -8,6 +8,7 @@
  *       increasing difficulty.
  * AC-3: Visual feedback shows when vessel is on/off the transit line.
  */
+import { fireEvent, render, screen } from "@testing-library/react";
 import { describe, expect, it, vi } from "vitest";
 import { renderToStaticMarkup } from "react-dom/server";
 import { TransitExercise } from "./TransitExercise";
@@ -51,6 +52,16 @@ describe("TransitExercise", () => {
     // then
     // - should render the vessel with a data attribute for identification
     expect(html).toContain("data-testid=\"vessel\"");
+  });
+
+  it("provides a named keyboard-operable vessel and accessible status", () => {
+    render(<TransitExercise onComplete={vi.fn()} />);
+    const vessel = screen.getByRole("button", { name: "Movable vessel" });
+    expect(vessel.getAttribute("tabindex")).toBe("0");
+    expect(screen.getByText(/Alignment not checked/)).toBeTruthy();
+
+    fireEvent.keyDown(vessel, { key: "ArrowRight" });
+    expect(screen.getByText(/Vessel position 185, 420/)).toBeTruthy();
   });
 
   it("should render a Check Alignment button", () => {

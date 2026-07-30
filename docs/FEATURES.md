@@ -34,7 +34,7 @@ The official RYA Day Skipper Shorebased syllabus (SBT DS 03) contains **13 subje
 | 8 | **Tides** | ✅ Complete | Tidal theory, heights theory, heights calculator, streams theory, vector triangle tool | — |
 | 9 | **Position Fixing** | ✅ Complete | Theory page, unified chart table with plotting tools | — |
 | 10 | **Course to Steer** | ✅ Complete | Vector triangle theory, vector solution tool (solver + drill modes) | — |
-| 11 | **Pilotage** | ❌ Missing | — | IALA buoyage system, transits, leading lines, clearing bearings, pilotage plans, harbour entry |
+| 11 | **Pilotage** | ✅ Complete | IALA Region A buoy identifier, draggable transit exercises, clearing-bearing chart tool, pilotage plan builder, 20-question quiz | — |
 | 12 | **Meteorology** | ❌ Missing | — | Weather systems, pressure, fronts, Beaufort scale, sea state, fog, sea breezes, sources of forecasts |
 | 13 | **Passage Planning** | ❌ Missing | — | PREPARE mnemonic, waypoint planning, fuel/water calcs, tidal gate planning, checklists, contingencies |
 
@@ -48,6 +48,8 @@ The official RYA Day Skipper Shorebased syllabus (SBT DS 03) contains **13 subje
 
 #### A1. Pilotage Module
 **Description:** Full pilotage training covering IALA buoyage (Region A), transits & leading lines, clearing bearings, pilotage planning, and harbour approach.
+
+**Status:** ✅ Delivered — all routes, interactive exercises, persistent completion/quiz progress, dashboard aggregation, and the 20-question assessment are integrated.
 
 **Rationale:** Pilotage is a mandatory exam topic and a core Day Skipper practical skill. It is the single largest syllabus gap. Without it, the app cannot claim full syllabus coverage.
 

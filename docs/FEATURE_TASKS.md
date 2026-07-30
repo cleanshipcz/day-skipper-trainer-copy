@@ -203,11 +203,11 @@ CREATE POLICY "Users manage own <table_name>"
 | E1-S6 | Comprehensive Safety Quiz | ✅ Done |
 | E1-S7 | Update Safety Menu & Dashboard | ✅ Done |
 | E2-S1 | IALA Buoyage Sub-module | ✅ Done |
-| E2-S2 | Transits & Leading Lines Sub-module | ⬜ Not Started |
-| E2-S3 | Clearing Bearings Sub-module | ⬜ Not Started |
-| E2-S4 | Pilotage Plan Builder | ⬜ Not Started |
-| E2-S5 | Pilotage Quiz | ⬜ Not Started |
-| E2-S6 | Pilotage Menu & Dashboard Integration | ⬜ Not Started |
+| E2-S2 | Transits & Leading Lines Sub-module | ✅ Complete |
+| E2-S3 | Clearing Bearings Sub-module | ✅ Complete |
+| E2-S4 | Pilotage Plan Builder | ✅ Complete |
+| E2-S5 | Pilotage Quiz | ✅ Complete |
+| E2-S6 | Pilotage Menu & Dashboard Integration | ✅ Complete |
 | E3-S1 | Weather Systems Sub-module | ⬜ Not Started |
 | E3-S2 | Beaufort Scale Sub-module | ⬜ Not Started |
 | E3-S3 | Weather Forecasts Sub-module | ⬜ Not Started |
@@ -551,11 +551,11 @@ CREATE POLICY "Users manage own <table_name>"
 
 **Acceptance Criteria:**
 
-- [ ] AC-1: Route `/pilotage/plan` renders a step-by-step pilotage plan builder.
-- [ ] AC-2: User can add waypoints with: name, bearing, distance, tidal offset, notes.
-- [ ] AC-3: Plan calculates cumulative distance and estimated times.
-- [ ] AC-4: At least 1 pre-built example harbour approach for guided practice.
-- [ ] AC-5: Completing a plan marks `pilotage-plan` as complete; points awarded.
+- [x] AC-1: Route `/pilotage/plan` renders a step-by-step pilotage plan builder.
+- [x] AC-2: User can add waypoints with: name, bearing, distance, tidal offset, notes.
+- [x] AC-3: Plan calculates cumulative distance and estimated times.
+- [x] AC-4: At least 1 pre-built example harbour approach for guided practice.
+- [x] AC-5: Completing a plan marks `pilotage-plan` as complete; points awarded.
 
 **Dependencies:** None.
 
@@ -571,10 +571,10 @@ CREATE POLICY "Users manage own <table_name>"
 
 **Acceptance Criteria:**
 
-- [ ] AC-1: Data file `src/data/quizzes/pilotage.ts` contains >= 20 questions covering all pilotage sub-topics.
-- [ ] AC-2: Questions include buoy identification (given description → name type), cardinal mark light patterns, transit principles, clearing bearing scenarios.
-- [ ] AC-3: Quiz accessible via `/quiz/pilotage`.
-- [ ] AC-4: Progress and scoring persist correctly.
+- [x] AC-1: Data file `src/data/quizzes/pilotage.ts` contains >= 20 questions covering all pilotage sub-topics.
+- [x] AC-2: Questions include buoy identification (given description → name type), cardinal mark light patterns, transit principles, clearing bearing scenarios.
+- [x] AC-3: Quiz accessible via `/quiz/pilotage`.
+- [x] AC-4: Progress and scoring persist correctly.
 
 **Dependencies:** DEP-E0S1 (quiz infrastructure), DEP-E2S1–E2S4 (content knowledge).
 
@@ -590,11 +590,11 @@ CREATE POLICY "Users manage own <table_name>"
 
 **Acceptance Criteria:**
 
-- [ ] AC-1: Route `/pilotage` renders a `ModuleMenuPage` listing all pilotage sub-modules with completion badges.
-- [ ] AC-2: Dashboard shows Pilotage as a top-level topic with progress derived from sub-module completion.
-- [ ] AC-3: Topic registry updated with pilotage topic and all sub-module IDs.
-- [ ] AC-4: Routes registered in `routes.tsx` with lazy loading.
-- [ ] AC-5: Dashboard now shows 11/13 → 12/13 (or more) syllabus areas.
+- [x] AC-1: Route `/pilotage` renders a `ModuleMenuPage` listing all pilotage sub-modules with completion badges.
+- [x] AC-2: Dashboard shows Pilotage as a top-level topic with progress derived from sub-module completion.
+- [x] AC-3: Topic registry updated with pilotage topic and all sub-module IDs.
+- [x] AC-4: Routes registered in `routes.tsx` with lazy loading.
+- [x] AC-5: Dashboard now shows 11/13 → 12/13 (or more) syllabus areas.
 
 **Dependencies:** DEP-E0S3, DEP-E2S1–E2S5.
 
