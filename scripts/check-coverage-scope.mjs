@@ -1,16 +1,9 @@
-import { readdir } from "node:fs/promises";
-import { resolve } from "node:path";
 import scope from "./coverage-scope.json" with { type: "json" };
-
-const productionModule = (file) =>
-  /\.(?:ts|tsx)$/.test(file)
-  && !/\.(?:test|spec|integration\.test)\.(?:ts|tsx)$/.test(file);
+import { discoverProductionModules } from "./coverage-scope-core.mjs";
 
 const discovered = [];
 for (const directory of scope.directories) {
-  for (const entry of await readdir(resolve(directory), { withFileTypes: true })) {
-    if (entry.isFile() && productionModule(entry.name)) discovered.push(`${directory}/${entry.name}`);
-  }
+  discovered.push(...await discoverProductionModules(directory));
 }
 
 const included = new Set(scope.files);

@@ -1,0 +1,53 @@
+import { createHash } from "node:crypto";
+import { execFileSync, spawnSync } from "node:child_process";
+import { mkdtempSync, mkdirSync, writeFileSync } from "node:fs";
+import { tmpdir } from "node:os";
+import { resolve } from "node:path";
+import { describe, expect, it } from "vitest";
+import { discoverProductionModules } from "./coverage-scope-core.mjs";
+
+const migrationGuard = resolve(process.cwd(), "scripts/check-migrations.mjs");
+const hash = (value: string) => createHash("sha256").update(value).digest("hex");
+
+describe("quality guard regressions", () => {
+  it("discovers nested production modules while excluding nested tests", async () => {
+    const root = mkdtempSync(resolve(tmpdir(), "coverage-scope-"));
+    mkdirSync(resolve(root, "protected/nested"), { recursive: true });
+    writeFileSync(resolve(root, "protected/root.ts"), "");
+    writeFileSync(resolve(root, "protected/nested/feature.tsx"), "");
+    writeFileSync(resolve(root, "protected/nested/feature.test.ts"), "");
+
+    expect((await discoverProductionModules("protected", root)).sort()).toEqual([
+      "protected/nested/feature.tsx",
+      "protected/root.ts",
+    ]);
+  });
+
+  it("rejects edits to base migrations even when the working manifest is updated", () => {
+    const root = mkdtempSync(resolve(tmpdir(), "migration-guard-"));
+    const directory = resolve(root, "supabase/migrations");
+    mkdirSync(directory, { recursive: true });
+    const file = "20260102030405_initial.sql";
+    const original = "select 1;\n";
+    writeFileSync(resolve(directory, file), original);
+    writeFileSync(resolve(directory, "manifest.json"), JSON.stringify({ [file]: hash(original) }));
+    execFileSync("git", ["init", "-q"], { cwd: root });
+    execFileSync("git", ["config", "user.email", "test@example.invalid"], { cwd: root });
+    execFileSync("git", ["config", "user.name", "Test"], { cwd: root });
+    execFileSync("git", ["add", "."], { cwd: root });
+    execFileSync("git", ["commit", "-qm", "baseline"], { cwd: root });
+    const base = execFileSync("git", ["rev-parse", "HEAD"], { cwd: root, encoding: "utf8" }).trim();
+
+    const edited = "select 2;\n";
+    writeFileSync(resolve(directory, file), edited);
+    writeFileSync(resolve(directory, "manifest.json"), JSON.stringify({ [file]: hash(edited) }));
+    const result = spawnSync(process.execPath, [migrationGuard], {
+      cwd: root,
+      env: { ...process.env, MIGRATION_BASE_SHA: base },
+      encoding: "utf8",
+    });
+
+    expect(result.status).toBe(1);
+    expect(result.stderr).toContain("was edited");
+  });
+});

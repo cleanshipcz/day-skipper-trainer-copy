@@ -46,7 +46,14 @@ report is generated in `coverage/` and is ignored by Git.
   in addition to lint, typecheck, tests, and production build.
 - The migration manifest pins the name and SHA-256 of every applied migration;
   the guard rejects deletion, edits, empty sets/files, duplicate timestamps,
-  and invalid UTC date/time prefixes.
+  and invalid UTC date/time prefixes. Existing migrations are also compared
+  byte-for-byte with the PR base commit, so changing both SQL and manifest
+  cannot bypass immutability. Add a new timestamped SQL file and append its
+  SHA-256 to `supabase/migrations/manifest.json`; never edit an existing file.
+  CI supplies the PR base automatically. On a local chained branch, set
+  `MIGRATION_BASE_SHA` to that branch's intended base before running the guard;
+  without it the guard uses the repository default branch and fails closed if
+  no comparison base is available.
 
 ## Explicitly out of scope
 
