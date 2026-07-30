@@ -67,5 +67,6 @@ export const appRoutes: AppRouteDefinition[] = [
   defineRoute({ path: "/quiz/:topicId", importPage: () => import("@/pages/Quiz") }),
   defineRoute({ path: "/exam", importPage: () => import("@/pages/Exam") }),
   defineRoute({ path: "/exam/history", importPage: () => import("@/pages/ExamHistory") }),
+  defineRoute({ path: "/review", importPage: () => import("@/pages/Review") }),
   defineRoute({ path: "*", importPage: () => import("@/pages/NotFound") }),
 ];

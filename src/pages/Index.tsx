@@ -21,6 +21,7 @@ import {
   CloudSun,
   Route,
   ClipboardCheck,
+  Brain,
 } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { useAuth } from "@/contexts/AuthHooks";
@@ -29,6 +30,7 @@ import { deriveTopicCompletionState } from "@/features/dashboard/topicCompletion
 import { ModuleMenuGrid } from "@/components/module-menu/ModuleMenuGrid";
 import type { ModuleMenuItem } from "@/components/module-menu/types";
 import { getRootTopics, type TopicEntry } from "@/constants/topicRegistry";
+import { fetchDueCount } from "@/features/spaced-repetition/reviewService";
 
 /**
  * Dashboard display metadata for root topics. Keyed by topic registry ID.
@@ -171,6 +173,7 @@ const Index = () => {
   const [topicsCompleted, setTopicsCompleted] = useState(0);
   const [avgQuizScore, setAvgQuizScore] = useState(0);
   const [userProgress, setUserProgress] = useState<Record<string, UserProgressData>>({});
+  const [dueReviews, setDueReviews] = useState(0);
 
   const fetchProfile = React.useCallback(async () => {
     if (!user) return;
@@ -214,12 +217,22 @@ const Index = () => {
     }
   }, [user]);
 
+  const fetchReviews = React.useCallback(async () => {
+    if (!user) return;
+    try {
+      setDueReviews(await fetchDueCount(supabase, user.id));
+    } catch {
+      setDueReviews(0);
+    }
+  }, [user]);
+
   useEffect(() => {
     if (user) {
       fetchProfile();
       fetchProgress();
+      fetchReviews();
     }
-  }, [user, fetchProfile, fetchProgress]);
+  }, [user, fetchProfile, fetchProgress, fetchReviews]);
 
   const topicMenuModules: ModuleMenuItem[] = topics.map((topic) => ({
     id: topic.id,
@@ -291,6 +304,15 @@ const Index = () => {
 
       {/* Main Content */}
       <main className="container mx-auto px-4 py-8">
+        {user && <Card className="mb-8 border-2 border-secondary/20">
+          <CardContent className="pt-6 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
+            <div className="flex gap-3"><Brain className="w-8 h-8 text-secondary" /><div>
+              <h2 className="font-bold text-xl">{dueReviews} {dueReviews === 1 ? "question" : "questions"} due for review</h2>
+              <p className="text-muted-foreground">Strengthen retention with today&apos;s spaced-repetition session.</p>
+            </div></div>
+            <Button onClick={() => navigate("/review")} disabled={dueReviews === 0}>Start review</Button>
+          </CardContent>
+        </Card>}
         <Card className="mb-8 border-2 border-primary/20">
           <CardContent className="pt-6 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
             <div className="flex gap-3">

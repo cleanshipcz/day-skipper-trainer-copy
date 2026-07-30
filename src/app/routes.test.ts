@@ -29,4 +29,8 @@ describe("appRoutes", () => {
     expect(navigationRoute).toBeDefined();
     expect(navigationRoute?.lazyElement).toBe(navigationRoute?.lazyElement);
   });
+
+  it("defines the daily review route", () => {
+    expect(appRoutes.find((route) => route.path === "/review")).toBeDefined();
+  });
 });

@@ -24,6 +24,7 @@ import {
   persistQuizSessionProgress,
 } from "@/features/quiz/sessionProgress";
 import { quizRegistry, topicMeta } from "@/data/quizzes";
+import { seedQuizQuestions } from "@/features/spaced-repetition/reviewService";
 
 const Quiz = () => {
   const navigate = useNavigate();
@@ -217,6 +218,8 @@ const Quiz = () => {
           completed: true,
         }
       );
+
+      await seedQuizQuestions(supabase, topicKey, questions.map(({ id }) => id));
 
       if (saved) {
         toast.success(
