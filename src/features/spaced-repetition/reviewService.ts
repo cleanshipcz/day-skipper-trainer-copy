@@ -1,11 +1,9 @@
 import type { SupabaseClient } from "@supabase/supabase-js";
 import type { Database } from "@/integrations/supabase/types";
-import { quizRegistry } from "@/data/quizzes";
+import { isQuizTopicId, loadAllQuizTopics, loadQuizTopic } from "@/data/quizzes";
 import { buildReviewQuestionRegistry, selectDueReviews, type DueReview } from "./reviewQuestions";
 
 export type QuestionReview = Database["public"]["Tables"]["question_reviews"]["Row"];
-
-const questionRegistry = buildReviewQuestionRegistry(quizRegistry);
 
 export const fetchDueQuestions = async (
   client: SupabaseClient<Database>,
@@ -19,6 +17,7 @@ export const fetchDueQuestions = async (
     .lte("next_review_at", now.toISOString())
     .order("next_review_at");
   if (error) throw error;
+  const questionRegistry = buildReviewQuestionRegistry(await loadAllQuizTopics());
   return selectDueReviews(data ?? [], questionRegistry, now);
 };
 
@@ -41,7 +40,9 @@ export const seedQuizQuestions = async (
   topicId: string,
   questionIds: readonly string[],
 ): Promise<void> => {
-  const validIds = new Set(quizRegistry[topicId]?.map(({ id }) => id) ?? []);
+  if (!isQuizTopicId(topicId)) return;
+  const questions = await loadQuizTopic(topicId);
+  const validIds = new Set(questions.map(({ id }) => id));
   const sanitized = [...new Set(questionIds)].filter((id) => validIds.has(id));
   if (sanitized.length === 0) return;
   const { error } = await client.rpc("seed_question_reviews", { p_question_ids: sanitized });
@@ -55,6 +56,7 @@ export const recordReview = async (
   reviewId: string,
   reviewedAt: Date,
 ): Promise<QuestionReview> => {
+  const questionRegistry = buildReviewQuestionRegistry(await loadAllQuizTopics());
   if (!questionRegistry.has(questionId)) throw new Error("Unknown review question");
   if (!Number.isInteger(quality) || quality < 0 || quality > 5) {
     throw new RangeError("quality must be an integer from 0 to 5");

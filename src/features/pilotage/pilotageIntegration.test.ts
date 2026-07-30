@@ -1,7 +1,7 @@
 import { describe, expect, it } from "vitest";
 import { appRoutes } from "@/app/routes";
 import { getTopicById } from "@/constants/topicRegistry";
-import { quizRegistry, topicMeta } from "@/data/quizzes";
+import { loadQuizTopic, topicMeta } from "@/data/quizzes";
 import { canonicalQuizProgressKey } from "@/features/quiz/progressKeys";
 import { deriveTopicCompletionState } from "@/features/dashboard/topicCompletion";
 
@@ -18,9 +18,10 @@ describe("pilotage module integration", () => {
     ]));
   });
 
-  it("provides a meaningful 20-question pilotage bank", () => {
-    expect(quizRegistry.pilotage).toHaveLength(20);
-    expect(new Set(quizRegistry.pilotage.map((question) => question.id)).size).toBe(20);
+  it("provides a meaningful 20-question pilotage bank", async () => {
+    const questions = await loadQuizTopic("pilotage");
+    expect(questions).toHaveLength(20);
+    expect(new Set(questions.map((question) => question.id)).size).toBe(20);
     expect(topicMeta.pilotage.title).toBe("Pilotage Quiz");
   });
 

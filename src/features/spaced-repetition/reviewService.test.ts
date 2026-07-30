@@ -1,7 +1,7 @@
 import { describe, expect, test, vi } from "vitest";
 import type { SupabaseClient } from "@supabase/supabase-js";
 import type { Database } from "@/integrations/supabase/types";
-import { quizRegistry } from "@/data/quizzes";
+import { loadQuizTopic } from "@/data/quizzes";
 import { fetchDueCount, fetchDueQuestions, recordReview, seedQuizQuestions } from "./reviewService";
 
 const queryClient = (result: object) => {
@@ -21,7 +21,7 @@ describe("review seeding retries", () => {
       .mockResolvedValueOnce({ error: new Error("offline") })
       .mockResolvedValueOnce({ error: null });
     const client = { rpc } as unknown as SupabaseClient<Database>;
-    const ids = quizRegistry.anchorwork.map(({ id }) => id);
+    const ids = (await loadQuizTopic("anchorwork")).map(({ id }) => id);
 
     await expect(seedQuizQuestions(client, "anchorwork", ids)).rejects.toThrow("offline");
     await expect(seedQuizQuestions(client, "anchorwork", ids)).resolves.toBeUndefined();
@@ -33,7 +33,7 @@ describe("review seeding retries", () => {
   test("should not send unknown or duplicate ids to the server", async () => {
     const rpc = vi.fn().mockResolvedValue({ error: null });
     const client = { rpc } as unknown as SupabaseClient<Database>;
-    const id = quizRegistry.anchorwork[0].id;
+    const id = (await loadQuizTopic("anchorwork"))[0].id;
 
     await seedQuizQuestions(client, "anchorwork", [id, "unknown", id]);
 
@@ -72,7 +72,7 @@ describe("review queries and saves", () => {
   });
 
   test("validates review input and handles every RPC result", async () => {
-    const questionId = quizRegistry.anchorwork[0].id;
+    const questionId = (await loadQuizTopic("anchorwork"))[0].id;
     const reviewedAt = new Date("2026-07-30T10:00:00Z");
     const row = { id: "row" };
     const rpc = vi.fn().mockResolvedValue({ data: row, error: null });

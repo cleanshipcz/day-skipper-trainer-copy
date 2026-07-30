@@ -101,6 +101,7 @@ export default defineConfig(({ mode }) => ({
     },
   },
   build: {
+    manifest: "manifest.json",
     rollupOptions: {
       output: {
         manualChunks: {
