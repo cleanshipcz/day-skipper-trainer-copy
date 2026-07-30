@@ -14,6 +14,36 @@ export type Database = {
   }
   public: {
     Tables: {
+      exam_results: {
+        Row: {
+          attempt_id: string
+          completed_at: string
+          id: string
+          passed: boolean
+          pass_mark: number
+          percentage: number
+          score: number
+          time_taken_seconds: number
+          topic_breakdown: Json
+          total_questions: number
+          user_id: string
+        }
+        Insert: {
+          attempt_id: string
+          completed_at?: string
+          id?: string
+          passed: boolean
+          pass_mark?: number
+          percentage: number
+          score: number
+          time_taken_seconds: number
+          topic_breakdown?: Json
+          total_questions: number
+          user_id: string
+        }
+        Update: never
+        Relationships: []
+      }
       profiles: {
         Row: {
           avatar_url: string | null
@@ -118,6 +148,17 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
+      submit_exam_result: {
+        Args: {
+          p_attempt_id: string
+          p_score: number
+          p_time_taken_seconds: number
+          p_topic_breakdown: Json
+          p_total_questions: number
+          p_pass_mark?: number
+        }
+        Returns: Database["public"]["Tables"]["exam_results"]["Row"]
+      }
       save_topic_progress: {
         Args: {
           p_answers_history?: Json | null

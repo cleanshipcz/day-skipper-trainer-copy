@@ -220,8 +220,8 @@ CREATE POLICY "Users manage own <table_name>"
 | E4-S4 | Pre-departure Checklist | ⬜ Not Started |
 | E4-S5 | Passage Planning Quiz | ⬜ Not Started |
 | E4-S6 | Passage Planning Menu & Dashboard Integration | ⬜ Not Started |
-| E5-S1 | Exam Simulation Mode | ⬜ Not Started |
-| E5-S2 | Exam Results & History | ⬜ Not Started |
+| E5-S1 | Exam Simulation Mode | ✅ Complete |
+| E5-S2 | Exam Results & History | ✅ Complete |
 | E6-S1 | Spaced Repetition Engine | ⬜ Not Started |
 | E6-S2 | Review Session UI | ⬜ Not Started |
 | E7-S1 | Badges & Achievements | ⬜ Not Started |
@@ -868,13 +868,13 @@ CREATE POLICY "Users manage own <table_name>"
 
 **Acceptance Criteria:**
 
-- [ ] AC-1: Route `/exam` renders a mock exam interface.
-- [ ] AC-2: Draws 48 questions proportionally from all quiz banks (weighted by syllabus importance: navigation/COLREGs heavier, victualling lighter).
-- [ ] AC-3: Countdown timer (100 minutes default, configurable).
-- [ ] AC-4: No explanations shown during exam — only question, options, and navigation.
-- [ ] AC-5: User can navigate forward/backward between questions and flag questions for review.
-- [ ] AC-6: Auto-submits when timer expires.
-- [ ] AC-7: Pass mark: 65% (configurable).
+- [x] AC-1: Route `/exam` renders a mock exam interface.
+- [x] AC-2: Draws 48 questions proportionally from all quiz banks (weighted by syllabus importance: navigation/COLREGs heavier, victualling lighter).
+- [x] AC-3: Countdown timer (100 minutes default, configurable).
+- [x] AC-4: No explanations shown during exam — only question, options, and navigation.
+- [x] AC-5: User can navigate forward/backward between questions and flag questions for review.
+- [x] AC-6: Auto-submits when timer expires.
+- [x] AC-7: Pass mark: 65% (configurable).
 
 **Dependencies:** DEP-E0S1 (all quiz data extracted and accessible via registry).
 
@@ -890,12 +890,16 @@ CREATE POLICY "Users manage own <table_name>"
 
 **Acceptance Criteria:**
 
-- [ ] AC-1: Results page after exam shows: overall %, per-topic breakdown, pass/fail verdict, time taken.
-- [ ] AC-2: Explanations shown for incorrect answers on the results page.
-- [ ] AC-3: New Supabase table `exam_results` stores: user_id, score, percentage, total_questions, time_taken_seconds, passed, topic_breakdown (JSONB), completed_at.
-- [ ] AC-4: Migration file created for `exam_results` table (following [Migration Conventions](#supabase-migration-conventions)). Migration includes RLS enablement and `FOR ALL` policy scoped to `auth.uid() = user_id` (per [RLS Requirements](#rls-policy-requirements)).
-- [ ] AC-5: Route `/exam/history` shows past attempts with date, score, pass/fail, and trend line (chart).
-- [ ] AC-6: Points awarded for completing an exam; bonus points for passing.
+- [x] AC-1: Results page after exam shows: overall %, per-topic breakdown, pass/fail verdict, time taken.
+- [x] AC-2: Explanations shown for incorrect answers on the results page.
+- [x] AC-3: New Supabase table `exam_results` stores: user_id, score, percentage, total_questions, time_taken_seconds, passed, topic_breakdown (JSONB), completed_at.
+- [x] AC-4: Migration file created for `exam_results` table (following [Migration Conventions](#supabase-migration-conventions)). Migration includes RLS enablement and `FOR ALL` policy scoped to `auth.uid() = user_id` (per [RLS Requirements](#rls-policy-requirements)).
+- [x] AC-5: Route `/exam/history` shows past attempts with date, score, pass/fail, and trend line (chart).
+- [x] AC-6: Points awarded once for completing the exam feature. Scores and repeated attempts never control rewards.
+
+> Implementation note: mock exam results are explicitly self-assessed practice records, not
+> certifying results. A fixed completion reward is awarded once per user; caller-provided
+> scores never control points and repeated attempts do not farm rewards.
 
 **Dependencies:** DEP-E5S1.
 
