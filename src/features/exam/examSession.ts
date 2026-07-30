@@ -2,6 +2,7 @@ import type { ExamQuestion } from "./examEngine";
 
 export type SaveStatus = "pending" | "saving" | "saved" | "failed";
 export interface ExamSession {
+  ownerId: string | null;
   attemptId: string;
   questions: ExamQuestion[];
   answers: (number | null)[];
@@ -20,10 +21,16 @@ export const clampInteger = (value: unknown, fallback: number, min: number, max:
   return Number.isFinite(parsed) ? Math.min(max, Math.max(min, Math.floor(parsed))) : fallback;
 };
 
+const UUID_PATTERN = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
+
+export const sessionBelongsTo = (session: ExamSession, userId: string | null) =>
+  session.ownerId === userId;
+
 export function parseExamSession(raw: string | null, now = Date.now()): ExamSession | null {
   try {
     const value = JSON.parse(raw ?? "null") as Partial<ExamSession> | null;
-    if (!value || typeof value.attemptId !== "string" || !/^[0-9a-f-]{36}$/i.test(value.attemptId)) return null;
+    if (!value || typeof value.attemptId !== "string" || !UUID_PATTERN.test(value.attemptId)) return null;
+    if (value.ownerId !== null && (typeof value.ownerId !== "string" || !UUID_PATTERN.test(value.ownerId))) return null;
     if (!Array.isArray(value.questions) || value.questions.length < 1 || value.questions.length > 100) return null;
     const questions = value.questions as ExamQuestion[];
     if (questions.some((q) => !q || typeof q.id !== "string" || typeof q.topicId !== "string" ||
@@ -46,7 +53,7 @@ export function parseExamSession(raw: string | null, now = Date.now()): ExamSess
     const saveStatus = allowedStatus.includes(value.saveStatus as SaveStatus)
       ? (value.saveStatus === "saving" ? "pending" : value.saveStatus as SaveStatus) : "pending";
     return {
-      attemptId: value.attemptId, questions, answers: value.answers, flagged, current, startedAt,
+      ownerId: value.ownerId, attemptId: value.attemptId, questions, answers: value.answers, flagged, current, startedAt,
       durationSeconds, passMark: clampInteger(value.passMark, 65, 1, 100), submitted,
       elapsedSeconds, saveStatus,
     };

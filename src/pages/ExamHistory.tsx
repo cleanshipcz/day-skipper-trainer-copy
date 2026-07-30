@@ -30,7 +30,7 @@ export default function ExamHistory() {
     </CardContent></Card>}
     <p className="text-sm text-muted-foreground">Self-assessed practice records only; these are not certifying exam results.</p>
     {results.map((item) => <Card key={item.id}><CardContent className="pt-5 flex justify-between">
-      <div><strong>{item.percentage}% — {item.passed ? "Passed" : "Not passed"}</strong><p className="text-sm text-muted-foreground">{new Date(item.completed_at).toLocaleString()}</p></div>
+      <div><strong>{item.percentage}% — {item.passed ? "Practice pass" : "Practice pass not reached"}</strong><p className="text-sm text-muted-foreground">{new Date(item.completed_at).toLocaleString()}</p></div>
       <span>{item.score}/{item.total_questions} · {Math.floor(item.time_taken_seconds / 60)} min</span>
     </CardContent></Card>)}
     {user && !results.length && <p>No completed exams yet.</p>}

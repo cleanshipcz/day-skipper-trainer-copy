@@ -2,6 +2,7 @@ import { describe, expect, it } from "vitest";
 import { clampInteger, parseExamSession } from "./examSession";
 
 const valid = {
+  ownerId: null,
   attemptId: "123e4567-e89b-12d3-a456-426614174000",
   questions: [{ id: "q", topicId: "safety", question: "Q?", options: ["a", "b"], correctAnswer: 0, explanation: "x" }],
   answers: [null], flagged: [], current: 0, startedAt: 1_000, durationSeconds: 300,
@@ -23,5 +24,9 @@ describe("exam session validation", () => {
   it("strictly clamps configuration", () => {
     expect(clampInteger("999", 48, 10, 100)).toBe(100);
     expect(clampInteger("wat", 65, 1, 100)).toBe(65);
+  });
+  it("binds a session to exactly one anonymous or authenticated identity", () => {
+    expect(parseExamSession(JSON.stringify({ ...valid, ownerId: "not-a-uuid" }), 2_000)).toBeNull();
+    expect(parseExamSession(JSON.stringify({ ...valid, attemptId: "123e4567-e89b-12d3-a456-42661417400-" }), 2_000)).toBeNull();
   });
 });

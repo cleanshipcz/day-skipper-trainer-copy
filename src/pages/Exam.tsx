@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { Flag, History, Timer, Trophy } from "lucide-react";
 import { toast } from "sonner";
@@ -8,7 +8,7 @@ import { Progress } from "@/components/ui/progress";
 import { useAuth } from "@/contexts/AuthHooks";
 import { quizRegistry, topicMeta } from "@/data/quizzes";
 import { remainingSeconds, scoreExam, selectExamQuestions } from "@/features/exam/examEngine";
-import { clampInteger, parseExamSession, type ExamSession } from "@/features/exam/examSession";
+import { clampInteger, parseExamSession, sessionBelongsTo, type ExamSession } from "@/features/exam/examSession";
 import { supabase } from "@/integrations/supabase/client";
 
 const STORAGE_KEY = "day-skipper-exam-session-v1";
@@ -16,12 +16,16 @@ const readSession = () => parseExamSession(sessionStorage.getItem(STORAGE_KEY));
 
 export default function Exam() {
   const navigate = useNavigate();
-  const { user } = useAuth();
+  const { user, loading } = useAuth();
+  const userId = user?.id ?? null;
   const [questionCount, setQuestionCount] = useState(48);
   const [durationMinutes, setDurationMinutes] = useState(100);
   const [passMark, setPassMark] = useState(65);
   const [session, setSession] = useState<ExamSession | null>(() => readSession());
   const [seconds, setSeconds] = useState(() => session ? remainingSeconds(session.startedAt, session.durationSeconds) : 0);
+  const submissionLock = useRef(false);
+  const identityRef = useRef<string | null>(userId);
+  identityRef.current = userId;
 
   const save = useCallback((next: ExamSession) => {
     setSession(next);
@@ -35,7 +39,7 @@ export default function Exam() {
     setQuestionCount(safeCount); setDurationMinutes(safeMinutes); setPassMark(safePassMark);
     const questions = selectExamQuestions(quizRegistry, safeCount);
     const next: ExamSession = {
-      attemptId: crypto.randomUUID(), questions, answers: Array(questions.length).fill(null),
+      ownerId: userId, attemptId: crypto.randomUUID(), questions, answers: Array(questions.length).fill(null),
       flagged: [], current: 0, startedAt: Date.now(), durationSeconds: safeMinutes * 60,
       passMark: safePassMark, submitted: false, elapsedSeconds: null, saveStatus: "pending",
     };
@@ -43,7 +47,8 @@ export default function Exam() {
   };
 
   const persist = useCallback(async (candidate: ExamSession) => {
-    if (!user || !candidate.submitted || candidate.saveStatus === "saved" || candidate.saveStatus === "saving") return;
+    if (!user || candidate.ownerId !== identityRef.current || !candidate.submitted ||
+      candidate.saveStatus === "saved" || candidate.saveStatus === "saving") return;
     const saving = { ...candidate, saveStatus: "saving" as const };
     save(saving);
     const scored = scoreExam(candidate.questions, candidate.answers, candidate.passMark);
@@ -52,17 +57,31 @@ export default function Exam() {
       p_total_questions: candidate.questions.length, p_time_taken_seconds: candidate.elapsedSeconds ?? 0,
       p_topic_breakdown: scored.topicBreakdown, p_pass_mark: candidate.passMark,
     });
-    save({ ...saving, saveStatus: error ? "failed" : "saved" });
-    if (error) toast.error("Result was retained locally. Retry saving when ready.");
+    if (candidate.ownerId === identityRef.current) {
+      save({ ...saving, saveStatus: error ? "failed" : "saved" });
+      if (error) toast.error("Result was retained locally. Retry saving when ready.");
+    }
   }, [save, user]);
 
   const submit = useCallback(async () => {
-    if (!session || session.submitted) return;
+    if (!session || session.submitted || submissionLock.current) return;
+    submissionLock.current = true;
     const elapsedSeconds = Math.min(session.durationSeconds, Math.max(0, Math.floor((Date.now() - session.startedAt) / 1000)));
     const completed: ExamSession = { ...session, submitted: true, elapsedSeconds, saveStatus: "pending" };
     save(completed);
-    await persist(completed);
+    try {
+      await persist(completed);
+    } finally {
+      submissionLock.current = false;
+    }
   }, [persist, save, session]);
+
+  useEffect(() => {
+    if (loading || !session || sessionBelongsTo(session, userId)) return;
+    sessionStorage.removeItem(STORAGE_KEY);
+    setSession(null);
+    submissionLock.current = false;
+  }, [loading, session, userId]);
 
   useEffect(() => {
     if (!session || session.submitted) return;
@@ -76,6 +95,8 @@ export default function Exam() {
     return () => window.clearInterval(id);
   }, [session, submit]);
 
+  if (loading || (session && !sessionBelongsTo(session, userId)))
+    return <main className="container mx-auto p-6" aria-live="polite">Loading exam…</main>;
   if (!session) return <main className="container max-w-2xl mx-auto p-6">
     <Card><CardHeader><CardTitle className="flex gap-2"><Trophy /> Mock Exam</CardTitle></CardHeader>
       <CardContent className="space-y-5">
@@ -116,15 +137,18 @@ export default function Exam() {
     ? session.flagged.filter((value) => value !== session.current) : [...session.flagged, session.current] });
   return <main className="container max-w-3xl mx-auto p-6 space-y-4">
     <div className="flex justify-between"><strong>Question {session.current + 1}/{session.questions.length}</strong>
-      <span className="flex gap-2"><Timer />{Math.floor(seconds / 60)}:{String(seconds % 60).padStart(2, "0")}</span></div>
+      <span className="flex gap-2" role="timer" aria-label={`${Math.floor(seconds / 60)} minutes ${seconds % 60} seconds remaining`}>
+        <Timer aria-hidden="true" />{Math.floor(seconds / 60)}:{String(seconds % 60).padStart(2, "0")}</span></div>
     <Progress value={((session.current + 1) / session.questions.length) * 100} />
     <Card><CardHeader><CardTitle className="text-xl">{question.question}</CardTitle></CardHeader>
       <CardContent className="space-y-2">{question.options.map((option, index) => <Button key={`${index}:${option}`} className="w-full justify-start h-auto py-3"
-        variant={session.answers[session.current] === index ? "default" : "outline"} onClick={() => updateAnswer(index)}>{option}</Button>)}</CardContent></Card>
+        variant={session.answers[session.current] === index ? "default" : "outline"} role="radio"
+        aria-checked={session.answers[session.current] === index} onClick={() => updateAnswer(index)}>{option}</Button>)}</CardContent></Card>
     <div className="flex flex-wrap gap-2">
       <Button variant="outline" disabled={session.current === 0} onClick={() => save({ ...session, current: session.current - 1 })}>Previous</Button>
       <Button variant="outline" disabled={session.current === session.questions.length - 1} onClick={() => save({ ...session, current: session.current + 1 })}>Next</Button>
-      <Button variant={session.flagged.includes(session.current) ? "default" : "outline"} onClick={toggleFlag}><Flag className="mr-2 h-4 w-4" />Flag</Button>
+      <Button variant={session.flagged.includes(session.current) ? "default" : "outline"}
+        aria-pressed={session.flagged.includes(session.current)} onClick={toggleFlag}><Flag className="mr-2 h-4 w-4" />Flag</Button>
       <Button className="ml-auto" onClick={() => void submit()}>Submit exam</Button>
     </div>
     <p className="text-sm text-muted-foreground">{session.answers.filter((answer) => answer !== null).length} answered · {session.flagged.length} flagged. Unanswered questions count as incorrect.</p>
