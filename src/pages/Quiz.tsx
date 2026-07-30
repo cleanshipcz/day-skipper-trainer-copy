@@ -62,33 +62,42 @@ const Quiz = () => {
   const [isComplete, setIsComplete] = useState(false);
   const [seedStatus, setSeedStatus] = useState<"idle" | "saving" | "saved" | "failed">("idle");
   const seedOwnerRef = useRef(user?.id ?? null);
-  seedOwnerRef.current = user?.id ?? null;
+  const seedGenerationRef = useRef(0);
+  const currentSeedOwner = user?.id ?? null;
+  if (seedOwnerRef.current !== currentSeedOwner) {
+    seedOwnerRef.current = currentSeedOwner;
+    seedGenerationRef.current += 1;
+  }
 
-  const seedReviews = useCallback(async () => {
-    if (!user) return;
-    const owner = user.id;
+  const seedReviews = useCallback(async (owner: string, generation: number) => {
+    if (seedOwnerRef.current !== owner || seedGenerationRef.current !== generation) return;
     setSeedStatus("saving");
     try {
+      if (seedOwnerRef.current !== owner || seedGenerationRef.current !== generation) return;
       await seedQuizQuestions(supabase, topicKey, questions.map(({ id }) => id));
-      if (seedOwnerRef.current === owner) setSeedStatus("saved");
+      if (seedOwnerRef.current === owner && seedGenerationRef.current === generation) setSeedStatus("saved");
     } catch {
-      if (seedOwnerRef.current === owner) {
+      if (seedOwnerRef.current === owner && seedGenerationRef.current === generation) {
         setSeedStatus("failed");
         toast.error("Review schedule could not be saved. Retry when connected.");
       }
     }
-  }, [questions, topicKey, user]);
+  }, [questions, topicKey]);
 
   // Initialize answers array when questions change
   useEffect(() => {
     const initQuiz = async () => {
+      const owner = seedOwnerRef.current;
+      const generation = seedGenerationRef.current;
       const canonicalKey = canonicalQuizProgressKey(topicKey);
       const canonicalRecord: QuizProgressRow | null = await loadProgress(canonicalKey);
+      if (seedOwnerRef.current !== owner || seedGenerationRef.current !== generation) return;
       const legacyRecord: QuizProgressRow | null = canonicalRecord ? null : await loadProgress(topicKey);
+      if (seedOwnerRef.current !== owner || seedGenerationRef.current !== generation) return;
       const resolution = resolveQuizProgressForLoad(topicKey, canonicalRecord, legacyRecord);
       const savedData = resolution.record;
 
-      if (savedData?.completed) void seedReviews();
+      if (savedData?.completed && owner) void seedReviews(owner, generation);
 
       if (savedData?.answers_history) {
         try {
@@ -110,7 +119,9 @@ const Quiz = () => {
                 0,
                 buildQuizSessionProgress(saved.answers, saved.currentQuestion)
               );
+              if (seedOwnerRef.current !== owner || seedGenerationRef.current !== generation) return;
               await resetProgress(topicKey);
+              if (seedOwnerRef.current !== owner || seedGenerationRef.current !== generation) return;
             }
             return;
           }
@@ -214,18 +225,21 @@ const Quiz = () => {
     setIsComplete(true);
 
     if (!user) return;
+    const owner = user.id;
+    const generation = seedGenerationRef.current;
 
     const { percentage, passed, pointsEarned } = quizCompletionOutcome(correctAnswers, questions.length);
 
     try {
       // Save quiz score
       await supabase.from("quiz_scores").insert({
-        user_id: user.id,
+        user_id: owner,
         topic_id: topicKey,
         score: correctAnswers,
         total_questions: questions.length,
         percentage,
       });
+      if (seedOwnerRef.current !== owner || seedGenerationRef.current !== generation) return;
 
       // Save final progress with answers
       const saved = await saveProgress(
@@ -238,6 +252,7 @@ const Quiz = () => {
           completed: true,
         }
       );
+      if (seedOwnerRef.current !== owner || seedGenerationRef.current !== generation) return;
 
       if (saved) {
         toast.success(
@@ -246,7 +261,7 @@ const Quiz = () => {
             : "Quiz saved. Score 70% or more to pass."
         );
       }
-      await seedReviews();
+      await seedReviews(owner, generation);
     } catch (error) {
       console.error("Error saving quiz results:", error);
     }
@@ -309,7 +324,9 @@ const Quiz = () => {
             </div>
             {seedStatus === "failed" && <div className="text-center space-y-2">
               <p role="alert" className="text-sm text-destructive">Your quiz is saved, but its review schedule still needs syncing.</p>
-              <Button variant="outline" onClick={() => void seedReviews()}>Retry review sync</Button>
+              <Button variant="outline" onClick={() => {
+                if (user) void seedReviews(user.id, seedGenerationRef.current);
+              }}>Retry review sync</Button>
             </div>}
           </CardContent>
         </Card>

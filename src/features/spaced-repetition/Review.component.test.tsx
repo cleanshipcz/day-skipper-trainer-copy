@@ -1,7 +1,7 @@
 // @vitest-environment happy-dom
 import { fireEvent, render, screen, waitFor } from "@testing-library/react";
 import { MemoryRouter } from "react-router-dom";
-import { beforeEach, describe, expect, test, vi } from "vitest";
+import { afterEach, beforeEach, describe, expect, test, vi } from "vitest";
 
 const { fetchDueQuestions, recordReview, authState } = vi.hoisted(() => ({
   fetchDueQuestions: vi.fn(),
@@ -43,6 +43,8 @@ describe("daily review session", () => {
     recordReview.mockReset();
     fetchDueQuestions.mockResolvedValue([dueQuestion]);
   });
+
+  afterEach(() => vi.useRealTimers());
 
   test("should ignore a delayed A response after an A to B to A identity switch", async () => {
     let resolveFirst!: (value: readonly [typeof dueQuestion]) => void;
@@ -111,5 +113,24 @@ describe("daily review session", () => {
     render(<MemoryRouter><Review /></MemoryRouter>);
 
     expect(await screen.findByText("No questions are due today.")).toBeTruthy();
+  });
+
+  test("should timestamp the event on first save and preserve it across a much later retry", async () => {
+    vi.useFakeTimers({ shouldAdvanceTime: true });
+    vi.setSystemTime(new Date("2026-01-01T00:00:00Z"));
+    recordReview.mockRejectedValueOnce(new Error("offline")).mockResolvedValueOnce(dueQuestion.review);
+    render(<MemoryRouter><Review /></MemoryRouter>);
+    await screen.findByRole("button", { name: "Safe" });
+    vi.setSystemTime(new Date("2026-02-05T00:00:00Z"));
+    fireEvent.click(screen.getByRole("button", { name: "Safe" }));
+    fireEvent.click(screen.getByRole("button", { name: "Check answer" }));
+    fireEvent.click(screen.getByRole("button", { name: "Save and continue" }));
+    await screen.findByRole("alert");
+    vi.setSystemTime(new Date("2026-02-06T00:00:00Z"));
+    fireEvent.click(screen.getByRole("button", { name: "Retry saving" }));
+
+    await waitFor(() => expect(recordReview).toHaveBeenCalledTimes(2));
+    expect((recordReview.mock.calls[0][4] as Date).toISOString()).toBe("2026-02-05T00:00:00.000Z");
+    expect(recordReview.mock.calls[1][4]).toBe(recordReview.mock.calls[0][4]);
   });
 });

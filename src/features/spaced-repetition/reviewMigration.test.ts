@@ -38,11 +38,14 @@ describe("question review migration", () => {
     expect(sql).toContain("create table public.question_review_receipts");
     expect(sql).toContain("Receipts are intentionally retained");
     expect(sql).toContain("':receipt-capacity'");
-    expect(sql).toContain(">= 100000");
+    expect(sql).toContain("reviewed_at < now() - interval '31 days'");
+    expect(sql).toContain(">= 5000");
     expect(sql).toContain("pg_advisory_xact_lock");
     expect(sql).toContain("to_jsonb(current_review)");
     expect(sql.indexOf("select * into prior_receipt")).toBeLessThan(
       sql.indexOf("':question:' || p_question_id"),
     );
+    expect(sql).toContain("p_reviewed_at <= current_review.last_reviewed_at");
+    expect(sql).toContain("late first delivery is receipted as a deterministic no-op");
   });
 });

@@ -114,9 +114,12 @@ begin
     return jsonb_populate_record(null::public.question_reviews, prior_receipt.result);
   end if;
 
-  -- Serialize the high ceiling so hostile concurrent calls cannot amplify storage past it.
+  -- Serialize pruning/capacity. The RPC accepts only the last 30 days, so 31-day
+  -- receipts retain a conservative replay margin while recovering capacity forever.
   perform pg_advisory_xact_lock(hashtextextended(current_user_id::text || ':receipt-capacity', 0));
-  if (select count(*) from public.question_review_receipts where user_id = current_user_id) >= 100000 then
+  delete from public.question_review_receipts
+  where user_id = current_user_id and reviewed_at < now() - interval '31 days';
+  if (select count(*) from public.question_review_receipts where user_id = current_user_id) >= 5000 then
     raise exception 'Review receipt limit reached';
   end if;
 
@@ -127,6 +130,15 @@ begin
 
   select * into current_review from public.question_reviews
   where user_id = current_user_id and question_id = p_question_id for update;
+
+  -- A late first delivery is receipted as a deterministic no-op. It can never
+  -- rewind a schedule produced by a newer event, and its own replay is stable.
+  if current_review.last_reviewed_at is not null and p_reviewed_at <= current_review.last_reviewed_at then
+    insert into public.question_review_receipts
+      (user_id, review_id, question_id, quality, reviewed_at, result)
+    values (current_user_id, p_review_id, p_question_id, p_quality, p_reviewed_at, to_jsonb(current_review));
+    return current_review;
+  end if;
 
   new_ease := greatest(1.3, current_review.ease_factor +
     (0.1 - (5 - p_quality) * (0.08 + (5 - p_quality) * 0.02)));

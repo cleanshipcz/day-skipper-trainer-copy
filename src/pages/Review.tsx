@@ -23,7 +23,7 @@ const Review = () => {
   const [saving, setSaving] = useState(false);
   const [saveError, setSaveError] = useState(false);
   const [reviewId, setReviewId] = useState(() => crypto.randomUUID());
-  const [reviewedAt, setReviewedAt] = useState(() => new Date());
+  const [reviewedAt, setReviewedAt] = useState<Date | null>(null);
   const [reviewed, setReviewed] = useState(0);
   const [correct, setCorrect] = useState(0);
   const [stateOwner, setStateOwner] = useState<string | null>(null);
@@ -45,7 +45,7 @@ const Review = () => {
     setReviewed(0);
     setCorrect(0);
     setReviewId(crypto.randomUUID());
-    setReviewedAt(new Date());
+    setReviewedAt(null);
     setStateOwner(userId);
     setStateGeneration(generation);
     if (!userId) {
@@ -96,10 +96,12 @@ const Review = () => {
     const owner = userId;
     const savedReviewId = reviewId;
     const savedQuestionId = current.question.id;
+    const eventReviewedAt = reviewedAt ?? new Date();
+    if (!reviewedAt) setReviewedAt(eventReviewedAt);
     setSaving(true);
     setSaveError(false);
     try {
-      await recordReview(supabase, savedQuestionId, qualityForAnswer(isCorrect), savedReviewId, reviewedAt);
+      await recordReview(supabase, savedQuestionId, qualityForAnswer(isCorrect), savedReviewId, eventReviewedAt);
       if (generation !== generationRef.current || identityRef.current !== owner) return;
       setReviews((items) => items.slice(1));
       setReviewed((count) => count + 1);
@@ -107,7 +109,7 @@ const Review = () => {
       setSelected(null);
       setRevealed(false);
       setReviewId(crypto.randomUUID());
-      setReviewedAt(new Date());
+      setReviewedAt(null);
     } catch {
       if (generation === generationRef.current && identityRef.current === owner) setSaveError(true);
     } finally {
