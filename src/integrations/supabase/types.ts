@@ -14,6 +14,36 @@ export type Database = {
   }
   public: {
     Tables: {
+      daily_activity: {
+        Row: {
+          activity_date: string
+          activity_type: string
+          first_activity_at: string
+          user_id: string
+        }
+        Insert: {
+          activity_date: string
+          activity_type: string
+          first_activity_at?: string
+          user_id: string
+        }
+        Update: never
+        Relationships: []
+      }
+      user_badges: {
+        Row: {
+          badge_id: string
+          earned_at: string
+          user_id: string
+        }
+        Insert: {
+          badge_id: string
+          earned_at?: string
+          user_id: string
+        }
+        Update: never
+        Relationships: []
+      }
       question_reviews: {
         Row: {
           created_at: string
@@ -183,6 +213,14 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
+      record_learning_activity: {
+        Args: { p_activity_type: string }
+        Returns: {
+          bonus_points: number
+          current_streak: number
+          unlocked_badge_ids: string[]
+        }[]
+      }
       record_question_review: {
         Args: {
           p_question_id: string

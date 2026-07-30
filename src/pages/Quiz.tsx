@@ -25,6 +25,7 @@ import {
 } from "@/features/quiz/sessionProgress";
 import { quizRegistry, topicMeta } from "@/data/quizzes";
 import { seedQuizQuestions } from "@/features/spaced-repetition/reviewService";
+import { recordLearningActivity } from "@/features/engagement/engagementService";
 
 const Quiz = () => {
   const navigate = useNavigate();
@@ -232,13 +233,14 @@ const Quiz = () => {
 
     try {
       // Save quiz score
-      await supabase.from("quiz_scores").insert({
+      const { error: scoreError } = await supabase.from("quiz_scores").insert({
         user_id: owner,
         topic_id: topicKey,
         score: correctAnswers,
         total_questions: questions.length,
         percentage,
       });
+      if (scoreError) throw scoreError;
       if (seedOwnerRef.current !== owner || seedGenerationRef.current !== generation) return;
 
       // Save final progress with answers
@@ -255,6 +257,13 @@ const Quiz = () => {
       if (seedOwnerRef.current !== owner || seedGenerationRef.current !== generation) return;
 
       if (saved) {
+        try {
+          const engagement = await recordLearningActivity(supabase, "quiz_completion");
+          if (seedOwnerRef.current !== owner || seedGenerationRef.current !== generation) return;
+          engagement.unlockedBadges.forEach((badge) => toast.success(`${badge.icon} Badge unlocked: ${badge.name}`));
+        } catch (error) {
+          console.error("Error recording quiz activity:", error);
+        }
         toast.success(
           passed
             ? "Quiz passed and saved."

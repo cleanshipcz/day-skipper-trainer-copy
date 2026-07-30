@@ -4,6 +4,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { deleteProgressRecord, saveProgressRecord } from "@/features/progress/progressPersistence";
 import type { Tables } from "@/integrations/supabase/types";
+import { recordLearningActivity } from "@/features/engagement/engagementService";
 
 type UserProgressRow = Tables<"user_progress">;
 
@@ -59,6 +60,16 @@ export const useProgress = () => {
 
         if (completionAwarded) {
           toast.success("Topic completed! 🎉");
+        }
+        if (completed) {
+          try {
+            const engagement = await recordLearningActivity(supabase, "theory_completion");
+            engagement.unlockedBadges.forEach((badge) => {
+              toast.success(`${badge.icon} Badge unlocked: ${badge.name}`);
+            });
+          } catch (error) {
+            console.error("Error recording learning activity:", error);
+          }
         }
         return true;
       } catch (error) {
