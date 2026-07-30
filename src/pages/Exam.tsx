@@ -25,11 +25,25 @@ export default function Exam() {
   const [seconds, setSeconds] = useState(() => session ? remainingSeconds(session.startedAt, session.durationSeconds) : 0);
   const submissionLock = useRef(false);
   const identityRef = useRef<string | null>(userId);
-  identityRef.current = userId;
+  const sessionRef = useRef<ExamSession | null>(session);
+  const saveGenerationRef = useRef(0);
+  if (identityRef.current !== userId) {
+    identityRef.current = userId;
+    saveGenerationRef.current += 1;
+  }
 
   const save = useCallback((next: ExamSession) => {
+    sessionRef.current = next;
     setSession(next);
     sessionStorage.setItem(STORAGE_KEY, JSON.stringify(next));
+  }, []);
+
+  const clearSession = useCallback(() => {
+    saveGenerationRef.current += 1;
+    sessionRef.current = null;
+    sessionStorage.removeItem(STORAGE_KEY);
+    setSession(null);
+    submissionLock.current = false;
   }, []);
 
   const start = () => {
@@ -49,6 +63,7 @@ export default function Exam() {
   const persist = useCallback(async (candidate: ExamSession) => {
     if (!user || candidate.ownerId !== identityRef.current || !candidate.submitted ||
       candidate.saveStatus === "saved" || candidate.saveStatus === "saving") return;
+    const requestGeneration = saveGenerationRef.current;
     const saving = { ...candidate, saveStatus: "saving" as const };
     save(saving);
     const scored = scoreExam(candidate.questions, candidate.answers, candidate.passMark);
@@ -57,7 +72,9 @@ export default function Exam() {
       p_total_questions: candidate.questions.length, p_time_taken_seconds: candidate.elapsedSeconds ?? 0,
       p_topic_breakdown: scored.topicBreakdown, p_pass_mark: candidate.passMark,
     });
-    if (candidate.ownerId === identityRef.current) {
+    if (candidate.ownerId === identityRef.current &&
+      requestGeneration === saveGenerationRef.current &&
+      sessionRef.current?.attemptId === candidate.attemptId) {
       save({ ...saving, saveStatus: error ? "failed" : "saved" });
       if (error) toast.error("Result was retained locally. Retry saving when ready.");
     }
@@ -78,10 +95,8 @@ export default function Exam() {
 
   useEffect(() => {
     if (loading || !session || sessionBelongsTo(session, userId)) return;
-    sessionStorage.removeItem(STORAGE_KEY);
-    setSession(null);
-    submissionLock.current = false;
-  }, [loading, session, userId]);
+    clearSession();
+  }, [clearSession, loading, session, userId]);
 
   useEffect(() => {
     if (!session || session.submitted) return;
@@ -127,7 +142,7 @@ export default function Exam() {
     {session.questions.map((question, index) => session.answers[index] !== question.correctAnswer && <Card key={`${question.topicId}:${question.id}`}>
       <CardContent className="pt-5"><p className="font-semibold">{question.question}</p>
         <p className="text-sm mt-2">Correct: {question.options[question.correctAnswer]}</p><p className="text-sm text-muted-foreground">{question.explanation}</p></CardContent></Card>)}
-    <div className="flex gap-2"><Button onClick={() => { sessionStorage.removeItem(STORAGE_KEY); setSession(null); }}>New attempt</Button>
+    <div className="flex gap-2"><Button onClick={clearSession}>New attempt</Button>
       <Button variant="outline" onClick={() => navigate("/exam/history")}>View history</Button></div>
   </main>;
 

@@ -15,6 +15,12 @@ vi.mock("@/integrations/supabase/client", () => ({
 
 import Exam from "@/pages/Exam";
 
+const deferred = <T,>() => {
+  let resolve!: (value: T) => void;
+  const promise = new Promise<T>((complete) => { resolve = complete; });
+  return { promise, resolve };
+};
+
 const session = (overrides: Partial<ExamSession> = {}): ExamSession => ({
   ownerId: "aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa",
   attemptId: "123e4567-e89b-42d3-a456-426614174000",
@@ -47,6 +53,45 @@ describe("exam persistence and identity integration", () => {
     expect(screen.queryByText(/practice pass —/i)).toBeNull();
     await waitFor(() => expect(sessionStorage.getItem("day-skipper-exam-session-v1")).toBeNull());
     expect(rpc).not.toHaveBeenCalled();
+  });
+
+  it("ignores an old save response across a rapid A to B to A auth switch", async () => {
+    const response = deferred<{ error: null }>();
+    rpc.mockReturnValue(response.promise);
+    sessionStorage.setItem("day-skipper-exam-session-v1", JSON.stringify(session()));
+    const view = render(<MemoryRouter><Exam /></MemoryRouter>);
+
+    fireEvent.click(screen.getByRole("button", { name: /retry saving/i }));
+    await waitFor(() => expect(rpc).toHaveBeenCalledOnce());
+    currentUser = { id: "bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb" };
+    view.rerender(<MemoryRouter><Exam /></MemoryRouter>);
+    currentUser = { id: "aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa" };
+    view.rerender(<MemoryRouter><Exam /></MemoryRouter>);
+    await waitFor(() => expect(sessionStorage.getItem("day-skipper-exam-session-v1")).toBeNull());
+
+    response.resolve({ error: null });
+    await response.promise;
+    await waitFor(() => expect(screen.getByRole("button", { name: /start exam/i })).not.toBeNull());
+    expect(sessionStorage.getItem("day-skipper-exam-session-v1")).toBeNull();
+  });
+
+  it("does not let an old save response overwrite a new attempt", async () => {
+    const response = deferred<{ error: null }>();
+    rpc.mockReturnValue(response.promise);
+    sessionStorage.setItem("day-skipper-exam-session-v1", JSON.stringify(session()));
+    render(<MemoryRouter><Exam /></MemoryRouter>);
+
+    fireEvent.click(screen.getByRole("button", { name: /retry saving/i }));
+    await waitFor(() => expect(rpc).toHaveBeenCalledOnce());
+    fireEvent.click(screen.getByRole("button", { name: /new attempt/i }));
+    fireEvent.click(screen.getByRole("button", { name: /start exam/i }));
+    const newAttemptId = JSON.parse(sessionStorage.getItem("day-skipper-exam-session-v1")!).attemptId;
+
+    response.resolve({ error: null });
+    await response.promise;
+    await waitFor(() => expect(JSON.parse(sessionStorage.getItem("day-skipper-exam-session-v1")!).attemptId).toBe(newAttemptId));
+    expect(newAttemptId).not.toBe("123e4567-e89b-42d3-a456-426614174000");
+    expect(JSON.parse(sessionStorage.getItem("day-skipper-exam-session-v1")!).saveStatus).toBe("pending");
   });
 
   it("shows elapsed time for an anonymous completed attempt", () => {
