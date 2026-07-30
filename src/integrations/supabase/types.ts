@@ -30,55 +30,6 @@ export type Database = {
         Update: never
         Relationships: []
       }
-      user_badges: {
-        Row: {
-          badge_id: string
-          earned_at: string
-          user_id: string
-        }
-        Insert: {
-          badge_id: string
-          earned_at?: string
-          user_id: string
-        }
-        Update: never
-        Relationships: []
-      }
-      question_reviews: {
-        Row: {
-          created_at: string
-          ease_factor: number
-          id: string
-          interval_days: number
-          last_reviewed_at: string | null
-          next_review_at: string
-          question_id: string
-          repetitions: number
-          updated_at: string
-          user_id: string
-        }
-        Insert: {
-          created_at?: string
-          ease_factor?: number
-          id?: string
-          interval_days?: number
-          last_reviewed_at?: string | null
-          next_review_at?: string
-          question_id: string
-          repetitions?: number
-          updated_at?: string
-          user_id: string
-        }
-        Update: {
-          ease_factor?: number
-          interval_days?: number
-          last_reviewed_at?: string | null
-          next_review_at?: string
-          repetitions?: number
-          updated_at?: string
-        }
-        Relationships: []
-      }
       exam_results: {
         Row: {
           attempt_id: string
@@ -145,6 +96,54 @@ export type Database = {
         }
         Relationships: []
       }
+      question_reviews: {
+        Row: {
+          created_at: string
+          ease_factor: number
+          id: string
+          interval_days: number
+          last_reviewed_at: string | null
+          next_review_at: string
+          question_id: string
+          repetitions: number
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          ease_factor?: number
+          id?: string
+          interval_days?: number
+          last_reviewed_at?: string | null
+          next_review_at?: string
+          question_id: string
+          repetitions?: number
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          ease_factor?: number
+          interval_days?: number
+          last_reviewed_at?: string | null
+          next_review_at?: string
+          repetitions?: number
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      quiz_attempts: {
+        Row: {
+          attempt_id: string
+          completed_at: string | null
+          expected_total: number
+          started_at: string
+          topic_id: string
+          user_id: string
+        }
+        Insert: never
+        Update: never
+        Relationships: []
+      }
       quiz_scores: {
         Row: {
           attempt_id: string
@@ -178,16 +177,17 @@ export type Database = {
         }
         Relationships: []
       }
-      quiz_attempts: {
+      user_badges: {
         Row: {
-          attempt_id: string
-          completed_at: string | null
-          expected_total: number
-          started_at: string
-          topic_id: string
+          badge_id: string
+          earned_at: string
           user_id: string
         }
-        Insert: never
+        Insert: {
+          badge_id: string
+          earned_at?: string
+          user_id: string
+        }
         Update: never
         Relationships: []
       }
@@ -229,27 +229,6 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
-      sync_engagement_event: {
-        Args: { p_source_id: string; p_source_type: string }
-        Returns: {
-          bonus_points: number
-          current_streak: number
-          unlocked_badge_ids: string[]
-        }
-      }
-      submit_quiz_score: {
-        Args: {
-          p_attempt_id: string
-          p_score: number
-          p_topic_id: string
-          p_total_questions: number
-        }
-        Returns: Database["public"]["Tables"]["quiz_scores"]["Row"]
-      }
-      start_quiz_attempt: {
-        Args: { p_topic_id: string }
-        Returns: Database["public"]["Tables"]["quiz_attempts"]["Row"]
-      }
       record_question_review: {
         Args: {
           p_question_id: string
@@ -258,21 +237,6 @@ export type Database = {
           p_reviewed_at?: string
         }
         Returns: Database["public"]["Tables"]["question_reviews"]["Row"]
-      }
-      seed_question_reviews: {
-        Args: { p_question_ids: string[] }
-        Returns: undefined
-      }
-      submit_exam_result: {
-        Args: {
-          p_attempt_id: string
-          p_score: number
-          p_time_taken_seconds: number
-          p_topic_breakdown: Json
-          p_total_questions: number
-          p_pass_mark?: number
-        }
-        Returns: Database["public"]["Tables"]["exam_results"]["Row"]
       }
       save_topic_progress: {
         Args: {
@@ -287,6 +251,42 @@ export type Database = {
           completion_awarded: boolean
           points_awarded: boolean
         }[]
+      }
+      seed_question_reviews: {
+        Args: { p_question_ids: string[] }
+        Returns: undefined
+      }
+      start_quiz_attempt: {
+        Args: { p_topic_id: string }
+        Returns: Database["public"]["Tables"]["quiz_attempts"]["Row"]
+      }
+      submit_exam_result: {
+        Args: {
+          p_attempt_id: string
+          p_score: number
+          p_time_taken_seconds: number
+          p_topic_breakdown: Json
+          p_total_questions: number
+          p_pass_mark?: number
+        }
+        Returns: Database["public"]["Tables"]["exam_results"]["Row"]
+      }
+      submit_quiz_score: {
+        Args: {
+          p_attempt_id: string
+          p_score: number
+          p_topic_id: string
+          p_total_questions: number
+        }
+        Returns: Database["public"]["Tables"]["quiz_scores"]["Row"]
+      }
+      sync_engagement_event: {
+        Args: { p_source_id: string; p_source_type: string }
+        Returns: {
+          bonus_points: number
+          current_streak: number
+          unlocked_badge_ids: string[]
+        }
       }
     }
     Enums: {
