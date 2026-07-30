@@ -1,9 +1,11 @@
 import { execFileSync } from "node:child_process";
 import { readFileSync, writeFileSync } from "node:fs";
 import { resolve } from "node:path";
+import { writeGeneratedTypeArtifact } from "./generated-type-artifact.mjs";
 import { formatTypeMismatch } from "./type-mismatch-diagnostic.mjs";
 
 const TYPES_PATH = resolve("src/integrations/supabase/types.ts");
+const GENERATED_ARTIFACT_PATH = resolve(".tmp/supabase-types.generated.ts");
 const cli = resolve("node_modules/.bin/supabase");
 const check = process.argv.includes("--check");
 
@@ -22,6 +24,7 @@ try {
   if (check) {
     const checkedIn = normalize(readFileSync(TYPES_PATH, "utf8"));
     if (generated !== checkedIn) {
+      writeGeneratedTypeArtifact(GENERATED_ARTIFACT_PATH, generated);
       console.error(
         "Supabase types are stale. Regenerate them with `npm run supabase:types`, then commit src/integrations/supabase/types.ts.",
       );
