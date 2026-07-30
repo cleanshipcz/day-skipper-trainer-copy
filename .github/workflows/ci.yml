@@ -46,6 +46,11 @@ jobs:
         run: npm run setup:anchor-browser
 
       - name: Anchor minigame browser characterization
+        # GitHub's disposable Ubuntu runner does not expose Chromium's user-
+        # namespace sandbox. This opt-out is scoped to a headless test profile
+        # that serves and visits only the loopback-only Vite preview.
+        env:
+          CHROMIUM_NO_SANDBOX: "1"
         run: npm run test:anchor-browser
 
       - name: Build budget
