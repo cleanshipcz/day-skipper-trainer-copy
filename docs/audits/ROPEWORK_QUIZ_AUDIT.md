@@ -162,186 +162,29 @@ lacks:
 These shared-shell gaps make it difficult for screen-reader users to identify
 their selection, progress, feedback, or the new question.
 
-## Focused follow-up issue drafts
+## Focused follow-up issues
 
-### Assess every taught Ropework knot and teach material before testing it
-
-**Context/evidence**
-
-The parent teaches seven knots, but the 12-question bank omits Rolling Hitch.
-Six questions instead assess surging, coiling, Alpine Butterfly, riding turns,
-rope-end treatment, and cleating, none of which is taught at `/ropework`.
-Construction, dressing, inspection, and safe-use decisions are not assessed.
-
-**Learner impact**
-
-A learner can complete all provided instruction and encounter half a quiz of
-untaught material, while passing without demonstrating one of the seven taught
-knots or safe knot inspection.
-
-**Acceptance criteria**
-
-- Every knot taught at `/ropework`, including Rolling Hitch, has meaningful
-  assessment coverage.
-- Every assessed concept is either taught in the parent flow or explicitly
-  linked to concise pre-quiz learning/remediation.
-- Coverage includes safe-use limitations and recognition/inspection, not only
-  knot-name recall.
-- Catalogue tests document the intended taught-to-assessed coverage.
-
-**Paths**
-
-- `src/pages/RopeworkTheory.tsx`
-- `src/data/ropeworkKnots.ts`
-- `src/data/quizzes/ropework.ts`
-- `src/data/quizzes/quizData.test.ts`
-
-### Correct unsafe and overbroad Ropework quiz guidance
-
-**Context/evidence**
-
-Questions `r1`, `r2`, `r5`, `r6`, `r8`, `r11`, and `r12` contain unsafe or
-overbroad claims about Bowline security, Clove Hitch suitability, Reef Knot use,
-untying after load, universal clockwise coiling, heat-sealing all synthetic
-rope, and mandatory cleat locking turns.
-
-**Learner impact**
-
-Learners may apply unsafe knots or handling techniques to loaded mooring and
-sailing lines, creating jam, release, equipment-damage, burn/fume, or injury
-risks.
-
-**Acceptance criteria**
-
-- A qualified sailing/ropework reviewer validates every answer and explanation.
-- Bowline, Clove Hitch, Reef Knot, and Round Turn guidance states relevant load,
-  security, backup, and jamming limitations.
-- Coiling guidance distinguishes laid, braided, and manufacturer-specific rope.
-- End treatment is material-specific and includes safe-tool/fume guidance.
-- Cleating guidance distinguishes securing from lines that must remain readily
-  releasable under load.
-- Corrected quiz wording remains aligned with corrected parent instruction.
-
-**Paths**
-
-- `src/data/quizzes/ropework.ts`
-- `src/data/ropeworkKnots.ts`
-- `src/pages/RopeworkTheory.tsx`
-
-### Route quiz exits and unavailable actions back to Ropework
-
-**Context/evidence**
-
-The active Back button and completion Home action navigate to `/`. The shared
-unavailable state always offers **Nautical Terms**, even for
-`/quiz/ropework`.
-
-**Learner impact**
-
-Leaving, finishing, or failing to load a topic quiz breaks the learner's local
-journey and, in the failure case, explicitly sends them to the wrong subject.
-
-**Acceptance criteria**
-
-- Quiz metadata defines the appropriate parent route and label for every topic.
-- Active Back, completion, and unavailable states consistently offer that
-  parent.
-- `/quiz/ropework` returns to `/ropework`; unknown topics retain a safe generic
-  Home fallback.
-- Navigation behavior has route-level tests.
-
-**Paths**
-
-- `src/pages/Quiz.tsx`
-- `src/data/quizzes/index.ts`
-- `src/data/quizzes/types.ts`
-- `src/constants/topicRegistry.ts`
-
-### Do not reveal quiz correctness before answer submission
-
-**Context/evidence**
-
-`handleAnswerSelect` writes the tentative option into `answers`;
-`correctAnswers` immediately scores that array; and the header renders the
-updated score before Submit locks the choice.
-
-**Learner impact**
-
-A learner can cycle options until the score increments and use the interface as
-an answer oracle, obtaining 100% without knowing the content.
-
-**Acceptance criteria**
-
-- Tentative selection does not affect any visible or persisted correct count.
-- Correctness is committed only when Submit locks the answer.
-- Previous/navigation and reload preserve submitted versus tentative state
-  correctly.
-- Tests prove that cycling unsubmitted options cannot reveal correctness and
-  that final scoring still matches submitted answers.
-
-**Paths**
-
-- `src/pages/Quiz.tsx`
-- `src/features/quiz/scoring.ts`
-- `src/features/quiz/sessionProgress.ts`
-- focused component/helper tests
-
-### Expose quiz selection, progress, feedback, and focus accessibly
-
-**Context/evidence**
-
-Back is unnamed; answer selection has no programmatic selected state; progress
-is unlabelled; explanation/result insertion is not announced; and Next does not
-move focus to the new question.
-
-**Learner impact**
-
-Keyboard and screen-reader learners cannot reliably identify their selection,
-progress, feedback, or the active step in the quiz.
-
-**Acceptance criteria**
-
-- Back has a topic-aware accessible name.
-- Answers use a radio-group pattern or equivalent programmatic selected state.
-- Progress exposes an accessible label and current/min/max values.
-- Feedback and completion are announced without duplicate toast noise.
-- Focus moves predictably to each new question and the completion heading.
-- Automated accessibility/component checks cover keyboard-only operation.
-
-**Paths**
-
-- `src/pages/Quiz.tsx`
-- `src/components/ui/progress.tsx`
-- focused quiz accessibility tests
-
-### Persist quiz sessions by stable question and option identity
-
-**Context/evidence**
-
-Saved state contains positional option indices and question position only.
-Parsing accepts any finite answer, and state contains neither stable option
-identity nor the shuffle seed/catalogue version.
-
-**Learner impact**
-
-Reload or catalogue evolution can silently select a different answer, restore
-an impossible index, or score a learner against a different randomized order.
-
-**Acceptance criteria**
-
-- Persisted answers identify the stable question and selected option rather
-  than only array indices.
-- Hydration validates integer/range/identity and safely discards incompatible
-  state.
-- Randomization can be reconstructed or persisted answers can be remapped
-  deterministically.
-- Migration/reset behavior is defined for existing index-based records.
-- Tests cover reordered questions/options, malformed values, and catalogue
-  evolution.
-
-**Paths**
-
-- `src/pages/Quiz.tsx`
-- `src/features/quiz/sessionProgress.ts`
-- `src/features/quiz/sessionProgress.test.ts`
-- `src/features/quiz/randomization.ts`
+- [#165 — Align the Ropework Quiz with taught knots and prerequisite
+  material](https://github.com/cleanshipcz/day-skipper-trainer-copy/issues/165)
+  — covers the missing Rolling Hitch, six untaught rope-handling subjects, and
+  the absence of construction, dressing, inspection, and safe-use assessment.
+- [#166 — Correct unsafe and overbroad Ropework Quiz
+  guidance](https://github.com/cleanshipcz/day-skipper-trainer-copy/issues/166)
+  — covers the Bowline, Clove Hitch, Reef Knot, Round Turn, coiling,
+  heat-sealing, and cleating safety inaccuracies.
+- [#154 — Restore quiz focus and expose answer/progress state
+  accessibly](https://github.com/cleanshipcz/day-skipper-trainer-copy/issues/154)
+  — reused for the unnamed Back control, unexposed answer selection, unlabelled
+  progress, missing announcements, and unmanaged focus.
+- [#155 — Return topic quizzes to their parent module instead of global
+  Home](https://github.com/cleanshipcz/day-skipper-trainer-copy/issues/155) —
+  reused for Ropework Back/completion routing and the incorrect Nautical Terms
+  unavailable-state action.
+- [#156 — Validate persisted quiz answers against stable question and option
+  identities](https://github.com/cleanshipcz/day-skipper-trainer-copy/issues/156)
+  — reused for positional answer persistence, malformed indices, and
+  catalogue/shuffle instability.
+- [#157 — Do not reveal quiz correctness through the live score before
+  submission](https://github.com/cleanshipcz/day-skipper-trainer-copy/issues/157)
+  — reused for the pre-submit score oracle that allows learners to discover
+  every answer.
