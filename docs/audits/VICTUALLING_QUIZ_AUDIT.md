@@ -158,13 +158,35 @@ too absolute to be treated as authoritative guidance:
   rated garment and narrowly framed; safer controls come first. This is
   coordinated in #191.
 
-The Food Standards Agency describes ingredients, emphasized allergens, date and
-recall information as safety-relevant product information. Its recall guidance
-depends on exact affected products and batches. HSE hot-liquid guidance
-prioritizes measures such as lids, covers, guarding, and splash/spill controls
-rather than assuming generic clothing prevents scalds. These sources support
-the conservative corrections above; they do not establish a universal offshore
-provision allowance or make oilskins certified scald protection.
+The source-backed conclusion is deliberately narrower than a claim that an
+authority has considered this exact yacht practice:
+
+- Food Standards Agency/Defra guidance, **“Labelling pre-packed food:
+  Information to display on labels or packaging,”** lists the food name,
+  ingredients including allergens, date, responsible business and other
+  mandatory information. Its **“Show the ‘best before’ or ‘use by’ date”**
+  section also identifies cases where a lot number is required.[^fsa-label]
+  **Inference:** replacing a label with only a waterproof-pen food name can
+  discard information needed to choose, prepare, date-check, or identify that
+  exact tin. The source does not say “never remove labels on a yacht”; the safe
+  requirement inferred here is to retain a complete, reliable association or
+  not remove them.
+- HSE's PUWER guidance, **Regulation 13, “From contact with hot process
+  materials”** (PDF page 49), lists limiting temperature and providing doors,
+  lids, covers, or deflection systems for splash/spill risk.[^hse-puwer]
+  **Inference:** these prevention/engineering controls are stronger support
+  than the quiz's unsupported claim about ordinary oilskins. HSE does not
+  discuss yacht oilskins in that section, so this audit does not claim that HSE
+  has declared every oilskin unsuitable; it finds no basis here for presenting
+  them as scald protection.
+- RYA's **“Using gas safely”** section says the safest option is bottle shutoff
+  when gas is not in use and says to shut off and secure the bottle in rough
+  weather.[^rya-gas]
+  This supports the shutoff part of `v10`, not the quiz's wider omissions or an
+  assertion that bottle shutoff alone makes the installation safe.
+
+No reviewed source establishes a universal offshore water/reserve allowance or
+certifies oilskin trousers as scald PPE.
 
 ### Scoring, retry, completion, and failure states
 
@@ -193,7 +215,11 @@ provision allowance or make oilskins certified scald protection.
 ### Persistence and edge behavior
 
 - Anonymous attempts exist only in component memory; reload loses them.
-  Authenticated progress uses the canonical `quiz-victualling` key.
+  Authenticated progress uses the canonical `quiz-victualling` key. Focused
+  issue [#194](https://github.com/cleanshipcz/day-skipper-trainer-copy/issues/194)
+  owns an explicit anonymous policy: either privacy-safe, expiring local resume
+  with catalogue-version/migration handling, or clearly communicated ephemeral
+  behavior. The current silent loss is not treated as an intentional design.
 - Saved sessions contain positional shuffled-option indices and a question
   index, but no question IDs, option identities, or shuffle seed.
   `parseSavedQuizSession` accepts negative, fractional, and out-of-range finite
@@ -205,10 +231,9 @@ provision allowance or make oilskins certified scald protection.
   order of the loaded questions. Completed records are intentionally not
   resumed as editable sessions.
 - The catalogue validates IDs but not question text, option count, answer
-  bounds, blank or duplicate options, or explanation quality. Those concerns
-  are already captured for the wider catalogue in the parent audit's
-  [#186](https://github.com/cleanshipcz/day-skipper-trainer-copy/issues/186);
-  no duplicate quiz-specific issue was opened.
+  bounds, blank or duplicate options, or explanation quality. Focused shared
+  issue [#193](https://github.com/cleanshipcz/day-skipper-trainer-copy/issues/193)
+  owns complete runtime schema validation and tests for `src/data/quizzes`.
 
 ### Accessibility, screen sizes, and input
 
@@ -228,7 +253,8 @@ The option row can also become cramped at narrow widths or high zoom because
 long text and its feedback icon share a non-wrapping horizontal row. Shared
 issue [#154](https://github.com/cleanshipcz/day-skipper-trainer-copy/issues/154)
 owns the established focus and state defects; responsive/reduced-motion
-coverage should be included when that shell is corrected.
+coverage, including high zoom and long/localized answers, has been added to that
+issue's context, acceptance criteria, and test scope.
 
 ## Focused follow-up issues
 
@@ -261,3 +287,29 @@ coverage should be included when that shell is corrected.
 - [#157 — Do not reveal quiz correctness through the live score before
   submission](https://github.com/cleanshipcz/day-skipper-trainer-copy/issues/157)
   — reused for the pre-submit score oracle.
+- [#193 — Validate every quiz question and explanation at catalogue load
+  time](https://github.com/cleanshipcz/day-skipper-trainer-copy/issues/193) —
+  owns question text, option count/uniqueness, answer bounds, explanation
+  validation, and shared catalogue tests.
+- [#194 — Define privacy-safe anonymous quiz attempt persistence and
+  recovery](https://github.com/cleanshipcz/day-skipper-trainer-copy/issues/194)
+  — owns the current reload loss and the privacy, expiry, cleanup,
+  catalogue-version, migration, and sign-in policy for any local resume.
+
+## Authoritative sources
+
+All sources were accessed 2026-07-31.
+
+[^fsa-label]: Department for Environment, Food & Rural Affairs and Food
+  Standards Agency, [“Food labelling: giving food information to
+  consumers”](https://www.gov.uk/guidance/food-labelling-giving-food-information-to-consumers),
+  sections **“Labelling pre-packed food: Information to display on labels or
+  packaging,” “Label allergens,” “List the ingredients,”** and **“Show the
+  ‘best before’ or ‘use by’ date.”**
+[^hse-puwer]: Health and Safety Executive, [“PUWER 1998: Provision and Use of
+  Work Equipment Regulations 1998: Open learning
+  guidance”](https://www.hse.gov.uk/pubns/priced/puwer.pdf), Regulation 13,
+  **“From contact with hot process materials”**, PDF page 49.
+[^rya-gas]: Royal Yachting Association, [“Guide to gas safety on
+  Boats”](https://www.rya.org.uk/water-safety/gas-safety/gas-safety-on-boats/),
+  section **“Using gas safely.”**
