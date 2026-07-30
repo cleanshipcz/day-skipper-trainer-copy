@@ -12,6 +12,7 @@
     "preview": "vite preview",
     "test": "vitest",
     "test:coverage": "vitest --run --coverage",
+    "guard:coverage-scope": "node scripts/check-coverage-scope.mjs",
     "test:live-db": "vitest --run src/features/progress/progressLiveDbConcurrency.integration.test.ts",
     "test:build-budget": "node scripts/check-build-budget.mjs",
     "guard:migrations": "node scripts/check-migrations.mjs",

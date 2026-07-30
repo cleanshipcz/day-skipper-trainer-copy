@@ -35,7 +35,7 @@ jobs:
         run: npm run test -- --run --maxWorkers=1
 
       - name: Coverage
-        run: npm run test:coverage -- --maxWorkers=1
+        run: npm run guard:coverage-scope && npm run test:coverage -- --maxWorkers=1
 
       - name: Build
         run: npm run build

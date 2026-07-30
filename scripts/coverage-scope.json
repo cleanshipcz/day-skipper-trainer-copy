@@ -1,0 +1,19 @@
+{
+  "directories": [
+    "src/features/dashboard",
+    "src/features/progress",
+    "src/features/quiz"
+  ],
+  "files": [
+    "src/constants/durableProgressIds.ts",
+    "src/constants/topicRegistry.ts",
+    "src/features/dashboard/topicCompletion.ts",
+    "src/features/progress/completionGates.ts",
+    "src/features/progress/progressPersistence.ts",
+    "src/features/progress/useTheoryCompletionGate.ts",
+    "src/features/quiz/progressKeys.ts",
+    "src/features/quiz/randomization.ts",
+    "src/features/quiz/scoring.ts",
+    "src/features/quiz/sessionProgress.ts"
+  ]
+}

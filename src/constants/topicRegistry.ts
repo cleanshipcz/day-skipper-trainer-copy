@@ -23,7 +23,7 @@ export const topicRegistry: readonly TopicEntry[] = [
   { id: "rig", label: "Rig Checks & Preparation", parentId: null, route: "/rig", quizRoute: "/quiz/rig", submoduleIds: [], syllabusArea: 1 },
   { id: "ropework", label: "Ropework & Knots", parentId: null, route: "/ropework", quizRoute: "/quiz/ropework", submoduleIds: [], syllabusArea: 2 },
   { id: "anchorwork", label: "Anchorwork", parentId: null, route: "/anchorwork", quizRoute: "/quiz/anchorwork", submoduleIds: [], syllabusArea: 3 },
-  { id: "safety", label: "Safety Procedures", parentId: null, route: "/safety", quizRoute: null, submoduleIds: ["safety-mob", "safety-fire", "safety-life-raft", "safety-flares", "safety-personal", "safety-gas"], syllabusArea: 4 },
+  { id: "safety", label: "Safety Procedures", parentId: null, route: "/safety", quizRoute: "/quiz/safety", submoduleIds: ["safety-mob", "safety-fire", "safety-life-raft", "safety-flares", "safety-personal", "safety-gas"], syllabusArea: 4 },
   { id: "safety-mob", label: "Man Overboard", parentId: "safety", route: "/safety/mob", quizRoute: "/quiz/safety-mob-quiz", submoduleIds: [], syllabusArea: 4 },
   { id: "safety-fire", label: "Fire Safety", parentId: "safety", route: "/safety/fire", quizRoute: "/quiz/safety-fire-quiz", submoduleIds: ["safety-fire-drill"], syllabusArea: 4 },
   { id: "safety-fire-drill", label: "Fire Extinguisher Drill", parentId: "safety-fire", route: "/safety/fire", quizRoute: null, submoduleIds: [], syllabusArea: 4 },
