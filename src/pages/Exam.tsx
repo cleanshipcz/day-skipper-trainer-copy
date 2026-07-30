@@ -10,9 +10,13 @@ import { quizRegistry, topicMeta } from "@/data/quizzes";
 import { remainingSeconds, scoreExam, selectExamQuestions } from "@/features/exam/examEngine";
 import { clampInteger, parseExamSession, sessionBelongsTo, type ExamSession } from "@/features/exam/examSession";
 import { supabase } from "@/integrations/supabase/client";
+import { readStored, removeStored, writeStored } from "@/features/persistence/browserStorage";
 
 const STORAGE_KEY = "day-skipper-exam-session-v1";
-const readSession = () => parseExamSession(sessionStorage.getItem(STORAGE_KEY));
+const readSession = () => readStored(sessionStorage, STORAGE_KEY, {
+  version: 1,
+  decode: (value) => parseExamSession(JSON.stringify(value)),
+});
 
 export default function Exam() {
   const navigate = useNavigate();
@@ -35,13 +39,13 @@ export default function Exam() {
   const save = useCallback((next: ExamSession) => {
     sessionRef.current = next;
     setSession(next);
-    sessionStorage.setItem(STORAGE_KEY, JSON.stringify(next));
+    writeStored(sessionStorage, STORAGE_KEY, next);
   }, []);
 
   const clearSession = useCallback(() => {
     saveGenerationRef.current += 1;
     sessionRef.current = null;
-    sessionStorage.removeItem(STORAGE_KEY);
+    removeStored(sessionStorage, STORAGE_KEY);
     setSession(null);
     submissionLock.current = false;
   }, []);

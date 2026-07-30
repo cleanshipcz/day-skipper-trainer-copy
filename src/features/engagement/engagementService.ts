@@ -1,4 +1,5 @@
 import { badgeById, type BadgeDefinition } from "@/data/badges";
+import { ownerStorageKey, readStored, removeStored, writeStored, type StorageCodec } from "@/features/persistence/browserStorage";
 
 export type EngagementSource = "progress" | "quiz" | "review";
 export interface EngagementEvidence {
@@ -22,17 +23,22 @@ export interface EngagementResult {
   readonly unlockedBadges: readonly BadgeDefinition[];
 }
 
-const outboxKey = (owner: string) => `engagement-outbox:${owner}`;
-const readOutbox = (owner: string): readonly EngagementEvidence[] => {
-  try {
-    const value = JSON.parse(localStorage.getItem(outboxKey(owner)) ?? "[]") as unknown;
+const outboxKey = (owner: string) => ownerStorageKey("engagement-outbox", owner);
+const outboxCodec: StorageCodec<readonly EngagementEvidence[]> = {
+  version: 1,
+  decode(value) {
     return Array.isArray(value) ? value.filter((item): item is EngagementEvidence =>
-      Boolean(item && typeof item === "object" && "sourceType" in item && "sourceId" in item)) : [];
-  } catch { return []; }
+      Boolean(item && typeof item === "object"
+        && "sourceType" in item && ["progress", "quiz", "review"].includes(String(item.sourceType))
+        && "sourceId" in item && typeof item.sourceId === "string")) : null;
+  },
+};
+const readOutbox = (owner: string): readonly EngagementEvidence[] => {
+  return readStored(localStorage, outboxKey(owner), outboxCodec) ?? [];
 };
 const writeOutbox = (owner: string, items: readonly EngagementEvidence[]) => {
-  if (items.length === 0) localStorage.removeItem(outboxKey(owner));
-  else localStorage.setItem(outboxKey(owner), JSON.stringify(items.slice(-100)));
+  if (items.length === 0) removeStored(localStorage, outboxKey(owner));
+  else writeStored(localStorage, outboxKey(owner), items.slice(-100));
 };
 const evidenceKey = ({ sourceType, sourceId }: EngagementEvidence) => `${sourceType}:${sourceId}`;
 const ownerLocks = new Map<string, Promise<void>>();
