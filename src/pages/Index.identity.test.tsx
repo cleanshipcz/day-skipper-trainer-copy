@@ -5,6 +5,8 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
 const state = vi.hoisted(() => ({
   user: { id: "account-a", email: "a@example.test" } as { id: string; email: string } | null,
   pendingA: [] as Array<{ table: string; resolve: (value: { data: unknown; error: null }) => void }>,
+  deferredOwners: new Set(["account-a"]),
+  profilePoints: new Map<string, number>([["account-a", 999], ["account-b", 2]]),
   download: vi.fn(),
 }));
 
@@ -28,7 +30,7 @@ vi.mock("@/components/module-menu/ModuleMenuGrid", () => ({
 }));
 
 const responseFor = (table: string, owner: string) => {
-  if (table === "profiles") return { data: { id: owner, user_id: owner, username: owner, points: owner === "account-a" ? 999 : 2 }, error: null };
+  if (table === "profiles") return { data: { id: owner, user_id: owner, username: owner, points: state.profilePoints.get(owner) ?? 0 }, error: null };
   if (table === "user_progress") return { data: owner === "account-a"
     ? [{ topic_id: "ropework", completed: true, score: 100 }]
     : [], error: null };
@@ -48,11 +50,11 @@ vi.mock("@/integrations/supabase/client", () => ({
         order: () => query,
         range: () => query,
         single: () => new Promise((resolve) => {
-          if (owner === "account-a") state.pendingA.push({ table, resolve });
+          if (state.deferredOwners.has(owner)) state.pendingA.push({ table, resolve });
           else resolve(responseFor(table, owner));
         }),
         then: (resolve: (value: unknown) => void) => {
-          if (owner === "account-a") state.pendingA.push({ table, resolve: resolve as never });
+          if (state.deferredOwners.has(owner)) state.pendingA.push({ table, resolve: resolve as never });
           else resolve(responseFor(table, owner));
         },
       };
@@ -67,6 +69,8 @@ describe("dashboard identity isolation", () => {
   beforeEach(() => {
     state.user = { id: "account-a", email: "a@example.test" };
     state.pendingA = [];
+    state.deferredOwners = new Set(["account-a"]);
+    state.profilePoints = new Map([["account-a", 999], ["account-b", 2]]);
     state.download.mockReset();
   });
 
@@ -91,5 +95,38 @@ describe("dashboard identity isolation", () => {
       studentName: "account-b",
       totalPoints: 2,
     })));
+  });
+
+  it("rejects an older overlapping load generation for the same owner", async () => {
+    state.user = { id: "account-b", email: "b@example.test" };
+    state.deferredOwners = new Set(["account-b"]);
+    const view = render(<MemoryRouter><Index /></MemoryRouter>);
+    await waitFor(() => expect(state.pendingA.map(({ table }) => table))
+      .toEqual(["profiles", "user_progress", "user_badges"]));
+
+    state.user = { id: "account-b", email: "b@example.test" };
+    view.rerender(<MemoryRouter><Index /></MemoryRouter>);
+    await waitFor(() => expect(state.pendingA.map(({ table }) => table)).toEqual([
+      "profiles", "user_progress", "user_badges",
+      "profiles", "user_progress", "user_badges",
+    ]));
+
+    state.profilePoints.set("account-b", 22);
+    const newer = state.pendingA.splice(3, 3);
+    newer.forEach(({ table, resolve }) => resolve(responseFor(table, "account-b")));
+    await waitFor(() => expect(state.pendingA.some(({ table }) => table === "quiz_scores")).toBe(true));
+    state.pendingA.splice(3).forEach(({ table, resolve }) => resolve(responseFor(table, "account-b")));
+    await waitFor(() => expect(screen.getAllByText("22")).toHaveLength(2));
+
+    state.profilePoints.set("account-b", 11);
+    const older = state.pendingA.splice(0, 3);
+    older.forEach(({ table, resolve }) => resolve(responseFor(table, "account-b")));
+    await Promise.resolve();
+    state.pendingA.splice(0).forEach(({ table, resolve }) => resolve(responseFor(table, "account-b")));
+    await Promise.resolve();
+
+    expect(screen.getAllByText("22")).toHaveLength(2);
+    expect(screen.queryByText("11")).toBeNull();
+    expect((screen.getByRole("button", { name: /export progress report/i }) as HTMLButtonElement).disabled).toBe(false);
   });
 });

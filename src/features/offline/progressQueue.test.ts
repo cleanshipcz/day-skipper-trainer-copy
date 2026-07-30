@@ -51,6 +51,14 @@ describe("offline progress queue", () => {
   it("classifies connectivity and server errors without treating authorization errors as retryable", () => {
     expect(isRetryableProgressError(new Error("Failed to fetch"), true)).toBe(true);
     expect(isRetryableProgressError({ status: 503, message: "unavailable" }, true)).toBe(true);
+    expect(isRetryableProgressError({
+      code: "PGRST002",
+      message: "Could not query the database for the schema cache",
+      details: "connection refused",
+    }, true)).toBe(true);
+    expect(isRetryableProgressError({ message: "502 Bad Gateway" }, true)).toBe(true);
     expect(isRetryableProgressError({ status: 401, message: "unauthorized" }, true)).toBe(false);
+    expect(isRetryableProgressError({ code: "42501", message: "row-level security policy denied" }, true)).toBe(false);
+    expect(isRetryableProgressError({ code: "23514", message: "check constraint violation" }, true)).toBe(false);
   });
 });

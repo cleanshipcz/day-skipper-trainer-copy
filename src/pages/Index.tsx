@@ -196,6 +196,7 @@ const Index = () => {
   const [engagementError, setEngagementError] = useState(false);
   const currentUserId = user?.id ?? null;
   const dashboardOwnerRef = React.useRef(currentUserId);
+  const dashboardGenerationRef = React.useRef(0);
   dashboardOwnerRef.current = currentUserId;
   const dashboardReady = Boolean(currentUserId && dashboardOwner === currentUserId && !dashboardLoading);
   const visiblePoints = dashboardReady ? points : 0;
@@ -208,26 +209,20 @@ const Index = () => {
   engagementOwnerRef.current = currentUserId;
   const visibleDueReviews = useDueReviewCount(currentUserId);
 
-  const fetchProfile = React.useCallback(async () => {
-    if (!user) return;
-    const owner = user.id;
-
+  const fetchProfile = React.useCallback(async (owner: string, generation: number) => {
     const { data } = await supabase.from("profiles").select("*").eq("user_id", owner).single();
-    if (dashboardOwnerRef.current !== owner) return;
+    if (dashboardOwnerRef.current !== owner || dashboardGenerationRef.current !== generation) return;
 
     if (data) {
       setProfile(data as UserProfile);
       setPoints(data.points || 0);
     }
-  }, [user]);
+  }, []);
 
-  const fetchProgress = React.useCallback(async () => {
-    if (!user) return;
-    const owner = user.id;
-
+  const fetchProgress = React.useCallback(async (owner: string, generation: number) => {
     // Fetch user progress for all topics
     const { data: progressData } = await supabase.from("user_progress").select("*").eq("user_id", owner);
-    if (dashboardOwnerRef.current !== owner) return;
+    if (dashboardOwnerRef.current !== owner || dashboardGenerationRef.current !== generation) return;
 
     if (progressData) {
       const progressMap = progressData.reduce((acc, item) => {
@@ -252,25 +247,28 @@ const Index = () => {
       .eq("user_id", owner)
       .order("completed_at", { ascending: true })
       .order("attempt_id", { ascending: true });
-    if (dashboardOwnerRef.current !== owner) return;
+    if (dashboardOwnerRef.current !== owner || dashboardGenerationRef.current !== generation) return;
 
     setQuizScores(scoresData ?? []);
     if (scoresData && scoresData.length > 0) {
       const avg = scoresData.reduce((sum, s) => sum + s.percentage, 0) / scoresData.length;
       setAvgQuizScore(Math.round(avg));
     }
-  }, [user]);
+  }, []);
 
   const exportProgress = async () => {
     if (!user || !dashboardReady) return;
     const owner = user.id;
+    const generation = dashboardGenerationRef.current;
     try {
       const { data: exams, error } = await supabase
         .from("exam_results")
         .select("time_taken_seconds")
         .eq("user_id", owner);
       if (error) throw error;
-      if (dashboardOwnerRef.current !== owner || dashboardOwner !== owner) return;
+      if (dashboardOwnerRef.current !== owner
+        || dashboardGenerationRef.current !== generation
+        || dashboardOwner !== owner) return;
       const report = buildProgressReportData({
         studentName: profile?.username || user.email || "Learner",
         generatedAt: new Date(),
@@ -330,6 +328,7 @@ const Index = () => {
   useEffect(() => {
     if (user) {
       const owner = user.id;
+      const generation = ++dashboardGenerationRef.current;
       setDashboardOwner(null);
       setDashboardLoading(true);
       setProfile(null);
@@ -339,14 +338,15 @@ const Index = () => {
       setAvgQuizScore(0);
       setQuizScores([]);
       setUserProgress({});
-      void Promise.all([fetchProfile(), fetchProgress()]).finally(() => {
-        if (dashboardOwnerRef.current === owner) {
+      void Promise.all([fetchProfile(owner, generation), fetchProgress(owner, generation)]).finally(() => {
+        if (dashboardOwnerRef.current === owner && dashboardGenerationRef.current === generation) {
           setDashboardOwner(owner);
           setDashboardLoading(false);
         }
       });
       fetchEngagement();
     } else {
+      dashboardGenerationRef.current += 1;
       setDashboardOwner(null);
       setDashboardLoading(false);
       setProfile(null);
