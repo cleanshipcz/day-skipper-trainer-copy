@@ -1,12 +1,15 @@
 # Learning leaf functionality audit inventory
 
-This inventory turns every terminal learning destination in the application/module
-navigation tree into a reviewable GitHub issue draft. A **leaf** is a destination
-at which the learner consumes theory, uses a practice tool, or takes an assessment.
-Menu pages are branches, not leaves. An interactive component embedded in a leaf
-page (for example the fire-extinguisher drill) is audited with that page rather
-than counted again. Dynamic quiz topics are separate leaves because each presents
-a different assessment even though they share `/quiz/:topicId`.
+This inventory turns every implemented terminal learning experience found in the
+application/module navigation or quiz catalogue into a reviewable GitHub issue
+draft. A **leaf** is a destination at which the learner consumes theory, uses a
+practice tool, or takes an assessment. Menu pages are branches, not leaves. An
+interactive component embedded in a leaf page (for example the
+fire-extinguisher drill) is audited with that page rather than counted again.
+Dynamic quiz topics are separate leaves because each presents a different
+assessment even though they share `/quiz/:topicId`. Of the 52 catalogue leaves,
+51 are reachable through current learner navigation and one (`/quiz/safety`) is
+implemented but orphaned; its audit must investigate that reachability defect.
 
 ## How to create the issues
 
@@ -15,6 +18,7 @@ For each row below:
 1. Use the value in **Issue title** as the GitHub issue title.
 2. Use its **Context** paragraph followed by the **Shared audit request** below,
    without alteration, as the issue body.
+3. Add the `agent-queue` label to every audit issue when it is filed.
 
 That combination is the complete, ready-to-file issue draft. Keeping the common
 request in one normative block makes later improvements to the audit rubric
@@ -24,7 +28,8 @@ reviewable without maintaining 52 divergent copies.
 
 > Perform a rigorous learner-facing functionality and content-quality audit of
 > the exact leaf identified above. Exercise the route from its parent navigation
-> and inspect the named implementation/data files. Determine whether it
+> when such navigation exists, verify that intended reachability, and inspect the
+> named implementation/data files. Determine whether it
 > effectively teaches or assesses its stated topic; whether all information,
 > terminology, worked examples, calculations, procedures, and safety advice are
 > correct, current, sufficiently complete, and high quality; whether its images,
@@ -35,10 +40,10 @@ reviewable without maintaining 52 divergent copies.
 > methods. Check accessibility and failure/edge states where they affect the
 > learning experience. Record concrete evidence and an overall quality verdict.
 > For every distinct problem or worthwhile improvement discovered, create a
-> focused follow-up GitHub issue with reproduction/context, learner impact,
-> acceptance criteria, and the relevant paths; do not bundle implementation into
-> this audit issue. Finish with links to all follow-up issues, or explicitly state
-> that none were needed.
+> focused follow-up GitHub issue with the `agent-queue` label,
+> reproduction/context, learner impact, acceptance criteria, and the relevant
+> paths; do not bundle implementation into this audit issue. Finish with links to
+> all follow-up issues, or explicitly state that none were needed.
 
 ## Inventory and issue drafts
 
@@ -314,9 +319,9 @@ reviewable without maintaining 52 divergent copies.
     - Context: Audit **Gas Safety** at `/safety/gas`. Start with `src/pages/GasSafetyTheory.tsx` and `src/data/gasSafety.ts`; include LPG/CO properties and hazards, installation/isolation/detection/emergency guidance, all visuals/interactions, and completion.
 
 52. **Comprehensive Safety Quiz**
-    - Route/ID: `/quiz/safety` · `safety`
+    - Route/ID: `/quiz/safety` · `safety` · catalogue-only/orphaned
     - Issue title: `Audit functionality and content quality: Comprehensive Safety Quiz`
-    - Context: Audit the **Comprehensive Safety Quiz** at `/quiz/safety`. Start with `src/pages/Quiz.tsx`, `src/data/quizzes/index.ts`, `src/data/quizzes/safety.ts`, and `src/features/quiz/`; verify balanced coverage of all six Safety leaves, answer/safety accuracy, explanations, scoring, retry/completion, and persistence.
+    - Context: Audit the **Comprehensive Safety Quiz** at `/quiz/safety`. It is a valid entry in `src/data/quizzes/index.ts` and renders through the dynamic quiz route, but no current menu or in-page action links to it. Start with `src/pages/Quiz.tsx`, `src/data/quizzes/index.ts`, `src/data/quizzes/safety.ts`, `src/features/quiz/`, `src/pages/SafetyMenu.tsx`, and `src/constants/topicRegistry.ts`; determine the intended learner entry point and create a focused follow-up issue for the reachability defect, then verify balanced coverage of all six Safety leaves, answer/safety accuracy, explanations, scoring, retry/completion, and persistence.
 
 ## Completeness validation
 
@@ -331,7 +336,10 @@ The count is reproducible from three independently useful definitions:
   `/safety`.
 - `src/data/quizzes/index.ts` declares 16 valid dynamic quiz topic IDs.
   Replacing the single route pattern `/quiz/:topicId` with those 16 actual
-  assessment destinations gives **36 + 16 = 52** learning leaves.
+  assessment implementations gives **36 + 16 = 52** catalogue leaves. Searches
+  of menu paths and in-page navigation show 15 quiz topics are learner-reachable;
+  the catalogue-valid `/quiz/safety` is the one orphan, so the navigable total is
+  **36 + 15 = 51**.
 - The root dashboard comes from `getRootTopics()` in
   `src/constants/topicRegistry.ts`. Its module menus are defined in the nine
   `src/pages/*Menu.tsx` files listed above. Searching those files for
@@ -349,7 +357,7 @@ sed -n '/export const topicIds = \\[/,/\\] as const;/p' src/data/quizzes/index.t
 ```
 
 The 52 inventory entries break down as 36 theory/practice leaves and 16
-quiz leaves. The 36 are: 2 Nautical Terms, 6 standalone Seamanship
+quiz catalogue leaves (15 navigable and 1 orphaned). The 36 are: 2 Nautical Terms, 6 standalone Seamanship
 foundations (including the Anchor Minigame), 2 Rules/Lights theory, 8
 Navigation/Tides, 4 Pilotage, 4 Meteorology, 4 Passage Planning, and 6
 Safety.
@@ -358,6 +366,10 @@ Safety.
 
 - Embedded tools/drills are explicitly named in their host issue context and
   are not duplicated as separate leaf issues.
+- `/quiz/safety` is retained because it is a working, catalogue-valid assessment
+  implementation, but it is not presented as navigable: the issue draft
+  explicitly requires investigation and a follow-up issue for its missing entry
+  point.
 - `/exam`, `/exam/history`, and `/review` are cross-topic study utilities,
   not leaves in the syllabus/module tree. They should receive product-level
   audits separately if issue #84 is expanded beyond module leaves.
