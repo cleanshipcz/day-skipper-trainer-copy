@@ -1,16 +1,94 @@
 import { useEffect, useMemo, useState } from "react";
-import { Button } from "@/components/ui/button"; import { Input } from "@/components/ui/input"; import { Label } from "@/components/ui/label"; import { Textarea } from "@/components/ui/textarea"; import { Card,CardContent,CardHeader,CardTitle } from "@/components/ui/card";
-import { calculateLegEtas, type PlanWaypoint } from "@/features/passagePlanning/calculations"; import { useProgress } from "@/hooks/useProgress";
-const STORAGE="day-skipper-passage-plan";
-const example:PlanWaypoint[]=[{id:"1",name:"Portsmouth entrance",latitude:"50°47.4'N",longitude:"001°06.5'W",bearing:225,distanceNm:7,notes:"Keep clear of main channel",tidalGate:"Depart HW Portsmouth -1h to +1h",weatherWindow:"Visibility > 3nm; wind ≤ F5"},{id:"2",name:"Bembridge Ledge",latitude:"50°41.0'N",longitude:"001°04.0'W",bearing:270,distanceNm:9,notes:"Check overfalls",tidalGate:"Round before west-going stream strengthens",weatherWindow:"Avoid wind against tide"}];
-const blank=():PlanWaypoint=>({id:crypto.randomUUID(),name:"",latitude:"",longitude:"",bearing:0,distanceNm:0,notes:"",tidalGate:"",weatherWindow:""});
-export function PassagePlanBuilder(){
- const [name,setName]=useState("Solent practice passage"),[departure,setDeparture]=useState("2026-07-30T09:00"),[speed,setSpeed]=useState(5),[points,setPoints]=useState<PlanWaypoint[]>(example); const {saveProgress}=useProgress();
- useEffect(()=>{try{const raw=localStorage.getItem(STORAGE);if(raw){const saved=JSON.parse(raw);setName(saved.name);setDeparture(saved.departure);setSpeed(saved.speed);setPoints(saved.points)}}catch{localStorage.removeItem(STORAGE)}},[]);
- const etas=useMemo(()=>calculateLegEtas(points,departure,speed),[points,departure,speed]),total=points.reduce((s,p)=>s+(Number.isFinite(p.distanceNm)?p.distanceNm:0),0);
- const update=(id:string,key:keyof PlanWaypoint,value:string)=>setPoints(ps=>ps.map(p=>p.id===id?{...p,[key]:key==="bearing"||key==="distanceNm"?Number(value):value}:p));
- const save=async()=>{const plan={name,departure,speed,points};localStorage.setItem(STORAGE,JSON.stringify(plan));await saveProgress("passage-planning-builder",true,100,15,{plan});};
- return <div className="space-y-5"><div className="grid sm:grid-cols-3 gap-3"><div><Label htmlFor="plan-name">Plan name</Label><Input id="plan-name" value={name} onChange={e=>setName(e.target.value)}/></div><div><Label htmlFor="departure">Departure</Label><Input id="departure" type="datetime-local" value={departure} onChange={e=>setDeparture(e.target.value)}/></div><div><Label htmlFor="speed">SOG (knots)</Label><Input id="speed" type="number" min="0.1" max="80" value={speed} onChange={e=>setSpeed(Number(e.target.value))}/></div></div>
- {points.map((p,i)=><Card key={p.id} className="break-inside-avoid"><CardHeader className="flex-row justify-between"><CardTitle>Leg {i+1}</CardTitle><Button aria-label={`Remove leg ${i+1}`} variant="destructive" size="sm" onClick={()=>setPoints(ps=>ps.filter(x=>x.id!==p.id))}>Remove</Button></CardHeader><CardContent className="grid sm:grid-cols-2 lg:grid-cols-3 gap-3">{(["name","latitude","longitude","bearing","distanceNm","tidalGate","weatherWindow"] as const).map(k=><div key={k}><Label htmlFor={`${p.id}-${k}`}>{({name:"Waypoint",latitude:"Latitude",longitude:"Longitude",bearing:"Bearing to next (°)",distanceNm:"Distance to next (nm)",tidalGate:"Tidal gate",weatherWindow:"Weather window"} as const)[k]}</Label><Input id={`${p.id}-${k}`} type={k==="bearing"||k==="distanceNm"?"number":"text"} value={p[k]} onChange={e=>update(p.id,k,e.target.value)}/></div>)}<div className="sm:col-span-2 lg:col-span-3"><Label htmlFor={`${p.id}-notes`}>Notes</Label><Textarea id={`${p.id}-notes`} value={p.notes} onChange={e=>update(p.id,"notes",e.target.value)}/></div><p>Leg ETA: <b>{etas[i]?new Date(etas[i]).toLocaleString():"—"}</b></p></CardContent></Card>)}
- <div className="print:hidden flex flex-wrap gap-2"><Button variant="outline" onClick={()=>setPoints(p=>[...p,blank()])}>Add waypoint</Button><Button onClick={save} disabled={!name||!points.length||speed<=0}>Save & complete plan</Button><Button variant="outline" onClick={()=>window.print()}>Print plan</Button></div><Card><CardContent className="pt-6"><b>Total: {total.toFixed(1)} nm · {speed>0?(total/speed).toFixed(1):"—"} hours</b></CardContent></Card></div>;
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { Textarea } from "@/components/ui/textarea";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { calculateLegEtas, type PlanWaypoint } from "@/features/passagePlanning/calculations";
+import {
+  PASSAGE_PLAN_CACHE_VERSION,
+  parsePassagePlanCache,
+  passagePlanCacheKey,
+  validatePassagePlan,
+  type PassagePlan,
+} from "@/features/passagePlanning/passagePlan";
+import { useProgress } from "@/hooks/useProgress";
+import { useAuth } from "@/contexts/AuthHooks";
+
+const ANONYMOUS_SESSION_KEY = "day-skipper-passage-plan-anonymous-session";
+const example: PlanWaypoint[] = [
+  { id:"1", name:"Portsmouth entrance", latitude:"50°47.4'N", longitude:"001°06.5'W", bearing:225, distanceNm:7, notes:"Keep clear of main channel", tidalGate:"Depart HW Portsmouth -1h to +1h", weatherWindow:"Visibility > 3nm; wind ≤ F5" },
+  { id:"2", name:"Bembridge Ledge", latitude:"50°41.0'N", longitude:"001°04.0'W", bearing:270, distanceNm:9, notes:"Check overfalls", tidalGate:"Round before west-going stream strengthens", weatherWindow:"Avoid wind against tide" },
+];
+const blank = (): PlanWaypoint => ({ id:crypto.randomUUID(), name:"", latitude:"", longitude:"", bearing:0, distanceNm:0, notes:"", tidalGate:"", weatherWindow:"" });
+const initialPlan = (): PassagePlan => ({ version:PASSAGE_PLAN_CACHE_VERSION, name:"Solent practice passage", departure:"2026-07-30T09:00", speed:5, fuelRate:2, reservePercent:20, points:example });
+const anonymousSessionId = () => {
+  let id = sessionStorage.getItem(ANONYMOUS_SESSION_KEY);
+  if (!id) {
+    id = crypto.randomUUID();
+    sessionStorage.setItem(ANONYMOUS_SESSION_KEY, id);
+  }
+  return id;
+};
+
+export function PassagePlanBuilder() {
+  const { user } = useAuth();
+  const { loadProgress, saveProgress } = useProgress();
+  const [plan, setPlan] = useState<PassagePlan>(initialPlan);
+  const [errors, setErrors] = useState<string[]>([]);
+  const cacheKey = useMemo(() => passagePlanCacheKey(user?.id ?? null, anonymousSessionId()), [user?.id]);
+
+  useEffect(() => {
+    let active = true;
+    const cached = parsePassagePlanCache(localStorage.getItem(cacheKey));
+    if (cached) {
+      setPlan(cached);
+    } else if (user) {
+      void loadProgress("passage-planning-builder").then(row => {
+        const history = row?.answers_history;
+        const persisted = history && typeof history === "object" && !Array.isArray(history) && "plan" in history
+          ? parsePassagePlanCache(JSON.stringify(history.plan))
+          : null;
+        if (active) setPlan(persisted ?? initialPlan());
+      });
+    } else {
+      setPlan(initialPlan());
+    }
+    setErrors([]);
+    return () => { active = false; };
+  }, [cacheKey, loadProgress, user]);
+
+  const etas = useMemo(() => calculateLegEtas(plan.points, plan.departure, plan.speed), [plan.points, plan.departure, plan.speed]);
+  const total = plan.points.reduce((sum, point) => sum + (Number.isFinite(point.distanceNm) ? point.distanceNm : 0), 0);
+  const updatePoint = (id: string, key: keyof PlanWaypoint, value: string) =>
+    setPlan(current => ({ ...current, points:current.points.map(point => point.id === id ? { ...point, [key]:key === "bearing" || key === "distanceNm" ? Number(value) : value } : point) }));
+  const setNumeric = (key: "speed" | "fuelRate" | "reservePercent", value: string) => setPlan(current => ({ ...current, [key]:value === "" ? undefined : Number(value) }));
+  const save = async () => {
+    const validationErrors = validatePassagePlan(plan);
+    setErrors(validationErrors);
+    if (validationErrors.length) return;
+    localStorage.setItem(cacheKey, JSON.stringify(plan));
+    await saveProgress("passage-planning-builder", true, 100, 15, { plan });
+  };
+
+  return <div className="space-y-5">
+    <div className="grid sm:grid-cols-2 lg:grid-cols-5 gap-3">
+      <div><Label htmlFor="plan-name">Plan name</Label><Input id="plan-name" value={plan.name} onChange={event => setPlan(current => ({ ...current, name:event.target.value }))}/></div>
+      <div><Label htmlFor="departure">Departure</Label><Input id="departure" type="datetime-local" value={plan.departure} onChange={event => setPlan(current => ({ ...current, departure:event.target.value }))}/></div>
+      <div><Label htmlFor="speed">SOG (knots)</Label><Input id="speed" type="number" min="0.1" max="80" value={plan.speed ?? ""} onChange={event => setNumeric("speed", event.target.value)}/></div>
+      <div><Label htmlFor="fuel-rate">Fuel rate (L/h, optional)</Label><Input id="fuel-rate" type="number" min="0.1" max="500" value={plan.fuelRate ?? ""} onChange={event => setNumeric("fuelRate", event.target.value)}/></div>
+      <div><Label htmlFor="fuel-reserve">Fuel reserve (%, optional)</Label><Input id="fuel-reserve" type="number" min="0" max="200" value={plan.reservePercent ?? ""} onChange={event => setNumeric("reservePercent", event.target.value)}/></div>
+    </div>
+    {errors.length > 0 && <div role="alert" className="rounded-md border border-destructive p-4 text-destructive"><p className="font-semibold">Fix the following before saving:</p><ul className="list-disc pl-5">{errors.map(error => <li key={error}>{error}</li>)}</ul></div>}
+    {plan.points.map((point, index) => <Card key={point.id} className="break-inside-avoid">
+      <CardHeader className="flex-row justify-between"><CardTitle>Leg {index + 1}</CardTitle><Button aria-label={`Remove leg ${index + 1}`} variant="destructive" size="sm" onClick={() => setPlan(current => ({ ...current, points:current.points.filter(candidate => candidate.id !== point.id) }))}>Remove</Button></CardHeader>
+      <CardContent className="grid sm:grid-cols-2 lg:grid-cols-3 gap-3">
+        {(["name","latitude","longitude","bearing","distanceNm","tidalGate","weatherWindow"] as const).map(key => <div key={key}><Label htmlFor={`${point.id}-${key}`}>{({ name:"Waypoint", latitude:"Latitude", longitude:"Longitude", bearing:"Bearing to next (°)", distanceNm:"Distance to next (nm)", tidalGate:"Tidal gate", weatherWindow:"Weather window" } as const)[key]}</Label><Input id={`${point.id}-${key}`} type={key === "bearing" || key === "distanceNm" ? "number" : "text"} value={point[key]} onChange={event => updatePoint(point.id, key, event.target.value)}/></div>)}
+        <div className="sm:col-span-2 lg:col-span-3"><Label htmlFor={`${point.id}-notes`}>Notes</Label><Textarea id={`${point.id}-notes`} value={point.notes} onChange={event => updatePoint(point.id, "notes", event.target.value)}/></div>
+        <p>Leg ETA: <b>{etas[index] ? new Date(etas[index]).toLocaleString() : "—"}</b></p>
+      </CardContent>
+    </Card>)}
+    <div className="print:hidden flex flex-wrap gap-2"><Button variant="outline" onClick={() => setPlan(current => ({ ...current, points:[...current.points, blank()] }))}>Add waypoint</Button><Button onClick={save}>Save & complete plan</Button><Button variant="outline" onClick={() => window.print()}>Print plan</Button></div>
+    <Card><CardContent className="pt-6"><b>Total: {total.toFixed(1)} nm · {plan.speed > 0 ? (total / plan.speed).toFixed(1) : "—"} hours</b>{plan.fuelRate !== undefined && plan.speed > 0 && <span> · Fuel with {plan.reservePercent ?? 0}% reserve: {(total / plan.speed * plan.fuelRate * (1 + (plan.reservePercent ?? 0) / 100)).toFixed(1)} L</span>}</CardContent></Card>
+  </div>;
 }
