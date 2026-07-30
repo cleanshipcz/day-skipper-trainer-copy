@@ -17,23 +17,25 @@ describe("atomic progress migration", () => {
     expect(sql).toContain("authentication required");
   });
 
-  it("serializes first completion and updates progress without trusting it for rewards", () => {
+  it("serializes first completion and awards from a unique append-only ledger", () => {
     expect(sql).toContain("pg_advisory_xact_lock");
     expect(sql).toContain("insert into public.user_progress");
     expect(sql).toContain("v_completion_awarded");
     expect(sql).toContain("insert into public.progress_awards");
-    expect(sql).toContain("on conflict (user_id, topic_id) do nothing");
-    expect(sql).toContain("primary key (user_id, topic_id)");
-    expect(sql).not.toContain("update public.profiles");
+    expect(sql).toContain("on conflict (user_id, topic_id, reward_kind) do nothing");
+    expect(sql).toContain("primary key (user_id, topic_id, reward_kind)");
+    expect(sql).toContain("update public.profiles");
   });
 
-  it("never converts caller-controlled completion, score, or points into profile points", () => {
-    expect(sql).toContain("self-reported learning progress");
-    expect(sql).toContain("must never turn those claims");
+  it("uses fixed server-owned rewards and rejects arbitrary topics and point values", () => {
+    expect(sql).toContain("rewards are server-owned");
+    expect(sql).toContain("when 'weather-systems' then 10");
+    expect(sql).toContain("when 'weather-beaufort' then 10");
+    expect(sql).toContain("when 'weather-forecasts' then 10");
+    expect(sql).toContain("when 'weather-fog' then 10");
     expect(sql).toContain("unknown progress topic");
-    expect(sql).toContain("return query select");
-    expect(sql).toContain("false,");
-    expect(sql).not.toContain("coalesce(points, 0) +");
+    expect(sql).toContain("invalid point value");
+    expect(sql).not.toContain("set points = coalesce(points, 0) + coalesce(p_points");
   });
 
   it("keeps award history outside resettable progress with no delete grant or policy", () => {
@@ -41,16 +43,26 @@ describe("atomic progress migration", () => {
     expect(sql).toContain("grant select on public.progress_awards");
     expect(sql).not.toContain("for delete");
     expect(sql).not.toContain("delete from public.progress_awards");
+    expect(sql).toContain("on conflict (user_id, topic_id, reward_kind) do nothing");
   });
 
   it("backfills immutable markers for completed rows before defining the RPC", () => {
-    const backfill = sql.indexOf("select up.user_id, up.topic_id, 0");
+    const backfill = sql.indexOf("select up.user_id, up.topic_id, 'completion', 0");
     const functionDefinition = sql.indexOf("create or replace function public.save_topic_progress");
     expect(backfill).toBeGreaterThan(0);
     expect(backfill).toBeLessThan(functionDefinition);
     expect(sql).toContain("from public.user_progress up");
     expect(sql).toContain("where up.completed is true");
-    expect(sql).toContain("on conflict (user_id, topic_id) do nothing");
+    expect(sql).toContain("on conflict (user_id, topic_id, reward_kind) do nothing");
+  });
+
+  it("validates score and history before accepting meteorology completion", () => {
+    expect(sql).toContain("score must be between 0 and 100");
+    expect(sql).toContain("jsonb_typeof(p_answers_history) <> 'object'");
+    expect(sql).toContain("pg_column_size(p_answers_history) > 65536");
+    expect(sql).toContain("p_topic_id like 'weather-%'");
+    expect(sql).toContain("p_answers_history ->> 'completionstate' <> 'completed'");
+    expect(sql).toContain("completed progress requires verified completion history");
   });
 
   it("restricts execution to authenticated users", () => {

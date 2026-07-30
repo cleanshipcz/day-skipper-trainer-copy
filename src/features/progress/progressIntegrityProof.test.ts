@@ -60,13 +60,15 @@ describe("progress integrity proof path", () => {
     });
   });
 
-  it("migration atomically saves progress but cannot increment points from client claims", () => {
+  it("migration atomically awards only fixed server-owned points", () => {
     const migrationPath = resolve(process.cwd(), "supabase/migrations/20260729235500_atomic_save_topic_progress.sql");
     const migration = readFileSync(migrationPath, "utf8");
 
     expect(migration).toContain("pg_advisory_xact_lock");
-    expect(migration).not.toContain("update public.profiles");
-    expect(migration).toContain("must never turn those claims");
+    expect(migration).toContain("update public.profiles");
+    expect(migration).toContain("Rewards are server-owned");
+    expect(migration).toContain("on conflict (user_id, topic_id, reward_kind) do nothing");
+    expect(migration).toContain("Invalid point value");
     expect(migration).toContain("save_topic_progress");
   });
 });
