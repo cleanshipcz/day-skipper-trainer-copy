@@ -14,7 +14,6 @@ import { readStored, removeStored, writeStored } from "@/features/persistence/br
 
 const STORAGE_KEY = "day-skipper-exam-session-v1";
 const readSession = () => readStored(sessionStorage, STORAGE_KEY, {
-  version: 1,
   decode: (value) => parseExamSession(JSON.stringify(value)),
 });
 

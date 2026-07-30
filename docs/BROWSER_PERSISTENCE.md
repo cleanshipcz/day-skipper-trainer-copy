@@ -4,18 +4,19 @@
 application-owned `localStorage` and `sessionStorage` records. It catches
 unavailable/private-mode storage, distinguishes quota failures on writes,
 validates reads through typed codecs, and fails closed for corrupt or obsolete
-records. Codec `version` values document the current record contract; legacy
-unquoted string records remain readable during migration.
+records. Payload `version` fields (or an explicitly versioned key where the
+legacy contract already uses one) define the current record contract; legacy
+records remain readable during migration and unknown versions fail closed.
 
 ## Key ownership
 
 | Namespace/key | Storage | Owner boundary | Version |
 | --- | --- | --- | --- |
-| `quiz-attempt:<user>:<topic>` | local | authenticated user | workflow v1 |
-| `engagement-outbox:<user>` | local | authenticated user | outbox codec v1; legacy arrays accepted |
+| `quiz-attempt:<user>:<topic>` | local | authenticated user | payload `version: 1`; legacy unversioned payloads accepted |
+| `engagement-outbox:<user>` | local | authenticated user | `{ version: 1, items }`; legacy arrays accepted |
 | `day-skipper-passage-plan:<user>` | local | authenticated user | payload `version: 1` |
 | `day-skipper-passage-plan:anonymous:<session>` | local | anonymous browser session | payload `version: 1` |
-| `day-skipper-passage-plan-anonymous-session` | session | anonymous browser session | identifier v1 |
+| `day-skipper-passage-plan-anonymous-session` | session | anonymous browser session | UUID identifier v1; legacy unquoted UUID accepted |
 | `day-skipper-exam-session-v1` | session | embedded `ownerId` | key/payload v1 |
 
 `clearOwnerPersistence` deletes only the signing-out owner's quiz, engagement,

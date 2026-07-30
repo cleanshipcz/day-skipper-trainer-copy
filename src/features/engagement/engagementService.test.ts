@@ -26,7 +26,7 @@ describe("engagement evidence outbox", () => {
     const offline = { rpc: vi.fn().mockResolvedValue({ data: null, error: new Error("offline") }) };
     await expect(syncEngagementEvent(offline, "owner-a", { sourceType: "review", sourceId: "receipt-1" })).rejects.toThrow();
     await expect(syncEngagementEvent(offline, "owner-a", { sourceType: "review", sourceId: "receipt-1" })).rejects.toThrow();
-    expect(JSON.parse(localStorage.getItem("engagement-outbox:owner-a") ?? "[]")).toHaveLength(1);
+    expect(JSON.parse(localStorage.getItem("engagement-outbox:owner-a") ?? "{}").items).toHaveLength(1);
   });
 
   test("recovers malformed storage, ignores unknown badges, and rejects empty outcomes", async () => {

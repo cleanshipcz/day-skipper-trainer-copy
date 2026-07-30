@@ -1,5 +1,4 @@
 export interface StorageCodec<T> {
-  readonly version: number;
   decode(value: unknown): T | null;
 }
 

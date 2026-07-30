@@ -25,9 +25,14 @@ export interface EngagementResult {
 
 const outboxKey = (owner: string) => ownerStorageKey("engagement-outbox", owner);
 const outboxCodec: StorageCodec<readonly EngagementEvidence[]> = {
-  version: 1,
   decode(value) {
-    return Array.isArray(value) ? value.filter((item): item is EngagementEvidence =>
+    const items = Array.isArray(value)
+      ? value
+      : value && typeof value === "object" && (value as { version?: unknown }).version === 1
+        && Array.isArray((value as { items?: unknown }).items)
+        ? (value as { items: unknown[] }).items
+        : null;
+    return items ? items.filter((item): item is EngagementEvidence =>
       Boolean(item && typeof item === "object"
         && "sourceType" in item && ["progress", "quiz", "review"].includes(String(item.sourceType))
         && "sourceId" in item && typeof item.sourceId === "string")) : null;
@@ -38,7 +43,7 @@ const readOutbox = (owner: string): readonly EngagementEvidence[] => {
 };
 const writeOutbox = (owner: string, items: readonly EngagementEvidence[]) => {
   if (items.length === 0) removeStored(localStorage, outboxKey(owner));
-  else writeStored(localStorage, outboxKey(owner), items.slice(-100));
+  else writeStored(localStorage, outboxKey(owner), { version: 1, items: items.slice(-100) });
 };
 const evidenceKey = ({ sourceType, sourceId }: EngagementEvidence) => `${sourceType}:${sourceId}`;
 const ownerLocks = new Map<string, Promise<void>>();

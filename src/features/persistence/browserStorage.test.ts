@@ -5,7 +5,6 @@ import {
 } from "./browserStorage";
 
 const codec: StorageCodec<{ version: 1; value: string }> = {
-  version: 1,
   decode(value) {
     const candidate = value as { version?: unknown; value?: unknown } | null;
     return candidate?.version === 1 && typeof candidate.value === "string"
@@ -24,7 +23,6 @@ describe("browser persistence boundary", () => {
     expect(readStored(localStorage, "record", codec)).toBeNull();
     localStorage.setItem("legacy-string", "legacy-id");
     expect(readStored(localStorage, "legacy-string", {
-      version: 1,
       decode: (value) => typeof value === "string" ? value : null,
     })).toBe("legacy-id");
   });

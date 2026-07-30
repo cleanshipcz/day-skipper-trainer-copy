@@ -30,6 +30,7 @@ import { ownerStorageKey, readStored, removeStored, writeStored } from "@/featur
 
 const quizAttemptKey = (owner: string, topic: string) => ownerStorageKey("quiz-attempt", owner, topic);
 interface QuizWorkflow {
+  readonly version?: 1;
   readonly attemptId: string;
   readonly scoreSaved: boolean;
   readonly startedAt?: string;
@@ -47,8 +48,10 @@ const readQuizWorkflow = (owner: string | undefined, topic: string): QuizWorkflo
   if (!owner) return null;
   const key = quizAttemptKey(owner, topic);
   const parsed = readStored(localStorage, key, {
-    version: 1,
-    decode: (value) => value && typeof value === "object" ? value as Partial<QuizWorkflow> : null,
+    decode: (value) => {
+      const candidate = value && typeof value === "object" ? value as Partial<QuizWorkflow> : null;
+      return candidate && (candidate.version === undefined || candidate.version === 1) ? candidate : null;
+    },
   });
   try {
     if (!parsed || typeof parsed.attemptId !== "string") return null;
@@ -202,7 +205,7 @@ const Quiz = () => {
       const { data, error } = await supabase.rpc("start_quiz_attempt", { p_topic_id: topicKey });
       if (error || !data || seedOwnerRef.current !== owner || seedGenerationRef.current !== generation) return;
       const created = { attemptId: data.attempt_id, scoreSaved: false, startedAt: data.started_at };
-      writeStored(localStorage, quizAttemptKey(owner, topicKey), created);
+      writeStored(localStorage, quizAttemptKey(owner, topicKey), { ...created, version: 1 });
       setWorkflow(created);
     })();
   }, [user?.id, topicKey, attemptCycle]);
@@ -329,7 +332,7 @@ const Quiz = () => {
         if (scoreError) throw scoreError;
         if (seedOwnerRef.current !== owner || seedGenerationRef.current !== generation) return;
         const scoreSavedWorkflow = { ...activeWorkflow, scoreSaved: true, completion };
-        writeStored(localStorage, quizAttemptKey(owner, topicKey), scoreSavedWorkflow);
+        writeStored(localStorage, quizAttemptKey(owner, topicKey), { ...scoreSavedWorkflow, version: 1 });
         setWorkflow(scoreSavedWorkflow);
       }
 

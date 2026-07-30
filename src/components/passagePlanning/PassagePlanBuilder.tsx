@@ -26,7 +26,6 @@ const blank = (): PlanWaypoint => ({ id:crypto.randomUUID(), name:"", latitude:"
 const initialPlan = (): PassagePlan => ({ version:PASSAGE_PLAN_CACHE_VERSION, name:"Solent practice passage", departure:"2026-07-30T09:00", speed:5, fuelRate:2, reservePercent:20, points:example });
 const anonymousSessionId = () => {
   let id = readStored(sessionStorage, ANONYMOUS_SESSION_KEY, {
-    version: 1,
     decode: (value) => typeof value === "string" && /^[0-9a-f-]{36}$/i.test(value) ? value : null,
   });
   if (!id) {
@@ -59,7 +58,6 @@ export function PassagePlanBuilder() {
     setPlan(initialPlan());
     setErrors([]);
     const cached = readStored(localStorage, cacheKey, {
-      version: PASSAGE_PLAN_CACHE_VERSION,
       decode: (value) => parsePassagePlanCache(JSON.stringify(value)),
     });
     if (cached) {
