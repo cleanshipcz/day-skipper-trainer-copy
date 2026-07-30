@@ -36,9 +36,9 @@ The official RYA Day Skipper Shorebased syllabus (SBT DS 03) contains **13 subje
 | 10 | **Course to Steer** | ✅ Complete | Vector triangle theory, vector solution tool (solver + drill modes) | — |
 | 11 | **Pilotage** | ✅ Complete | IALA Region A buoy identifier, draggable transit exercises, clearing-bearing chart tool, pilotage plan builder, 20-question quiz | — |
 | 12 | **Meteorology** | ✅ Complete | `/weather` | Weather systems, pressure, fronts, Beaufort scale, sea state, fog, visibility and forecast sources |
-| 13 | **Passage Planning** | ❌ Missing | — | PREPARE mnemonic, waypoint planning, fuel/water calcs, tidal gate planning, checklists, contingencies |
+| 13 | **Passage Planning** | ✅ Complete | PREPARE theory, passage calculator, persisted/printable waypoint plan builder, departure checklist and 20-question quiz | — |
 
-**Coverage: 10/13 complete, 1 partial, 2 entirely missing.**
+**Coverage: 13/13 syllabus areas implemented.**
 
 ---
 
@@ -95,7 +95,7 @@ The official RYA Day Skipper Shorebased syllabus (SBT DS 03) contains **13 subje
 
 ---
 
-#### A3. Passage Planning Module
+#### A3. Passage Planning Module ✅ Implemented
 **Description:** End-to-end passage planning training covering the PREPARE mnemonic, waypoint selection, distance/time/fuel calculations, tidal gate identification, contingency planning, and pre-departure checklists.
 
 **Rationale:** Passage planning is the capstone Day Skipper skill that integrates navigation, tides, weather, and pilotage. It is a mandatory exam topic and the culminating practical exercise.

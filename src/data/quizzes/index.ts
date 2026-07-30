@@ -14,6 +14,7 @@ import safetyFlaresQuestions from "./safetyFlares";
 import safetyQuestions from "./safety";
 import pilotageQuestions from "./pilotage";
 import weatherQuestions from "./weather";
+import passagePlanningQuestions from "./passagePlanning";
 
 /** Registry mapping each quiz topic ID to its question array. */
 export const quizRegistry: Record<string, readonly Question[]> = {
@@ -32,6 +33,7 @@ export const quizRegistry: Record<string, readonly Question[]> = {
   safety: safetyQuestions,
   pilotage: pilotageQuestions,
   weather: weatherQuestions,
+  "passage-planning": passagePlanningQuestions,
 };
 
 /** Metadata displayed in the quiz header for each topic. */
@@ -95,6 +97,10 @@ export const topicMeta: Record<string, TopicMeta> = {
   weather: {
     title: "Meteorology Quiz",
     subtitle: "Weather systems, Beaufort scale, forecasts, fog and visibility",
+  },
+  "passage-planning": {
+    title: "Passage Planning Quiz",
+    subtitle: "PREPARE, calculations, tidal gates, contingencies and departure checks",
   },
 };
 

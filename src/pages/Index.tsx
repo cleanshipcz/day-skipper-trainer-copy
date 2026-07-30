@@ -19,6 +19,7 @@ import {
   LifeBuoy,
   Navigation,
   CloudSun,
+  Route,
 } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { useAuth } from "@/contexts/AuthHooks";
@@ -103,6 +104,12 @@ const topicDisplayMeta: Record<string, {
     icon: CloudSun,
     color: "text-sky-500",
     menuColor: "from-sky-500 to-indigo-600",
+  },
+  "passage-planning": {
+    description: "PREPARE, passage calculations, route plans and departure checks",
+    icon: Route,
+    color: "text-indigo-500",
+    menuColor: "from-indigo-500 to-purple-600",
   },
 };
 
