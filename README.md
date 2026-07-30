@@ -1,146 +1,107 @@
-# Welcome to your Lovable project
+# Day Skipper Trainer
 
-## Project info
+A web application for RYA Day Skipper shorebased training, built with React,
+TypeScript, Vite, Tailwind CSS, and Supabase.
 
-**URL**: https://lovable.dev/projects/6b356b30-86cb-45a7-8348-6c5306ba8095
+## Requirements
 
-## How can I edit this code?
+- Node.js 22 (the version used by CI)
+- npm, using the committed `package-lock.json`
+- Docker and the Supabase CLI only when running the local database or live
+  database tests
 
-There are several ways of editing your application.
-
-**Use Lovable**
-
-Simply visit the [Lovable Project](https://lovable.dev/projects/6b356b30-86cb-45a7-8348-6c5306ba8095) and start prompting.
-
-Changes made via Lovable will be committed automatically to this repo.
-
-**Use your preferred IDE**
-
-If you want to work locally using your own IDE, you can clone this repo and push changes. Pushed changes will also be reflected in Lovable.
-
-The only requirement is having Node.js & npm installed - [install with nvm](https://github.com/nvm-sh/nvm#installing-and-updating)
-
-Follow these steps:
+## Clean-checkout setup
 
 ```sh
-# Step 1: Clone the repository using the project's Git URL.
-git clone <YOUR_GIT_URL>
-
-# Step 2: Navigate to the project directory.
-cd <YOUR_PROJECT_NAME>
-
-# Step 3: Install the necessary dependencies.
-npm i
-
-# Step 4: Start the development server with auto-reloading and an instant preview.
+git clone https://github.com/cleanshipcz/day-skipper-trainer-copy.git
+cd day-skipper-trainer-copy
+npm ci
 npm run dev
 ```
 
-## Local Development with Supabase
+`npm ci` is the supported reproducible install workflow. Use `npm install` only
+when intentionally changing dependencies and committing the resulting lockfile
+update.
 
-To run the project locally with a local Supabase instance:
-
-### Prerequisites
-- Docker Desktop installed and running
-- Supabase CLI installed: `npm install -g supabase`
-
-### Setup Steps
+The application expects these public client configuration variables:
 
 ```sh
-# Step 1: Start local Supabase instance
-supabase start
-
-# This will spin up a local Supabase stack in Docker including:
-# - PostgreSQL database
-# - Auth server
-# - Storage server
-# - Realtime server
-
-# Step 2: Copy the local connection details
-# After starting, you'll see output with local credentials:
-# - API URL (typically http://localhost:54321)
-# - Anon key
-# - Service role key
-
-# Step 3: Update your .env file with local credentials
-# Replace the production values with local ones:
-VITE_SUPABASE_URL=http://localhost:54321
-VITE_SUPABASE_PUBLISHABLE_KEY=<local-anon-key-from-supabase-start>
-
-# Step 4: Apply migrations to local database
-supabase db reset
-
-# Step 5: Start the development server
-npm run dev
+VITE_SUPABASE_URL=http://127.0.0.1:54321
+VITE_SUPABASE_PUBLISHABLE_KEY=<local-anon-key>
 ```
 
-### Useful Commands
+Put local values in an ignored `.env.local` file. Never commit credentials or a
+Supabase service-role key.
 
-```sh
-# Stop local Supabase
-supabase stop
+## Quality gates
 
-# View local database in Studio
-supabase studio
+The following block is kept in sync with the `run` commands in the CI quality
+job by `scripts/qualityGuards.test.ts`.
 
-# Generate TypeScript types from local schema
-supabase gen types typescript --local > src/integrations/supabase/types.ts
-
-# Reset local database (applies all migrations)
-supabase db reset
-
-# View logs
-supabase logs
-```
-
-### Quality Gates
-
+<!-- ci-quality-commands:start -->
 ```sh
 npm run lint
 npm run typecheck
-npm run test -- --run
+npm run test -- --run --maxWorkers=1
+npm run guard:coverage-scope && npm run test:coverage -- --maxWorkers=1
 npm run build
+npm run test:build-budget
+npm run guard:migrations
 npm run guard:no-internal-artifacts
 ```
+<!-- ci-quality-commands:end -->
 
-CI runs these checks on pull requests and pushes.
+CI supplies `MIGRATION_BASE_SHA` for the migration guard. When validating a
+chained branch locally, set it to the intended base branch commit before
+running the block:
 
-### Switching Back to Production
+```sh
+export MIGRATION_BASE_SHA="$(git rev-parse origin/<base-branch>)"
+```
 
-To switch back to production Supabase, simply update your `.env` file with the production credentials (found at the top of this README).
+See [Quality baseline](docs/QUALITY_BASELINE.md#automated-gates) for coverage
+scope and [migration-base guidance](docs/QUALITY_BASELINE.md#chained-branch-migration-base)
+for the guard's fail-closed behavior.
 
-**Edit a file directly in GitHub**
+The live Supabase concurrency suite is intentionally separate:
 
-- Navigate to the desired file(s).
-- Click the "Edit" button (pencil icon) at the top right of the file view.
-- Make your changes and commit the changes.
+```sh
+npm run test:live-db
+```
 
-**Use GitHub Codespaces**
+It requires an isolated configured database and is not part of the default CI
+suite.
 
-- Navigate to the main page of your repository.
-- Click on the "Code" button (green button) near the top right.
-- Select the "Codespaces" tab.
-- Click on "New codespace" to launch a new Codespace environment.
-- Edit files directly within the Codespace and commit and push your changes once you're done.
+## Local Supabase
 
-## What technologies are used for this project?
+With Docker running and the Supabase CLI installed:
 
-This project is built with:
+```sh
+supabase start
+supabase db reset
+npm run dev
+```
 
-- Vite
-- TypeScript
-- React
-- shadcn-ui
-- Tailwind CSS
+Useful commands:
 
-## How can I deploy this project?
+```sh
+supabase status
+supabase gen types typescript --local > src/integrations/supabase/types.ts
+supabase stop
+```
 
-Simply open [Lovable](https://lovable.dev/projects/6b356b30-86cb-45a7-8348-6c5306ba8095) and click on Share -> Publish.
+Migrations are forward-only. Add a new timestamped migration and update the
+manifest; never edit an applied migration. The full conventions are recorded
+in [the historical feature execution plan](docs/FEATURE_TASKS.md#supabase-migration-conventions)
+and enforced by `npm run guard:migrations`.
 
-## Can I connect a custom domain to my Lovable project?
+## Project documentation
 
-Yes, you can!
+[Documentation index](docs/README.md) identifies current normative guidance
+and historical planning/audit records. Start there before treating a planning
+document as current requirements.
 
-To connect a domain, navigate to Project > Settings > Domains and click Connect Domain.
+## Production
 
-Read more here: [Setting up a custom domain](https://docs.lovable.dev/features/custom-domain#custom-domain)
+Production deployment and environment configuration are managed outside this
+repository. Do not copy local keys into production or commit production values.

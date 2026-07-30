@@ -1,6 +1,6 @@
 import { createHash } from "node:crypto";
 import { execFileSync, spawnSync } from "node:child_process";
-import { mkdtempSync, mkdirSync, writeFileSync } from "node:fs";
+import { mkdtempSync, mkdirSync, readFileSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { resolve } from "node:path";
 import { describe, expect, it } from "vitest";
@@ -10,6 +10,24 @@ const migrationGuard = resolve(process.cwd(), "scripts/check-migrations.mjs");
 const hash = (value: string) => createHash("sha256").update(value).digest("hex");
 
 describe("quality guard regressions", () => {
+  it("keeps the README quality command list aligned with CI", () => {
+    const workflow = readFileSync(resolve(process.cwd(), ".github/workflows/ci.yml"), "utf8");
+    const readme = readFileSync(resolve(process.cwd(), "README.md"), "utf8");
+    const documentedBlock = readme.match(
+      /<!-- ci-quality-commands:start -->\s*```sh\n([\s\S]*?)\n```\s*<!-- ci-quality-commands:end -->/,
+    );
+
+    expect(documentedBlock, "README quality command markers are missing").not.toBeNull();
+
+    const ciCommands = [...workflow.matchAll(/^\s+run: (npm run .+)$/gm)].map((match) => match[1]);
+    const documentedCommands = documentedBlock![1]
+      .split("\n")
+      .map((command) => command.trim())
+      .filter(Boolean);
+
+    expect(documentedCommands).toEqual(ciCommands);
+  });
+
   it("discovers nested production modules while excluding nested tests", async () => {
     const root = mkdtempSync(resolve(tmpdir(), "coverage-scope-"));
     mkdirSync(resolve(root, "protected/nested"), { recursive: true });

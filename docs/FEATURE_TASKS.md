@@ -3,6 +3,11 @@
 > Generated 2026-03-26 | Derived from `docs/FEATURES.md` coverage map & prioritised backlog
 >
 > **Source of truth:** `docs/FEATURES.md` (RYA Day Skipper syllabus SBT DS 03)
+>
+> **Historical status:** This is a dated execution-plan snapshot, not current
+> developer setup guidance or the active work backlog. Use the
+> [documentation index](README.md) and [quality baseline](QUALITY_BASELINE.md)
+> for current engineering instructions; use GitHub issues for active work.
 
 ---
 
@@ -57,43 +62,14 @@ Every task is **Done** when ALL of the following are true:
 
 The 90% coverage requirement in DoD item #2 is enforced using **Vitest coverage with `@vitest/coverage-v8`**.
 
-**Current state:** Coverage is not yet configured. The following setup is required as a Phase 0 prerequisite:
-
-1. Install the provider:
-   ```bash
-   npm install -D @vitest/coverage-v8
-   ```
-
-2. Add coverage configuration to `vite.config.ts` under the `test` key:
-   ```ts
-   test: {
-     environment: "happy-dom",
-     globals: true,
-     setupFiles: [],
-     coverage: {
-       provider: "v8",
-       reporter: ["text", "lcov"],
-       include: ["src/**/*.{ts,tsx}"],
-       exclude: [
-         "src/**/*.test.{ts,tsx}",
-         "src/**/types.ts",
-         "src/integrations/**",
-         "src/components/ui/**"  // shadcn-ui generated code
-       ],
-       thresholds: {
-         // Enforce on new code via per-file thresholds in CI
-         // Global threshold added once baseline is measured
-       }
-     }
-   }
-   ```
-
-3. Add a script to `package.json`:
-   ```json
-   "test:coverage": "vitest run --coverage"
-   ```
-
-**Verification:** Run `npm run test:coverage` and confirm new files show >= 90% line coverage. In CI, enforce this via the `--coverage.thresholds.lines 90` flag on changed files.
+**Superseded setup note (updated 2026-07-30):** The original March 2026 plan
+treated coverage configuration as a Phase 0 prerequisite. It has since been
+implemented. `vite.config.ts` now configures V8 coverage with per-file 90%
+thresholds, `scripts/coverage-scope.json` defines the protected architecture
+seams, and CI runs both the scope guard and coverage suite. Follow
+[`QUALITY_BASELINE.md`](QUALITY_BASELINE.md#automated-gates) for the current
+commands and rules rather than reconstructing configuration from this
+historical plan.
 
 ---
 
