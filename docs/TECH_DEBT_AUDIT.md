@@ -35,14 +35,13 @@ each observation with a concrete failure mode and bounded outcome.
 | Order | Topic | Priority | Depends on | Why this order |
 | --- | --- | --- | --- | --- |
 | 1 | Documentation source of truth | P1 | None | Prevents new work from following obsolete instructions. |
-| 2A | Classify and run hermetic integration tests | P1 | None | Stops filename conventions from hiding runnable tests. |
-| 2B | Protect stateful feature seams with scoped coverage | P1 | None | Extends an existing guard in a bounded increment. |
-| 2C | Add representative route-family smoke tests | P1 | None | Covers currently unrendered route families without blanket page coverage. |
-| 3 | Browser persistence boundary | P1 | #2B recommended | Centralizes validation and ownership before more offline flows are added. |
-| 4 | App-shell recovery and PWA update UX | P1 | #2C recommended | Prevents recoverable loading/update failures becoming blank or stale sessions. |
-| 5 | Quiz bank lazy loading | P2 | #2B | Explicitly deferred by the quality baseline and affects multiple consumers. |
-| 6 | Decompose AnchorMinigame behavior | P2 | #2B | Targets a concrete, recently changed interactive module. |
-| 7 | Supabase schema/type drift guard | P2 | None | Makes database changes reproducible; can proceed independently. |
+| 2 | Protect stateful feature seams with scoped coverage | P1 | None | Extends an existing guard in a bounded increment. |
+| 3 | Add representative route-family smoke tests | P1 | None | Covers currently unrendered route families without blanket page coverage. |
+| 4 | Browser persistence boundary | P1 | #2 recommended | Centralizes validation and ownership before more offline flows are added. |
+| 5 | App-shell recovery and PWA update UX | P1 | #3 recommended | Prevents recoverable loading/update failures becoming blank or stale sessions. |
+| 6 | Quiz bank lazy loading | P2 | #2 | Explicitly deferred by the quality baseline and affects multiple consumers. |
+| 7 | Decompose AnchorMinigame behavior | P2 | #2 | Targets a concrete, recently changed interactive module. |
+| 8 | Supabase schema/type drift guard | P2 | None | Makes database changes reproducible; can proceed independently. |
 
 Issue numbers should replace the dependency labels after proposals are created.
 
@@ -97,41 +96,7 @@ behavior.
 
 ---
 
-### 2A. Run hermetic integration tests in the default CI suite
-
-**Suggested title:** `Separate hermetic integration tests from live-service tests in CI`
-
-**Problem**
-
-Vitest excludes every `*.integration.test.*` file from the default run. That
-pattern excludes both the live Supabase tests and hermetic tests such as
-passage-planning and feature-registry integration tests. Test names therefore
-control CI inclusion more broadly than their actual infrastructure needs.
-
-**Scope**
-
-Inventory the currently excluded integration tests, give live-service tests an
-explicit naming convention or project, and run all hermetic tests by default.
-
-**Acceptance criteria**
-
-- Every currently excluded integration test is classified as hermetic or
-  live-service in a checked-in test configuration or short test README.
-- Hermetic integration tests run in the default CI test job; only tests that
-  require configured external services remain opt-in.
-- `examLiveDb` and `progressLiveDbConcurrency` remain opt-in and cannot run
-  accidentally without an isolated configured database.
-- Local and CI commands for each test class are documented.
-- The PR records default-suite runtime before and after; any material increase
-  is addressed without dropping tests.
-
-**Dependencies**
-
-None.
-
----
-
-### 2B. Extend scoped coverage to stateful feature seams
+### 2. Extend scoped coverage to stateful feature seams
 
 **Suggested title:** `Add exam, spaced-repetition, engagement, offline, and export seams to the coverage guard`
 
@@ -164,11 +129,11 @@ coverage would not measure the relevant risk.
 
 **Dependencies**
 
-Proposal 2A is helpful but not required.
+None.
 
 ---
 
-### 2C. Add representative route-family smoke tests
+### 3. Add representative route-family smoke tests
 
 **Suggested title:** `Add hermetic smoke coverage for currently unrendered route families`
 
@@ -203,11 +168,11 @@ all 58 pages or assert static lesson copy.
 
 **Dependencies**
 
-Proposal 2A if the new tests use the integration-test naming convention.
+None.
 
 ---
 
-### 3. Introduce a typed, user-scoped browser persistence boundary
+### 4. Introduce a typed, user-scoped browser persistence boundary
 
 **Suggested title:** `Centralize and validate browser persistence workflows`
 
@@ -252,11 +217,11 @@ changing durable key compatibility unexpectedly.
 
 **Dependencies**
 
-Risk-based tests from proposal 2 are recommended before the final migrations.
+Scoped coverage from proposal 2 is recommended before the final migrations.
 
 ---
 
-### 4. Add app-shell error recovery and explicit PWA update behavior
+### 5. Add app-shell error recovery and explicit PWA update behavior
 
 **Suggested title:** `Make lazy-route and service-worker failures recoverable`
 
@@ -290,12 +255,12 @@ approved.
 
 **Dependencies**
 
-Proposal 2C is recommended so the shell becomes part of the representative
+Proposal 3 is recommended so the shell becomes part of the representative
 route test surface.
 
 ---
 
-### 5. Load quiz banks on demand without breaking exam and review flows
+### 6. Load quiz banks on demand without breaking exam and review flows
 
 **Suggested title:** `Replace the eager quiz registry with a cached async question-bank loader`
 
@@ -331,12 +296,12 @@ topic metadata.
 
 **Dependencies**
 
-Proposal 2B should land first. Coordinate with proposal 4 for chunk-load error
+Proposal 2 should land first. Coordinate with proposal 5 for chunk-load error
 recovery.
 
 ---
 
-### 6. Decompose AnchorMinigame along tested behavior boundaries
+### 7. Decompose AnchorMinigame along tested behavior boundaries
 
 **Suggested title:** `Extract AnchorMinigame geometry, state transitions, and presentation seams`
 
@@ -380,12 +345,12 @@ timing, scoring, and progress contract.
 
 **Dependencies**
 
-Proposal 2B should land first or this issue must add `AnchorMinigame` and its
+Proposal 2 should land first or this issue must add `AnchorMinigame` and its
 extracted production modules to the coverage-scope guard.
 
 ---
 
-### 7. Detect Supabase migration and generated-type drift
+### 8. Detect Supabase migration and generated-type drift
 
 **Suggested title:** `Verify generated Supabase types against the migration schema`
 
