@@ -1,10 +1,9 @@
 create table if not exists public.progress_awards (
   user_id uuid not null references auth.users(id) on delete cascade,
   topic_id text not null,
-  reward_kind text not null default 'completion',
   points integer not null check (points > 0),
   awarded_at timestamptz not null default now(),
-  primary key (user_id, topic_id, reward_kind)
+  primary key (user_id, topic_id)
 );
 
 alter table public.progress_awards enable row level security;
@@ -15,29 +14,17 @@ create policy "Users can view their own progress awards"
   to authenticated
   using ((select auth.uid()) = user_id);
 
--- Server-timestamped evidence is deliberately separate from resettable
--- progress and has no client grants. A completion cannot be submitted in the
--- same request that starts a theory visit.
-create table if not exists public.progress_completion_evidence (
-  user_id uuid not null references auth.users(id) on delete cascade,
-  topic_id text not null,
-  started_at timestamptz not null default clock_timestamp(),
-  primary key (user_id, topic_id)
-);
-alter table public.progress_completion_evidence enable row level security;
-revoke all on public.progress_completion_evidence from public, anon, authenticated;
-
 -- Mark every legacy completion before installing the new write contract. The
 -- marker intentionally records zero because historical profile point awards
 -- cannot be reconstructed safely. Its immutable identity prevents a reset
 -- from making that topic look newly rewardable in a future verified flow.
 alter table public.progress_awards drop constraint if exists progress_awards_points_check;
 alter table public.progress_awards add constraint progress_awards_points_check check (points >= 0);
-insert into public.progress_awards (user_id, topic_id, reward_kind, points)
-select up.user_id, up.topic_id, 'completion', 0
+insert into public.progress_awards (user_id, topic_id, points)
+select up.user_id, up.topic_id, 0
 from public.user_progress up
 where up.completed is true
-on conflict (user_id, topic_id, reward_kind) do nothing;
+on conflict (user_id, topic_id) do nothing;
 
 create or replace function public.save_topic_progress(
   p_topic_id text,
@@ -55,10 +42,6 @@ declare
   v_user_id uuid := auth.uid();
   v_was_completed boolean := false;
   v_completion_awarded boolean := false;
-  v_reward_points integer;
-  v_points_awarded boolean := false;
-  v_profile_rows integer := 0;
-  v_started_at timestamptz;
 begin
   if v_user_id is null then
     raise exception 'Authentication required' using errcode = '42501';
@@ -83,15 +66,6 @@ begin
   ]::text[])) then
     raise exception 'Unknown progress topic' using errcode = '22023';
   end if;
-
-  -- Only the new meteorology theory flow has server-observed completion
-  -- evidence. Legacy callers continue to persist progress but cannot mint
-  -- points through this RPC.
-  v_reward_points := case p_topic_id
-    when 'weather-systems' then 10 when 'weather-beaufort' then 10
-    when 'weather-forecasts' then 10 when 'weather-fog' then 10
-    else null
-  end;
   if p_score is null or p_score < 0 or p_score > 100 then
     raise exception 'Score must be between 0 and 100' using errcode = '22023';
   end if;
@@ -100,36 +74,9 @@ begin
           or pg_column_size(p_answers_history) > 65536) then
     raise exception 'Invalid answers history' using errcode = '22023';
   end if;
-  if p_topic_id like 'weather-%'
-     and coalesce(p_completed, false)
-     and (p_score <> 100
-          or p_answers_history is null
-          or p_answers_history ->> 'completionState' <> 'completed') then
-    raise exception 'Completed progress requires verified completion history'
-      using errcode = '22023';
-  end if;
-  if v_reward_points is not null
-     and coalesce(p_points, 0) not in (0, v_reward_points) then
-    raise exception 'Invalid point value' using errcode = '22023';
-  end if;
 
   -- Serialize attempts for one user/topic, including two concurrent first inserts.
   perform pg_advisory_xact_lock(hashtextextended(v_user_id::text || ':' || p_topic_id, 0));
-
-  if v_reward_points is not null and not coalesce(p_completed, false) then
-    insert into public.progress_completion_evidence (user_id, topic_id)
-    values (v_user_id, p_topic_id)
-    on conflict (user_id, topic_id) do nothing;
-  elsif v_reward_points is not null and coalesce(p_completed, false) then
-    select e.started_at into v_started_at
-      from public.progress_completion_evidence e
-     where e.user_id = v_user_id and e.topic_id = p_topic_id;
-    if v_started_at is null
-       or v_started_at > clock_timestamp() - interval '15 seconds' then
-      raise exception 'Completion has no eligible server-observed visit'
-        using errcode = '22023';
-    end if;
-  end if;
 
   select coalesce(up.completed, false)
     into v_was_completed
@@ -158,28 +105,13 @@ begin
                                then public.user_progress.answers_history
                                else coalesce(excluded.answers_history, public.user_progress.answers_history) end;
 
-  if v_completion_awarded and v_reward_points is not null then
-    insert into public.progress_awards (user_id, topic_id, reward_kind, points)
-    values (v_user_id, p_topic_id, 'completion', v_reward_points)
-    on conflict (user_id, topic_id, reward_kind) do nothing
-    returning true into v_points_awarded;
-
-    if coalesce(v_points_awarded, false) then
-      update public.profiles
-         set points = coalesce(points, 0) + v_reward_points
-       where user_id = v_user_id;
-      get diagnostics v_profile_rows = row_count;
-      if v_profile_rows <> 1 then
-        raise exception 'Profile required before awarding completion'
-          using errcode = '23503';
-      end if;
-    end if;
-  end if;
-
+  -- p_completed and p_score are self-reported learning progress, not proof of
+  -- achievement. Until answers are verified against server-owned quiz data,
+  -- this function must never turn those claims (or p_points) into profile points.
   return query select
-    coalesce(v_points_awarded, false),
+    false,
     v_completion_awarded,
-    case when coalesce(v_points_awarded, false) then v_reward_points else 0 end;
+    0;
 end;
 $$;
 
@@ -188,7 +120,7 @@ revoke all on function public.save_topic_progress(text, boolean, integer, intege
 grant execute on function public.save_topic_progress(text, boolean, integer, integer, jsonb) to authenticated;
 
 comment on function public.save_topic_progress(text, boolean, integer, integer, jsonb)
-is 'Persists auth.uid() learning progress and awards fixed server-owned completion rewards once.';
+is 'Persists self-reported auth.uid() learning progress without awarding points from unverified client claims.';
 
 -- Retire the legacy RPC that accepted an arbitrary user ID.
 revoke all on function public.increment_user_points(uuid, integer) from public;

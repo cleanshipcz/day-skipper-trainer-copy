@@ -30,15 +30,12 @@ export const WeatherTheoryLayout = ({ title, subtitle, topicId, sections, childr
       if (active) {
         setComplete(Boolean(progress?.completed));
         setLoading(false);
-        if (!progress?.completed) {
-          void saveProgress(topicId, false, 0, 0, { completionState: "in_progress" });
-        }
       }
     });
     return () => {
       active = false;
     };
-  }, [loadProgress, saveProgress, topicId]);
+  }, [loadProgress, topicId]);
   const finish = async () => {
     if (complete || savingRef.current) return;
     savingRef.current = true;
