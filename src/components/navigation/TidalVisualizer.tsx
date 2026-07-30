@@ -103,7 +103,7 @@ const TidalVisualizer = () => {
       <CardContent>
         <div className="flex flex-col gap-6">
           {/* Controls */}
-          <div className="flex items-center gap-4 bg-white p-4 rounded-lg border shadow-sm">
+          <div className="flex flex-col items-stretch gap-4 bg-white p-4 rounded-lg border shadow-sm sm:flex-row sm:items-center">
             <div className="flex-1 space-y-2">
               <Label>
                 Height of Tide: <span className="text-blue-600 font-bold text-lg">{tideHeight[0].toFixed(1)}m</span>
@@ -120,7 +120,7 @@ const TidalVisualizer = () => {
               />
             </div>
 
-            <div className="h-10 w-px bg-slate-200 mx-2"></div>
+            <div className="hidden h-10 w-px bg-slate-200 mx-2 sm:block"></div>
 
             <div className="flex-1 flex flex-col gap-2">
               {!drillActive ? (
@@ -140,7 +140,7 @@ const TidalVisualizer = () => {
                     <br />
                     Depth of water?
                   </p>
-                  <div className="flex gap-2">
+                  <div className="flex flex-wrap gap-2">
                     <Input
                       type="number"
                       placeholder="Depth (m)"

@@ -5,6 +5,7 @@ import { toast } from "sonner";
 import { deleteProgressRecord, saveProgressRecord } from "@/features/progress/progressPersistence";
 import type { Tables } from "@/integrations/supabase/types";
 import { syncEngagementEvent } from "@/features/engagement/engagementService";
+import { queueProgress } from "@/features/offline/progressQueue";
 
 type UserProgressRow = Tables<"user_progress">;
 
@@ -78,8 +79,15 @@ export const useProgress = () => {
         return true;
       } catch (error) {
         console.error("Error saving progress:", error);
-        toast.error("Failed to save progress");
-        return false;
+        try {
+          await queueProgress({ userId: user.id, topicId, completed, score, pointsEarned, answersHistory });
+          toast.info("Progress saved offline and will sync when you reconnect.");
+          return true;
+        } catch (queueError) {
+          console.error("Error queueing progress:", queueError);
+          toast.error("Failed to save progress");
+          return false;
+        }
       }
     },
     [user]

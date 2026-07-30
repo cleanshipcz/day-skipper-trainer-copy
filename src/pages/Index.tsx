@@ -24,6 +24,7 @@ import {
   Brain,
   Flame,
   Award,
+  FileDown,
 } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { useAuth } from "@/contexts/AuthHooks";
@@ -37,6 +38,7 @@ import { badgeById, type BadgeDefinition } from "@/data/badges";
 import { calculateStreak, fetchAllStreakTimestamps } from "@/features/engagement/streaks";
 import { retryEngagementOutbox } from "@/features/engagement/engagementService";
 import { toast } from "sonner";
+import { buildProgressReportData, downloadProgressReport } from "@/features/export/progressReport";
 
 /**
  * Dashboard display metadata for root topics. Keyed by topic registry ID.
@@ -178,6 +180,7 @@ const Index = () => {
   const [profile, setProfile] = useState<UserProfile | null>(null);
   const [topicsCompleted, setTopicsCompleted] = useState(0);
   const [avgQuizScore, setAvgQuizScore] = useState(0);
+  const [quizScores, setQuizScores] = useState<readonly { topic_id: string; percentage: number }[]>([]);
   const [userProgress, setUserProgress] = useState<Record<string, UserProgressData>>({});
   const [earnedBadges, setEarnedBadges] = useState<readonly BadgeDefinition[]>([]);
   const [currentStreak, setCurrentStreak] = useState(0);
@@ -223,13 +226,38 @@ const Index = () => {
     }
 
     // Fetch quiz scores
-    const { data: scoresData } = await supabase.from("quiz_scores").select("percentage").eq("user_id", user.id);
+    const { data: scoresData } = await supabase.from("quiz_scores").select("topic_id, percentage").eq("user_id", user.id);
 
     if (scoresData && scoresData.length > 0) {
+      setQuizScores(scoresData);
       const avg = scoresData.reduce((sum, s) => sum + s.percentage, 0) / scoresData.length;
       setAvgQuizScore(Math.round(avg));
     }
   }, [user]);
+
+  const exportProgress = async () => {
+    if (!user) return;
+    try {
+      const { data: exams, error } = await supabase
+        .from("exam_results")
+        .select("time_taken_seconds")
+        .eq("user_id", user.id);
+      if (error) throw error;
+      const report = buildProgressReportData({
+        studentName: profile?.username || user.email || "Learner",
+        generatedAt: new Date(),
+        topics: getRootTopics(),
+        progress: userProgress,
+        quizScores,
+        totalPoints: points,
+        assessmentSeconds: (exams ?? []).reduce((sum, exam) => sum + exam.time_taken_seconds, 0),
+      });
+      await downloadProgressReport(report);
+    } catch (error) {
+      console.error("Error exporting progress:", error);
+      toast.error("Could not create the progress report.");
+    }
+  };
 
   const fetchEngagement = React.useCallback(async () => {
     if (!user) return;
@@ -313,7 +341,7 @@ const Index = () => {
       {/* Header */}
       <header className="border-b border-border bg-card/50 backdrop-blur-sm sticky top-0 z-10">
         <div className="container mx-auto px-4 py-4">
-          <div className="flex items-center justify-between">
+          <div className="flex flex-wrap items-center justify-between gap-3">
             <div className="flex items-center gap-3">
               <div className="p-2 rounded-lg bg-primary text-primary-foreground">
                 <Ship className="w-6 h-6" />
@@ -323,7 +351,7 @@ const Index = () => {
                 <p className="text-sm text-muted-foreground">Seamanship & Preparation</p>
               </div>
             </div>
-            <div className="flex items-center gap-4">
+            <div className="flex flex-wrap items-center gap-2 sm:gap-4">
               {user ? (
                 <>
                   <div className="flex items-center gap-2">
@@ -397,7 +425,13 @@ const Index = () => {
         {/* Progress Overview */}
         <Card className="mb-8 border-2 border-secondary/20 bg-gradient-to-br from-card to-secondary/5">
           <CardHeader>
-            <CardTitle className="text-2xl">Your Learning Journey</CardTitle>
+            <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+              <CardTitle className="text-2xl">Your Learning Journey</CardTitle>
+              {user && <Button variant="outline" className="min-h-11" onClick={exportProgress}>
+                <FileDown aria-hidden="true" className="mr-2 h-4 w-4" />
+                Export Progress Report
+              </Button>}
+            </div>
             <CardDescription>Complete all topics to master Seamanship & Preparation</CardDescription>
           </CardHeader>
           <CardContent>
