@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useState, type SetStateAction } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -34,12 +34,25 @@ const anonymousSessionId = () => {
 export function PassagePlanBuilder() {
   const { user } = useAuth();
   const { loadProgress, saveProgress } = useProgress();
-  const [plan, setPlan] = useState<PassagePlan>(initialPlan);
   const [errors, setErrors] = useState<string[]>([]);
   const cacheKey = useMemo(() => passagePlanCacheKey(user?.id ?? null, anonymousSessionId()), [user?.id]);
+  const [planState, setPlanState] = useState<{ key: string; plan: PassagePlan }>(() => ({ key:cacheKey, plan:initialPlan() }));
+  // Never render state owned by a different auth/cache boundary, even for the
+  // single render before effects run.
+  const plan = planState.key === cacheKey ? planState.plan : initialPlan();
+  const setPlan = useCallback((next: SetStateAction<PassagePlan>) => {
+    setPlanState(previous => {
+      const current = previous.key === cacheKey ? previous.plan : initialPlan();
+      return { key:cacheKey, plan:typeof next === "function" ? next(current) : next };
+    });
+  }, [cacheKey]);
 
   useEffect(() => {
     let active = true;
+    // Blank user-derived state synchronously at the auth/cache boundary. A
+    // previous account's plan must not remain visible while hydration waits.
+    setPlan(initialPlan());
+    setErrors([]);
     const cached = parsePassagePlanCache(localStorage.getItem(cacheKey));
     if (cached) {
       setPlan(cached);
@@ -51,12 +64,9 @@ export function PassagePlanBuilder() {
           : null;
         if (active) setPlan(persisted ?? initialPlan());
       });
-    } else {
-      setPlan(initialPlan());
     }
-    setErrors([]);
     return () => { active = false; };
-  }, [cacheKey, loadProgress, user]);
+  }, [cacheKey, loadProgress, setPlan, user]);
 
   const etas = useMemo(() => calculateLegEtas(plan.points, plan.departure, plan.speed), [plan.points, plan.departure, plan.speed]);
   const total = plan.points.reduce((sum, point) => sum + (Number.isFinite(point.distanceNm) ? point.distanceNm : 0), 0);
