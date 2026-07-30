@@ -139,6 +139,8 @@ const Quiz = () => {
         setCompletionSaveError(true);
         return;
       }
+      setIsComplete(false);
+      setCompletionSaveError(false);
       const owner = seedOwnerRef.current;
       const generation = seedGenerationRef.current;
       const canonicalKey = canonicalQuizProgressKey(topicKey);

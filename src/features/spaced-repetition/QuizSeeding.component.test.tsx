@@ -161,6 +161,35 @@ describe("quiz review seeding identity isolation", () => {
     await waitFor(() => expect(localStorage.getItem("quiz-attempt:a:test")).toContain("issued-2"));
   });
 
+  test("should leave another account's completion recovery when switching to an account without recovery", async () => {
+    localStorage.setItem("quiz-attempt:a:test", JSON.stringify({
+      attemptId: "scored-attempt",
+      scoreSaved: true,
+      startedAt: new Date().toISOString(),
+      completion: {
+        answers: [1],
+        currentQuestion: 0,
+        correctAnswers: 1,
+        percentage: 100,
+        passed: true,
+        pointsEarned: 10,
+      },
+    }));
+
+    const view = renderQuiz();
+    expect(await screen.findByText("Quiz Complete!")).toBeTruthy();
+    expect((screen.getByRole("button", { name: "Finish saving first" }) as HTMLButtonElement).disabled).toBe(true);
+
+    mocks.auth.user = { id: "b" };
+    view.rerender(<MemoryRouter initialEntries={["/quiz/test"]}><Routes><Route path="/quiz/:topicId" element={<Quiz />} /></Routes></MemoryRouter>);
+
+    expect(await screen.findByRole("button", { name: "Right" })).toBeTruthy();
+    expect(screen.queryByText("Quiz Complete!")).toBeNull();
+    expect(screen.queryByRole("button", { name: "Finish saving first" })).toBeNull();
+    await waitFor(() => expect(localStorage.getItem("quiz-attempt:b:test")).toContain("issued-attempt"));
+    expect(localStorage.getItem("quiz-attempt:a:test")).toContain('"scoreSaved":true');
+  });
+
   test("should replace an interrupted attempt older than the server submission window", async () => {
     localStorage.setItem("quiz-attempt:a:test", JSON.stringify({
       attemptId: "expired-attempt",
