@@ -32,4 +32,3 @@ describe("review question registry", () => {
     expect(due[0].review.next_review_at).toBe("2026-07-30T06:00:00.000Z");
   });
 });
-
