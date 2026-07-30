@@ -1,0 +1,93 @@
+[
+  {
+    "family": "dashboard",
+    "routeRoots": ["/"],
+    "representativeRoute": "/",
+    "testPath": "src/pages/Index.identity.test.tsx",
+    "decision": "existing-behavior-test"
+  },
+  {
+    "family": "authentication",
+    "routeRoots": ["/auth"],
+    "representativeRoute": "/auth",
+    "testPath": "tests/routeFamilies.smoke.test.tsx",
+    "decision": "render-smoke"
+  },
+  {
+    "family": "nautical basics",
+    "routeRoots": ["/nautical-terms", "/ropework", "/anchorwork", "/anchor-minigame", "/victualling", "/engine", "/rig"],
+    "representativeRoute": "/nautical-terms",
+    "testPath": "tests/routeFamilies.smoke.test.tsx",
+    "decision": "render-smoke"
+  },
+  {
+    "family": "rules and lights",
+    "routeRoots": ["/rules-of-the-road", "/rules"],
+    "representativeRoute": "/rules-of-the-road",
+    "testPath": "tests/routeFamilies.smoke.test.tsx",
+    "decision": "render-smoke"
+  },
+  {
+    "family": "navigation and tides",
+    "routeRoots": ["/navigation"],
+    "representativeRoute": "/navigation/tides",
+    "testPath": "tests/routeFamilies.smoke.test.tsx",
+    "decision": "render-smoke"
+  },
+  {
+    "family": "pilotage",
+    "routeRoots": ["/pilotage"],
+    "representativeRoute": "/pilotage",
+    "testPath": "src/pages/PilotageMenu.test.tsx",
+    "decision": "existing-behavior-test"
+  },
+  {
+    "family": "weather",
+    "routeRoots": ["/weather"],
+    "representativeRoute": "/weather",
+    "testPath": "src/pages/WeatherMenu.test.tsx",
+    "decision": "existing-behavior-test"
+  },
+  {
+    "family": "passage planning",
+    "routeRoots": ["/passage-planning"],
+    "representativeRoute": "/passage-planning",
+    "testPath": "tests/routeFamilies.smoke.test.tsx",
+    "decision": "render-smoke"
+  },
+  {
+    "family": "safety",
+    "routeRoots": ["/safety"],
+    "representativeRoute": "/safety",
+    "testPath": "src/pages/SafetyMenu.test.tsx",
+    "decision": "existing-behavior-test"
+  },
+  {
+    "family": "quiz",
+    "routeRoots": ["/quiz"],
+    "representativeRoute": "/quiz/:topicId",
+    "testPath": "src/features/spaced-repetition/QuizSeeding.component.test.tsx",
+    "decision": "existing-behavior-test"
+  },
+  {
+    "family": "exam",
+    "routeRoots": ["/exam"],
+    "representativeRoute": "/exam",
+    "testPath": "src/features/exam/Exam.component.test.tsx",
+    "decision": "existing-behavior-test"
+  },
+  {
+    "family": "review",
+    "routeRoots": ["/review"],
+    "representativeRoute": "/review",
+    "testPath": "src/features/spaced-repetition/Review.component.test.tsx",
+    "decision": "existing-behavior-test"
+  },
+  {
+    "family": "not found",
+    "routeRoots": ["*"],
+    "representativeRoute": "*",
+    "testPath": "tests/routeFamilies.smoke.test.tsx",
+    "decision": "render-smoke"
+  }
+]

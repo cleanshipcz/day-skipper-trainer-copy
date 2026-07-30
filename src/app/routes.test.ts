@@ -1,5 +1,8 @@
 import { describe, expect, it } from "vitest";
+import { existsSync } from "node:fs";
+import { resolve } from "node:path";
 import { appRoutes } from "./routes";
+import routeFamilyInventory from "../../scripts/route-family-inventory.json";
 
 describe("appRoutes", () => {
   it("contains unique route paths", () => {
@@ -32,5 +35,20 @@ describe("appRoutes", () => {
 
   it("defines the daily review route", () => {
     expect(appRoutes.find((route) => route.path === "/review")).toBeDefined();
+  });
+
+  it("requires every route root to have an explicit representative-test decision", () => {
+    const routeRoot = (path: string) => path === "*" || path === "/"
+      ? path
+      : `/${path.split("/")[1]}`;
+    const configuredRoots = routeFamilyInventory.flatMap(({ routeRoots }) => routeRoots);
+    const actualRoots = [...new Set(appRoutes.map(({ path }) => routeRoot(path)))];
+
+    expect([...configuredRoots].sort()).toEqual([...actualRoots].sort());
+    for (const entry of routeFamilyInventory) {
+      expect(["render-smoke", "existing-behavior-test"]).toContain(entry.decision);
+      expect(appRoutes.some(({ path }) => path === entry.representativeRoute)).toBe(true);
+      expect(existsSync(resolve(process.cwd(), entry.testPath))).toBe(true);
+    }
   });
 });
