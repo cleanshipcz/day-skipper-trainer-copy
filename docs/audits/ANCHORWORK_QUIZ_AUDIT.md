@@ -17,9 +17,10 @@
 **The quiz completes reliably, but it currently certifies unsafe absolutes and
 substantial untaught material rather than dependable Anchorwork mastery.** Its
 12 stable question IDs, answer shuffling, 70% pass calculation, retry flow, and
-shared persistence recovery are mechanically sound. Six questions substantially
-match the five-card parent; the rest introduce trip lines, dragging response,
-kedge anchors, cable strong points, and chain behavior without teaching them.
+shared persistence recovery are mechanically sound. Seven questions clearly
+match the five-card parent, `a7` partially aligns while adding untaught chain
+claims, and four introduce trip lines, dragging response, kedge anchors, and
+cable strong points without teaching them.
 No question meaningfully assesses weighing anchor, safe deployment/setting,
 anchor watch, signals, or an actual scope/swinging-room calculation.
 
@@ -195,59 +196,17 @@ remain:
 These prevent screen-reader users from reliably identifying their choice,
 progress, feedback, or newly rendered step.
 
-## Complete focused follow-up issue drafts
+## Anchorwork-specific follow-up issues
 
-### Align the Anchorwork Quiz with taught, assessable learning outcomes
-
-**Problem**
-
-The quiz gates on five click-completed cards but tests four substantially
-untaught subjects and extra chain guidance, while omitting core deployment,
-setting, watch, signals, weighing, inspection, and numerical scope/swing work.
-Neither parent nor minigame provides trustworthy prerequisites or remediation.
-
-**Acceptance criteria**
-
-- Define reviewed Anchorwork learning outcomes and map every quiz item to a
-  taught parent/practice outcome or clearly identified prerequisite.
-- Teach trip lines, dragging response, kedge use, strong points, and detailed
-  chain behavior before assessing them, or remove them from this bank.
-- Add scenario-based assessment of controlled deployment/setting, independent
-  holding checks, anchor watch, signals/local rules, weighing/recovery, and
-  rode inspection at the depth appropriate to this module.
-- Include at least one worked numerical scope/total-depth problem and one
-  swinging-clearance problem with units, assumptions, and safe-room limits.
-- Replace click-only readiness and simplistic minigame success with a defined,
-  durable prerequisite/remediation flow.
-- Add coverage-map and question-quality tests that fail when assessed outcomes
-  lose their teaching source.
-
-### Correct unsafe and contradictory Anchorwork Quiz guidance
-
-**Problem**
-
-The bank treats fixed scope as universally reliable, calls Danforth universally
-best in sand, overstates chain shock absorption, defaults to paying out when
-dragging, oversimplifies approach/kedge use, omits trip-line hazards, and
-contradicts itself about deck cleats/bow rollers.
-
-**Acceptance criteria**
-
-- Have all revised questions/explanations reviewed by a suitably qualified
-  anchoring instructor.
-- Express scope as scenario-dependent and calculate it from maximum anticipated
-  bow-roller/chock-to-seabed distance without double-counting tide.
-- Qualify anchor selection, trip-line use, approach direction, dragging
-  response, kedge operations, and available-room decisions.
-- Distinguish chain weight/catenary from deliberate elastic shock absorption by
-  a suitable snubber/bridle.
-- Replace `a12` with internally consistent guidance about engineered strong
-  points, bow-roller function, chafe, snubbers/bridles, and vessel/manufacturer
-  guidance.
-- Do not claim “reliable holding” or “mastery” beyond what the reviewed
-  questions prove.
-- Protect approved safety wording and numerical examples with content fixtures
-  or automated tests.
+- [#184 — Align the Anchorwork Quiz with taught, assessable learning
+  outcomes](https://github.com/cleanshipcz/day-skipper-trainer-copy/issues/184)
+  — covers the four untaught subjects, partially aligned chain claims, omitted
+  procedures/calculations, coverage mapping, prerequisites, and remediation.
+- [#183 — Correct unsafe and contradictory Anchorwork Quiz
+  guidance](https://github.com/cleanshipcz/day-skipper-trainer-copy/issues/183)
+  — covers fixed-scope guarantees, anchor selection, trip lines, dragging,
+  chain shock absorption, approach/kedge use, and the deck-cleat/bow-roller
+  contradiction.
 
 ## Existing shared follow-up issues
 
