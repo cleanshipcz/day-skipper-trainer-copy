@@ -38,9 +38,9 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
 
   const signOut = useCallback(async () => {
     await supabase.auth.signOut();
-    if (user) clearOwnerPersistence(user.id);
+    if (ownerRef.current) clearOwnerPersistence(ownerRef.current);
     navigate("/auth");
-  }, [navigate, user]);
+  }, [navigate]);
 
   const authContextValue = useMemo(
     () => ({ user, session, loading, signOut }),
