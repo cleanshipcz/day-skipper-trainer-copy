@@ -72,6 +72,24 @@ The measured coverage result was 100% statements, functions, and lines and
 reference, not a reason to weaken thresholds; investigate material growth
 beyond roughly 90 seconds or 512 MiB before expanding the scope further.
 
+### Route-family smoke inventory
+
+`scripts/route-family-inventory.json` maps every top-level route root to a
+representative route, its test file, and either a focused render-smoke or an
+existing behavior-test decision. `src/app/routes.test.ts` compares that
+inventory with the route registry, verifies each representative route and test
+file exists, and fails when a new top-level route family has no explicit
+decision.
+
+`tests/routeFamilies.smoke.test.tsx` supplies the previously missing
+authentication/error, nautical-basics, rules/lights, tides, and
+passage-planning representatives. It uses the reusable
+`tests/RouteSmokeHarness.tsx` with in-memory routing and a local anonymous auth
+context; Supabase auth and progress badges are replaced with fail-visible
+hermetic test doubles. These are render and critical-navigation checks, not
+duplicated assertions over static lesson copy. Focused behavior remains in the
+feature and page tests named by the inventory.
+
 ## Baseline findings
 
 - The topic registry contains 46 stable progress IDs across all 13 syllabus
