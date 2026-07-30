@@ -25,7 +25,18 @@ import {
 } from "@/features/quiz/sessionProgress";
 import { quizRegistry, topicMeta } from "@/data/quizzes";
 import { seedQuizQuestions } from "@/features/spaced-repetition/reviewService";
-import { recordLearningActivity } from "@/features/engagement/engagementService";
+import { syncEngagementEvent } from "@/features/engagement/engagementService";
+
+const quizAttemptKey = (owner: string, topic: string) => `quiz-attempt:${owner}:${topic}`;
+const durableAttemptId = (owner: string | undefined, topic: string): string => {
+  if (!owner) return crypto.randomUUID();
+  const key = quizAttemptKey(owner, topic);
+  const existing = localStorage.getItem(key);
+  if (existing) return existing;
+  const created = crypto.randomUUID();
+  localStorage.setItem(key, created);
+  return created;
+};
 
 const Quiz = () => {
   const navigate = useNavigate();
@@ -62,6 +73,7 @@ const Quiz = () => {
   const [showExplanation, setShowExplanation] = useState(false);
   const [isComplete, setIsComplete] = useState(false);
   const [seedStatus, setSeedStatus] = useState<"idle" | "saving" | "saved" | "failed">("idle");
+  const [attemptId, setAttemptId] = useState(() => durableAttemptId(user?.id, topicKey));
   const seedOwnerRef = useRef(user?.id ?? null);
   const seedGenerationRef = useRef(0);
   const currentSeedOwner = user?.id ?? null;
@@ -134,6 +146,10 @@ const Quiz = () => {
     };
     initQuiz();
   }, [questions.length, topicKey, loadProgress, saveProgress, resetProgress, seedReviews]);
+
+  useEffect(() => {
+    setAttemptId(durableAttemptId(user?.id, topicKey));
+  }, [user?.id, topicKey]);
 
   const selectedAnswer = answers[currentQuestion] ?? null;
   const correctAnswers = countCorrectAnswers(answers, questions);
@@ -233,15 +249,15 @@ const Quiz = () => {
 
     try {
       // Save quiz score
-      const { error: scoreError } = await supabase.from("quiz_scores").insert({
-        user_id: owner,
-        topic_id: topicKey,
-        score: correctAnswers,
-        total_questions: questions.length,
-        percentage,
+      const { error: scoreError } = await supabase.rpc("submit_quiz_score", {
+        p_attempt_id: attemptId,
+        p_topic_id: topicKey,
+        p_score: correctAnswers,
+        p_total_questions: questions.length,
       });
       if (scoreError) throw scoreError;
       if (seedOwnerRef.current !== owner || seedGenerationRef.current !== generation) return;
+      localStorage.removeItem(quizAttemptKey(owner, topicKey));
 
       // Save final progress with answers
       const saved = await saveProgress(
@@ -258,7 +274,7 @@ const Quiz = () => {
 
       if (saved) {
         try {
-          const engagement = await recordLearningActivity(supabase, "quiz_completion");
+          const engagement = await syncEngagementEvent(supabase, owner, { sourceType: "quiz", sourceId: attemptId });
           if (seedOwnerRef.current !== owner || seedGenerationRef.current !== generation) return;
           engagement.unlockedBadges.forEach((badge) => toast.success(`${badge.icon} Badge unlocked: ${badge.name}`));
         } catch (error) {
@@ -282,6 +298,9 @@ const Quiz = () => {
     setShowExplanation(false);
     setIsComplete(false);
     setSeed((n) => n + 1);
+    const nextAttempt = crypto.randomUUID();
+    if (user) localStorage.setItem(quizAttemptKey(user.id, topicKey), nextAttempt);
+    setAttemptId(nextAttempt);
   };
 
   if (isComplete) {

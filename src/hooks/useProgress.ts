@@ -1,15 +1,17 @@
-import { useCallback } from "react";
+import { useCallback, useRef } from "react";
 import { useAuth } from "@/contexts/AuthHooks";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { deleteProgressRecord, saveProgressRecord } from "@/features/progress/progressPersistence";
 import type { Tables } from "@/integrations/supabase/types";
-import { recordLearningActivity } from "@/features/engagement/engagementService";
+import { syncEngagementEvent } from "@/features/engagement/engagementService";
 
 type UserProgressRow = Tables<"user_progress">;
 
 export const useProgress = () => {
   const { user } = useAuth();
+  const ownerRef = useRef(user?.id ?? null);
+  ownerRef.current = user?.id ?? null;
 
   const loadProgress = useCallback(
     async (topicId: string): Promise<UserProgressRow | null> => {
@@ -63,7 +65,9 @@ export const useProgress = () => {
         }
         if (completed) {
           try {
-            const engagement = await recordLearningActivity(supabase, "theory_completion");
+            if (ownerRef.current !== user.id) return true;
+            const engagement = await syncEngagementEvent(supabase, user.id, { sourceType: "progress", sourceId: topicId });
+            if (ownerRef.current !== user.id) return true;
             engagement.unlockedBadges.forEach((badge) => {
               toast.success(`${badge.icon} Badge unlocked: ${badge.name}`);
             });

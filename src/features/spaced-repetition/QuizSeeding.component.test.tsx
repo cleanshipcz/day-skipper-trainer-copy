@@ -9,7 +9,7 @@ const mocks = vi.hoisted(() => ({
   saveProgress: vi.fn(),
   resetProgress: vi.fn(),
   seedQuizQuestions: vi.fn(),
-  insert: vi.fn(),
+  rpc: vi.fn(),
 }));
 vi.mock("@/contexts/AuthHooks", () => ({ useAuth: () => ({ user: mocks.auth.user }) }));
 vi.mock("@/hooks/useProgress", () => ({
@@ -24,7 +24,7 @@ vi.mock("./reviewService", async (importOriginal) => {
   return { ...actual, seedQuizQuestions: mocks.seedQuizQuestions };
 });
 vi.mock("@/integrations/supabase/client", () => ({
-  supabase: { from: () => ({ insert: mocks.insert }) },
+  supabase: { rpc: mocks.rpc },
 }));
 vi.mock("@/data/quizzes", () => ({
   quizRegistry: {
@@ -48,7 +48,7 @@ describe("quiz review seeding identity isolation", () => {
     mocks.saveProgress.mockReset().mockResolvedValue(true);
     mocks.resetProgress.mockReset().mockResolvedValue(undefined);
     mocks.seedQuizQuestions.mockReset().mockResolvedValue(undefined);
-    mocks.insert.mockReset().mockResolvedValue({ error: null });
+    mocks.rpc.mockReset().mockResolvedValue({ data: {}, error: null });
   });
 
   test("should not seed a stale completed load after an A to B to A switch", async () => {
@@ -66,17 +66,17 @@ describe("quiz review seeding identity isolation", () => {
   });
 
   test("should not seed after auth changes while quiz completion persistence is pending", async () => {
-    let resolveInsert!: (value: { error: null }) => void;
-    mocks.insert.mockReturnValue(new Promise((resolve) => { resolveInsert = resolve; }));
+    let resolveInsert!: (value: { data: object; error: null }) => void;
+    mocks.rpc.mockReturnValueOnce(new Promise((resolve) => { resolveInsert = resolve; }));
     const view = renderQuiz();
     fireEvent.click(await screen.findByRole("button", { name: "Right" }));
     fireEvent.click(screen.getByRole("button", { name: "Submit Answer" }));
     fireEvent.click(screen.getByRole("button", { name: "View Results" }));
-    await waitFor(() => expect(mocks.insert).toHaveBeenCalled());
+    await waitFor(() => expect(mocks.rpc).toHaveBeenCalledWith("submit_quiz_score", expect.any(Object)));
 
     mocks.auth.user = { id: "b" };
     view.rerender(<MemoryRouter initialEntries={["/quiz/test"]}><Routes><Route path="/quiz/:topicId" element={<Quiz />} /></Routes></MemoryRouter>);
-    await act(async () => resolveInsert({ error: null }));
+    await act(async () => resolveInsert({ data: {}, error: null }));
     expect(mocks.seedQuizQuestions).not.toHaveBeenCalled();
     expect(mocks.saveProgress.mock.calls.some((call) => call[1] === true)).toBe(false);
   });

@@ -147,6 +147,7 @@ export type Database = {
       }
       quiz_scores: {
         Row: {
+          attempt_id: string
           completed_at: string
           id: string
           percentage: number
@@ -156,6 +157,7 @@ export type Database = {
           user_id: string
         }
         Insert: {
+          attempt_id: string
           completed_at?: string
           id?: string
           percentage: number
@@ -165,6 +167,7 @@ export type Database = {
           user_id: string
         }
         Update: {
+          attempt_id?: string
           completed_at?: string
           id?: string
           percentage?: number
@@ -213,13 +216,22 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
-      record_learning_activity: {
-        Args: { p_activity_type: string }
+      sync_engagement_event: {
+        Args: { p_source_id: string; p_source_type: string }
         Returns: {
           bonus_points: number
           current_streak: number
           unlocked_badge_ids: string[]
-        }[]
+        }
+      }
+      submit_quiz_score: {
+        Args: {
+          p_attempt_id: string
+          p_score: number
+          p_topic_id: string
+          p_total_questions: number
+        }
+        Returns: Database["public"]["Tables"]["quiz_scores"]["Row"]
       }
       record_question_review: {
         Args: {
