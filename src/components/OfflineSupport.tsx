@@ -24,6 +24,7 @@ export const OfflineSupport = () => {
       try {
         const result = await replayProgressQueue(supabase, user.id);
         if (result.synced > 0) toast.success(`${result.synced} offline progress update${result.synced === 1 ? "" : "s"} synced`);
+        if (result.quarantined > 0) toast.error(`${result.quarantined} offline update${result.quarantined === 1 ? "" : "s"} need attention and were not retried.`);
       } catch {
         toast.error("Offline progress is still queued; sync will retry when you reconnect.");
       }

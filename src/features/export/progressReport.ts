@@ -5,7 +5,7 @@ export interface ProgressReportInput {
   generatedAt: Date;
   topics: readonly TopicEntry[];
   progress: Record<string, { completed: boolean; score: number }>;
-  quizScores: readonly { topic_id: string; percentage: number }[];
+  quizScores: readonly { topic_id: string; percentage: number; completed_at: string; attempt_id: string }[];
   totalPoints: number;
   assessmentSeconds: number;
 }
@@ -27,13 +27,20 @@ export interface ProgressReportData {
 }
 
 export const buildProgressReportData = (input: ProgressReportInput): ProgressReportData => {
-  const latestQuizScores = new Map<string, number>();
-  input.quizScores.forEach(({ topic_id, percentage }) => latestQuizScores.set(topic_id, percentage));
+  const latestQuizScores = new Map<string, { percentage: number; completedAt: string; attemptId: string }>();
+  input.quizScores.forEach(({ topic_id, percentage, completed_at, attempt_id }) => {
+    const current = latestQuizScores.get(topic_id);
+    if (!current
+      || completed_at > current.completedAt
+      || (completed_at === current.completedAt && attempt_id > current.attemptId)) {
+      latestQuizScores.set(topic_id, { percentage, completedAt: completed_at, attemptId: attempt_id });
+    }
+  });
   const rows = input.topics.map((topic) => {
     const ids = topic.submoduleIds.length > 0 ? topic.submoduleIds : [topic.id];
     const completed = ids.every((id) => input.progress[id]?.completed);
     const scores = ids
-      .map((id) => latestQuizScores.get(id) ?? input.progress[id]?.score)
+      .map((id) => latestQuizScores.get(id)?.percentage ?? input.progress[id]?.score)
       .filter((score): score is number => Number.isFinite(score) && score > 0);
     return {
       topic: topic.label,

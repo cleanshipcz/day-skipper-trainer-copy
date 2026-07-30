@@ -180,22 +180,40 @@ const Index = () => {
   const [profile, setProfile] = useState<UserProfile | null>(null);
   const [topicsCompleted, setTopicsCompleted] = useState(0);
   const [avgQuizScore, setAvgQuizScore] = useState(0);
-  const [quizScores, setQuizScores] = useState<readonly { topic_id: string; percentage: number }[]>([]);
+  const [quizScores, setQuizScores] = useState<readonly {
+    topic_id: string;
+    percentage: number;
+    completed_at: string;
+    attempt_id: string;
+  }[]>([]);
   const [userProgress, setUserProgress] = useState<Record<string, UserProgressData>>({});
+  const [dashboardOwner, setDashboardOwner] = useState<string | null>(null);
+  const [dashboardLoading, setDashboardLoading] = useState(false);
   const [earnedBadges, setEarnedBadges] = useState<readonly BadgeDefinition[]>([]);
   const [currentStreak, setCurrentStreak] = useState(0);
   const [engagementOwner, setEngagementOwner] = useState<string | null>(null);
   const [engagementLoading, setEngagementLoading] = useState(false);
   const [engagementError, setEngagementError] = useState(false);
   const currentUserId = user?.id ?? null;
+  const dashboardOwnerRef = React.useRef(currentUserId);
+  dashboardOwnerRef.current = currentUserId;
+  const dashboardReady = Boolean(currentUserId && dashboardOwner === currentUserId && !dashboardLoading);
+  const visiblePoints = dashboardReady ? points : 0;
+  const visibleProgress = dashboardReady ? progress : 0;
+  const visibleTopicsCompleted = dashboardReady ? topicsCompleted : 0;
+  const visibleAvgQuizScore = dashboardReady ? avgQuizScore : 0;
+  const visibleProfile = dashboardReady ? profile : null;
+  const visibleUserProgress = dashboardReady ? userProgress : {};
   const engagementOwnerRef = React.useRef(currentUserId);
   engagementOwnerRef.current = currentUserId;
   const visibleDueReviews = useDueReviewCount(currentUserId);
 
   const fetchProfile = React.useCallback(async () => {
     if (!user) return;
+    const owner = user.id;
 
-    const { data } = await supabase.from("profiles").select("*").eq("user_id", user.id).single();
+    const { data } = await supabase.from("profiles").select("*").eq("user_id", owner).single();
+    if (dashboardOwnerRef.current !== owner) return;
 
     if (data) {
       setProfile(data as UserProfile);
@@ -205,9 +223,11 @@ const Index = () => {
 
   const fetchProgress = React.useCallback(async () => {
     if (!user) return;
+    const owner = user.id;
 
     // Fetch user progress for all topics
-    const { data: progressData } = await supabase.from("user_progress").select("*").eq("user_id", user.id);
+    const { data: progressData } = await supabase.from("user_progress").select("*").eq("user_id", owner);
+    if (dashboardOwnerRef.current !== owner) return;
 
     if (progressData) {
       const progressMap = progressData.reduce((acc, item) => {
@@ -226,23 +246,31 @@ const Index = () => {
     }
 
     // Fetch quiz scores
-    const { data: scoresData } = await supabase.from("quiz_scores").select("topic_id, percentage").eq("user_id", user.id);
+    const { data: scoresData } = await supabase
+      .from("quiz_scores")
+      .select("topic_id, percentage, completed_at, attempt_id")
+      .eq("user_id", owner)
+      .order("completed_at", { ascending: true })
+      .order("attempt_id", { ascending: true });
+    if (dashboardOwnerRef.current !== owner) return;
 
+    setQuizScores(scoresData ?? []);
     if (scoresData && scoresData.length > 0) {
-      setQuizScores(scoresData);
       const avg = scoresData.reduce((sum, s) => sum + s.percentage, 0) / scoresData.length;
       setAvgQuizScore(Math.round(avg));
     }
   }, [user]);
 
   const exportProgress = async () => {
-    if (!user) return;
+    if (!user || !dashboardReady) return;
+    const owner = user.id;
     try {
       const { data: exams, error } = await supabase
         .from("exam_results")
         .select("time_taken_seconds")
-        .eq("user_id", user.id);
+        .eq("user_id", owner);
       if (error) throw error;
+      if (dashboardOwnerRef.current !== owner || dashboardOwner !== owner) return;
       const report = buildProgressReportData({
         studentName: profile?.username || user.email || "Learner",
         generatedAt: new Date(),
@@ -301,10 +329,33 @@ const Index = () => {
 
   useEffect(() => {
     if (user) {
-      fetchProfile();
-      fetchProgress();
+      const owner = user.id;
+      setDashboardOwner(null);
+      setDashboardLoading(true);
+      setProfile(null);
+      setPoints(0);
+      setProgress(0);
+      setTopicsCompleted(0);
+      setAvgQuizScore(0);
+      setQuizScores([]);
+      setUserProgress({});
+      void Promise.all([fetchProfile(), fetchProgress()]).finally(() => {
+        if (dashboardOwnerRef.current === owner) {
+          setDashboardOwner(owner);
+          setDashboardLoading(false);
+        }
+      });
       fetchEngagement();
     } else {
+      setDashboardOwner(null);
+      setDashboardLoading(false);
+      setProfile(null);
+      setPoints(0);
+      setProgress(0);
+      setTopicsCompleted(0);
+      setAvgQuizScore(0);
+      setQuizScores([]);
+      setUserProgress({});
       setEarnedBadges([]);
       setCurrentStreak(0);
       setEngagementOwner(null);
@@ -356,12 +407,12 @@ const Index = () => {
                 <>
                   <div className="flex items-center gap-2">
                     <Trophy className="w-5 h-5 text-accent" />
-                    <span className="font-bold text-lg">{points}</span>
+                    <span className="font-bold text-lg">{visiblePoints}</span>
                     <span className="text-sm text-muted-foreground">points</span>
                   </div>
                   <Badge variant="secondary" className="gap-1">
                     <User className="w-3 h-3" />
-                    {profile?.username || "Learner"}
+                    {visibleProfile?.username || "Learner"}
                   </Badge>
                   <Button variant="ghost" size="sm" onClick={signOut}>
                     <LogOut className="w-4 h-4" />
@@ -427,7 +478,7 @@ const Index = () => {
           <CardHeader>
             <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
               <CardTitle className="text-2xl">Your Learning Journey</CardTitle>
-              {user && <Button variant="outline" className="min-h-11" onClick={exportProgress}>
+              {user && <Button variant="outline" className="min-h-11" onClick={exportProgress} disabled={!dashboardReady}>
                 <FileDown aria-hidden="true" className="mr-2 h-4 w-4" />
                 Export Progress Report
               </Button>}
@@ -438,9 +489,9 @@ const Index = () => {
             <div className="space-y-2">
               <div className="flex justify-between text-sm">
                 <span className="font-medium">Overall Progress</span>
-                <span className="text-muted-foreground">{progress}%</span>
+                <span className="text-muted-foreground">{visibleProgress}%</span>
               </div>
-              <Progress value={progress} className="h-3" />
+              <Progress value={visibleProgress} className="h-3" />
             </div>
           </CardContent>
         </Card>
@@ -453,7 +504,7 @@ const Index = () => {
           getCompletionState={(module) => {
             const topic = topics.find((item) => item.id === module.id);
             if (!topic) return { isCompleted: false };
-            const { isCompleted, score } = deriveTopicCompletionState(topic, userProgress);
+            const { isCompleted, score } = deriveTopicCompletionState(topic, visibleUserProgress);
             return { isCompleted, score };
           }}
         />
@@ -466,7 +517,7 @@ const Index = () => {
                 <div>
                   <p className="text-sm text-muted-foreground">Topics Completed</p>
                   <p className="text-3xl font-bold text-ocean">
-                    {topicsCompleted}/{topics.length}
+                    {visibleTopicsCompleted}/{topics.length}
                   </p>
                 </div>
                 <CheckCircle2 className="w-12 h-12 text-ocean/30" />
@@ -479,7 +530,7 @@ const Index = () => {
               <div className="flex items-center justify-between">
                 <div>
                   <p className="text-sm text-muted-foreground">Avg Quiz Score</p>
-                  <p className="text-3xl font-bold text-accent">{avgQuizScore}%</p>
+                  <p className="text-3xl font-bold text-accent">{visibleAvgQuizScore}%</p>
                 </div>
                 <Trophy className="w-12 h-12 text-accent/30" />
               </div>
@@ -491,7 +542,7 @@ const Index = () => {
               <div className="flex items-center justify-between">
                 <div>
                   <p className="text-sm text-muted-foreground">Total Points</p>
-                  <p className="text-3xl font-bold text-success">{points}</p>
+                  <p className="text-3xl font-bold text-success">{visiblePoints}</p>
                 </div>
                 <BookOpen className="w-12 h-12 text-success/30" />
               </div>

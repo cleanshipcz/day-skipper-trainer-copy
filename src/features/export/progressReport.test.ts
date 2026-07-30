@@ -19,8 +19,8 @@ describe("buildProgressReportData", () => {
         ropework: { completed: false, score: 0 },
       },
       quizScores: [
-        { topic_id: "charts", percentage: 75 },
-        { topic_id: "charts", percentage: 90 },
+        { topic_id: "charts", percentage: 90, completed_at: "2026-07-30T09:00:00Z", attempt_id: "new" },
+        { topic_id: "charts", percentage: 60, completed_at: "2026-07-29T09:00:00Z", attempt_id: "old" },
       ],
       totalPoints: 125,
       assessmentSeconds: 3_630,
