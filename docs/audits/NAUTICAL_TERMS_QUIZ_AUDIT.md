@@ -12,13 +12,15 @@
 
 ## Verdict
 
-**The core quiz engine works, but this is not yet a complete or fully robust
-assessment of its parent module.** A clean anonymous Chromium run reached the
-route from its parent, answered all 20 shuffled questions, showed every
-explanation, calculated 100%, and completed cleanly at all required viewport
-widths. Scoring, pass threshold, retry setup, catalogue failure UI, canonical
-progress keys, and authenticated save retry logic are thoughtfully separated
-and substantially tested.
+**The quiz can complete, but its current live score makes it unsuitable as a
+trustworthy assessment.** A clean anonymous Chromium run reached the route
+from its parent, answered all 20 shuffled questions, showed every explanation,
+calculated 100%, and completed cleanly at all required viewport widths.
+However, tentative option selection is included in the visible score before
+Submit locks the answer. A learner can cycle the four choices and use the score
+increment as an answer oracle on every question. Pass threshold, retry setup,
+catalogue failure UI, canonical progress keys, and authenticated save retry
+logic are otherwise thoughtfully separated and substantially tested.
 
 The “Full” bank nevertheless contains only Boat Parts material and no Sail
 Controls questions. Several explanations overstate one common yacht
@@ -58,7 +60,12 @@ An authenticated Supabase round-trip, mid-session reload, rejected dynamic
 import, and offline recovery were not exercised against a real backend.
 Persistence and failure findings below are based on direct inspection of
 `Quiz.tsx`, the quiz service helpers, and their focused tests. The runtime did
-exercise only the anonymous completion branch.
+exercise only the anonymous completion branch. The pre-submit answer oracle
+was confirmed from the concrete render path: `handleAnswerSelect` immediately
+writes the tentative index into `answers`; `correctAnswers` immediately calls
+`countCorrectAnswers(answers, questions)`; and the header renders that value as
+**Score** while all options remain enabled until `handleSubmit` sets
+`showExplanation`.
 
 ### Coverage and content
 
@@ -91,6 +98,10 @@ observations.
 - Correct count compares each stored answer with the shuffled question's
   remapped correct index. Percentage is rounded, passing is 70% or higher,
   and client-scored quizzes intentionally award zero profile points.
+- Correctness is calculated too early. Selecting an option immediately changes
+  `answers` and therefore the visible score, while the learner remains free to
+  select another option. Cycling choices until the score increments reveals
+  the correct answer before submission and invalidates the resulting score.
 - Previous is available only before submitting the current answer. Submit
   locks the options, reveals correct/incorrect styling and explanation, and
   Next persists the new question index. Retry clears the session, increments
@@ -136,3 +147,4 @@ alone. Remaining gaps affect orientation through the multi-step task:
 - [#154 — Restore quiz focus and expose answer/progress state accessibly](https://github.com/cleanshipcz/day-skipper-trainer-copy/issues/154)
 - [#155 — Return topic quizzes to their parent module instead of global Home](https://github.com/cleanshipcz/day-skipper-trainer-copy/issues/155)
 - [#156 — Validate persisted quiz answers against stable question and option identities](https://github.com/cleanshipcz/day-skipper-trainer-copy/issues/156)
+- [#157 — Do not reveal quiz correctness through the live score before submission](https://github.com/cleanshipcz/day-skipper-trainer-copy/issues/157)
