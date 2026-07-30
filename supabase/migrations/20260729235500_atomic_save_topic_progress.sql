@@ -100,6 +100,9 @@ begin
 
   v_completion_awarded := coalesce(p_completed, false) and not coalesce(v_was_completed, false);
 
+  -- Completion is the authenticated user's declaration: browser activity
+  -- cannot prove human reading. Points are non-authoritative gamification and
+  -- must never be consumed for authorization, economic value, or certification.
   -- Reward values are an application-owned catalogue. p_points remains in the
   -- signature for backwards compatibility, but is deliberately never read.
   -- Variable client-scored quiz/activity rewards are not eligible here.

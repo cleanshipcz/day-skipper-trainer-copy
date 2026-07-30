@@ -74,4 +74,13 @@ describe("progress integrity proof path", () => {
     expect(migration).not.toContain("Verified completion evidence required");
     expect(migration).toContain("save_topic_progress");
   });
+
+  it("documents that client-declared completion produces non-authoritative gamification", () => {
+    const trustModel = readFileSync(resolve(process.cwd(), "docs/POINTS_TRUST_MODEL.md"), "utf8");
+
+    expect(trustModel).toContain("authenticated user's declaration");
+    expect(trustModel).toContain("must never grant authorization");
+    expect(trustModel).toContain("carry monetary value");
+    expect(trustModel).toContain("caps each reward at one award");
+  });
 });

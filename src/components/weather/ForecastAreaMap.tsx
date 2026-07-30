@@ -24,6 +24,17 @@ export const ForecastAreaMap = () => {
               <span className="sr-only">{area.name}</span>
             </button>
           ))}
+          <div
+            className="pointer-events-none absolute z-10 -translate-x-1/2 -translate-y-1/2"
+            style={{ left: `${selected.x}%`, top: `${selected.y}%` }}
+            data-testid="selected-area-marker"
+            data-area={selected.name}
+          >
+            <span className="block h-4 w-4 rounded-full border-2 border-white bg-destructive shadow ring-2 ring-destructive/40" />
+            <span className="absolute left-1/2 top-5 -translate-x-1/2 whitespace-nowrap rounded bg-background/95 px-2 py-1 text-xs font-semibold text-foreground shadow">
+              {selected.name}
+            </span>
+          </div>
         </div>
         <div className="grid grid-cols-2 gap-2 sm:grid-cols-3 lg:grid-cols-4" role="group" aria-label="Shipping forecast area list">
           {forecastAreas.map((area) => (
