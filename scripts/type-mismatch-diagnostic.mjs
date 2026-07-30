@@ -1,6 +1,7 @@
 const MAX_LINE_LENGTH = 240;
 const CONTEXT_LINES = 4;
 const MAX_CHANGED_LINES = 24;
+const MAX_COMPLETE_BYTES = 64 * 1024;
 
 const redact = (line) =>
   line
@@ -31,15 +32,23 @@ export function formatTypeMismatch(generated, checkedIn) {
   const start = Math.max(0, first - CONTEXT_LINES);
   const expectedStop = Math.min(expected.length, expectedEnd + CONTEXT_LINES + 2, start + MAX_CHANGED_LINES);
   const actualStop = Math.min(actual.length, actualEnd + CONTEXT_LINES + 2, start + MAX_CHANGED_LINES);
-  const omitted =
-    expectedStop <= expectedEnd || actualStop <= actualEnd
-      ? "\n... mismatch output truncated; reproduce with `npm run guard:supabase-types` locally."
-      : "";
+  const complete = [
+    "Complete generated types (expected):",
+    ...numbered("+", expected, 0),
+    "Checked-in types (actual):",
+    ...numbered("-", actual.slice(start, actualStop), start),
+  ].join("\n");
+  if (Buffer.byteLength(complete, "utf8") <= MAX_COMPLETE_BYTES) return complete;
 
-  return [
-    "Generated types (expected):",
+  const bounded = [
+    "Generated types (expected, first mismatch window):",
     ...numbered("+", expected.slice(start, expectedStop), start),
     "Checked-in types (actual):",
     ...numbered("-", actual.slice(start, actualStop), start),
-  ].join("\n") + omitted;
+    "... complete diagnostic exceeded 64 KiB; output limited to the first mismatch window.",
+  ].join("\n");
+
+  // Each side is limited to 24 redacted lines of at most 240 characters, so
+  // this fallback remains below the same byte ceiling even for multibyte text.
+  return bounded;
 }
