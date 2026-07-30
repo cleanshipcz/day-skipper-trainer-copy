@@ -35,28 +35,40 @@ const writeOutbox = (owner: string, items: readonly EngagementEvidence[]) => {
   else localStorage.setItem(outboxKey(owner), JSON.stringify(items.slice(-100)));
 };
 const evidenceKey = ({ sourceType, sourceId }: EngagementEvidence) => `${sourceType}:${sourceId}`;
+const ownerLocks = new Map<string, Promise<void>>();
+const withOwnerLock = async <T>(owner: string, operation: () => Promise<T>): Promise<T> => {
+  const previous = ownerLocks.get(owner) ?? Promise.resolve();
+  let release!: () => void;
+  const current = new Promise<void>((resolve) => { release = resolve; });
+  const queued = previous.then(() => current);
+  ownerLocks.set(owner, queued);
+  await previous;
+  try { return await operation(); }
+  finally {
+    release();
+    if (ownerLocks.get(owner) === queued) ownerLocks.delete(owner);
+  }
+};
 
 export const syncEngagementEvent = async (
   client: RpcClient, owner: string, evidence: EngagementEvidence,
-): Promise<EngagementResult> => {
-  const pending = new Map(readOutbox(owner).map((item) => [evidenceKey(item), item]));
-  pending.set(evidenceKey(evidence), evidence);
-  writeOutbox(owner, [...pending.values()]);
+): Promise<EngagementResult> => withOwnerLock(owner, async () => {
+  const before = new Map(readOutbox(owner).map((item) => [evidenceKey(item), item]));
+  before.set(evidenceKey(evidence), evidence);
+  writeOutbox(owner, [...before.values()]);
   const { data, error } = await client.rpc("sync_engagement_event", {
-    p_source_type: evidence.sourceType,
-    p_source_id: evidence.sourceId,
+    p_source_type: evidence.sourceType, p_source_id: evidence.sourceId,
   });
   if (error) throw error;
   if (!data) throw new Error("Engagement evidence returned no outcome");
-  pending.delete(evidenceKey(evidence));
-  writeOutbox(owner, [...pending.values()]);
-  return {
-    streak: data.current_streak,
-    bonusPoints: data.bonus_points,
+  // Re-read after the await so a newer writer can never be erased by a stale snapshot.
+  const after = new Map(readOutbox(owner).map((item) => [evidenceKey(item), item]));
+  after.delete(evidenceKey(evidence));
+  writeOutbox(owner, [...after.values()]);
+  return { streak: data.current_streak, bonusPoints: data.bonus_points,
     unlockedBadges: data.unlocked_badge_ids.map((id) => badgeById.get(id))
-      .filter((badge): badge is BadgeDefinition => Boolean(badge)),
-  };
-};
+      .filter((badge): badge is BadgeDefinition => Boolean(badge)) };
+});
 
 export const retryEngagementOutbox = async (
   client: RpcClient, owner: string,

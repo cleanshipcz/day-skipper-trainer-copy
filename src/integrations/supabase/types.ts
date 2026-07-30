@@ -178,6 +178,19 @@ export type Database = {
         }
         Relationships: []
       }
+      quiz_attempts: {
+        Row: {
+          attempt_id: string
+          completed_at: string | null
+          expected_total: number
+          started_at: string
+          topic_id: string
+          user_id: string
+        }
+        Insert: never
+        Update: never
+        Relationships: []
+      }
       user_progress: {
         Row: {
           answers_history: Json | null
@@ -232,6 +245,10 @@ export type Database = {
           p_total_questions: number
         }
         Returns: Database["public"]["Tables"]["quiz_scores"]["Row"]
+      }
+      start_quiz_attempt: {
+        Args: { p_topic_id: string }
+        Returns: Database["public"]["Tables"]["quiz_attempts"]["Row"]
       }
       record_question_review: {
         Args: {

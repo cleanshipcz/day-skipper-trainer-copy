@@ -28,14 +28,17 @@ import { seedQuizQuestions } from "@/features/spaced-repetition/reviewService";
 import { syncEngagementEvent } from "@/features/engagement/engagementService";
 
 const quizAttemptKey = (owner: string, topic: string) => `quiz-attempt:${owner}:${topic}`;
-const durableAttemptId = (owner: string | undefined, topic: string): string => {
-  if (!owner) return crypto.randomUUID();
-  const key = quizAttemptKey(owner, topic);
-  const existing = localStorage.getItem(key);
-  if (existing) return existing;
-  const created = crypto.randomUUID();
-  localStorage.setItem(key, created);
-  return created;
+interface QuizWorkflow {
+  readonly attemptId: string;
+  readonly scoreSaved: boolean;
+}
+const readQuizWorkflow = (owner: string | undefined, topic: string): QuizWorkflow | null => {
+  if (!owner) return null;
+  try {
+    const parsed = JSON.parse(localStorage.getItem(quizAttemptKey(owner, topic)) ?? "null") as Partial<QuizWorkflow> | null;
+    return parsed && typeof parsed.attemptId === "string"
+      ? { attemptId: parsed.attemptId, scoreSaved: parsed.scoreSaved === true } : null;
+  } catch { return null; }
 };
 
 const Quiz = () => {
@@ -73,7 +76,9 @@ const Quiz = () => {
   const [showExplanation, setShowExplanation] = useState(false);
   const [isComplete, setIsComplete] = useState(false);
   const [seedStatus, setSeedStatus] = useState<"idle" | "saving" | "saved" | "failed">("idle");
-  const [attemptId, setAttemptId] = useState(() => durableAttemptId(user?.id, topicKey));
+  const [workflow, setWorkflow] = useState<QuizWorkflow | null>(() => readQuizWorkflow(user?.id, topicKey));
+  const [completionSaveError, setCompletionSaveError] = useState(false);
+  const [attemptCycle, setAttemptCycle] = useState(0);
   const seedOwnerRef = useRef(user?.id ?? null);
   const seedGenerationRef = useRef(0);
   const currentSeedOwner = user?.id ?? null;
@@ -148,8 +153,19 @@ const Quiz = () => {
   }, [questions.length, topicKey, loadProgress, saveProgress, resetProgress, seedReviews]);
 
   useEffect(() => {
-    setAttemptId(durableAttemptId(user?.id, topicKey));
-  }, [user?.id, topicKey]);
+    const owner = user?.id;
+    const generation = seedGenerationRef.current;
+    const existing = readQuizWorkflow(owner, topicKey);
+    setWorkflow(existing);
+    if (!owner || existing) return;
+    void (async () => {
+      const { data, error } = await supabase.rpc("start_quiz_attempt", { p_topic_id: topicKey });
+      if (error || !data || seedOwnerRef.current !== owner || seedGenerationRef.current !== generation) return;
+      const created = { attemptId: data.attempt_id, scoreSaved: false };
+      localStorage.setItem(quizAttemptKey(owner, topicKey), JSON.stringify(created));
+      setWorkflow(created);
+    })();
+  }, [user?.id, topicKey, attemptCycle]);
 
   const selectedAnswer = answers[currentQuestion] ?? null;
   const correctAnswers = countCorrectAnswers(answers, questions);
@@ -244,20 +260,31 @@ const Quiz = () => {
     if (!user) return;
     const owner = user.id;
     const generation = seedGenerationRef.current;
+    const activeWorkflow = workflow;
+    if (!activeWorkflow) {
+      setCompletionSaveError(true);
+      toast.error("Quiz attempt is still starting. Retry saving.");
+      return;
+    }
+    setCompletionSaveError(false);
 
     const { percentage, passed, pointsEarned } = quizCompletionOutcome(correctAnswers, questions.length);
 
     try {
       // Save quiz score
-      const { error: scoreError } = await supabase.rpc("submit_quiz_score", {
-        p_attempt_id: attemptId,
-        p_topic_id: topicKey,
-        p_score: correctAnswers,
-        p_total_questions: questions.length,
-      });
-      if (scoreError) throw scoreError;
-      if (seedOwnerRef.current !== owner || seedGenerationRef.current !== generation) return;
-      localStorage.removeItem(quizAttemptKey(owner, topicKey));
+      if (!activeWorkflow.scoreSaved) {
+        const { error: scoreError } = await supabase.rpc("submit_quiz_score", {
+          p_attempt_id: activeWorkflow.attemptId,
+          p_topic_id: topicKey,
+          p_score: correctAnswers,
+          p_total_questions: questions.length,
+        });
+        if (scoreError) throw scoreError;
+        if (seedOwnerRef.current !== owner || seedGenerationRef.current !== generation) return;
+        const scoreSavedWorkflow = { ...activeWorkflow, scoreSaved: true };
+        localStorage.setItem(quizAttemptKey(owner, topicKey), JSON.stringify(scoreSavedWorkflow));
+        setWorkflow(scoreSavedWorkflow);
+      }
 
       // Save final progress with answers
       const saved = await saveProgress(
@@ -274,7 +301,7 @@ const Quiz = () => {
 
       if (saved) {
         try {
-          const engagement = await syncEngagementEvent(supabase, owner, { sourceType: "quiz", sourceId: attemptId });
+          const engagement = await syncEngagementEvent(supabase, owner, { sourceType: "quiz", sourceId: activeWorkflow.attemptId });
           if (seedOwnerRef.current !== owner || seedGenerationRef.current !== generation) return;
           engagement.unlockedBadges.forEach((badge) => toast.success(`${badge.icon} Badge unlocked: ${badge.name}`));
         } catch (error) {
@@ -285,10 +312,15 @@ const Quiz = () => {
             ? "Quiz passed and saved."
             : "Quiz saved. Score 70% or more to pass."
         );
+        localStorage.removeItem(quizAttemptKey(owner, topicKey));
+        setWorkflow(null);
+      } else {
+        setCompletionSaveError(true);
       }
       await seedReviews(owner, generation);
     } catch (error) {
       console.error("Error saving quiz results:", error);
+      if (seedOwnerRef.current === owner && seedGenerationRef.current === generation) setCompletionSaveError(true);
     }
   };
 
@@ -298,9 +330,9 @@ const Quiz = () => {
     setShowExplanation(false);
     setIsComplete(false);
     setSeed((n) => n + 1);
-    const nextAttempt = crypto.randomUUID();
-    if (user) localStorage.setItem(quizAttemptKey(user.id, topicKey), nextAttempt);
-    setAttemptId(nextAttempt);
+    setWorkflow(null);
+    setCompletionSaveError(false);
+    setAttemptCycle((value) => value + 1);
   };
 
   if (isComplete) {
@@ -355,6 +387,10 @@ const Quiz = () => {
               <Button variant="outline" onClick={() => {
                 if (user) void seedReviews(user.id, seedGenerationRef.current);
               }}>Retry review sync</Button>
+            </div>}
+            {completionSaveError && <div className="text-center space-y-2">
+              <p role="alert" className="text-sm text-destructive">Your completion is not fully saved yet.</p>
+              <Button variant="outline" onClick={() => void handleComplete()}>Retry completion save</Button>
             </div>}
           </CardContent>
         </Card>

@@ -4,6 +4,7 @@ import { badgeCatalogue } from "@/data/badges";
 
 const sql = readFileSync("supabase/migrations/20260730110000_engagement.sql", "utf8");
 const hardened = readFileSync("supabase/migrations/20260730111000_harden_engagement_evidence.sql", "utf8");
+const issued = readFileSync("supabase/migrations/20260730112000_issued_quiz_attempts.sql", "utf8");
 
 describe("engagement migration", () => {
   test("should keep badges immutable and mutation RPC-only", () => {
@@ -11,6 +12,18 @@ describe("engagement migration", () => {
     expect(sql).toContain("for select to authenticated");
     expect(sql).not.toMatch(/policy[^;]+for (insert|update|delete|all)/i);
     expect(sql).toContain("revoke insert, update, delete on public.user_badges from authenticated");
+  });
+
+  test("should issue bounded server attempts and reward reviews only at receipt creation time", () => {
+    expect(issued).toContain("create table public.quiz_attempts");
+    expect(issued).toContain("default gen_random_uuid()");
+    expect(issued).toContain("Issued quiz attempt not found");
+    expect(issued).toContain("Attempt topic or total mismatch");
+    expect(issued).toContain("Quiz submitted implausibly quickly");
+    expect(issued).toContain("Quiz attempt expired");
+    expect(issued).toContain("Quiz attempt retention limit reached");
+    expect(issued).toContain("new.created_at");
+    expect(issued).not.toContain("timezone('Europe/Prague',new.reviewed_at)");
   });
 
   test("should use authenticated server-owned activity dates and idempotent awards", () => {

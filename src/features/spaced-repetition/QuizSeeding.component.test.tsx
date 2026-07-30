@@ -43,12 +43,16 @@ const renderQuiz = () => render(
 
 describe("quiz review seeding identity isolation", () => {
   beforeEach(() => {
+    localStorage.clear();
     mocks.auth.user = { id: "a" };
     mocks.loadProgress.mockReset().mockResolvedValue(null);
     mocks.saveProgress.mockReset().mockResolvedValue(true);
     mocks.resetProgress.mockReset().mockResolvedValue(undefined);
     mocks.seedQuizQuestions.mockReset().mockResolvedValue(undefined);
-    mocks.rpc.mockReset().mockResolvedValue({ data: {}, error: null });
+    mocks.rpc.mockReset().mockImplementation((name: string) => Promise.resolve({
+      data: name === "start_quiz_attempt" ? { attempt_id: "issued-attempt" } : {},
+      error: null,
+    }));
   });
 
   test("should not seed a stale completed load after an A to B to A switch", async () => {
@@ -67,7 +71,9 @@ describe("quiz review seeding identity isolation", () => {
 
   test("should not seed after auth changes while quiz completion persistence is pending", async () => {
     let resolveInsert!: (value: { data: object; error: null }) => void;
-    mocks.rpc.mockReturnValueOnce(new Promise((resolve) => { resolveInsert = resolve; }));
+    mocks.rpc.mockImplementation((name: string) => name === "submit_quiz_score"
+      ? new Promise((resolve) => { resolveInsert = resolve; })
+      : Promise.resolve({ data: { attempt_id: "issued-attempt" }, error: null }));
     const view = renderQuiz();
     fireEvent.click(await screen.findByRole("button", { name: "Right" }));
     fireEvent.click(screen.getByRole("button", { name: "Submit Answer" }));
@@ -79,5 +85,19 @@ describe("quiz review seeding identity isolation", () => {
     await act(async () => resolveInsert({ data: {}, error: null }));
     expect(mocks.seedQuizQuestions).not.toHaveBeenCalled();
     expect(mocks.saveProgress.mock.calls.some((call) => call[1] === true)).toBe(false);
+  });
+
+  test("should reuse the issued attempt when score succeeds but final progress needs retry", async () => {
+    mocks.saveProgress.mockImplementation((_topic: string, completed: boolean) => Promise.resolve(!completed));
+    renderQuiz();
+    fireEvent.click(await screen.findByRole("button", { name: "Right" }));
+    fireEvent.click(screen.getByRole("button", { name: "Submit Answer" }));
+    fireEvent.click(screen.getByRole("button", { name: "View Results" }));
+    expect(await screen.findByRole("button", { name: "Retry completion save" })).toBeTruthy();
+    fireEvent.click(screen.getByRole("button", { name: "Retry completion save" }));
+    await waitFor(() => expect(mocks.saveProgress.mock.calls.filter((call) => call[1] === true)).toHaveLength(2));
+
+    expect(mocks.rpc.mock.calls.filter((call) => call[0] === "submit_quiz_score")).toHaveLength(1);
+    expect(localStorage.getItem("quiz-attempt:a:test")).toContain('"scoreSaved":true');
   });
 });

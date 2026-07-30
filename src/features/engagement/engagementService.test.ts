@@ -28,4 +28,26 @@ describe("engagement evidence outbox", () => {
     await expect(syncEngagementEvent(offline, "owner-a", { sourceType: "review", sourceId: "receipt-1" })).rejects.toThrow();
     expect(JSON.parse(localStorage.getItem("engagement-outbox:owner-a") ?? "[]")).toHaveLength(1);
   });
+
+  test("should preserve a later failed item when an earlier deferred sync succeeds", async () => {
+    let releaseFirst!: () => void;
+    const client = { rpc: vi.fn()
+      .mockReturnValueOnce(new Promise((resolve) => { releaseFirst = () => resolve({
+        data: { current_streak: 1, bonus_points: 0, unlocked_badge_ids: [] }, error: null,
+      }); }))
+      .mockResolvedValueOnce({ data: null, error: new Error("offline") }) };
+    const first = syncEngagementEvent(client, "owner-a", { sourceType: "quiz", sourceId: "a" });
+    const second = syncEngagementEvent(client, "owner-a", { sourceType: "review", sourceId: "b" });
+    releaseFirst();
+    await first;
+    await expect(second).rejects.toThrow("offline");
+
+    expect(localStorage.getItem("engagement-outbox:owner-a")).not.toContain('"a"');
+    expect(localStorage.getItem("engagement-outbox:owner-a")).toContain('"b"');
+    const restarted = { rpc: vi.fn().mockResolvedValue({
+      data: { current_streak: 1, bonus_points: 0, unlocked_badge_ids: [] }, error: null,
+    }) };
+    await retryEngagementOutbox(restarted, "owner-a");
+    expect(localStorage.getItem("engagement-outbox:owner-a")).toBeNull();
+  });
 });
