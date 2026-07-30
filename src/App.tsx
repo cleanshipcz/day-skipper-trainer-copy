@@ -7,6 +7,7 @@ import { BrowserRouter, Routes, Route } from "react-router-dom";
 import { AuthProvider } from "@/contexts/AuthContext";
 import { appRoutes } from "@/app/routes";
 import { ROUTER_FUTURE } from "@/app/routerFuture";
+import { OfflineSupport } from "@/components/OfflineSupport";
 
 const queryClient = new QueryClient();
 
@@ -17,6 +18,7 @@ const App = () => (
       <Sonner />
       <BrowserRouter future={ROUTER_FUTURE}>
         <AuthProvider>
+          <OfflineSupport />
           <Suspense fallback={<div className="p-6 text-sm text-muted-foreground">Loading page...</div>}>
             <Routes>
               {appRoutes.map((route) => {

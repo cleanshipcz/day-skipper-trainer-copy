@@ -33,12 +33,13 @@ export const VectorTriangleVisualizer = ({
   const [isDragging, setIsDragging] = useState(false);
   const [dragStart, setDragStart] = useState({ x: 0, y: 0 });
 
-  const handleMouseDown = (e: React.MouseEvent) => {
+  const handlePointerDown = (e: React.PointerEvent<SVGSVGElement>) => {
     setIsDragging(true);
     setDragStart({ x: e.clientX - pan.x, y: e.clientY - pan.y });
+    e.currentTarget.setPointerCapture?.(e.pointerId);
   };
 
-  const handleMouseMove = (e: React.MouseEvent) => {
+  const handlePointerMove = (e: React.PointerEvent<SVGSVGElement>) => {
     if (!isDragging) return;
     setPan({
       x: e.clientX - dragStart.x,
@@ -46,12 +47,9 @@ export const VectorTriangleVisualizer = ({
     });
   };
 
-  const handleMouseUp = () => {
+  const handlePointerUp = (e: React.PointerEvent<SVGSVGElement>) => {
     setIsDragging(false);
-  };
-
-  const handleMouseLeave = () => {
-    setIsDragging(false);
+    if (e.currentTarget.hasPointerCapture?.(e.pointerId)) e.currentTarget.releasePointerCapture?.(e.pointerId);
   };
 
   const AX_val = AX; // Changed from let to const, keeping original value
@@ -201,11 +199,23 @@ export const VectorTriangleVisualizer = ({
           width="100%"
           height="100%"
           viewBox={`0 0 ${WIDTH} ${HEIGHT}`}
-          className={`mx-auto ${isDragging ? "cursor-grabbing" : "cursor-grab"}`}
-          onMouseDown={handleMouseDown}
-          onMouseMove={handleMouseMove}
-          onMouseUp={handleMouseUp}
-          onMouseLeave={handleMouseLeave}
+          className={`mx-auto touch-none ${isDragging ? "cursor-grabbing" : "cursor-grab"}`}
+          role="img"
+          aria-label="Course to steer vector triangle. Drag to pan the diagram."
+          tabIndex={0}
+          onPointerDown={handlePointerDown}
+          onPointerMove={handlePointerMove}
+          onPointerUp={handlePointerUp}
+          onPointerCancel={handlePointerUp}
+          onKeyDown={(event) => {
+            const movement = 10;
+            if (!["ArrowLeft", "ArrowRight", "ArrowUp", "ArrowDown"].includes(event.key)) return;
+            event.preventDefault();
+            setPan((current) => ({
+              x: current.x + (event.key === "ArrowLeft" ? movement : event.key === "ArrowRight" ? -movement : 0),
+              y: current.y + (event.key === "ArrowUp" ? movement : event.key === "ArrowDown" ? -movement : 0),
+            }));
+          }}
         >
           <g transform={`translate(${pan.x}, ${pan.y})`}>
             {/* Start Point A */}

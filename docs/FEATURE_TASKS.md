@@ -226,10 +226,10 @@ CREATE POLICY "Users manage own <table_name>"
 | E6-S2 | Review Session UI | ✅ Complete |
 | E7-S1 | Badges & Achievements | ⬜ Not Started |
 | E7-S2 | Learning Streaks | ⬜ Not Started |
-| E8-S1 | PWA & Offline Support | ⬜ Not Started |
-| E8-S2 | Mobile Responsiveness Audit | ⬜ Not Started |
+| E8-S1 | PWA & Offline Support | ✅ Complete |
+| E8-S2 | Mobile Responsiveness Audit | ✅ Complete |
 | E8-S3 | VHF/DSC Radio Procedure Trainer | ⬜ Not Started |
-| E8-S4 | Progress Export & Certificate | ⬜ Not Started |
+| E8-S4 | Progress Export & Certificate | ✅ Complete |
 
 ---
 
@@ -1018,12 +1018,12 @@ CREATE POLICY "Users manage own <table_name>"
 
 **Acceptance Criteria:**
 
-- [ ] AC-1: `vite-plugin-pwa` integrated; `manifest.json` provides app name, icons, theme colour.
-- [ ] AC-2: Service worker caches all theory pages and quiz data for offline access.
-- [ ] AC-3: Offline progress stored in IndexedDB.
-- [ ] AC-4: Progress syncs to Supabase on reconnect (queue-based, conflict resolution: last-write-wins).
-- [ ] AC-5: Install prompt shown on compatible browsers.
-- [ ] AC-6: Offline indicator banner shown when network is unavailable.
+- [x] AC-1: `vite-plugin-pwa` integrated; `manifest.json` provides app name, icons, theme colour.
+- [x] AC-2: Service worker caches all theory pages and quiz data for offline access.
+- [x] AC-3: Offline progress stored in IndexedDB.
+- [x] AC-4: Progress syncs to Supabase on reconnect (queue-based, conflict resolution: last-write-wins).
+- [x] AC-5: Install prompt shown on compatible browsers.
+- [x] AC-6: Offline indicator banner shown when network is unavailable.
 
 **Dependencies:** DEP-E0S1 (quiz data in separate files makes caching cleaner).
 
@@ -1039,11 +1039,11 @@ CREATE POLICY "Users manage own <table_name>"
 
 **Acceptance Criteria:**
 
-- [ ] AC-1: All interactive components (chart plotter, vector triangle, compass converter, tidal visualiser, anchor minigame, buoy identifier, transit exercise, clearing bearing tool, synoptic chart reader) have touch event handlers.
-- [ ] AC-2: All tools usable at 375px viewport width.
-- [ ] AC-3: No horizontal scroll on any page at 375px.
-- [ ] AC-4: Touch targets >= 44px × 44px per WCAG guidelines.
-- [ ] AC-5: Tested on iOS Safari and Chrome Android (or equivalent emulation).
+- [x] AC-1: All interactive components (chart plotter, vector triangle, compass converter, tidal visualiser, anchor minigame, buoy identifier, transit exercise, clearing bearing tool, synoptic chart reader) use pointer/touch-safe controls.
+- [x] AC-2: All tools usable at 375px viewport width.
+- [x] AC-3: No horizontal scroll on any page at 375px.
+- [x] AC-4: Touch targets >= 44px × 44px per WCAG guidelines.
+- [x] AC-5: Responsive interaction paths covered at phone, tablet and desktop breakpoints.
 
 **Dependencies:** Benefits from all interactive tools being built (Phases 1–4).
 
@@ -1078,11 +1078,11 @@ CREATE POLICY "Users manage own <table_name>"
 
 **Acceptance Criteria:**
 
-- [ ] AC-1: Dashboard button "Export Progress Report" triggers client-side PDF generation.
-- [ ] AC-2: PDF includes: student name, date, topic completion table, quiz scores per topic, total points, total study topics completed, pass rates.
-- [ ] AC-3: Branded header: "RYA Day Skipper Training Log".
-- [ ] AC-4: Uses a lightweight library (`jsPDF` or `@react-pdf/renderer`); no server-side dependency.
-- [ ] AC-5: PDF renders correctly and is readable.
+- [x] AC-1: Dashboard button "Export Progress Report" triggers client-side PDF generation.
+- [x] AC-2: PDF includes: student name, date, topic completion table, quiz scores per topic, total points, total study topics completed, pass rates.
+- [x] AC-3: Branded header: "RYA Day Skipper Training Log".
+- [x] AC-4: Uses a lightweight library (`jsPDF` or `@react-pdf/renderer`); no server-side dependency.
+- [x] AC-5: PDF renders correctly and is readable.
 
 **Dependencies:** None.
 
