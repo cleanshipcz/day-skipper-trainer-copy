@@ -4,6 +4,7 @@ import { mkdtempSync, mkdirSync, readFileSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { resolve } from "node:path";
 import { describe, expect, it } from "vitest";
+import { extractQualityNpmCommands } from "./ci-quality-commands-core.mjs";
 import { discoverProductionModules } from "./coverage-scope-core.mjs";
 
 const migrationGuard = resolve(process.cwd(), "scripts/check-migrations.mjs");
@@ -19,13 +20,49 @@ describe("quality guard regressions", () => {
 
     expect(documentedBlock, "README quality command markers are missing").not.toBeNull();
 
-    const ciCommands = [...workflow.matchAll(/^\s+run: (npm run .+)$/gm)].map((match) => match[1]);
+    const ciCommands = extractQualityNpmCommands(workflow);
     const documentedCommands = documentedBlock![1]
       .split("\n")
       .map((command) => command.trim())
       .filter(Boolean);
 
     expect(documentedCommands).toEqual(ciCommands);
+  });
+
+  it("extracts multiline npm commands only from the quality job", () => {
+    const workflow = `jobs:
+  quality:
+    runs-on: ubuntu-latest
+    steps:
+      - run: |
+          npm run lint
+          npm run guard:coverage-scope && \\
+            npm run test:coverage -- --maxWorkers=1
+      - run: >
+          npm run test --
+          --run --maxWorkers=1
+  unrelated:
+    steps:
+      - run: npm run should-not-be-documented
+`;
+
+    expect(extractQualityNpmCommands(workflow)).toEqual([
+      "npm run lint",
+      "npm run guard:coverage-scope && npm run test:coverage -- --maxWorkers=1",
+      "npm run test -- --run --maxWorkers=1",
+    ]);
+  });
+
+  it("rejects unsupported relevant npm command forms instead of ignoring them", () => {
+    const workflow = `jobs:
+  quality:
+    steps:
+      - run: NODE_ENV=test npm run test -- --run
+`;
+
+    expect(() => extractQualityNpmCommands(workflow)).toThrow(
+      "Unsupported npm run command form in CI quality job",
+    );
   });
 
   it("discovers nested production modules while excluding nested tests", async () => {
