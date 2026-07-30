@@ -13,9 +13,15 @@ npm run test -- --run --maxWorkers=1
 npm run guard:coverage-scope && npm run test:coverage -- --maxWorkers=1
 npm run build
 npm run test:build-budget
+npm run test:quiz-chunks
 npm run guard:migrations
 npm run guard:no-internal-artifacts
 ```
+
+The quiz-chunk guard reads the production manifest and generated service
+worker. It requires every quiz bank to remain an independent dynamic chunk,
+excluded from install-time precaching, and covered by on-demand runtime
+caching for offline reuse after its first successful load.
 
 ### Chained-branch migration base
 

@@ -1,6 +1,7 @@
 import { readFileSync } from "node:fs";
 
 const manifest = JSON.parse(readFileSync("dist/manifest.json", "utf8"));
+const serviceWorker = readFileSync("dist/sw.js", "utf8");
 const topicSources = [
   "nauticalTerms", "ropework", "anchorwork", "victualling", "engine", "rig",
   "colregs", "lightsSignals", "safetyMob", "safetyFire", "safetyLifeRaft",
@@ -17,4 +18,15 @@ if (!quizPage?.isDynamicEntry) throw new Error("Quiz page must remain a lazy rou
 const bundledTopic = topicSources.find((source) => quizPage.dynamicImports?.includes(source));
 if (bundledTopic) throw new Error(`Single-topic route eagerly bundles ${bundledTopic}.`);
 
-console.log(`Quiz chunk assertion passed: ${topicSources.length} independently lazy banks; Quiz route loads none eagerly.`);
+const precachedTopic = topicSources.find((source) => serviceWorker.includes(manifest[source].file));
+if (precachedTopic) {
+  throw new Error(`Service-worker install precaches on-demand bank ${manifest[precachedTopic].file}.`);
+}
+if (!serviceWorker.includes("theory-and-on-demand-quiz-content")) {
+  throw new Error("Service worker must runtime-cache quiz chunks after first use.");
+}
+
+console.log(
+  `Quiz chunk assertion passed: ${topicSources.length} independently lazy banks; `
+  + "none loaded eagerly or install-precached; runtime caching enabled.",
+);
