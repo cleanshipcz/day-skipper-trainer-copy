@@ -1,4 +1,5 @@
 import { readFileSync } from "node:fs";
+import { runInNewContext } from "node:vm";
 
 const manifest = JSON.parse(readFileSync("dist/manifest.json", "utf8"));
 const serviceWorker = readFileSync("dist/sw.js", "utf8");
@@ -22,8 +23,51 @@ const precachedTopic = topicSources.find((source) => serviceWorker.includes(mani
 if (precachedTopic) {
   throw new Error(`Service-worker install precaches on-demand bank ${manifest[precachedTopic].file}.`);
 }
-if (!serviceWorker.includes("theory-and-on-demand-quiz-content")) {
-  throw new Error("Service worker must runtime-cache quiz chunks after first use.");
+const workboxDefine = serviceWorker.lastIndexOf('define(["./workbox-');
+const factoryStart = serviceWorker.indexOf("function(", workboxDefine);
+const factoryEnd = serviceWorker.lastIndexOf("});");
+if (workboxDefine < 0 || factoryStart < 0 || factoryEnd < factoryStart) {
+  throw new Error("Could not inspect the generated Workbox service worker.");
+}
+const factorySource = serviceWorker.slice(factoryStart, factoryEnd + 1);
+
+const runtimeRoutes = [];
+class StaleWhileRevalidate {
+  constructor(options) {
+    this.options = options;
+  }
+}
+class NavigationRoute {
+  constructor(handler) {
+    this.handler = handler;
+  }
+}
+const workbox = {
+  StaleWhileRevalidate,
+  NavigationRoute,
+  cleanupOutdatedCaches() {},
+  createHandlerBoundToURL() {},
+  precacheAndRoute() {},
+  registerRoute: (...args) => runtimeRoutes.push(args),
+};
+runInNewContext(`(${factorySource})(workbox)`, {
+  workbox,
+  self: { addEventListener() {}, skipWaiting() {} },
+});
+
+const quizRoute = runtimeRoutes.find(([, handler]) => handler instanceof StaleWhileRevalidate);
+if (!quizRoute) throw new Error("Service worker has no StaleWhileRevalidate runtime route.");
+const [matchesQuizRequest, handler, method] = quizRoute;
+if (method !== "GET" || handler.options?.cacheName !== "theory-and-on-demand-quiz-content") {
+  throw new Error("Quiz runtime route must cache GET requests with the intended cache.");
+}
+for (const source of topicSources) {
+  const file = manifest[source].file;
+  const matches = matchesQuizRequest({
+    request: { destination: "script", method: "GET" },
+    url: new URL(file, "https://trainer.example/"),
+  });
+  if (!matches) throw new Error(`Service-worker runtime route does not match quiz bank ${file}.`);
 }
 
 console.log(
