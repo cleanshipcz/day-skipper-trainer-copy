@@ -14,6 +14,19 @@ create policy "Users can view their own progress awards"
   to authenticated
   using ((select auth.uid()) = user_id);
 
+-- Progress writes must pass through save_topic_progress so clients cannot
+-- bypass its immutable ledger. Keep reads and the existing reset flow intact.
+revoke insert, update on public.user_progress from anon, authenticated;
+
+-- A user may edit their profile, but points are an award-ledger projection and
+-- must never be client writable. Replace broad mutation grants with an explicit
+-- list of user-owned presentation/preferences columns.
+revoke insert, update on public.profiles from anon, authenticated;
+grant insert (user_id, username, display_name, avatar_url, learning_preferences, updated_at)
+  on public.profiles to authenticated;
+grant update (username, display_name, avatar_url, learning_preferences, updated_at)
+  on public.profiles to authenticated;
+
 -- Mark every legacy completion before installing the new write contract. The
 -- marker intentionally records zero because historical profile point awards
 -- cannot be reconstructed safely. Its immutable identity prevents a reset
@@ -144,7 +157,7 @@ begin
     if coalesce(v_points_awarded, false) then
       update public.profiles
          set points = coalesce(points, 0) + v_award_points
-       where id = v_user_id;
+       where user_id = v_user_id;
     end if;
   end if;
 

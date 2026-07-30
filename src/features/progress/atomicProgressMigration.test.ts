@@ -81,4 +81,13 @@ describe("atomic progress migration", () => {
     expect(sql).toContain("to authenticated");
     expect(sql).toContain("increment_user_points(uuid, integer) from authenticated");
   });
+
+  it("prevents direct client mutation of progress and profile points", () => {
+    expect(sql).toContain("revoke insert, update on public.user_progress from anon, authenticated");
+    expect(sql).toContain("revoke insert, update on public.profiles from anon, authenticated");
+    expect(sql).toContain("grant update (username, display_name, avatar_url, learning_preferences, updated_at)");
+    expect(sql).not.toMatch(/grant (insert|update) \([^)]*points/);
+    expect(sql).toContain("where user_id = v_user_id");
+    expect(sql).not.toContain("where id = v_user_id");
+  });
 });
