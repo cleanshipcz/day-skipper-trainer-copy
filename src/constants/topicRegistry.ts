@@ -54,6 +54,12 @@ export const topicRegistry: readonly TopicEntry[] = [
   { id: "weather-forecasts", label: "Marine Forecasts", parentId: "weather", route: "/weather/forecasts", quizRoute: null, submoduleIds: [], syllabusArea: 12 },
   { id: "weather-fog", label: "Fog & Visibility", parentId: "weather", route: "/weather/fog", quizRoute: null, submoduleIds: [], syllabusArea: 12 },
   { id: "quiz-weather", label: "Meteorology Quiz", parentId: "weather", route: "/quiz/weather", quizRoute: "/quiz/weather", submoduleIds: [], syllabusArea: 12 },
+  { id: "passage-planning", label: "Passage Planning", parentId: null, route: "/passage-planning", quizRoute: "/quiz/passage-planning", submoduleIds: ["passage-planning-prepare", "passage-planning-calculator", "passage-planning-builder", "passage-planning-checklist", "quiz-passage-planning"], syllabusArea: 13 },
+  { id: "passage-planning-prepare", label: "PREPARE Mnemonic", parentId: "passage-planning", route: "/passage-planning/prepare", quizRoute: null, submoduleIds: [], syllabusArea: 13 },
+  { id: "passage-planning-calculator", label: "Passage Calculator", parentId: "passage-planning", route: "/passage-planning/calculator", quizRoute: null, submoduleIds: [], syllabusArea: 13 },
+  { id: "passage-planning-builder", label: "Passage Plan Builder", parentId: "passage-planning", route: "/passage-planning/builder", quizRoute: null, submoduleIds: [], syllabusArea: 13 },
+  { id: "passage-planning-checklist", label: "Pre-departure Checklist", parentId: "passage-planning", route: "/passage-planning/checklist", quizRoute: null, submoduleIds: [], syllabusArea: 13 },
+  { id: "quiz-passage-planning", label: "Passage Planning Quiz", parentId: "passage-planning", route: "/quiz/passage-planning", quizRoute: "/quiz/passage-planning", submoduleIds: [], syllabusArea: 13 },
 ];
 
 const topicByIdMap = new Map(topicRegistry.map((entry) => [entry.id, entry]));
@@ -108,4 +114,10 @@ export const TOPIC_IDS = {
   WEATHER_FORECASTS: "weather-forecasts",
   WEATHER_FOG: "weather-fog",
   WEATHER_QUIZ: "quiz-weather",
+  PASSAGE_PLANNING: "passage-planning",
+  PASSAGE_PLANNING_PREPARE: "passage-planning-prepare",
+  PASSAGE_PLANNING_CALCULATOR: "passage-planning-calculator",
+  PASSAGE_PLANNING_BUILDER: "passage-planning-builder",
+  PASSAGE_PLANNING_CHECKLIST: "passage-planning-checklist",
+  PASSAGE_PLANNING_QUIZ: "quiz-passage-planning",
 } as const;

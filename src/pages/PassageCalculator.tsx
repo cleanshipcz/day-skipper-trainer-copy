@@ -1,0 +1,2 @@
+import { useNavigate } from "react-router-dom"; import { ArrowLeft } from "lucide-react"; import { Button } from "@/components/ui/button"; import { FuelCalculator } from "@/components/passagePlanning/FuelCalculator";
+export default function PassageCalculator(){const n=useNavigate();return <main className="container mx-auto max-w-4xl p-4 py-8 space-y-6"><Button variant="ghost" onClick={()=>n("/passage-planning")}><ArrowLeft className="mr-2"/>Back</Button><h1 className="text-3xl font-bold">Passage calculator</h1><FuelCalculator/></main>}

@@ -1,0 +1,24 @@
+import { act, fireEvent, render, screen, waitFor } from "@testing-library/react"; import { beforeEach, describe, expect, it, vi } from "vitest"; import { PassagePlanBuilder } from "@/components/passagePlanning/PassagePlanBuilder";
+const saveProgress=vi.fn().mockResolvedValue(true),loadProgress=vi.fn().mockResolvedValue(null); let currentUser={id:"user-a"}; vi.mock("@/hooks/useProgress",()=>({useProgress:()=>({saveProgress,loadProgress})})); vi.mock("@/contexts/AuthHooks",()=>({useAuth:()=>({user:currentUser})}));
+describe("passage plan flow",()=>{beforeEach(()=>{localStorage.clear();sessionStorage.clear();saveProgress.mockClear();loadProgress.mockClear();currentUser={id:"user-a"}});
+it("builds and saves a valid user-scoped plan",async()=>{render(<PassagePlanBuilder/>);fireEvent.change(screen.getByLabelText("Plan name"),{target:{value:"Test passage"}});fireEvent.click(screen.getByRole("button",{name:"Save & complete plan"}));expect(localStorage.getItem("day-skipper-passage-plan:user-a")).toContain("Test passage");expect(saveProgress).toHaveBeenCalledWith("passage-planning-builder",true,100,15,expect.any(Object))});
+it("blocks invalid completion and gives actionable errors",()=>{render(<PassagePlanBuilder/>);fireEvent.change(screen.getByLabelText("SOG (knots)"),{target:{value:"0"}});fireEvent.click(screen.getByRole("button",{name:"Save & complete plan"}));expect(screen.getByRole("alert").textContent).toContain("SOG must be greater than 0");expect(saveProgress).not.toHaveBeenCalled();expect(localStorage.length).toBe(0)});
+it("does not hydrate another user's cached plan",()=>{localStorage.setItem("day-skipper-passage-plan:user-b",JSON.stringify({version:1,name:"Private B",departure:"2026-07-30T09:00",speed:5,points:[]}));render(<PassagePlanBuilder/>);expect((screen.getByLabelText("Plan name") as HTMLInputElement).value).not.toBe("Private B")});
+it("blanks immediately on account switches and ignores stale hydration",async()=>{
+ const deferred=<T,>()=>{let resolve!:(value:T)=>void;const promise=new Promise<T>(done=>{resolve=done});return{promise,resolve}};
+ const aFirst=deferred<unknown>(),bLoad=deferred<unknown>(),aSecond=deferred<unknown>();
+ loadProgress.mockImplementationOnce(()=>aFirst.promise).mockImplementationOnce(()=>bLoad.promise).mockImplementationOnce(()=>aSecond.promise);
+ const persisted=(name:string)=>({answers_history:{plan:{version:1,name,departure:"2026-07-30T09:00",speed:5,points:[{id:"1",name:"Waypoint",latitude:"",longitude:"",bearing:20,distanceNm:3,notes:"",tidalGate:"",weatherWindow:""}]}}});
+ const view=render(<PassagePlanBuilder/>);
+ await act(async()=>aFirst.resolve(persisted("Private A")));
+ await waitFor(()=>expect((screen.getByLabelText("Plan name") as HTMLInputElement).value).toBe("Private A"));
+ currentUser={id:"user-b"};view.rerender(<PassagePlanBuilder/>);
+ expect((screen.getByLabelText("Plan name") as HTMLInputElement).value).toBe("Solent practice passage");
+ currentUser={id:"user-a"};view.rerender(<PassagePlanBuilder/>);
+ expect((screen.getByLabelText("Plan name") as HTMLInputElement).value).toBe("Solent practice passage");
+ await act(async()=>bLoad.resolve(persisted("Stale private B")));
+ expect((screen.getByLabelText("Plan name") as HTMLInputElement).value).not.toBe("Stale private B");
+ await act(async()=>aSecond.resolve(persisted("Fresh A")));
+ await waitFor(()=>expect((screen.getByLabelText("Plan name") as HTMLInputElement).value).toBe("Fresh A"));
+});
+});
