@@ -16,7 +16,9 @@ the current implementation with the explicit limitations recorded in
 `docs/QUALITY_BASELINE.md`. Lightweight repository measurements found:
 
 - 283 TypeScript/TSX production and test files under `src/`;
-- 58 page components, but only 6 colocated page test files;
+- 58 route page components; tests across `src/` and `tests/` directly render at
+  least 16 of them, with no representative render test for several route
+  families (authentication/error, nautical basics, rules/lights, and tides);
 - 65 test files under `src/`;
 - 5 production modules directly reading or writing local/session storage, plus
   a separate IndexedDB offline queue;
@@ -33,11 +35,13 @@ each observation with a concrete failure mode and bounded outcome.
 | Order | Topic | Priority | Depends on | Why this order |
 | --- | --- | --- | --- | --- |
 | 1 | Documentation source of truth | P1 | None | Prevents new work from following obsolete instructions. |
-| 2 | Risk-based coverage expansion | P1 | None | Creates regression protection for the remaining changes. |
-| 3 | Browser persistence boundary | P1 | #2 recommended | Centralizes validation and ownership before more offline flows are added. |
-| 4 | App-shell recovery and PWA update UX | P1 | #2 recommended | Prevents recoverable loading/update failures becoming blank or stale sessions. |
-| 5 | Quiz bank lazy loading | P2 | #2 | Explicitly deferred by the quality baseline and affects multiple consumers. |
-| 6 | Decompose oversized interactive modules | P2 | #2 | Safer after characterization tests exist. |
+| 2A | Classify and run hermetic integration tests | P1 | None | Stops filename conventions from hiding runnable tests. |
+| 2B | Protect stateful feature seams with scoped coverage | P1 | None | Extends an existing guard in a bounded increment. |
+| 2C | Add representative route-family smoke tests | P1 | None | Covers currently unrendered route families without blanket page coverage. |
+| 3 | Browser persistence boundary | P1 | #2B recommended | Centralizes validation and ownership before more offline flows are added. |
+| 4 | App-shell recovery and PWA update UX | P1 | #2C recommended | Prevents recoverable loading/update failures becoming blank or stale sessions. |
+| 5 | Quiz bank lazy loading | P2 | #2B | Explicitly deferred by the quality baseline and affects multiple consumers. |
+| 6 | Decompose AnchorMinigame behavior | P2 | #2B | Targets a concrete, recently changed interactive module. |
 | 7 | Supabase schema/type drift guard | P2 | None | Makes database changes reproducible; can proceed independently. |
 
 Issue numbers should replace the dependency labels after proposals are created.
@@ -93,49 +97,113 @@ behavior.
 
 ---
 
-### 2. Expand regression protection using a risk-based coverage policy
+### 2A. Run hermetic integration tests in the default CI suite
 
-**Suggested title:** `Extend test and coverage guards to high-risk application seams`
+**Suggested title:** `Separate hermetic integration tests from live-service tests in CI`
+
+**Problem**
+
+Vitest excludes every `*.integration.test.*` file from the default run. That
+pattern excludes both the live Supabase tests and hermetic tests such as
+passage-planning and feature-registry integration tests. Test names therefore
+control CI inclusion more broadly than their actual infrastructure needs.
+
+**Scope**
+
+Inventory the currently excluded integration tests, give live-service tests an
+explicit naming convention or project, and run all hermetic tests by default.
+
+**Acceptance criteria**
+
+- Every currently excluded integration test is classified as hermetic or
+  live-service in a checked-in test configuration or short test README.
+- Hermetic integration tests run in the default CI test job; only tests that
+  require configured external services remain opt-in.
+- `examLiveDb` and `progressLiveDbConcurrency` remain opt-in and cannot run
+  accidentally without an isolated configured database.
+- Local and CI commands for each test class are documented.
+- The PR records default-suite runtime before and after; any material increase
+  is addressed without dropping tests.
+
+**Dependencies**
+
+None.
+
+---
+
+### 2B. Extend scoped coverage to stateful feature seams
+
+**Suggested title:** `Add exam, spaced-repetition, engagement, offline, and export seams to the coverage guard`
 
 **Problem**
 
 `scripts/coverage-scope.json` protects dashboard, progress, and quiz
-architecture seams, but high-risk code outside that list can be added without
-coverage enforcement. Examples include exam orchestration, spaced repetition,
-engagement persistence, offline queuing, passage-plan persistence, routing,
-authentication context, and export generation. Vitest also excludes every
-`*.integration.test.*` file from its default run, so the naming convention can
-make a test opt-in even when it does not need external infrastructure.
-
-The current 6 colocated page tests across 58 pages additionally leave route
-rendering and interactive page behavior unevenly characterized. The goal is
-not blanket line coverage for static lesson markup; it is protection for
-stateful boundaries.
+architecture seams, but stateful code in exam orchestration, spaced repetition,
+engagement persistence, offline queuing, and export generation can be added
+without an explicit coverage decision. These modules handle identity,
+durability, scoring, or user data and have focused tests already, making them a
+bounded next increment for the existing guard.
 
 **Scope**
 
-Define risk categories, classify existing integration tests as hermetic or
-live-service, and incrementally bring stateful production seams under the
-coverage-scope guard.
+Extend the existing scope configuration to those five feature directories.
+Explicitly exempt UI adapters or generated types only where per-file 90%
+coverage would not measure the relevant risk.
 
 **Acceptance criteria**
 
-- Document which production seams require per-file coverage and which content
-  pages are better protected by smoke/accessibility tests.
-- Hermetic integration tests run in the default CI test job; only tests that
-  require configured external services remain opt-in.
-- Add architecture-scope entries for at least exam, spaced repetition,
-  engagement, offline persistence, and export logic, with thresholds justified
-  in the PR.
-- Add route-level smoke coverage that renders every route category using
-  representative fixtures without loading a live Supabase project.
-- The guard fails when a new production module is added to a protected
-  directory without an explicit coverage decision.
-- CI runtime and memory remain within documented bounds.
+- The five named feature directories are governed by
+  `guard:coverage-scope`.
+- Each production file is covered at the configured threshold or appears in a
+  reviewed exemption list with a risk-based reason.
+- The guard fails when a new production module is added to those directories
+  without an explicit coverage decision.
+- Tests added to meet the threshold assert behavior rather than implementation
+  details.
+- Coverage and default test jobs remain within documented CI resource bounds.
 
 **Dependencies**
 
-None. This should precede behavior-preserving structural refactors.
+Proposal 2A is helpful but not required.
+
+---
+
+### 2C. Add representative route-family smoke tests
+
+**Suggested title:** `Add hermetic smoke coverage for currently unrendered route families`
+
+**Problem**
+
+Test files live in both `src/` and `tests/`. Counting only colocated tests is
+misleading: at least 16 route pages are directly rendered somewhere in the
+suite, including dashboard, quiz, exam, review, pilotage, safety, and selected
+navigation pages. However, `src/app/routes.test.ts` verifies route definitions
+without rendering them, and no representative direct-render test was found for
+the authentication/error, nautical-basics, rules/lights, or tides route
+families. Passage-planning has builder-flow coverage but not a route-family
+render smoke test.
+
+**Scope**
+
+Add one representative hermetic render test per uncovered route family, using
+shared router/auth fixtures. This is not a requirement to duplicate a test for
+all 58 pages or assert static lesson copy.
+
+**Acceptance criteria**
+
+- A checked-in inventory maps each route family to its representative render
+  test.
+- Authentication/error, nautical basics, rules/lights, tides, and passage
+  planning each have a representative render test.
+- Tests assert successful render, critical navigation, and absence of an
+  uncaught exception; interactive behavior remains in focused tests.
+- Fixtures do not contact a live Supabase project and are reusable by future
+  route smoke tests.
+- A new route family requires an explicit representative-test decision.
+
+**Dependencies**
+
+Proposal 2A if the new tests use the integration-test naming convention.
 
 ---
 
@@ -222,8 +290,8 @@ approved.
 
 **Dependencies**
 
-Proposal 2 is recommended so the shell becomes part of the protected test
-surface.
+Proposal 2C is recommended so the shell becomes part of the representative
+route test surface.
 
 ---
 
@@ -263,59 +331,57 @@ topic metadata.
 
 **Dependencies**
 
-Proposal 2 should land first. Coordinate with proposal 4 for chunk-load error
+Proposal 2B should land first. Coordinate with proposal 4 for chunk-load error
 recovery.
 
 ---
 
-### 6. Decompose oversized interactive modules along behavior boundaries
+### 6. Decompose AnchorMinigame along tested behavior boundaries
 
-**Suggested title:** `Extract testable domain and presentation seams from oversized interactive pages`
+**Suggested title:** `Extract AnchorMinigame geometry, state transitions, and presentation seams`
 
 **Problem**
 
-Several modules combine content, mutable interaction state, calculations, and
-large render trees:
+`src/pages/AnchorMinigame.tsx` is 666 lines and combines SVG geometry,
+simulation state, scoring/completion behavior, controls, and rendering. Git
+history shows a targeted geometry memoization fix (`e8a3b1c`) and a later
+performance PR merge, evidence that its calculation/render boundary has
+already required maintenance. Unlike `NauticalTerms`, no test directly imports
+`AnchorMinigame`; its behavior is therefore less characterized despite the
+stateful interaction surface.
 
-- `src/pages/NauticalTerms.tsx` — 990 lines;
-- `src/pages/SailControls.tsx` — 881 lines;
-- `src/pages/AnchorMinigame.tsx` — 666 lines;
-- `src/components/navigation/VirtualChartPlotter.tsx` — 623 lines;
-- `src/pages/Quiz.tsx` — 563 lines;
-- `src/pages/Index.tsx` — 557 lines;
-- `src/components/navigation/TidalPassageCalculator.tsx` — 549 lines.
-
-Line count alone is not the defect. The debt is the co-location of independently
-changing behavior, data, and presentation, which increases review surface and
-makes narrow tests difficult. `docs/QUALITY_BASELINE.md` correctly rejects
-reformatting these files merely for style.
+Line count alone is not the defect. The bounded debt is that geometry and game
+state cannot be tested independently from the full page, increasing the risk
+of scoring or progress regressions during performance work.
 
 **Scope**
 
-Start with the module having the clearest behavioral seams and highest change
-frequency. Extract pure calculations/state transitions and cohesive child
-components; do not create generic abstractions based only on visual similarity.
-Treat each major module as a separate PR or sub-issue.
+Characterize the current anchor drill, extract pure geometry and game-state
+transitions into typed modules, and split only cohesive presentation pieces
+needed to make those boundaries clear. Preserve the current route, visuals,
+timing, scoring, and progress contract.
 
 **Acceptance criteria**
 
-- Before refactoring a selected module, characterization tests capture its
-  critical keyboard, scoring/calculation, persistence, and completion flows.
+- Characterization tests capture start/reset, placement or drag interaction,
+  scoring/completion, progress persistence, and keyboard-accessible controls.
+- Pure anchor/rode geometry and game-state transitions are exported from
+  framework-independent modules with boundary-condition tests.
 - Pure domain logic is separated from rendering and has focused tests.
 - Extracted components have narrow typed props and no hidden browser-storage or
   Supabase dependency.
-- User-visible content, route URLs, progress IDs, and stored payloads remain
-  compatible.
-- Accessibility semantics and responsive behavior are verified at the
-  repository's target viewports.
-- The PR reports objective before/after coupling or complexity evidence; total
-  line-count reduction is not required.
+- `/anchor-minigame`, its durable progress ID, scoring thresholds, and stored
+  progress payload remain compatible.
+- SVG behavior and controls are verified at 375px, 768px, and 1280px, including
+  pointer and keyboard interaction.
+- The PR reports the extracted state/geometry API and before/after dependency
+  boundaries; total line-count reduction is not a success criterion.
 - No repository-wide formatting churn is included.
 
 **Dependencies**
 
-Proposal 2. Split this umbrella into one issue per selected module after a
-short change-frequency review.
+Proposal 2B should land first or this issue must add `AnchorMinigame` and its
+extracted production modules to the coverage-scope guard.
 
 ---
 
