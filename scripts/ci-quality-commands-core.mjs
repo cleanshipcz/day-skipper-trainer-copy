@@ -34,11 +34,13 @@ const joinContinuations = (lines) => {
   return commands;
 };
 
-const relevantNpmCommands = (commands) =>
+const ALLOWED_SETUP_COMMANDS = new Set(["npm ci"]);
+
+const documentedQualityCommands = (commands) =>
   commands.flatMap((command) => {
-    if (!command.includes("npm run")) return [];
+    if (ALLOWED_SETUP_COMMANDS.has(command)) return [];
     if (!command.startsWith("npm run ")) {
-      throw new Error(`Unsupported npm run command form in CI quality job: ${command}`);
+      throw new Error(`Unsupported executable command in CI quality job: ${command}`);
     }
     if (command.includes("${{")) {
       throw new Error(`Unsupported interpolated npm run command in CI quality job: ${command}`);
@@ -63,7 +65,7 @@ export const extractQualityNpmCommands = (workflow) => {
       throw new Error("Unsupported empty run body in CI quality job");
     }
     if (!/^[|>][-+]?\d*$/.test(value)) {
-      commands.push(...relevantNpmCommands([value]));
+      commands.push(...documentedQualityCommands([value]));
       continue;
     }
 
@@ -78,7 +80,7 @@ export const extractQualityNpmCommands = (workflow) => {
     const shellCommands = value.startsWith(">")
       ? [normalized.map((line) => line.trim()).filter(Boolean).join(" ")]
       : joinContinuations(normalized);
-    commands.push(...relevantNpmCommands(shellCommands));
+    commands.push(...documentedQualityCommands(shellCommands));
   }
 
   if (commands.length === 0) {

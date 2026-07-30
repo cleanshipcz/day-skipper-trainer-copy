@@ -61,7 +61,27 @@ describe("quality guard regressions", () => {
 `;
 
     expect(() => extractQualityNpmCommands(workflow)).toThrow(
-      "Unsupported npm run command form in CI quality job",
+      "Unsupported executable command in CI quality job",
+    );
+  });
+
+  it("allows the known install step but rejects undocumented executable gates", () => {
+    const supported = `jobs:
+  quality:
+    steps:
+      - run: npm ci
+      - run: npm run lint
+`;
+    const unsupported = `jobs:
+  quality:
+    steps:
+      - run: npm ci
+      - run: npx eslint .
+`;
+
+    expect(extractQualityNpmCommands(supported)).toEqual(["npm run lint"]);
+    expect(() => extractQualityNpmCommands(unsupported)).toThrow(
+      "Unsupported executable command in CI quality job: npx eslint .",
     );
   });
 
