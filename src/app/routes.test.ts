@@ -37,6 +37,13 @@ describe("appRoutes", () => {
     expect(appRoutes.find((route) => route.path === "/review")).toBeDefined();
   });
 
+  it("keeps the anchor minigame at its durable route", async () => {
+    const route = appRoutes.find(({ path }) => path === "/anchor-minigame");
+
+    expect(route).toBeDefined();
+    await expect(route?.importPage()).resolves.toMatchObject({ default: expect.any(Function) });
+  });
+
   it("requires every route root to have an explicit representative-test decision", () => {
     const routeRoot = (path: string) => path === "*" || path === "/"
       ? path

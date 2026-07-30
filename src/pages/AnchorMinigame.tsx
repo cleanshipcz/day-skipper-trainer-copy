@@ -175,8 +175,8 @@ const AnchorMinigame = () => {
   return (
     <div className="min-h-screen bg-gradient-to-br from-background via-ocean-light/10 to-background">
       <header className="border-b border-border/80 bg-card/70 backdrop-blur-sm sticky top-0 z-10">
-        <div className="container mx-auto px-4 py-4 flex items-center justify-between gap-4">
-          <div className="flex items-center gap-3">
+        <div className="container mx-auto px-4 py-4 flex flex-col items-start justify-between gap-4 sm:flex-row sm:items-center">
+          <div className="flex min-w-0 items-center gap-3">
             <Button variant="ghost" size="icon" onClick={() => navigate("/anchorwork")}>
               <ArrowLeft className="w-5 h-5" />
             </Button>
@@ -187,7 +187,7 @@ const AnchorMinigame = () => {
               </p>
             </div>
           </div>
-          <div className="flex items-center gap-3">
+          <div className="flex flex-wrap items-center gap-3">
             <Badge variant="secondary" className="text-sm">
               Attempted {attempts} time{attempts === 1 ? "" : "s"}
             </Badge>

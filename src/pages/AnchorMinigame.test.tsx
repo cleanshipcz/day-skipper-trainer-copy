@@ -1,5 +1,6 @@
 import { fireEvent, render, screen } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
+import "fake-indexeddb/auto";
 import { MemoryRouter } from "react-router-dom";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import AnchorMinigame from "./AnchorMinigame";
@@ -24,7 +25,9 @@ describe("AnchorMinigame", () => {
   });
 
   it("supports keyboard placement, checking, and reset without writing browser storage", () => {
-    const setItem = vi.spyOn(Storage.prototype, "setItem");
+    const localSetItem = vi.spyOn(window.localStorage, "setItem");
+    const sessionSetItem = vi.spyOn(window.sessionStorage, "setItem");
+    const indexedDbOpen = vi.spyOn(window.indexedDB, "open");
     render(<MemoryRouter><AnchorMinigame /></MemoryRouter>);
 
     for (let index = 0; index < 27; index += 1) fireEvent.keyDown(window, { key: "ArrowDown" });
@@ -36,6 +39,11 @@ describe("AnchorMinigame", () => {
     fireEvent.click(screen.getByRole("button", { name: "Try again here" }));
     expect(screen.getByText("0.0 m")).toBeTruthy();
     expect(screen.getByText("Anchor not set")).toBeTruthy();
-    expect(setItem).not.toHaveBeenCalled();
+    // The simulator currently has no completion persistence contract: unlike
+    // theory and quiz pages, success must not create a progress row or offline
+    // queue entry. These browser channels are the storage paths used by the app.
+    expect(localSetItem).not.toHaveBeenCalled();
+    expect(sessionSetItem).not.toHaveBeenCalled();
+    expect(indexedDbOpen).not.toHaveBeenCalled();
   });
 });
