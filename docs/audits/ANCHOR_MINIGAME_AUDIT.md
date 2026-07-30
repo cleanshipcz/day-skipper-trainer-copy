@@ -25,9 +25,10 @@ identified in the Anchorwork Theory audit: even “soft mud” and “weak holdi
 setups pass based on wind-labelled 4:1 or 5:1 ratios alone. “Stay within the
 swinging circle” is displayed without a circle, boundary, obstacle, or
 clearance calculation. Global key handling also makes Enter and arrow keys
-operate the game from unrelated controls and behind the result overlay; the
-overlay is not a dialog and status/scene changes are not announced. Success,
-attempts, and scenario history disappear on navigation or reload.
+operate the game from unrelated controls and behind the result overlay; Enter
+checks placement instead of activating a focused control. The overlay is not a
+dialog and status/scene changes are not announced. Success, attempts, and
+scenario history disappear on navigation or reload.
 
 ## Evidence and exercised paths
 
@@ -150,7 +151,8 @@ than colour alone. Significant barriers remain:
 - Back is an unnamed icon-only button.
 - A window-level listener intercepts every arrow key and Enter anywhere on the
   page. It operates the game while focus is on New setup, Back, or result
-  actions; Enter can both check placement and activate the focused button.
+  actions. Its `preventDefault()` suppresses the focused button's native Enter
+  activation, so placement is checked instead of activating that control.
 - The same global handler remains active behind the result overlay, so a learner
   can mutate/check concealed state while handling the result.
 - The overlay has no dialog role, accessible name, initial focus, focus trap,
@@ -163,169 +165,34 @@ than colour alone. Significant barriers remain:
 - Scope readiness relies partly on colour, and changing colour is not conveyed
   as a named threshold state.
 
-## Complete focused follow-up issue drafts
+## Focused follow-up issues
 
-### Align Anchor Minigame success with qualified, safety-aware anchoring decisions
-
-**Problem**
-
-The game declares an anchor secure based only on bottom contact, position ahead,
-and fixed wind-derived scope. Soft mud, weak holding, cross-wind, current, wash,
-and chop have no modeled consequence, and excessive scope cannot fail for lack
-of room. This conflicts with Anchorwork audit #92 and can teach unsafe
-confidence.
-
-**Acceptance criteria**
-
-- Have the scenario rules and learner-facing verdicts reviewed by a suitably
-  qualified anchoring instructor.
-- Replace universal 4:1/5:1/7:1 success with scenario-aware guidance that
-  accounts for rode, anchor/vessel, seabed, weather/current, tide, available
-  room, and manufacturer/local guidance at an appropriate teaching level.
-- Do not say “secure” unless the modeled checks support that claim; explicitly
-  label unmodeled real-world checks.
-- Require a plausible controlled setting/holding verification and reject
-  placements whose paid-out rode exceeds the scenario's safe room.
-- Keep theory, simulator, and Anchorwork Quiz terminology/calculations aligned
-  through reviewed fixtures and automated tests.
-
-### Model and teach holding checks, swinging clearance, and recovery
-
-**Problem**
-
-The advertised swinging circle is only a side-profile rode-reach clamp. No swept
-area, obstruction, neighbour, setting load, dragging, watch, or recovery hazard
-exists, so learners cannot practice the procedures the theory claims to teach.
-
-**Acceptance criteria**
-
-- Add a plan-view or equivalent interaction that displays the vessel's swept
-  area, safety allowance, hazards, and differently swinging neighbours.
-- Give scenarios clear room constraints and require the full swept area to fit.
-- Model a comprehensible setting/holding check, possible dragging or weak
-  holding, and remediation without pretending to be a full physics simulator.
-- Include anchor watch/change-of-wind-or-tide and safe recovery learning paths.
-- Explain simplifications and provide actionable feedback linked to the
-  relevant Anchorwork theory topic.
-- Test boundary contact, insufficient clearance, holding failure, condition
-  change, recovery, and successful completion.
-
-### Make Anchor Minigame keyboard scope and result handling accessible
-
-**Problem**
-
-The window-level handler hijacks arrows and Enter from every focused control and
-continues behind a non-modal result overlay. Results and changing simulation
-state are not deliberately announced or focused.
-
-**Acceptance criteria**
-
-- Scope game shortcuts to an explicitly focusable, named control surface and
-  avoid overriding keys needed by buttons, links, scrolling, or assistive
-  technology.
-- Ensure Enter causes exactly one intended action for the current focus.
-- Implement the result as an accessible dialog or non-modal status pattern with
-  correct naming, initial focus, background behavior, Escape behavior, and
-  focus restoration.
-- Stop hidden gameplay while a modal result is active.
-- Announce concise status, threshold, failure, and success changes without
-  flooding the accessibility tree.
-- Name Back and expose current/required scope and anchor state independently of
-  colour; verify keyboard and screen-reader paths in tests and manual checks.
-
-### Provide efficient pointer and touch manipulation with equivalent controls
-
-**Problem**
-
-The scene is visually presented as a simulator but cannot be manipulated.
-Learners may need more than 75 individual pay-out clicks, and the fixed-step
-buttons provide no hold/repeat or coarse adjustment. This is laborious on touch
-and does not teach spatial placement directly.
-
-**Acceptance criteria**
-
-- Provide an efficient direct or continuous pointer/touch interaction for boat
-  movement and rode adjustment, with clear constraints and feedback.
-- Retain fully equivalent button and keyboard controls; drag must not become the
-  only way to complete the activity.
-- Prevent page scrolling/gesture conflicts only within the active manipulation
-  surface and support cancellation or pointer loss safely.
-- Offer coarse/fine or press-and-hold adjustment without accidental runaway
-  input.
-- Keep visual, numeric, and accessible state synchronized throughout movement.
-- Test mouse, touch/pointer, keyboard, cancelled gestures, viewport resize, and
-  minimum target sizes at 320/375, 768, and 1280 px.
-
-### Make Anchor Minigame scenarios varied, non-repeating, and reproducible
-
-**Problem**
-
-Four static scenarios are selected randomly with replacement. A learner can see
-the same setup repeatedly, cannot tell what has been covered, and cannot
-reproduce a failed setup. Several prose conditions contradict the fixed
-“Wind from ahead” visual and have no gameplay effect.
-
-**Acceptance criteria**
-
-- Avoid immediate repeats and provide a defined cycle/mastery policy across the
-  available scenario families.
-- Give each setup a stable reproducible identity/seed that can be included in
-  failure reports and tests.
-- Ensure every displayed condition has a consistent visual/model consequence,
-  or clearly mark it as context that is not simulated.
-- Align wind direction labels/icons with scenario prose and represent tide,
-  current, seabed, rode, hazards, and vessel differences only when they affect
-  the learning decision.
-- Expose scenario progress/history and allow retry of the same setup.
-- Add deterministic generation, boundary, distribution/cycle, and copy-model
-  consistency tests.
-
-### Define and persist Anchor Minigame completion and remediation progress
-
-**Problem**
-
-Attempts are counted, but there is no score, mastery threshold, terminal
-completion, parent handoff, or durable record. Reload loses successes and
-history, and the trophy-styled success cannot contribute to guided Anchorwork
-progress.
-
-**Acceptance criteria**
-
-- Define what constitutes practice completion/mastery and which metrics are
-  diagnostic rather than reward-bearing.
-- Track scenario outcomes and attempts without encouraging unsafe speed or
-  excessive-scope gaming.
-- Persist authenticated completion through the project's durable progress
-  model with visible loading/save/retry behavior and idempotent credit; document
-  anonymous behavior.
-- Restore an interrupted run by stable scenario identity, or explain and safely
-  restart it.
-- Return learners to the relevant theory topic after specific failures and
-  provide an explicit Anchorwork/quiz handoff after mastery.
-- Test reload, multi-device restore, offline/save failure, retry, duplicate
-  submission, and parent progress integration.
-
-### Make the dynamic anchor scene an accurate, responsive learning graphic
-
-**Problem**
-
-The SVG is responsive and bounded, but its schematic catenary and “swinging
-circle” are not explained, total bow depth is labelled on a water-depth segment,
-and its accessible label does not describe dynamic state. Embedded text becomes
-small on narrow screens.
-
-**Acceptance criteria**
-
-- Label the side-profile geometry as schematic and distinguish water depth, bow
-  height, total vertical depth, straight-line distance, rode out, and slack.
-- Do not call side-profile reach a swinging circle; link it to a correct
-  plan-view clearance representation.
-- Provide a concise dynamic text equivalent for boat/anchor relationship,
-  current and required scope, contact/holding state, and relevant hazards.
-- Keep labels legible without clipping at 320/375, 768, and 1280 px and under
-  200%/400% zoom; support forced colours and reduced motion.
-- Ensure camera movement never hides information required for the current
-  decision.
-- Add geometry invariants and visual/browser checks for minimum/maximum depth,
-  zero/maximum rode, extreme camera positions, slack/taut transitions, and each
-  scenario family.
+- [#175 — Align Anchor Minigame success with qualified, safety-aware anchoring
+  decisions](https://github.com/cleanshipcz/day-skipper-trainer-copy/issues/175)
+  — covers scenario-aware scope, setting/holding evidence, available room,
+  qualified wording, and theory/quiz consistency.
+- [#176 — Model and teach holding checks, swinging clearance, and
+  recovery](https://github.com/cleanshipcz/day-skipper-trainer-copy/issues/176)
+  — covers swept area, hazards and neighbours, dragging, watchkeeping,
+  condition changes, recovery, and linked remediation.
+- [#180 — Make Anchor Minigame keyboard scope and result handling
+  accessible](https://github.com/cleanshipcz/day-skipper-trainer-copy/issues/180)
+  — covers global shortcut hijacking, Enter suppressing focused actions,
+  modal/background behavior, focus, announcements, names, and non-colour state.
+- [#177 — Provide efficient pointer and touch manipulation with equivalent
+  controls](https://github.com/cleanshipcz/day-skipper-trainer-copy/issues/177)
+  — covers direct/continuous adjustment, coarse/fine movement, gesture safety,
+  keyboard equivalence, synchronization, and responsive target sizes.
+- [#179 — Make Anchor Minigame scenarios varied, non-repeating, and
+  reproducible](https://github.com/cleanshipcz/day-skipper-trainer-copy/issues/179)
+  — covers stable identities, cycles/history, copy-model consistency,
+  meaningful condition variation, retries, and deterministic tests.
+- [#181 — Define and persist Anchor Minigame completion and remediation
+  progress](https://github.com/cleanshipcz/day-skipper-trainer-copy/issues/181)
+  — covers mastery, safe metrics, durable/offline progress, run restoration,
+  idempotent credit, parent handoff, and targeted remediation.
+- [#178 — Make the dynamic anchor scene an accurate, responsive learning
+  graphic](https://github.com/cleanshipcz/day-skipper-trainer-copy/issues/178)
+  — covers schematic labelling, correct dimensions, plan-view terminology,
+  dynamic alternatives, zoom/forced colours, camera boundaries, and geometry
+  invariants.
