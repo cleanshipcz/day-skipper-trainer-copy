@@ -53,7 +53,7 @@ export const recordReview = async (
   questionId: string,
   quality: number,
   reviewId: string,
-  reviewedAt = new Date(),
+  reviewedAt: Date,
 ): Promise<QuestionReview> => {
   if (!questionRegistry.has(questionId)) throw new Error("Unknown review question");
   if (!Number.isInteger(quality) || quality < 0 || quality > 5) {
@@ -69,4 +69,3 @@ export const recordReview = async (
   if (!data) throw new Error("Review save returned no row");
   return data;
 };
-

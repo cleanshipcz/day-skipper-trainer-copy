@@ -1,4 +1,4 @@
-import { useMemo, useState, useEffect } from "react";
+import { useCallback, useMemo, useRef, useState, useEffect } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -60,6 +60,24 @@ const Quiz = () => {
   const [answers, setAnswers] = useState<(number | null)[]>([]);
   const [showExplanation, setShowExplanation] = useState(false);
   const [isComplete, setIsComplete] = useState(false);
+  const [seedStatus, setSeedStatus] = useState<"idle" | "saving" | "saved" | "failed">("idle");
+  const seedOwnerRef = useRef(user?.id ?? null);
+  seedOwnerRef.current = user?.id ?? null;
+
+  const seedReviews = useCallback(async () => {
+    if (!user) return;
+    const owner = user.id;
+    setSeedStatus("saving");
+    try {
+      await seedQuizQuestions(supabase, topicKey, questions.map(({ id }) => id));
+      if (seedOwnerRef.current === owner) setSeedStatus("saved");
+    } catch {
+      if (seedOwnerRef.current === owner) {
+        setSeedStatus("failed");
+        toast.error("Review schedule could not be saved. Retry when connected.");
+      }
+    }
+  }, [questions, topicKey, user]);
 
   // Initialize answers array when questions change
   useEffect(() => {
@@ -69,6 +87,8 @@ const Quiz = () => {
       const legacyRecord: QuizProgressRow | null = canonicalRecord ? null : await loadProgress(topicKey);
       const resolution = resolveQuizProgressForLoad(topicKey, canonicalRecord, legacyRecord);
       const savedData = resolution.record;
+
+      if (savedData?.completed) void seedReviews();
 
       if (savedData?.answers_history) {
         try {
@@ -101,7 +121,7 @@ const Quiz = () => {
       setAnswers(createEmptyQuizAnswers(questions.length));
     };
     initQuiz();
-  }, [questions.length, topicKey, loadProgress, saveProgress, resetProgress]);
+  }, [questions.length, topicKey, loadProgress, saveProgress, resetProgress, seedReviews]);
 
   const selectedAnswer = answers[currentQuestion] ?? null;
   const correctAnswers = countCorrectAnswers(answers, questions);
@@ -219,8 +239,6 @@ const Quiz = () => {
         }
       );
 
-      await seedQuizQuestions(supabase, topicKey, questions.map(({ id }) => id));
-
       if (saved) {
         toast.success(
           passed
@@ -228,6 +246,7 @@ const Quiz = () => {
             : "Quiz saved. Score 70% or more to pass."
         );
       }
+      await seedReviews();
     } catch (error) {
       console.error("Error saving quiz results:", error);
     }
@@ -288,6 +307,10 @@ const Quiz = () => {
                 Retry Quiz
               </Button>
             </div>
+            {seedStatus === "failed" && <div className="text-center space-y-2">
+              <p role="alert" className="text-sm text-destructive">Your quiz is saved, but its review schedule still needs syncing.</p>
+              <Button variant="outline" onClick={() => void seedReviews()}>Retry review sync</Button>
+            </div>}
           </CardContent>
         </Card>
       </div>

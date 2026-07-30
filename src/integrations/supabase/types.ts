@@ -20,7 +20,6 @@ export type Database = {
           ease_factor: number
           id: string
           interval_days: number
-          last_review_id: string | null
           last_reviewed_at: string | null
           next_review_at: string
           question_id: string
@@ -33,7 +32,6 @@ export type Database = {
           ease_factor?: number
           id?: string
           interval_days?: number
-          last_review_id?: string | null
           last_reviewed_at?: string | null
           next_review_at?: string
           question_id: string
@@ -44,7 +42,6 @@ export type Database = {
         Update: {
           ease_factor?: number
           interval_days?: number
-          last_review_id?: string | null
           last_reviewed_at?: string | null
           next_review_at?: string
           repetitions?: number

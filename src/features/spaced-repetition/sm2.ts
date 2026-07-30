@@ -5,6 +5,7 @@ export interface Sm2State {
 }
 
 const MINIMUM_EASE_FACTOR = 1.3;
+export const MAXIMUM_INTERVAL_DAYS = 36_500;
 
 /** Pure SuperMemo-2 scheduling step. Intervals are rounded to whole study days. */
 export const calculateSm2 = (current: Sm2State, quality: number): Sm2State => {
@@ -25,11 +26,10 @@ export const calculateSm2 = (current: Sm2State, quality: number): Sm2State => {
   const intervalDays =
     repetitions === 1 ? 1
     : repetitions === 2 ? 6
-    : Math.max(1, Math.round(current.intervalDays * easeFactor));
+    : Math.min(MAXIMUM_INTERVAL_DAYS, Math.max(1, Math.round(current.intervalDays * easeFactor)));
 
   return { easeFactor, intervalDays, repetitions };
 };
 
 /** Automatic rating: a correct answer advances; an incorrect answer resets. */
 export const qualityForAnswer = (isCorrect: boolean): number => isCorrect ? 4 : 2;
-

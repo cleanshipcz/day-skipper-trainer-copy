@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { ArrowLeft, CheckCircle2, RotateCcw } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -14,6 +14,7 @@ import type { QuestionReview } from "@/features/spaced-repetition/reviewService"
 const Review = () => {
   const navigate = useNavigate();
   const { user, loading: authLoading } = useAuth();
+  const userId = user?.id ?? null;
   const [reviews, setReviews] = useState<readonly DueReview<QuestionReview>[]>([]);
   const [loading, setLoading] = useState(true);
   const [loadError, setLoadError] = useState(false);
@@ -22,11 +23,32 @@ const Review = () => {
   const [saving, setSaving] = useState(false);
   const [saveError, setSaveError] = useState(false);
   const [reviewId, setReviewId] = useState(() => crypto.randomUUID());
+  const [reviewedAt, setReviewedAt] = useState(() => new Date());
   const [reviewed, setReviewed] = useState(0);
   const [correct, setCorrect] = useState(0);
+  const [stateOwner, setStateOwner] = useState<string | null>(null);
+  const [stateGeneration, setStateGeneration] = useState(-1);
+  const identityRef = useRef(userId);
+  const generationRef = useRef(0);
+  if (identityRef.current !== userId) {
+    identityRef.current = userId;
+    generationRef.current += 1;
+  }
 
   const load = useCallback(async () => {
-    if (!user) {
+    const generation = ++generationRef.current;
+    setReviews([]);
+    setSelected(null);
+    setRevealed(false);
+    setSaving(false);
+    setSaveError(false);
+    setReviewed(0);
+    setCorrect(0);
+    setReviewId(crypto.randomUUID());
+    setReviewedAt(new Date());
+    setStateOwner(userId);
+    setStateGeneration(generation);
+    if (!userId) {
       setReviews([]);
       setLoading(false);
       return;
@@ -34,17 +56,19 @@ const Review = () => {
     setLoading(true);
     setLoadError(false);
     try {
-      setReviews(await fetchDueQuestions(supabase, user.id));
+      const result = await fetchDueQuestions(supabase, userId);
+      if (generation === generationRef.current && identityRef.current === userId) setReviews(result);
     } catch {
-      setLoadError(true);
+      if (generation === generationRef.current && identityRef.current === userId) setLoadError(true);
     } finally {
-      setLoading(false);
+      if (generation === generationRef.current && identityRef.current === userId) setLoading(false);
     }
-  }, [user]);
+  }, [userId]);
 
   useEffect(() => { void load(); }, [load]);
 
-  if (authLoading || loading) return <main className="min-h-screen grid place-items-center">Loading reviews…</main>;
+  if (authLoading || loading || stateOwner !== userId || stateGeneration !== generationRef.current)
+    return <main className="min-h-screen grid place-items-center">Loading reviews…</main>;
 
   if (!user) {
     return <main className="min-h-screen grid place-items-center p-4"><Card><CardHeader><CardTitle>Sign in to review</CardTitle></CardHeader>
@@ -68,20 +92,26 @@ const Review = () => {
   const isCorrect = selected === current.question.correctAnswer;
   const saveAndContinue = async () => {
     if (selected === null) return;
+    const generation = generationRef.current;
+    const owner = userId;
+    const savedReviewId = reviewId;
+    const savedQuestionId = current.question.id;
     setSaving(true);
     setSaveError(false);
     try {
-      await recordReview(supabase, current.question.id, qualityForAnswer(isCorrect), reviewId);
+      await recordReview(supabase, savedQuestionId, qualityForAnswer(isCorrect), savedReviewId, reviewedAt);
+      if (generation !== generationRef.current || identityRef.current !== owner) return;
       setReviews((items) => items.slice(1));
       setReviewed((count) => count + 1);
       if (isCorrect) setCorrect((count) => count + 1);
       setSelected(null);
       setRevealed(false);
       setReviewId(crypto.randomUUID());
+      setReviewedAt(new Date());
     } catch {
-      setSaveError(true);
+      if (generation === generationRef.current && identityRef.current === owner) setSaveError(true);
     } finally {
-      setSaving(false);
+      if (generation === generationRef.current && identityRef.current === owner) setSaving(false);
     }
   };
 

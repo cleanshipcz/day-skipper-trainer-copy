@@ -27,9 +27,15 @@ describe("calculateSm2", () => {
     );
   });
 
+  test("should clamp a successful review at the persisted interval boundary", () => {
+    const result = calculateSm2({ repetitions: 20, intervalDays: 36_500, easeFactor: 2.5 }, 5);
+
+    expect(result.intervalDays).toBe(36_500);
+    expect(calculateSm2(result, 5).intervalDays).toBe(36_500);
+  });
+
   test("should map correct and incorrect answers to deterministic automatic ratings", () => {
     expect(qualityForAnswer(true)).toBe(4);
     expect(qualityForAnswer(false)).toBe(2);
   });
 });
-
