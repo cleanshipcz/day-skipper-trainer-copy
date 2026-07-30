@@ -32,18 +32,23 @@ export function formatTypeMismatch(generated, checkedIn) {
   const start = Math.max(0, first - CONTEXT_LINES);
   const expectedStop = Math.min(expected.length, expectedEnd + CONTEXT_LINES + 2, start + MAX_CHANGED_LINES);
   const actualStop = Math.min(actual.length, actualEnd + CONTEXT_LINES + 2, start + MAX_CHANGED_LINES);
-  const omitted =
-    expectedStop <= expectedEnd || actualStop <= actualEnd
-      ? "\n... mismatch output truncated; reproduce with `npm run guard:supabase-types` locally."
-      : "";
-  const completeExpected = Buffer.byteLength(generated, "utf8") <= MAX_COMPLETE_BYTES;
-
-  return [
-    completeExpected
-      ? `Complete generated types (expected, ${Buffer.byteLength(generated, "utf8")} bytes):`
-      : "Generated types (expected, first mismatch window):",
-    ...numbered("+", completeExpected ? expected : expected.slice(start, expectedStop), completeExpected ? 0 : start),
+  const complete = [
+    "Complete generated types (expected):",
+    ...numbered("+", expected, 0),
     "Checked-in types (actual):",
     ...numbered("-", actual.slice(start, actualStop), start),
-  ].join("\n") + (completeExpected ? "" : omitted);
+  ].join("\n");
+  if (Buffer.byteLength(complete, "utf8") <= MAX_COMPLETE_BYTES) return complete;
+
+  const bounded = [
+    "Generated types (expected, first mismatch window):",
+    ...numbered("+", expected.slice(start, expectedStop), start),
+    "Checked-in types (actual):",
+    ...numbered("-", actual.slice(start, actualStop), start),
+    "... complete diagnostic exceeded 64 KiB; output limited to the first mismatch window.",
+  ].join("\n");
+
+  // Each side is limited to 24 redacted lines of at most 240 characters, so
+  // this fallback remains below the same byte ceiling even for multibyte text.
+  return bounded;
 }

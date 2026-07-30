@@ -23,6 +23,22 @@ describe("Supabase type mismatch diagnostic", () => {
     expect(diagnostic).not.toContain("expected 4999");
   });
 
+  it("accounts for line-number prefixes in the final 64 KiB limit", () => {
+    const expected = Array.from({ length: 7_000 }, () => "x").join("\n");
+    const diagnostic = formatTypeMismatch(expected, expected.replace(/^x$/m, "y"));
+
+    expect(diagnostic).toContain("first mismatch window");
+    expect(Buffer.byteLength(diagnostic, "utf8")).toBeLessThanOrEqual(64 * 1024);
+  });
+
+  it("bounds the final diagnostic for multibyte generated content", () => {
+    const expected = Array.from({ length: 1_000 }, () => "⛵".repeat(100)).join("\n");
+    const diagnostic = formatTypeMismatch(expected, expected.replace("⛵", "⚓"));
+
+    expect(diagnostic).toContain("first mismatch window");
+    expect(Buffer.byteLength(diagnostic, "utf8")).toBeLessThanOrEqual(64 * 1024);
+  });
+
   it("redacts database URLs and token-shaped values", () => {
     const diagnostic = formatTypeMismatch(
       "postgresql://user:password@db.example/schema",
