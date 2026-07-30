@@ -11,8 +11,10 @@
     "typecheck": "tsc --noEmit",
     "preview": "vite preview",
     "test": "vitest",
+    "test:coverage": "vitest --run --coverage",
     "test:live-db": "vitest --run src/features/progress/progressLiveDbConcurrency.integration.test.ts",
     "test:build-budget": "node scripts/check-build-budget.mjs",
+    "guard:migrations": "node scripts/check-migrations.mjs",
     "guard:no-internal-artifacts": "node scripts/check-no-internal-artifacts.mjs",
     "prepare": "node scripts/setup-githooks.mjs"
   },
@@ -79,6 +81,7 @@
     "@types/react": "^18.3.23",
     "@types/react-dom": "^18.3.7",
     "@vitejs/plugin-react-swc": "^3.11.0",
+    "@vitest/coverage-v8": "^4.0.15",
     "autoprefixer": "^10.4.21",
     "eslint": "^9.32.0",
     "eslint-plugin-react-hooks": "^5.2.0",

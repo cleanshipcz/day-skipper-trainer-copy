@@ -34,5 +34,17 @@ jobs:
       - name: Test
         run: npm run test -- --run --maxWorkers=1
 
+      - name: Coverage
+        run: npm run test:coverage -- --maxWorkers=1
+
       - name: Build
         run: npm run build
+
+      - name: Build budget
+        run: npm run test:build-budget
+
+      - name: Migration guard
+        run: npm run guard:migrations
+
+      - name: Internal artifact guard
+        run: npm run guard:no-internal-artifacts

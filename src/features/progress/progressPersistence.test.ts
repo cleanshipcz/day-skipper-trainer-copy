@@ -155,6 +155,22 @@ describe("saveProgressRecord", () => {
       topicId: "weather-systems",
     })).rejects.toThrow("no outcome");
   });
+
+  it.each([
+    [{ points_awarded: "true", completion_awarded: true, awarded_points: 10 }],
+    [{ points_awarded: true, completion_awarded: null, awarded_points: 10 }],
+    [{ points_awarded: true, completion_awarded: true, awarded_points: "10" }],
+    [{ points_awarded: true, completion_awarded: true, awarded_points: Number.NaN }],
+  ])("rejects malformed RPC outcome %j instead of coercing it", async (outcome) => {
+    const { client, rpc } = buildSupabaseMock();
+    rpc.mockResolvedValueOnce({ data: outcome, error: null });
+
+    await expect(saveProgressRecord({
+      supabaseClient: client as never,
+      userId: "user-1",
+      topicId: "weather-systems",
+    })).rejects.toThrow("invalid outcome");
+  });
 });
 
 describe("deleteProgressRecord", () => {

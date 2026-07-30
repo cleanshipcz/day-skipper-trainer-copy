@@ -10,6 +10,7 @@ import {
   TOPIC_IDS,
 } from "./topicRegistry";
 import { appRoutes } from "@/app/routes";
+import { quizRegistry, topicMeta } from "@/data/quizzes";
 
 // ── Helpers ──────────────────────────────────────────────────────────────
 
@@ -168,6 +169,28 @@ describe("topicRegistry — syllabus coverage (AC-6)", () => {
         routeMatches(defPath, entry.route),
       );
       expect(hasMatch).toBe(true);
+    }
+  });
+
+  it("keeps every registered quiz route backed by questions and metadata", () => {
+    const quizTopicIds = new Set(Object.keys(quizRegistry));
+
+    for (const entry of topicRegistry) {
+      if (entry.quizRoute) {
+        expect(quizTopicIds.has(entry.quizRoute.replace("/quiz/", ""))).toBe(true);
+      }
+    }
+    expect(Object.keys(topicMeta).sort()).toEqual(Object.keys(quizRegistry).sort());
+  });
+
+  it("keeps every dashboard root reachable with a unique concrete route", () => {
+    const roots = getRootTopics();
+    const rootRoutes = roots.map(({ route }) => route);
+
+    expect(roots).toHaveLength(12);
+    expect(new Set(rootRoutes).size).toBe(rootRoutes.length);
+    for (const route of rootRoutes) {
+      expect(appRoutes.some(({ path }) => path === route)).toBe(true);
     }
   });
 

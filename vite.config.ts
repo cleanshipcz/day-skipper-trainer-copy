@@ -80,6 +80,26 @@ export default defineConfig(({ mode }) => ({
       "**/dist/**",
       "**/*.integration.test.*",
     ],
+    coverage: {
+      provider: "v8",
+      reporter: ["text", "json-summary", "html"],
+      reportsDirectory: "./coverage",
+      include: [
+        "src/constants/topicRegistry.ts",
+        "src/features/dashboard/topicCompletion.ts",
+        "src/features/progress/progressPersistence.ts",
+        "src/features/quiz/progressKeys.ts",
+        "src/features/quiz/randomization.ts",
+        "src/features/quiz/scoring.ts",
+        "src/features/quiz/sessionProgress.ts",
+      ],
+      thresholds: {
+        lines: 90,
+        functions: 90,
+        statements: 90,
+        branches: 90,
+      },
+    },
   },
   resolve: {
     alias: {

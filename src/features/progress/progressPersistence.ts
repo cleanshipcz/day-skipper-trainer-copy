@@ -39,11 +39,19 @@ export const saveProgressRecord = async ({
   if (error) throw error;
   const outcome = Array.isArray(data) ? data[0] : data;
   if (!outcome) throw new Error("Progress RPC returned no outcome");
+  if (
+    typeof outcome.points_awarded !== "boolean"
+    || typeof outcome.completion_awarded !== "boolean"
+    || typeof outcome.awarded_points !== "number"
+    || !Number.isFinite(outcome.awarded_points)
+  ) {
+    throw new Error("Progress RPC returned an invalid outcome");
+  }
 
   return {
-    pointsAwarded: Boolean(outcome.points_awarded),
-    completionAwarded: Boolean(outcome.completion_awarded),
-    awardedPoints: Number(outcome.awarded_points) || 0,
+    pointsAwarded: outcome.points_awarded,
+    completionAwarded: outcome.completion_awarded,
+    awardedPoints: outcome.awarded_points,
   };
 };
 
