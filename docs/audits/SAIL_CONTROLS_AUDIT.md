@@ -130,4 +130,4 @@ control claims above require configuration-aware wording.
 - [#148 — Align the Sail Controls quiz interaction with its identification instructions](https://github.com/cleanshipcz/day-skipper-trainer-copy/issues/148)
 - [#149 — Load Sail Controls progress and surface durable save failures](https://github.com/cleanshipcz/day-skipper-trainer-copy/issues/149)
 - [#150 — Make the Sail Controls schematic legible and touch-usable at responsive sizes](https://github.com/cleanshipcz/day-skipper-trainer-copy/issues/150)
-- [#142 — Correct the shared Boat Parts jib/forestay geometry and verify label geometry](https://github.com/cleanshipcz/day-skipper-trainer-copy/issues/142)
+- [#142 — Correct jib/forestay geometry across Boat Parts and Sail Controls](https://github.com/cleanshipcz/day-skipper-trainer-copy/issues/142)
