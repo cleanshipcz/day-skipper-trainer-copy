@@ -66,7 +66,7 @@ describe("progress integrity proof path", () => {
 
     expect(migration).toContain("pg_advisory_xact_lock");
     expect(migration).toContain("update public.profiles");
-    expect(migration).toContain("Rewards are server-owned");
+    expect(migration).toContain("server-observed completion");
     expect(migration).toContain("on conflict (user_id, topic_id, reward_kind) do nothing");
     expect(migration).toContain("Invalid point value");
     expect(migration).toContain("save_topic_progress");

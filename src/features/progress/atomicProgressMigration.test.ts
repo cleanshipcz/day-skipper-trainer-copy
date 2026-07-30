@@ -28,7 +28,7 @@ describe("atomic progress migration", () => {
   });
 
   it("uses fixed server-owned rewards and rejects arbitrary topics and point values", () => {
-    expect(sql).toContain("rewards are server-owned");
+    expect(sql).toContain("server-observed completion");
     expect(sql).toContain("when 'weather-systems' then 10");
     expect(sql).toContain("when 'weather-beaufort' then 10");
     expect(sql).toContain("when 'weather-forecasts' then 10");
@@ -44,6 +44,10 @@ describe("atomic progress migration", () => {
     expect(sql).not.toContain("for delete");
     expect(sql).not.toContain("delete from public.progress_awards");
     expect(sql).toContain("on conflict (user_id, topic_id, reward_kind) do nothing");
+    expect(sql).toContain("progress_completion_evidence");
+    expect(sql).toContain("revoke all on public.progress_completion_evidence");
+    expect(sql).toContain("interval '15 seconds'");
+    expect(sql).toContain("completion has no eligible server-observed visit");
   });
 
   it("backfills immutable markers for completed rows before defining the RPC", () => {
@@ -63,6 +67,14 @@ describe("atomic progress migration", () => {
     expect(sql).toContain("p_topic_id like 'weather-%'");
     expect(sql).toContain("p_answers_history ->> 'completionstate' <> 'completed'");
     expect(sql).toContain("completed progress requires verified completion history");
+    expect(sql).toContain("case when public.user_progress.completed");
+    expect(sql).toContain("then public.user_progress.answers_history");
+  });
+
+  it("rolls back the ledger award when the user has no profile", () => {
+    expect(sql).toContain("get diagnostics v_profile_rows = row_count");
+    expect(sql).toContain("if v_profile_rows <> 1");
+    expect(sql).toContain("profile required before awarding completion");
   });
 
   it("restricts execution to authenticated users", () => {

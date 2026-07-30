@@ -31,7 +31,9 @@ describe("WeatherTheoryLayout", () => {
     render(<MemoryRouter><WeatherTheoryLayout title="Test" subtitle="Test" topicId="weather-test" sections={[]} /></MemoryRouter>);
     fireEvent.click(await screen.findByRole("button", { name: /mark theory complete/i }));
     await vi.waitFor(() => {
-      expect(saveProgress).toHaveBeenCalledOnce();
+      expect(saveProgress).toHaveBeenCalledTimes(2);
+      expect(saveProgress).toHaveBeenNthCalledWith(1, "weather-test", false, 0, 0, { completionState: "in_progress" });
+      expect(saveProgress).toHaveBeenNthCalledWith(2, "weather-test", true, 100, 10, { completionState: "completed" });
       expect(screen.queryByRole("button", { name: /completed/i })).toBeNull();
       expect((screen.getByRole("button", { name: /mark theory complete/i }) as HTMLButtonElement).disabled).toBe(false);
     });
@@ -55,11 +57,13 @@ describe("WeatherTheoryLayout", () => {
     const action = await screen.findByRole("button", { name: /mark theory complete/i });
     fireEvent.click(action);
     fireEvent.click(action);
-    expect(saveProgress).toHaveBeenCalledOnce();
+    expect(saveProgress).toHaveBeenCalledTimes(2);
+    expect(saveProgress.mock.calls.filter(([, completed]) => completed)).toHaveLength(1);
     expect((screen.getByRole("button", { name: /saving completion/i }) as HTMLButtonElement).disabled).toBe(true);
     resolveSave(true);
     await screen.findByRole("button", { name: /completed/i });
-    expect(saveProgress).toHaveBeenCalledOnce();
+    expect(saveProgress).toHaveBeenCalledTimes(2);
+    expect(saveProgress.mock.calls.filter(([, completed]) => completed)).toHaveLength(1);
   });
 
   it("uses mobile-first controls and a responsive two-column content grid", () => {
