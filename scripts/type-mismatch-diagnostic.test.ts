@@ -2,15 +2,25 @@ import { describe, expect, it } from "vitest";
 import { formatTypeMismatch } from "./type-mismatch-diagnostic.mjs";
 
 describe("Supabase type mismatch diagnostic", () => {
-  it("shows bounded, numbered context around the first mismatch", () => {
+  it("shows the complete generated file when it is within the hard cap", () => {
     const expected = Array.from({ length: 40 }, (_, index) => `expected ${index}`).join("\n");
     const actual = expected.replace("expected 8", "actual 8");
     const diagnostic = formatTypeMismatch(expected, actual);
 
-    expect(diagnostic).toContain("Generated types (expected):");
+    expect(diagnostic).toContain("Complete generated types (expected");
     expect(diagnostic).toContain("+    9 | expected 8");
     expect(diagnostic).toContain("-    9 | actual 8");
-    expect(diagnostic).not.toContain("expected 39");
+    expect(diagnostic).toContain("+   40 | expected 39");
+  });
+
+  it("falls back to a bounded mismatch window above 64 KiB", () => {
+    const expected = Array.from({ length: 5_000 }, (_, index) => `expected ${index} ${"x".repeat(20)}`).join("\n");
+    const actual = expected.replace("expected 8", "actual 8");
+    const diagnostic = formatTypeMismatch(expected, actual);
+
+    expect(diagnostic).toContain("Generated types (expected, first mismatch window):");
+    expect(diagnostic).toContain("+    9 | expected 8");
+    expect(diagnostic).not.toContain("expected 4999");
   });
 
   it("redacts database URLs and token-shaped values", () => {

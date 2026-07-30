@@ -1,6 +1,7 @@
 const MAX_LINE_LENGTH = 240;
 const CONTEXT_LINES = 4;
 const MAX_CHANGED_LINES = 24;
+const MAX_COMPLETE_BYTES = 64 * 1024;
 
 const redact = (line) =>
   line
@@ -35,11 +36,14 @@ export function formatTypeMismatch(generated, checkedIn) {
     expectedStop <= expectedEnd || actualStop <= actualEnd
       ? "\n... mismatch output truncated; reproduce with `npm run guard:supabase-types` locally."
       : "";
+  const completeExpected = Buffer.byteLength(generated, "utf8") <= MAX_COMPLETE_BYTES;
 
   return [
-    "Generated types (expected):",
-    ...numbered("+", expected.slice(start, expectedStop), start),
+    completeExpected
+      ? `Complete generated types (expected, ${Buffer.byteLength(generated, "utf8")} bytes):`
+      : "Generated types (expected, first mismatch window):",
+    ...numbered("+", completeExpected ? expected : expected.slice(start, expectedStop), completeExpected ? 0 : start),
     "Checked-in types (actual):",
     ...numbered("-", actual.slice(start, actualStop), start),
-  ].join("\n") + omitted;
+  ].join("\n") + (completeExpected ? "" : omitted);
 }
