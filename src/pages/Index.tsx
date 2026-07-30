@@ -20,6 +20,7 @@ import {
   Navigation,
   CloudSun,
   Route,
+  ClipboardCheck,
 } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { useAuth } from "@/contexts/AuthHooks";
@@ -290,6 +291,17 @@ const Index = () => {
 
       {/* Main Content */}
       <main className="container mx-auto px-4 py-8">
+        <Card className="mb-8 border-2 border-primary/20">
+          <CardContent className="pt-6 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
+            <div className="flex gap-3">
+              <ClipboardCheck className="w-8 h-8 text-primary" />
+              <div><h2 className="font-bold text-xl">Ready for exam conditions?</h2>
+                <p className="text-muted-foreground">Take a timed, weighted mock exam and track your results.</p></div>
+            </div>
+            <div className="flex gap-2"><Button onClick={() => navigate("/exam")}>Mock exam</Button>
+              <Button variant="outline" onClick={() => navigate("/exam/history")}>History</Button></div>
+          </CardContent>
+        </Card>
         {/* Progress Overview */}
         <Card className="mb-8 border-2 border-secondary/20 bg-gradient-to-br from-card to-secondary/5">
           <CardHeader>
