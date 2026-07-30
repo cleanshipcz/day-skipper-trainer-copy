@@ -24,63 +24,26 @@ export const saveProgressRecord = async ({
   score = 0,
   pointsEarned = 0,
   answersHistory,
-}: SaveProgressRecordArgs): Promise<{ pointsAwarded: boolean; completionAwarded: boolean }> => {
-  let shouldAwardPoints = pointsEarned > 0;
-  let shouldAwardCompletionToast = completed;
-
-  const { data: existingProgress, error: existingProgressError } = await supabaseClient
-    .from("user_progress")
-    .select("completed")
-    .eq("user_id", userId)
-    .eq("topic_id", topicId)
-    .maybeSingle<{ completed: boolean }>();
-
-  if (existingProgressError) throw existingProgressError;
-
-  if (completed) {
-    shouldAwardCompletionToast = !existingProgress?.completed;
-    shouldAwardPoints = shouldAwardPoints && shouldAwardCompletionToast;
-  }
-
-  const completedForPersistence = completed || Boolean(existingProgress?.completed);
-
-  const progressData: {
-    user_id: string;
-    topic_id: string;
-    completed: boolean;
-    score: number;
-    last_accessed: string;
-    answers_history?: Record<string, unknown>;
-  } = {
-    user_id: userId,
-    topic_id: topicId,
-    completed: completedForPersistence,
-    score,
-    last_accessed: new Date().toISOString(),
-  };
-
-  if (answersHistory !== undefined) {
-    progressData.answers_history = answersHistory;
-  }
-
-  const { error: progressError } = await supabaseClient.from("user_progress").upsert(progressData, {
-    onConflict: "user_id,topic_id",
+}: SaveProgressRecordArgs): Promise<{ pointsAwarded: boolean; completionAwarded: boolean; awardedPoints: number }> => {
+  // Authentication is enforced inside the RPC with auth.uid(). `userId` is
+  // deliberately not sent to the database function and remains here only for
+  // the separate RLS-scoped delete operation/API compatibility.
+  void userId;
+  const { data, error } = await supabaseClient.rpc("save_topic_progress", {
+    p_topic_id: topicId,
+    p_completed: completed,
+    p_score: score,
+    p_points: pointsEarned,
+    p_answers_history: answersHistory ?? null,
   });
-
-  if (progressError) throw progressError;
-
-  if (shouldAwardPoints) {
-    const { error: pointsError } = await supabaseClient.rpc("increment_user_points", {
-      p_user_id: userId,
-      p_increment: pointsEarned,
-    });
-
-    if (pointsError) throw pointsError;
-  }
+  if (error) throw error;
+  const outcome = Array.isArray(data) ? data[0] : data;
+  if (!outcome) throw new Error("Progress RPC returned no outcome");
 
   return {
-    pointsAwarded: shouldAwardPoints,
-    completionAwarded: shouldAwardCompletionToast,
+    pointsAwarded: Boolean(outcome.points_awarded),
+    completionAwarded: Boolean(outcome.completion_awarded),
+    awardedPoints: Number(outcome.awarded_points) || 0,
   };
 };
 

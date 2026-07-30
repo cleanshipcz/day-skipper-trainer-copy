@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { countCorrectAnswers, percentageScore, pointsFromCorrectAnswers, questionProgressPercent } from "./scoring";
+import { countCorrectAnswers, percentageScore, pointsFromCorrectAnswers, questionProgressPercent, quizCompletionOutcome } from "./scoring";
 
 describe("quiz scoring", () => {
   it("counts correct answers by matching selected answer index to question correctAnswer", () => {
@@ -21,6 +21,22 @@ describe("quiz scoring", () => {
   it("awards 20 points per correct answer", () => {
     expect(pointsFromCorrectAnswers(0)).toBe(0);
     expect(pointsFromCorrectAnswers(3)).toBe(60);
+  });
+
+  it("awards no completion points for a failed quiz", () => {
+    expect(quizCompletionOutcome(13, 20)).toEqual({
+      percentage: 65,
+      passed: false,
+      pointsEarned: 0,
+    });
+  });
+
+  it("does not turn even a passing client-scored quiz into trusted points", () => {
+    expect(quizCompletionOutcome(14, 20)).toEqual({
+      percentage: 70,
+      passed: true,
+      pointsEarned: 0,
+    });
   });
 
   it("calculates question progress percent from zero-based question index", () => {

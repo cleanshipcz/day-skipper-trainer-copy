@@ -17,7 +17,7 @@ interface PersistQuizSessionProgressArgs {
     score?: number,
     pointsEarned?: number,
     answersHistory?: Record<string, unknown>
-  ) => Promise<void> | void;
+  ) => Promise<unknown> | unknown;
   progress: QuizSessionProgress;
 }
 

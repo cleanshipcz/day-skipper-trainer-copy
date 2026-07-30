@@ -12,7 +12,10 @@ const buildSupabaseMock = () => {
   const deleteEqUser = vi.fn(() => ({ eq: deleteEqTopic }));
   const deleteRow = vi.fn(() => ({ eq: deleteEqUser }));
 
-  const rpc = vi.fn().mockResolvedValue({ error: null });
+  const rpc = vi.fn().mockResolvedValue({
+    data: [{ points_awarded: true, completion_awarded: true, awarded_points: 40 }],
+    error: null,
+  });
   const from = vi.fn((table: string) => {
     if (table === "user_progress") return { upsert, delete: deleteRow, select };
     return {};
@@ -33,8 +36,8 @@ const buildSupabaseMock = () => {
 };
 
 describe("saveProgressRecord", () => {
-  it("uses server-side rpc increment for first completion points", async () => {
-    const { client, rpc, selectEqUser, selectEqTopic, maybeSingle } = buildSupabaseMock();
+  it("uses one authenticated atomic RPC without sending a user ID", async () => {
+    const { client, rpc } = buildSupabaseMock();
 
     const result = await saveProgressRecord({
       supabaseClient: client as never,
@@ -46,20 +49,23 @@ describe("saveProgressRecord", () => {
       answersHistory: { answers: [1, 2] },
     });
 
-    expect(result).toEqual({ pointsAwarded: true, completionAwarded: true });
-
-    expect(selectEqUser).toHaveBeenCalledWith("user_id", "user-1");
-    expect(selectEqTopic).toHaveBeenCalledWith("topic_id", "quiz-colregs");
-    expect(maybeSingle).toHaveBeenCalled();
-    expect(rpc).toHaveBeenCalledWith("increment_user_points", {
-      p_user_id: "user-1",
-      p_increment: 40,
+    expect(result).toEqual({ pointsAwarded: true, completionAwarded: true, awardedPoints: 40 });
+    expect(rpc).toHaveBeenCalledWith("save_topic_progress", {
+      p_topic_id: "quiz-colregs",
+      p_completed: true,
+      p_score: 80,
+      p_points: 40,
+      p_answers_history: { answers: [1, 2] },
     });
+    expect(rpc.mock.calls[0][1]).not.toHaveProperty("p_user_id");
   });
 
-  it("does not re-award points when topic is already completed", async () => {
-    const { client, rpc, maybeSingle } = buildSupabaseMock();
-    maybeSingle.mockResolvedValueOnce({ data: { completed: true }, error: null });
+  it("honours the server's existing-progress idempotency outcome", async () => {
+    const { client, rpc } = buildSupabaseMock();
+    rpc.mockResolvedValueOnce({
+      data: [{ points_awarded: false, completion_awarded: false, awarded_points: 0 }],
+      error: null,
+    });
 
     const result = await saveProgressRecord({
       supabaseClient: client as never,
@@ -70,13 +76,18 @@ describe("saveProgressRecord", () => {
       pointsEarned: 10,
     });
 
-    expect(result).toEqual({ pointsAwarded: false, completionAwarded: false });
-    expect(rpc).not.toHaveBeenCalled();
+    expect(result).toEqual({ pointsAwarded: false, completionAwarded: false, awardedPoints: 0 });
+    expect(rpc).toHaveBeenCalledOnce();
   });
 
-  it("throws when existing-progress lookup fails", async () => {
-    const { client, maybeSingle } = buildSupabaseMock();
-    maybeSingle.mockResolvedValueOnce({ data: null, error: new Error("lookup failed") });
+  it("allows a retry after an RPC failure without recording client-side partial state", async () => {
+    const { client, rpc, upsert } = buildSupabaseMock();
+    rpc
+      .mockResolvedValueOnce({ data: null, error: new Error("transaction rolled back") })
+      .mockResolvedValueOnce({
+        data: [{ points_awarded: true, completion_awarded: true, awarded_points: 20 }],
+        error: null,
+      });
 
     await expect(
       saveProgressRecord({
@@ -86,47 +97,21 @@ describe("saveProgressRecord", () => {
         completed: true,
         pointsEarned: 20,
       })
-    ).rejects.toThrow("lookup failed");
-  });
-
-  it("preserves completed=true on in-progress saves for already completed topics", async () => {
-    const { client, upsert, maybeSingle } = buildSupabaseMock();
-    maybeSingle.mockResolvedValueOnce({ data: { completed: true }, error: null });
-
-    await saveProgressRecord({
+    ).rejects.toThrow("transaction rolled back");
+    const retried = await saveProgressRecord({
       supabaseClient: client as never,
       userId: "user-1",
-      topicId: "colregs-theory",
-      completed: false,
-      score: 60,
-      pointsEarned: 0,
-      answersHistory: { completionState: "in_progress", visitedSectionIds: ["read-content"] },
+      topicId: "quiz-colregs",
+      completed: true,
+      pointsEarned: 20,
     });
-
-    expect(upsert).toHaveBeenCalledWith(
-      expect.objectContaining({
-        completed: true,
-      }),
-      expect.any(Object)
-    );
+    expect(retried).toEqual({ pointsAwarded: true, completionAwarded: true, awardedPoints: 20 });
+    expect(upsert).not.toHaveBeenCalled();
   });
 
-  it("throws when upsert fails", async () => {
-    const { client, upsert } = buildSupabaseMock();
-    upsert.mockResolvedValueOnce({ error: new Error("upsert failed") });
-
-    await expect(
-      saveProgressRecord({
-        supabaseClient: client as never,
-        userId: "user-1",
-        topicId: "quiz-colregs",
-      })
-    ).rejects.toThrow("upsert failed");
-  });
-
-  it("throws when points rpc fails", async () => {
+  it("surfaces an RPC failure and never falls back to a non-atomic write", async () => {
     const { client, rpc } = buildSupabaseMock();
-    rpc.mockResolvedValueOnce({ error: new Error("rpc failed") });
+    rpc.mockResolvedValueOnce({ data: null, error: new Error("rpc failed") });
 
     await expect(
       saveProgressRecord({
@@ -136,6 +121,39 @@ describe("saveProgressRecord", () => {
         pointsEarned: 20,
       })
     ).rejects.toThrow("rpc failed");
+  });
+
+  it("maps two concurrent server outcomes to exactly one award", async () => {
+    const { client, rpc } = buildSupabaseMock();
+    rpc
+      .mockResolvedValueOnce({
+        data: [{ points_awarded: true, completion_awarded: true, awarded_points: 10 }],
+        error: null,
+      })
+      .mockResolvedValueOnce({
+        data: [{ points_awarded: false, completion_awarded: false, awarded_points: 0 }],
+        error: null,
+      });
+    const args = {
+      supabaseClient: client as never,
+      userId: "user-1",
+      topicId: "weather-systems",
+      completed: true,
+      pointsEarned: 10,
+    };
+    const results = await Promise.all([saveProgressRecord(args), saveProgressRecord(args)]);
+    expect(results.filter(({ pointsAwarded }) => pointsAwarded)).toHaveLength(1);
+    expect(rpc).toHaveBeenCalledTimes(2);
+  });
+
+  it("rejects a missing RPC outcome instead of guessing award state", async () => {
+    const { client, rpc } = buildSupabaseMock();
+    rpc.mockResolvedValueOnce({ data: [], error: null });
+    await expect(saveProgressRecord({
+      supabaseClient: client as never,
+      userId: "user-1",
+      topicId: "weather-systems",
+    })).rejects.toThrow("no outcome");
   });
 });
 

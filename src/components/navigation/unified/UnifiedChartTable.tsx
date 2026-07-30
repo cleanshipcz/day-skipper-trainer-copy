@@ -34,6 +34,7 @@ const UnifiedChartTable = () => {
   const [mentorFeedback, setMentorFeedback] = useState<{
     type: "info" | "warning" | "error" | "success";
     message: string;
+    details?: string;
   } | null>(null);
 
   // Landmarks

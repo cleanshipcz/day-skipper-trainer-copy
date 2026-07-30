@@ -20,6 +20,22 @@ export function pointsFromCorrectAnswers(correctAnswers: number): number {
   return correctAnswers * 20;
 }
 
+export function quizCompletionOutcome(correctAnswers: number, totalQuestions: number): {
+  percentage: number;
+  passed: boolean;
+  pointsEarned: number;
+} {
+  const percentage = percentageScore(correctAnswers, totalQuestions);
+  const passed = percentage >= 70;
+  return {
+    percentage,
+    passed,
+    // Quiz answers are currently scored on the client, so they cannot safely
+    // authorize profile point awards.
+    pointsEarned: 0,
+  };
+}
+
 export function questionProgressPercent(currentQuestionIndex: number, totalQuestions: number): number {
   if (totalQuestions <= 0) return 0;
   return ((currentQuestionIndex + 1) / totalQuestions) * 100;

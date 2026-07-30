@@ -35,7 +35,7 @@ The official RYA Day Skipper Shorebased syllabus (SBT DS 03) contains **13 subje
 | 9 | **Position Fixing** | ✅ Complete | Theory page, unified chart table with plotting tools | — |
 | 10 | **Course to Steer** | ✅ Complete | Vector triangle theory, vector solution tool (solver + drill modes) | — |
 | 11 | **Pilotage** | ✅ Complete | IALA Region A buoy identifier, draggable transit exercises, clearing-bearing chart tool, pilotage plan builder, 20-question quiz | — |
-| 12 | **Meteorology** | ❌ Missing | — | Weather systems, pressure, fronts, Beaufort scale, sea state, fog, sea breezes, sources of forecasts |
+| 12 | **Meteorology** | ✅ Complete | `/weather` | Weather systems, pressure, fronts, Beaufort scale, sea state, fog, visibility and forecast sources |
 | 13 | **Passage Planning** | ❌ Missing | — | PREPARE mnemonic, waypoint planning, fuel/water calcs, tidal gate planning, checklists, contingencies |
 
 **Coverage: 10/13 complete, 1 partial, 2 entirely missing.**
@@ -72,7 +72,7 @@ The official RYA Day Skipper Shorebased syllabus (SBT DS 03) contains **13 subje
 
 ---
 
-#### A2. Meteorology Module
+#### A2. Meteorology Module ✅ Implemented
 **Description:** Weather theory covering pressure systems, fronts (warm/cold/occluded), Beaufort scale, sea state, fog formation, land/sea breezes, and how to obtain and interpret shipping forecasts.
 
 **Rationale:** Meteorology is a mandatory exam topic. Weather judgement is arguably the most safety-critical skill for a Day Skipper.

@@ -48,6 +48,12 @@ export const topicRegistry: readonly TopicEntry[] = [
   { id: "pilotage-clearing-bearings", label: "Clearing Bearings", parentId: "pilotage", route: "/pilotage/clearing-bearings", quizRoute: null, submoduleIds: [], syllabusArea: 11 },
   { id: "pilotage-plan", label: "Pilotage Plan Builder", parentId: "pilotage", route: "/pilotage/plan", quizRoute: null, submoduleIds: [], syllabusArea: 11 },
   { id: "quiz-pilotage", label: "Pilotage Quiz", parentId: "pilotage", route: "/quiz/pilotage", quizRoute: "/quiz/pilotage", submoduleIds: [], syllabusArea: 11 },
+  { id: "weather", label: "Meteorology", parentId: null, route: "/weather", quizRoute: "/quiz/weather", submoduleIds: ["weather-systems", "weather-beaufort", "weather-forecasts", "weather-fog", "quiz-weather"], syllabusArea: 12 },
+  { id: "weather-systems", label: "Weather Systems & Fronts", parentId: "weather", route: "/weather/systems", quizRoute: null, submoduleIds: [], syllabusArea: 12 },
+  { id: "weather-beaufort", label: "Beaufort Scale", parentId: "weather", route: "/weather/beaufort", quizRoute: null, submoduleIds: [], syllabusArea: 12 },
+  { id: "weather-forecasts", label: "Marine Forecasts", parentId: "weather", route: "/weather/forecasts", quizRoute: null, submoduleIds: [], syllabusArea: 12 },
+  { id: "weather-fog", label: "Fog & Visibility", parentId: "weather", route: "/weather/fog", quizRoute: null, submoduleIds: [], syllabusArea: 12 },
+  { id: "quiz-weather", label: "Meteorology Quiz", parentId: "weather", route: "/quiz/weather", quizRoute: "/quiz/weather", submoduleIds: [], syllabusArea: 12 },
 ];
 
 const topicByIdMap = new Map(topicRegistry.map((entry) => [entry.id, entry]));
@@ -96,4 +102,10 @@ export const TOPIC_IDS = {
   PILOTAGE_CLEARING_BEARINGS: "pilotage-clearing-bearings",
   PILOTAGE_PLAN: "pilotage-plan",
   PILOTAGE_QUIZ: "quiz-pilotage",
+  WEATHER: "weather",
+  WEATHER_SYSTEMS: "weather-systems",
+  WEATHER_BEAUFORT: "weather-beaufort",
+  WEATHER_FORECASTS: "weather-forecasts",
+  WEATHER_FOG: "weather-fog",
+  WEATHER_QUIZ: "quiz-weather",
 } as const;

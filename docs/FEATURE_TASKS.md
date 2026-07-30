@@ -208,12 +208,12 @@ CREATE POLICY "Users manage own <table_name>"
 | E2-S4 | Pilotage Plan Builder | ✅ Complete |
 | E2-S5 | Pilotage Quiz | ✅ Complete |
 | E2-S6 | Pilotage Menu & Dashboard Integration | ✅ Complete |
-| E3-S1 | Weather Systems Sub-module | ⬜ Not Started |
-| E3-S2 | Beaufort Scale Sub-module | ⬜ Not Started |
-| E3-S3 | Weather Forecasts Sub-module | ⬜ Not Started |
-| E3-S4 | Fog & Visibility Sub-module | ⬜ Not Started |
-| E3-S5 | Meteorology Quiz | ⬜ Not Started |
-| E3-S6 | Meteorology Menu & Dashboard Integration | ⬜ Not Started |
+| E3-S1 | Weather Systems Sub-module | ✅ Complete |
+| E3-S2 | Beaufort Scale Sub-module | ✅ Complete |
+| E3-S3 | Weather Forecasts Sub-module | ✅ Complete |
+| E3-S4 | Fog & Visibility Sub-module | ✅ Complete |
+| E3-S5 | Meteorology Quiz | ✅ Complete |
+| E3-S6 | Meteorology Menu & Dashboard Integration | ✅ Complete |
 | E4-S1 | PREPARE Mnemonic Sub-module | ⬜ Not Started |
 | E4-S2 | Passage Planning Calculator | ⬜ Not Started |
 | E4-S3 | Passage Plan Builder | ⬜ Not Started |
@@ -622,10 +622,10 @@ CREATE POLICY "Users manage own <table_name>"
 
 **Acceptance Criteria:**
 
-- [ ] AC-1: Route `/weather/systems` renders theory covering: atmospheric pressure, isobars, wind direction (Buys Ballot's law), high pressure (anticyclones), low pressure (depressions), warm fronts, cold fronts, occluded fronts, associated weather sequences.
-- [ ] AC-2: Interactive `SynopticChartReader.tsx` — presents a simplified synoptic chart and asks user to identify pressure systems, front types, and predict wind direction. Minimum 3 chart scenarios.
-- [ ] AC-3: Visual frontal symbols (warm = red semicircles, cold = blue triangles, occluded = alternating) clearly rendered.
-- [ ] AC-4: Completing theory marks `weather-systems` as complete; points awarded.
+- [x] AC-1: Route `/weather/systems` renders theory covering: atmospheric pressure, isobars, wind direction (Buys Ballot's law), high pressure (anticyclones), low pressure (depressions), warm fronts, cold fronts, occluded fronts, associated weather sequences.
+- [x] AC-2: Interactive `SynopticChartReader.tsx` — presents a simplified synoptic chart and asks user to identify pressure systems, front types, and predict wind direction. Minimum 3 chart scenarios.
+- [x] AC-3: Visual frontal symbols (warm = red semicircles, cold = blue triangles, occluded = alternating) clearly rendered.
+- [x] AC-4: Completing theory marks `weather-systems` as complete; points awarded.
 
 **Dependencies:** None.
 
@@ -641,11 +641,11 @@ CREATE POLICY "Users manage own <table_name>"
 
 **Acceptance Criteria:**
 
-- [ ] AC-1: Route `/weather/beaufort` renders the full Beaufort scale (Force 0–12) with: wind speed (knots), description, sea state, wave height.
-- [ ] AC-2: Data file `src/data/beaufortScale.ts` defines all 13 levels with properties.
-- [ ] AC-3: Interactive `BeaufortDrill.tsx` — "guess the force" drill: given a sea state description or wind speed, identify the Beaufort number. Minimum 10 drill items.
-- [ ] AC-4: Bidirectional lookup: wind speed → force and force → conditions.
-- [ ] AC-5: Completing theory marks `weather-beaufort` as complete; points awarded.
+- [x] AC-1: Route `/weather/beaufort` renders the full Beaufort scale (Force 0–12) with: wind speed (knots), description, sea state, wave height.
+- [x] AC-2: Data file `src/data/beaufortScale.ts` defines all 13 levels with properties.
+- [x] AC-3: Interactive `BeaufortDrill.tsx` — "guess the force" drill: given a sea state description or wind speed, identify the Beaufort number. Minimum 10 drill items.
+- [x] AC-4: Bidirectional lookup: wind speed → force and force → conditions.
+- [x] AC-5: Completing theory marks `weather-beaufort` as complete; points awarded.
 
 **Dependencies:** None.
 
@@ -661,11 +661,11 @@ CREATE POLICY "Users manage own <table_name>"
 
 **Acceptance Criteria:**
 
-- [ ] AC-1: Route `/weather/forecasts` renders theory covering: VHF Coastguard forecasts (schedule, channels), Navtex, online sources (Met Office, Windy), shipping forecast structure (synopsis, area forecasts), inshore waters forecast.
-- [ ] AC-2: Data file `src/data/forecastAreas.ts` defines UK shipping forecast sea areas.
-- [ ] AC-3: Interactive `ForecastAreaMap.tsx` — clickable map of shipping forecast areas; user identifies areas by name or locates a named area on the map.
-- [ ] AC-4: Example shipping forecast with guided interpretation exercise.
-- [ ] AC-5: Completing theory marks `weather-forecasts` as complete; points awarded.
+- [x] AC-1: Route `/weather/forecasts` renders theory covering: VHF Coastguard forecasts (schedule, channels), Navtex, online sources (Met Office, Windy), shipping forecast structure (synopsis, area forecasts), inshore waters forecast.
+- [x] AC-2: Data file `src/data/forecastAreas.ts` defines UK shipping forecast sea areas.
+- [x] AC-3: Interactive `ForecastAreaMap.tsx` — clickable map of shipping forecast areas; user identifies areas by name or locates a named area on the map.
+- [x] AC-4: Example shipping forecast with guided interpretation exercise.
+- [x] AC-5: Completing theory marks `weather-forecasts` as complete; points awarded.
 
 **Dependencies:** None.
 
@@ -681,9 +681,9 @@ CREATE POLICY "Users manage own <table_name>"
 
 **Acceptance Criteria:**
 
-- [ ] AC-1: Route `/weather/fog` renders theory covering: advection fog (warm air over cold sea), radiation fog (land, then drifts to sea), sea fog, visibility scale (good / moderate / poor / fog), fog signals (COLREGs Rule 35 cross-reference).
-- [ ] AC-2: Practical guidance: actions in fog (radar reflector, sound signals, reduce speed, post lookout).
-- [ ] AC-3: Completing theory marks `weather-fog` as complete; points awarded.
+- [x] AC-1: Route `/weather/fog` renders theory covering: advection fog (warm air over cold sea), radiation fog (land, then drifts to sea), sea fog, visibility scale (good / moderate / poor / fog), fog signals (COLREGs Rule 35 cross-reference).
+- [x] AC-2: Practical guidance: actions in fog (radar reflector, sound signals, reduce speed, post lookout).
+- [x] AC-3: Completing theory marks `weather-fog` as complete; points awarded.
 
 **Dependencies:** None.
 
@@ -699,9 +699,9 @@ CREATE POLICY "Users manage own <table_name>"
 
 **Acceptance Criteria:**
 
-- [ ] AC-1: Data file `src/data/quizzes/weather.ts` contains >= 20 questions spanning weather systems, Beaufort scale, forecasts, and fog.
-- [ ] AC-2: Quiz accessible via `/quiz/weather`.
-- [ ] AC-3: Progress and scoring persist correctly.
+- [x] AC-1: Data file `src/data/quizzes/weather.ts` contains >= 20 questions spanning weather systems, Beaufort scale, forecasts, and fog.
+- [x] AC-2: Quiz accessible via `/quiz/weather`.
+- [x] AC-3: Progress and scoring persist correctly.
 
 **Dependencies:** DEP-E0S1, DEP-E3S1–E3S4.
 
@@ -713,10 +713,10 @@ CREATE POLICY "Users manage own <table_name>"
 
 **Acceptance Criteria:**
 
-- [ ] AC-1: Route `/weather` renders a `ModuleMenuPage` with all weather sub-modules and completion badges.
-- [ ] AC-2: Dashboard shows Meteorology as a top-level topic.
-- [ ] AC-3: Topic registry updated.
-- [ ] AC-4: Routes registered with lazy loading.
+- [x] AC-1: Route `/weather` renders a `ModuleMenuPage` with all weather sub-modules and completion badges.
+- [x] AC-2: Dashboard shows Meteorology as a top-level topic.
+- [x] AC-3: Topic registry updated.
+- [x] AC-4: Routes registered with lazy loading.
 
 **Dependencies:** DEP-E0S3, DEP-E3S1–E3S5.
 
