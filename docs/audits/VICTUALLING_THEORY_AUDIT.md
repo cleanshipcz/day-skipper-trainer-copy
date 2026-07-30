@@ -80,7 +80,9 @@ requirements review for a specific flag or cruising area was performed.
 - Categories are generated from current data insertion order. This works for
   the supplied catalogue, but there is no explicit ordering contract, schema
   validation, duplicate-ID protection, empty-state message, or malformed-data
-  fallback.
+  fallback. Follow-up #186 owns catalogue validation, stable ordering,
+  duplicate-ID handling, and safe empty/malformed-data behavior alongside
+  persistence.
 - Completion says **Provisioning complete** and “Ready for the quiz?” merely
   because every box was clicked. It does not establish quantities, actual
   availability, expiry, suitability, safe stowage, or understanding.
@@ -182,10 +184,29 @@ later questions assess material absent from the theory page:
 - why a stove is gimballed;
 - oilskin trousers as scald protection.
 
-Several are worthwhile topics, but the learner receives no teaching or
-explanation before assessment. Conversely, most of the 18 checklist items have
-no aligned assessment. Checking all items therefore neither demonstrates nor
-prepares quiz readiness. The dedicated quiz audit is tracked separately in
+Several are worthwhile topics, but two assessed claims require authoritative
+validation rather than being copied into theory:
+
+- Removing original tin labels is unsafe/incomplete advice unless all
+  safety-critical traceability is durably preserved. A casual waterproof name
+  can lose ingredients and allergens, expiry/best-before information,
+  preparation instructions, batch/lot identifiers, and recall information.
+  Any retained wet-stowage method must preserve or record all of that
+  information and keep it reliably associated with the correct container.
+- “Oilskin trousers protect against scalds” should not be taught as a
+  sufficient or generally authoritative control without a suitable source and
+  material-specific assessment. Primary controls should avoid handling hot
+  liquids when conditions make it unsafe, use appropriate stove gimbals and
+  locks, pot restraints/lids and secure handholds, keep people clear, and
+  choose pre-prepared/no-cook food. Protective clothing cannot make unsafe
+  cooking conditions safe and some materials can retain hot liquid against
+  skin.
+
+The learner receives no teaching or explanation before assessment. Conversely,
+most of the 18 checklist items have no aligned assessment. Checking all items
+therefore neither demonstrates nor prepares quiz readiness. Follow-up #191
+requires these two claims to be validated, rewritten, or removed in
+coordination with the dedicated quiz audit
 [#96](https://github.com/cleanshipcz/day-skipper-trainer-copy/issues/96).
 
 ### Visual quality, accessibility, and input
