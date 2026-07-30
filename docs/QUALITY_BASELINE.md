@@ -10,13 +10,26 @@ Run the same checks locally that CI runs:
 npm run lint
 npm run typecheck
 npm run test -- --run --maxWorkers=1
-npm run test:coverage -- --maxWorkers=1
-npm run guard:coverage-scope
+npm run guard:coverage-scope && npm run test:coverage -- --maxWorkers=1
 npm run build
 npm run test:build-budget
 npm run guard:migrations
 npm run guard:no-internal-artifacts
 ```
+
+### Chained-branch migration base
+
+CI supplies `MIGRATION_BASE_SHA` from the pull request base. On a local chained
+branch, set it to that branch's intended base commit before running
+`guard:migrations`:
+
+```sh
+export MIGRATION_BASE_SHA="$(git rev-parse origin/<base-branch>)"
+npm run guard:migrations
+```
+
+The guard fails closed when it cannot resolve a comparison base. This prevents
+an existing migration from being changed alongside its manifest entry.
 
 Vitest coverage is enforced per file at 90% for lines, statements, functions, and
 branches across the architecture seams changed or extended by current work:
@@ -50,10 +63,9 @@ report is generated in `coverage/` and is ignored by Git.
   byte-for-byte with the PR base commit, so changing both SQL and manifest
   cannot bypass immutability. Add a new timestamped SQL file and append its
   SHA-256 to `supabase/migrations/manifest.json`; never edit an existing file.
-  CI supplies the PR base automatically. On a local chained branch, set
-  `MIGRATION_BASE_SHA` to that branch's intended base before running the guard;
-  without it the guard uses the repository default branch and fails closed if
-  no comparison base is available.
+  CI supplies the PR base automatically; see
+  [Chained-branch migration base](#chained-branch-migration-base) for local
+  validation.
 
 ## Explicitly out of scope
 
