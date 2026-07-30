@@ -2,6 +2,12 @@ import { describe, expect, it, vi } from "vitest";
 import "fake-indexeddb/auto";
 import { getQueuedProgress, isRetryableProgressError, queueProgress, replayProgressQueue } from "./progressQueue";
 
+const deferred = <T,>() => {
+  let resolve!: (value: T) => void;
+  const promise = new Promise<T>((done) => { resolve = done; });
+  return { promise, resolve };
+};
+
 describe("offline progress queue", () => {
   it("keeps the newest update for a user and topic", async () => {
     await queueProgress({ userId: "queue-user", topicId: "charts", completed: false, score: 20, pointsEarned: 0 }, 10);
@@ -60,5 +66,58 @@ describe("offline progress queue", () => {
     expect(isRetryableProgressError({ status: 401, message: "unauthorized" }, true)).toBe(false);
     expect(isRetryableProgressError({ code: "42501", message: "row-level security policy denied" }, true)).toBe(false);
     expect(isRetryableProgressError({ code: "23514", message: "check constraint violation" }, true)).toBe(false);
+  });
+
+  it("does not delete a newer same-topic revision when an older replay succeeds", async () => {
+    await queueProgress({ userId: "success-race", topicId: "charts", completed: false, score: 20, pointsEarned: 0 }, 100);
+    const response = deferred<{ data: unknown; error: null }>();
+    const rpc = vi.fn().mockReturnValue(response.promise);
+    const replay = replayProgressQueue({ rpc } as never, "success-race");
+    await vi.waitFor(() => expect(rpc).toHaveBeenCalledTimes(1));
+
+    const newer = await queueProgress({
+      userId: "success-race",
+      topicId: "charts",
+      completed: true,
+      score: 95,
+      pointsEarned: 10,
+    }, 200);
+    response.resolve({
+      data: [{ points_awarded: false, completion_awarded: false, awarded_points: 0 }],
+      error: null,
+    });
+
+    expect(await replay).toEqual({ synced: 1, remaining: 1, quarantined: 0 });
+    expect(await getQueuedProgress("success-race")).toEqual([
+      expect.objectContaining({ score: 95, revision: newer.revision, status: "pending", attempts: 0 }),
+    ]);
+  });
+
+  it("does not overwrite or quarantine a newer revision when an older replay fails", async () => {
+    await queueProgress({ userId: "failure-race", topicId: "ropework", completed: false, score: 10, pointsEarned: 0 }, 100);
+    const response = deferred<{ data: null; error: { status: number; message: string } }>();
+    const rpc = vi.fn().mockReturnValue(response.promise);
+    const replay = replayProgressQueue({ rpc } as never, "failure-race");
+    await vi.waitFor(() => expect(rpc).toHaveBeenCalledTimes(1));
+
+    const newer = await queueProgress({
+      userId: "failure-race",
+      topicId: "ropework",
+      completed: true,
+      score: 88,
+      pointsEarned: 10,
+    }, 200);
+    response.resolve({ data: null, error: { status: 403, message: "RLS denied" } });
+
+    expect(await replay).toEqual({ synced: 0, remaining: 1, quarantined: 0 });
+    expect(await getQueuedProgress("failure-race")).toEqual([
+      expect.objectContaining({
+        score: 88,
+        revision: newer.revision,
+        status: "pending",
+        attempts: 0,
+      }),
+    ]);
+    expect((await getQueuedProgress("failure-race"))[0]).not.toHaveProperty("lastError");
   });
 });

@@ -14,12 +14,13 @@ export interface QueuedProgress {
   pointsEarned: number;
   answersHistory?: Record<string, unknown>;
   updatedAt: number;
+  revision: number;
   attempts: number;
   status: "pending" | "quarantined";
   lastError?: string;
 }
 
-type ProgressPayload = Omit<QueuedProgress, "id" | "updatedAt" | "attempts" | "status" | "lastError">;
+type ProgressPayload = Omit<QueuedProgress, "id" | "updatedAt" | "revision" | "attempts" | "status" | "lastError">;
 
 const errorMessage = (error: unknown): string =>
   error instanceof Error ? error.message : String((error as { message?: unknown })?.message ?? error);
@@ -66,16 +67,24 @@ export const queueProgress = async (
   progress: ProgressPayload,
   updatedAt = Date.now(),
 ): Promise<QueuedProgress> => {
-  const entry = {
-    ...progress,
-    id: `${progress.userId}:${progress.topicId}`,
-    updatedAt,
-    attempts: 0,
-    status: "pending" as const,
-  };
+  const id = `${progress.userId}:${progress.topicId}`;
   const database = await openDatabase();
   const transaction = database.transaction(STORE_NAME, "readwrite");
-  transaction.objectStore(STORE_NAME).put(entry);
+  const store = transaction.objectStore(STORE_NAME);
+  const existingRequest = store.get(id);
+  const existing = await new Promise<QueuedProgress | undefined>((resolve, reject) => {
+    existingRequest.onsuccess = () => resolve(existingRequest.result as QueuedProgress | undefined);
+    existingRequest.onerror = () => reject(existingRequest.error);
+  });
+  const entry: QueuedProgress = {
+    ...progress,
+    id,
+    updatedAt: Math.max(updatedAt, existing?.updatedAt ?? 0),
+    revision: (existing?.revision ?? 0) + 1,
+    attempts: 0,
+    status: "pending",
+  };
+  store.put(entry);
   await complete(transaction);
   database.close();
   return entry;
@@ -93,24 +102,48 @@ export const getQueuedProgress = async (userId?: string): Promise<QueuedProgress
   database.close();
   return entries
     .filter((entry) => !userId || entry.userId === userId)
-    .map((entry) => ({ ...entry, attempts: entry.attempts ?? 0, status: entry.status ?? "pending" }))
+    .map((entry) => ({
+      ...entry,
+      revision: entry.revision ?? 0,
+      attempts: entry.attempts ?? 0,
+      status: entry.status ?? "pending",
+    }))
     .sort((a, b) => a.updatedAt - b.updatedAt);
 };
 
-const removeQueuedProgress = async (id: string): Promise<void> => {
+const sameRevision = (left: QueuedProgress, right: QueuedProgress): boolean =>
+  left.revision === right.revision && left.updatedAt === right.updatedAt;
+
+const removeQueuedProgress = async (snapshot: QueuedProgress): Promise<boolean> => {
   const database = await openDatabase();
   const transaction = database.transaction(STORE_NAME, "readwrite");
-  transaction.objectStore(STORE_NAME).delete(id);
+  const store = transaction.objectStore(STORE_NAME);
+  const request = store.get(snapshot.id);
+  const current = await new Promise<QueuedProgress | undefined>((resolve, reject) => {
+    request.onsuccess = () => resolve(request.result as QueuedProgress | undefined);
+    request.onerror = () => reject(request.error);
+  });
+  const removed = Boolean(current && sameRevision(current, snapshot));
+  if (removed) store.delete(snapshot.id);
   await complete(transaction);
   database.close();
+  return removed;
 };
 
-const updateQueuedProgress = async (entry: QueuedProgress): Promise<void> => {
+const updateQueuedProgress = async (snapshot: QueuedProgress, entry: QueuedProgress): Promise<boolean> => {
   const database = await openDatabase();
   const transaction = database.transaction(STORE_NAME, "readwrite");
-  transaction.objectStore(STORE_NAME).put(entry);
+  const store = transaction.objectStore(STORE_NAME);
+  const request = store.get(snapshot.id);
+  const current = await new Promise<QueuedProgress | undefined>((resolve, reject) => {
+    request.onsuccess = () => resolve(request.result as QueuedProgress | undefined);
+    request.onerror = () => reject(request.error);
+  });
+  const updated = Boolean(current && sameRevision(current, snapshot));
+  if (updated) store.put(entry);
   await complete(transaction);
   database.close();
+  return updated;
 };
 
 export const replayProgressQueue = async (
@@ -130,10 +163,10 @@ export const replayProgressQueue = async (
         pointsEarned: entry.pointsEarned,
         answersHistory: entry.answersHistory,
       });
-      await removeQueuedProgress(entry.id);
+      await removeQueuedProgress(entry);
       synced += 1;
     } catch (error) {
-      await updateQueuedProgress({
+      await updateQueuedProgress(entry, {
         ...entry,
         attempts: entry.attempts + 1,
         status: isRetryableProgressError(error) ? "pending" : "quarantined",
