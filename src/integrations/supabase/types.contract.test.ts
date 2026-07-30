@@ -50,5 +50,8 @@ describe("generated Supabase service contracts", () => {
       p_review_id: string;
       p_reviewed_at?: string;
     }>();
+    expectTypeOf<Functions["record_question_review"]["Returns"]>().toEqualTypeOf<
+      Database["public"]["Tables"]["question_reviews"]["Row"]
+    >();
   });
 });

@@ -14,6 +14,7 @@ try {
     execFileSync(cli, ["gen", "types", "typescript", "--local"], {
       encoding: "utf8",
       maxBuffer: 10 * 1024 * 1024,
+      stdio: ["ignore", "pipe", "inherit"],
     }),
   );
 
@@ -32,8 +33,9 @@ try {
     console.log("Regenerated src/integrations/supabase/types.ts from the local migration schema.");
   }
 } catch (error) {
+  const retryCommand = check ? "npm run guard:supabase-types" : "npm run supabase:types";
   console.error(
-    "Supabase type generation failed. Ensure Docker is running, then retry `npm run supabase:types`.",
+    `Supabase type generation failed. Review the CLI diagnostic above, ensure the local Docker-backed Supabase stack is available, then retry \`${retryCommand}\`.`,
   );
   process.exitCode = error.status || 1;
 }
