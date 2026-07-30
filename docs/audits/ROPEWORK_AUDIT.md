@@ -31,6 +31,11 @@ credentials/live backend) was exercised in clean headless Chromium via CDP.
 - Pointer-clicking each card rendered its Steps panel. Seven clicks produced
   score 105, **7/7 learned**, and **All knots learned! Ready for the quiz?**
 - **Take Quiz** navigated to `/quiz/ropework`.
+- Root reachability is wired through the topic registry: `ropework` is a root
+  topic with route `/ropework`, and `Index.tsx` supplies the dashboard card
+  labelled **Ropework & Knots** (“Master essential knots with visual guides”).
+  Direct route and onward navigation were runtime-exercised; the initial root
+  card click itself was source-verified rather than replayed in Chromium.
 - Re-click prevention is source-confirmed by the `discovered` guard. No
   authenticated save, reload recovery, external tutorial navigation, blocked
   popup, or third-party availability was exercised.
@@ -52,9 +57,22 @@ score and learned knots and authenticated completion never reaches reports.
 
 There are no embedded diagrams or animations for spatial rope paths. Each knot
 has only an Animated Knots URL opened with `window.open(..., "_blank")`.
-External content is optional in appearance but essential in practice; blocked,
-offline, moved, or inaccessible pages have no fallback or status. At phone
-width the card/detail stack remains readable and overflow-free.
+All seven destinations were fetched on 2026-07-30: each returned an HTML page
+whose title matched Bowline, Clove Hitch – Rope End, Square Knot, Figure 8,
+Round Turn & Two Half Hitches, Sheet Bend, or Rolling Hitch respectively.
+They currently include step animations, descriptive image labels, text
+instructions, and keyboard animation controls (arrow stepping and numeric
+speed selection). They also carry detailed use/safety material; notably the
+Bowline page warns about unloaded shaking and release under load, the Clove
+Hitch page says it can slip and bind and should not be used alone, and the
+Square/Reef Knot page supplies context absent locally.
+
+This is a point-in-time availability/content-match check, not a guarantee of
+future uptime, accessibility conformance, licensing for reuse, regional
+availability, or compatibility with assistive technology. Blocked, offline,
+moved, script-disabled, or inaccessible external content has no local fallback
+or status. At phone width the local card/detail stack remains readable and
+overflow-free.
 
 ### Accessibility
 
@@ -86,4 +104,5 @@ purposes are broadly appropriate. Safety-critical qualification is missing:
 - [#159 — Correct unsafe and ambiguous Ropework knot guidance](https://github.com/cleanshipcz/day-skipper-trainer-copy/issues/159)
 - [#160 — Make Ropework knot discovery keyboard- and screen-reader-accessible](https://github.com/cleanshipcz/day-skipper-trainer-copy/issues/160)
 - [#161 — Persist Ropework learning completion and recover save failures](https://github.com/cleanshipcz/day-skipper-trainer-copy/issues/161)
-- [#162 — Add self-contained visual knot instruction and meaningful practice checks](https://github.com/cleanshipcz/day-skipper-trainer-copy/issues/162)
+- [#162 — Add licensed self-contained knot visuals and resilient tutorial links](https://github.com/cleanshipcz/day-skipper-trainer-copy/issues/162)
+- [#163 — Replace Ropework click-to-learn points with meaningful practice checks](https://github.com/cleanshipcz/day-skipper-trainer-copy/issues/163)
