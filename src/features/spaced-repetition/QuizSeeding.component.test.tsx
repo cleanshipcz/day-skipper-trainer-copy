@@ -118,6 +118,49 @@ describe("quiz review seeding identity isolation", () => {
     expect(localStorage.getItem("quiz-attempt:a:test")).toContain('"scoreSaved":true');
   });
 
+  test("should restore the exact scored completion after navigation and recover before a fresh attempt", async () => {
+    let completedSaveSucceeds = false;
+    let starts = 0;
+    mocks.saveProgress.mockImplementation((_topic: string, completed: boolean) =>
+      Promise.resolve(completed ? completedSaveSucceeds : true));
+    mocks.rpc.mockImplementation((name: string) => Promise.resolve({
+      data: name === "start_quiz_attempt"
+        ? { attempt_id: `issued-${++starts}`, started_at: new Date().toISOString() }
+        : {},
+      error: null,
+    }));
+
+    const firstView = renderQuiz();
+    fireEvent.click(await screen.findByRole("button", { name: "Right" }));
+    fireEvent.click(screen.getByRole("button", { name: "Submit Answer" }));
+    fireEvent.click(screen.getByRole("button", { name: "View Results" }));
+    await screen.findByRole("button", { name: "Retry completion save" });
+    const persistedWorkflow = JSON.parse(localStorage.getItem("quiz-attempt:a:test") ?? "null");
+    expect(persistedWorkflow).toHaveProperty("completion");
+    firstView.unmount();
+
+    renderQuiz();
+    expect(await screen.findByText("Quiz Complete!")).toBeTruthy();
+    expect(screen.getByText("100%")).toBeTruthy();
+    expect((screen.getByRole("button", { name: "Finish saving first" }) as HTMLButtonElement).disabled).toBe(true);
+    expect(screen.queryByRole("button", { name: "Right" })).toBeNull();
+
+    completedSaveSucceeds = true;
+    fireEvent.click(screen.getByRole("button", { name: "Retry completion save" }));
+    await waitFor(() => expect(localStorage.getItem("quiz-attempt:a:test")).toBeNull());
+    const recoveredCall = mocks.saveProgress.mock.calls.filter((call) => call[1] === true).at(-1);
+    expect(recoveredCall?.[2]).toBe(100);
+    expect(recoveredCall?.[4]).toMatchObject({
+      answers: persistedWorkflow.completion.answers,
+      currentQuestion: persistedWorkflow.completion.currentQuestion,
+      completed: true,
+    });
+    expect(mocks.rpc.mock.calls.filter((call) => call[0] === "submit_quiz_score")).toHaveLength(1);
+
+    fireEvent.click(screen.getByRole("button", { name: "Retry Quiz" }));
+    await waitFor(() => expect(localStorage.getItem("quiz-attempt:a:test")).toContain("issued-2"));
+  });
+
   test("should replace an interrupted attempt older than the server submission window", async () => {
     localStorage.setItem("quiz-attempt:a:test", JSON.stringify({
       attemptId: "expired-attempt",

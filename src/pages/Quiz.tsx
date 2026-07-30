@@ -32,6 +32,14 @@ interface QuizWorkflow {
   readonly attemptId: string;
   readonly scoreSaved: boolean;
   readonly startedAt?: string;
+  readonly completion?: {
+    readonly answers: readonly (number | null)[];
+    readonly currentQuestion: number;
+    readonly correctAnswers: number;
+    readonly percentage: number;
+    readonly passed: boolean;
+    readonly pointsEarned: number;
+  };
 }
 const QUIZ_ATTEMPT_MAX_AGE_MS = 2 * 60 * 60 * 1000;
 const readQuizWorkflow = (owner: string | undefined, topic: string): QuizWorkflow | null => {
@@ -47,7 +55,16 @@ const readQuizWorkflow = (owner: string | undefined, topic: string): QuizWorkflo
       localStorage.removeItem(key);
       return null;
     }
-    return { attemptId: parsed.attemptId, scoreSaved, startedAt };
+    const completion = parsed.completion
+      && Array.isArray(parsed.completion.answers)
+      && typeof parsed.completion.currentQuestion === "number"
+      && typeof parsed.completion.correctAnswers === "number"
+      && typeof parsed.completion.percentage === "number"
+      && typeof parsed.completion.passed === "boolean"
+      && typeof parsed.completion.pointsEarned === "number"
+      ? parsed.completion as QuizWorkflow["completion"]
+      : undefined;
+    return { attemptId: parsed.attemptId, scoreSaved, startedAt, completion };
   } catch { return null; }
 };
 
@@ -80,13 +97,13 @@ const Quiz = () => {
     subtitle: "Answer the questions to test yourself",
   };
 
-  const [currentQuestion, setCurrentQuestion] = useState(0);
-  const [answers, setAnswers] = useState<(number | null)[]>([]);
-  const [showExplanation, setShowExplanation] = useState(false);
-  const [isComplete, setIsComplete] = useState(false);
-  const [seedStatus, setSeedStatus] = useState<"idle" | "saving" | "saved" | "failed">("idle");
   const [workflow, setWorkflow] = useState<QuizWorkflow | null>(() => readQuizWorkflow(user?.id, topicKey));
-  const [completionSaveError, setCompletionSaveError] = useState(false);
+  const [currentQuestion, setCurrentQuestion] = useState(() => workflow?.completion?.currentQuestion ?? 0);
+  const [answers, setAnswers] = useState<(number | null)[]>(() => workflow?.completion ? [...workflow.completion.answers] : []);
+  const [showExplanation, setShowExplanation] = useState(false);
+  const [isComplete, setIsComplete] = useState(() => Boolean(workflow?.scoreSaved && workflow.completion));
+  const [seedStatus, setSeedStatus] = useState<"idle" | "saving" | "saved" | "failed">("idle");
+  const [completionSaveError, setCompletionSaveError] = useState(() => Boolean(workflow?.scoreSaved && workflow.completion));
   const [attemptCycle, setAttemptCycle] = useState(0);
   const seedOwnerRef = useRef(user?.id ?? null);
   const seedGenerationRef = useRef(0);
@@ -114,6 +131,14 @@ const Quiz = () => {
   // Initialize answers array when questions change
   useEffect(() => {
     const initQuiz = async () => {
+      const recovery = readQuizWorkflow(user?.id, topicKey);
+      if (recovery?.scoreSaved && recovery.completion) {
+        setAnswers([...recovery.completion.answers]);
+        setCurrentQuestion(recovery.completion.currentQuestion);
+        setIsComplete(true);
+        setCompletionSaveError(true);
+        return;
+      }
       const owner = seedOwnerRef.current;
       const generation = seedGenerationRef.current;
       const canonicalKey = canonicalQuizProgressKey(topicKey);
@@ -159,7 +184,7 @@ const Quiz = () => {
       setAnswers(createEmptyQuizAnswers(questions.length));
     };
     initQuiz();
-  }, [questions.length, topicKey, loadProgress, saveProgress, resetProgress, seedReviews]);
+  }, [questions.length, topicKey, user?.id, loadProgress, saveProgress, resetProgress, seedReviews]);
 
   useEffect(() => {
     const owner = user?.id;
@@ -277,7 +302,14 @@ const Quiz = () => {
     }
     setCompletionSaveError(false);
 
-    const { percentage, passed, pointsEarned } = quizCompletionOutcome(correctAnswers, questions.length);
+    const calculatedCompletion = quizCompletionOutcome(correctAnswers, questions.length);
+    const completion = activeWorkflow.completion ?? {
+      answers: [...answers],
+      currentQuestion,
+      correctAnswers,
+      ...calculatedCompletion,
+    };
+    const { percentage, passed, pointsEarned } = completion;
 
     try {
       // Save quiz score
@@ -290,7 +322,7 @@ const Quiz = () => {
         });
         if (scoreError) throw scoreError;
         if (seedOwnerRef.current !== owner || seedGenerationRef.current !== generation) return;
-        const scoreSavedWorkflow = { ...activeWorkflow, scoreSaved: true };
+        const scoreSavedWorkflow = { ...activeWorkflow, scoreSaved: true, completion };
         localStorage.setItem(quizAttemptKey(owner, topicKey), JSON.stringify(scoreSavedWorkflow));
         setWorkflow(scoreSavedWorkflow);
       }
@@ -302,7 +334,7 @@ const Quiz = () => {
         percentage,
         pointsEarned,
         {
-          ...buildQuizSessionProgress(answers, currentQuestion),
+          ...buildQuizSessionProgress([...completion.answers], completion.currentQuestion),
           completed: true,
         }
       );
@@ -348,8 +380,9 @@ const Quiz = () => {
   };
 
   if (isComplete) {
-    const percentage = percentageScore(correctAnswers, questions.length);
-    const passed = percentage >= 70;
+    const displayedCorrectAnswers = workflow?.completion?.correctAnswers ?? correctAnswers;
+    const percentage = workflow?.completion?.percentage ?? percentageScore(correctAnswers, questions.length);
+    const passed = workflow?.completion?.passed ?? percentage >= 70;
 
     return (
       <div className="min-h-screen bg-gradient-to-br from-background via-ocean-light/10 to-background flex items-center justify-center p-4">
@@ -368,7 +401,7 @@ const Quiz = () => {
             <div className="text-center">
               <div className="text-6xl font-bold text-gradient mb-2">{percentage}%</div>
               <p className="text-xl text-muted-foreground">
-                {correctAnswers} out of {questions.length} correct
+                {displayedCorrectAnswers} out of {questions.length} correct
               </p>
             </div>
 
