@@ -1,6 +1,7 @@
 import { execFileSync } from "node:child_process";
 import { readFileSync, writeFileSync } from "node:fs";
 import { resolve } from "node:path";
+import { formatTypeMismatch } from "./type-mismatch-diagnostic.mjs";
 
 const TYPES_PATH = resolve("src/integrations/supabase/types.ts");
 const cli = resolve("node_modules/.bin/supabase");
@@ -24,6 +25,7 @@ try {
       console.error(
         "Supabase types are stale. Regenerate them with `npm run supabase:types`, then commit src/integrations/supabase/types.ts.",
       );
+      console.error(formatTypeMismatch(generated, checkedIn));
       process.exitCode = 1;
     } else {
       console.log("Checked-in Supabase types match the local migration schema.");
