@@ -14,6 +14,19 @@ create policy "Users can view their own progress awards"
   to authenticated
   using ((select auth.uid()) = user_id);
 
+-- Server timestamps establish that an eligible topic was opened before its
+-- completion was submitted. Clients cannot insert, edit, backdate, or reset
+-- this evidence directly.
+create table if not exists public.progress_engagements (
+  user_id uuid not null references auth.users(id) on delete cascade,
+  topic_id text not null,
+  started_at timestamptz not null default clock_timestamp(),
+  primary key (user_id, topic_id)
+);
+
+alter table public.progress_engagements enable row level security;
+revoke all on public.progress_engagements from public, anon, authenticated;
+
 -- Mark every legacy completion before installing the new write contract. The
 -- marker intentionally records zero because historical profile point awards
 -- cannot be reconstructed safely. Its immutable identity prevents a reset
@@ -44,6 +57,7 @@ declare
   v_completion_awarded boolean := false;
   v_award_points integer := 0;
   v_points_awarded boolean := false;
+  v_engagement_started_at timestamptz;
 begin
   if v_user_id is null then
     raise exception 'Authentication required' using errcode = '42501';
@@ -114,6 +128,26 @@ begin
     when 'weather-fog' then 10
     else 0
   end;
+
+  if not coalesce(p_completed, false) and v_award_points > 0 then
+    insert into public.progress_engagements (user_id, topic_id)
+    values (v_user_id, p_topic_id)
+    on conflict (user_id, topic_id) do nothing;
+  end if;
+
+  if coalesce(p_completed, false) and v_award_points > 0 then
+    select pe.started_at
+      into v_engagement_started_at
+      from public.progress_engagements pe
+     where pe.user_id = v_user_id and pe.topic_id = p_topic_id;
+
+    if v_engagement_started_at is null
+       or v_engagement_started_at > clock_timestamp() - interval '15 seconds' then
+      raise exception 'Verified completion evidence required'
+        using errcode = 'P0001',
+              hint = 'Open and review the topic before submitting completion.';
+    end if;
+  end if;
 
   insert into public.user_progress (
     user_id, topic_id, completed, score, last_accessed, answers_history

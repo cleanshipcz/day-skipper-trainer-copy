@@ -70,6 +70,8 @@ describe("progress integrity proof path", () => {
     expect(migration).toContain("p_points remains in the");
     expect(migration).not.toMatch(/v_award_points\s*:=\s*p_points/);
     expect(migration).toContain("on conflict (user_id, topic_id) do nothing");
+    expect(migration).toContain("Verified completion evidence required");
+    expect(migration).toContain("clock_timestamp() - interval '15 seconds'");
     expect(migration).toContain("save_topic_progress");
   });
 });

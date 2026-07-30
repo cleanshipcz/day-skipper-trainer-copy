@@ -31,7 +31,8 @@ describe("WeatherTheoryLayout", () => {
     render(<MemoryRouter><WeatherTheoryLayout title="Test" subtitle="Test" topicId="weather-test" sections={[]} /></MemoryRouter>);
     fireEvent.click(await screen.findByRole("button", { name: /mark theory complete/i }));
     await vi.waitFor(() => {
-      expect(saveProgress).toHaveBeenCalledOnce();
+      expect(saveProgress).toHaveBeenCalledWith("weather-test", false, 0, 0, { engagementState: "started" });
+      expect(saveProgress).toHaveBeenCalledWith("weather-test", true, 100, 10, { completionState: "completed" });
       expect(screen.queryByRole("button", { name: /completed/i })).toBeNull();
       expect((screen.getByRole("button", { name: /mark theory complete/i }) as HTMLButtonElement).disabled).toBe(false);
     });
@@ -48,18 +49,21 @@ describe("WeatherTheoryLayout", () => {
 
   it("blocks rapid duplicate activation while the first save is in flight", async () => {
     let resolveSave!: (saved: boolean) => void;
-    saveProgress.mockReturnValue(new Promise<boolean>((resolve) => {
-      resolveSave = resolve;
-    }));
+    saveProgress.mockImplementation((_topicId, completed) => {
+      if (!completed) return Promise.resolve(true);
+      return new Promise<boolean>((resolve) => {
+        resolveSave = resolve;
+      });
+    });
     render(<MemoryRouter><WeatherTheoryLayout title="Test" subtitle="Test" topicId="weather-test" sections={[]} /></MemoryRouter>);
     const action = await screen.findByRole("button", { name: /mark theory complete/i });
     fireEvent.click(action);
     fireEvent.click(action);
-    expect(saveProgress).toHaveBeenCalledOnce();
+    expect(saveProgress).toHaveBeenCalledTimes(2);
     expect((screen.getByRole("button", { name: /saving completion/i }) as HTMLButtonElement).disabled).toBe(true);
     resolveSave(true);
     await screen.findByRole("button", { name: /completed/i });
-    expect(saveProgress).toHaveBeenCalledOnce();
+    expect(saveProgress).toHaveBeenCalledTimes(2);
   });
 
   it("uses mobile-first controls and a responsive two-column content grid", () => {

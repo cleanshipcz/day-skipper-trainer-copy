@@ -42,6 +42,25 @@ describe("atomic progress migration", () => {
     expect(sql).toContain("coalesce(points, 0) + v_award_points");
   });
 
+  it("rejects direct forged completions without prior server-timestamped evidence", () => {
+    expect(sql).toContain("create table if not exists public.progress_engagements");
+    expect(sql).toContain("revoke all on public.progress_engagements from public, anon, authenticated");
+    expect(sql).toContain("if not coalesce(p_completed, false) and v_award_points > 0");
+    expect(sql).toContain("clock_timestamp() - interval '15 seconds'");
+    expect(sql).toContain("verified completion evidence required");
+    expect(sql.indexOf("verified completion evidence required")).toBeLessThan(
+      sql.indexOf("insert into public.user_progress"),
+    );
+  });
+
+  it("accepts matured server evidence while keeping its timestamp immutable", () => {
+    expect(sql).toContain("insert into public.progress_engagements (user_id, topic_id)");
+    expect(sql).toContain("on conflict (user_id, topic_id) do nothing");
+    expect(sql).toContain("select pe.started_at");
+    expect(sql).not.toContain("update public.progress_engagements");
+    expect(sql).not.toContain("delete from public.progress_engagements");
+  });
+
   it("validates mutable progress and preserves completed evidence", () => {
     expect(sql).toContain("score must be between 0 and 100");
     expect(sql).toContain("jsonb_typeof(p_answers_history) <> 'object'");
