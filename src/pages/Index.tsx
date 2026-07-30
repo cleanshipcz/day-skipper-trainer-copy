@@ -34,7 +34,7 @@ import type { ModuleMenuItem } from "@/components/module-menu/types";
 import { getRootTopics, type TopicEntry } from "@/constants/topicRegistry";
 import { useDueReviewCount } from "@/features/spaced-repetition/useDueReviewCount";
 import { badgeById, type BadgeDefinition } from "@/data/badges";
-import { calculateStreak } from "@/features/engagement/streaks";
+import { calculateStreak, fetchAllStreakTimestamps } from "@/features/engagement/streaks";
 import { retryEngagementOutbox } from "@/features/engagement/engagementService";
 import { toast } from "sonner";
 
@@ -245,12 +245,21 @@ const Index = () => {
     } catch {
       if (engagementOwnerRef.current === owner) setEngagementError(true);
     }
-    const [{ data: badgeRows, error: badgeError }, { data: activityRows, error: activityError }] = await Promise.all([
+    const [{ data: badgeRows, error: badgeError }, activityResult] = await Promise.all([
       supabase.from("user_badges").select("badge_id").eq("user_id", owner).order("earned_at", { ascending: false }),
-      supabase.from("daily_activity").select("first_activity_at").eq("user_id", owner).order("activity_date", { ascending: false }).limit(366),
+      fetchAllStreakTimestamps(async (from, to) => {
+        const { data, error } = await supabase.from("daily_activity")
+          .select("first_activity_at")
+          .eq("user_id", owner)
+          .order("activity_date", { ascending: false })
+          .range(from, to);
+        if (error) throw error;
+        return (data ?? []).map(({ first_activity_at }) => first_activity_at);
+      }).then((timestamps) => ({ timestamps, error: null }))
+        .catch((error: unknown) => ({ timestamps: [] as readonly string[], error })),
     ]);
     if (engagementOwnerRef.current !== owner) return;
-    if (badgeError || activityError) {
+    if (badgeError || activityResult.error) {
       setEngagementError(true);
       setEngagementLoading(false);
       return;
@@ -258,7 +267,7 @@ const Index = () => {
     setEarnedBadges((badgeRows ?? [])
       .map(({ badge_id }) => badgeById.get(badge_id))
       .filter((badge): badge is BadgeDefinition => Boolean(badge)));
-    setCurrentStreak(calculateStreak((activityRows ?? []).map(({ first_activity_at }) => first_activity_at), new Date().toISOString()));
+    setCurrentStreak(calculateStreak(activityResult.timestamps, new Date().toISOString()));
     setEngagementLoading(false);
   }, [user]);
 

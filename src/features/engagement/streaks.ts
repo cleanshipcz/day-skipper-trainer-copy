@@ -15,6 +15,18 @@ const previousDate = (date: string): string => {
   return value.toISOString().slice(0, 10);
 };
 
+export const fetchAllStreakTimestamps = async (
+  fetchPage: (from: number, to: number) => Promise<readonly string[]>,
+  pageSize = 1_000,
+): Promise<readonly string[]> => {
+  const timestamps: string[] = [];
+  for (let from = 0; ; from += pageSize) {
+    const page = await fetchPage(from, from + pageSize - 1);
+    timestamps.push(...page);
+    if (page.length < pageSize) return timestamps;
+  }
+};
+
 export const calculateStreak = (timestamps: readonly string[], now: string): number => {
   const activeDates = new Set(timestamps.map(pragueDate));
   let cursor = pragueDate(now);
