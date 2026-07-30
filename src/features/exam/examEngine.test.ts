@@ -12,6 +12,13 @@ describe("exam engine", () => {
     expect(new Set(selected.map((item) => `${item.topicId}:${item.id}`)).size).toBe(3);
   });
 
+  it("clamps invalid counts, skips empty banks, and handles random upper bounds", () => {
+    expect(selectExamQuestions({ empty: [], custom: [question("1")] }, 1, () => 1))
+      .toEqual([{ ...question("1"), topicId: "custom" }]);
+    expect(selectExamQuestions({ custom: [question("1")] }, Number.NaN, () => 0)).toEqual([]);
+    expect(selectExamQuestions({}, 10, () => 0)).toEqual([]);
+  });
+
   it("scores overall and by topic, treating incomplete answers as incorrect", () => {
     const result = scoreExam([
       { ...question("1"), topicId: "a" },
@@ -24,5 +31,10 @@ describe("exam engine", () => {
 
   it("never returns a negative timer value", () => {
     expect(remainingSeconds(1_000, 10, 15_000)).toBe(0);
+    expect(remainingSeconds(1_000, 10, 5_000)).toBe(6);
+  });
+
+  it("returns a passing empty-safe score", () => {
+    expect(scoreExam([], [], 0)).toEqual({ score: 0, percentage: 0, passed: true, topicBreakdown: {} });
   });
 });

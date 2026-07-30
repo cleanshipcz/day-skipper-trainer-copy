@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { clampInteger, parseExamSession } from "./examSession";
+import { clampInteger, parseExamSession, sessionBelongsTo } from "./examSession";
 
 const valid = {
   ownerId: null,
@@ -28,5 +28,28 @@ describe("exam session validation", () => {
   it("binds a session to exactly one anonymous or authenticated identity", () => {
     expect(parseExamSession(JSON.stringify({ ...valid, ownerId: "not-a-uuid" }), 2_000)).toBeNull();
     expect(parseExamSession(JSON.stringify({ ...valid, attemptId: "123e4567-e89b-12d3-a456-42661417400-" }), 2_000)).toBeNull();
+    const parsed = parseExamSession(JSON.stringify(valid), 2_000)!;
+    expect(sessionBelongsTo(parsed, null)).toBe(true);
+    expect(sessionBelongsTo(parsed, "other")).toBe(false);
+  });
+  it.each([
+    null,
+    { ...valid, questions: [] },
+    { ...valid, questions: [{ ...valid.questions[0], options: ["a", 2] }] },
+    { ...valid, answers: [] },
+    { ...valid, durationSeconds: 299 },
+    { ...valid, startedAt: 0 },
+  ])("rejects additional invalid persisted shapes", (value) => {
+    expect(parseExamSession(JSON.stringify(value), 2_000)).toBeNull();
+  });
+  it("normalizes flags, submitted timing, status, and pass marks", () => {
+    const parsed = parseExamSession(JSON.stringify({
+      ...valid, flagged: [0, 0, -1, 2], submitted: true, elapsedSeconds: 999,
+      saveStatus: "unexpected", passMark: 0,
+    }), 2_000)!;
+    expect(parsed).toMatchObject({ flagged: [0], elapsedSeconds: 300, saveStatus: "pending", passMark: 1 });
+  });
+  it("returns null for malformed JSON", () => {
+    expect(parseExamSession("{bad", 2_000)).toBeNull();
   });
 });

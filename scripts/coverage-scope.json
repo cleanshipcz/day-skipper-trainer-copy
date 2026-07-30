@@ -1,19 +1,35 @@
 {
   "directories": [
     "src/features/dashboard",
+    "src/features/engagement",
+    "src/features/exam",
+    "src/features/export",
+    "src/features/offline",
     "src/features/progress",
-    "src/features/quiz"
+    "src/features/quiz",
+    "src/features/spaced-repetition"
   ],
   "files": [
     "src/constants/durableProgressIds.ts",
     "src/constants/topicRegistry.ts",
     "src/features/dashboard/topicCompletion.ts",
+    "src/features/engagement/engagementService.ts",
+    "src/features/engagement/streaks.ts",
+    "src/features/exam/examEngine.ts",
+    "src/features/exam/examSession.ts",
+    "src/features/export/progressReport.ts",
+    "src/features/offline/cachePolicy.ts",
+    "src/features/offline/progressQueue.ts",
     "src/features/progress/completionGates.ts",
     "src/features/progress/progressPersistence.ts",
     "src/features/progress/useTheoryCompletionGate.ts",
     "src/features/quiz/progressKeys.ts",
     "src/features/quiz/randomization.ts",
     "src/features/quiz/scoring.ts",
-    "src/features/quiz/sessionProgress.ts"
+    "src/features/quiz/sessionProgress.ts",
+    "src/features/spaced-repetition/reviewQuestions.ts",
+    "src/features/spaced-repetition/reviewService.ts",
+    "src/features/spaced-repetition/sm2.ts",
+    "src/features/spaced-repetition/useDueReviewCount.ts"
   ]
 }

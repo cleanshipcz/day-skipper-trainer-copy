@@ -42,6 +42,36 @@ module in those directories is not opted into coverage. New or changed code
 therefore cannot bypass the per-file gate. The HTML
 report is generated in `coverage/` and is ignored by Git.
 
+### Stateful feature coverage expansion
+
+Issue 70 expanded the protected scope to every production module in
+`features/exam`, `features/spaced-repetition`, `features/engagement`,
+`features/offline`, and `features/export`. The scope guard now enforces 21
+modules in total; adding a production module under any protected directory
+requires adding it to `scripts/coverage-scope.json`, after which the unchanged
+90% per-file thresholds apply.
+
+All included files meet the threshold. The only explicit coverage exclusions
+in the new scope are the IndexedDB `onerror`/`onabort` callbacks in
+`progressQueue.ts`. Those callbacks contain no domain decision: each only
+forwards the browser-provided error to an existing rejected Promise. Successful
+transactions, schema creation, legacy queue hydration, retry/quarantine
+decisions, and stale-revision races remain behaviorally tested. This narrow
+platform-adapter exclusion avoids pretending that fake IndexedDB event
+injection tests validate a browser implementation.
+
+Resource measurement on 2026-07-30, using Node 22 with one Vitest worker:
+
+| Job | Tests | Vitest duration | Wall time | Peak RSS |
+| --- | ---: | ---: | ---: | ---: |
+| Default test | 630 | 61.76s | 62.39s | 318 MiB |
+| Coverage | 630 | 69.24s | 70.24s | 429 MiB |
+
+The measured coverage result was 100% statements, functions, and lines and
+97.1% branches across the protected scope. These measurements are a regression
+reference, not a reason to weaken thresholds; investigate material growth
+beyond roughly 90 seconds or 512 MiB before expanding the scope further.
+
 ## Baseline findings
 
 - The topic registry contains 46 stable progress IDs across all 13 syllabus
