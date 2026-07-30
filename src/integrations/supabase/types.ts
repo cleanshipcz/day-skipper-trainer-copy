@@ -14,6 +14,36 @@ export type Database = {
   }
   public: {
     Tables: {
+      daily_activity: {
+        Row: {
+          activity_date: string
+          activity_type: string
+          first_activity_at: string
+          user_id: string
+        }
+        Insert: {
+          activity_date: string
+          activity_type: string
+          first_activity_at?: string
+          user_id: string
+        }
+        Update: never
+        Relationships: []
+      }
+      user_badges: {
+        Row: {
+          badge_id: string
+          earned_at: string
+          user_id: string
+        }
+        Insert: {
+          badge_id: string
+          earned_at?: string
+          user_id: string
+        }
+        Update: never
+        Relationships: []
+      }
       question_reviews: {
         Row: {
           created_at: string
@@ -117,6 +147,7 @@ export type Database = {
       }
       quiz_scores: {
         Row: {
+          attempt_id: string
           completed_at: string
           id: string
           percentage: number
@@ -126,6 +157,7 @@ export type Database = {
           user_id: string
         }
         Insert: {
+          attempt_id: string
           completed_at?: string
           id?: string
           percentage: number
@@ -135,6 +167,7 @@ export type Database = {
           user_id: string
         }
         Update: {
+          attempt_id?: string
           completed_at?: string
           id?: string
           percentage?: number
@@ -143,6 +176,19 @@ export type Database = {
           total_questions?: number
           user_id?: string
         }
+        Relationships: []
+      }
+      quiz_attempts: {
+        Row: {
+          attempt_id: string
+          completed_at: string | null
+          expected_total: number
+          started_at: string
+          topic_id: string
+          user_id: string
+        }
+        Insert: never
+        Update: never
         Relationships: []
       }
       user_progress: {
@@ -183,6 +229,27 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
+      sync_engagement_event: {
+        Args: { p_source_id: string; p_source_type: string }
+        Returns: {
+          bonus_points: number
+          current_streak: number
+          unlocked_badge_ids: string[]
+        }
+      }
+      submit_quiz_score: {
+        Args: {
+          p_attempt_id: string
+          p_score: number
+          p_topic_id: string
+          p_total_questions: number
+        }
+        Returns: Database["public"]["Tables"]["quiz_scores"]["Row"]
+      }
+      start_quiz_attempt: {
+        Args: { p_topic_id: string }
+        Returns: Database["public"]["Tables"]["quiz_attempts"]["Row"]
+      }
       record_question_review: {
         Args: {
           p_question_id: string

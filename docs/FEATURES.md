@@ -206,6 +206,8 @@ The official RYA Day Skipper Shorebased syllabus (SBT DS 03) contains **13 subje
 ### Theme C — Engagement & Gamification
 
 #### C1. Achievement Badges System
+**Status:** ✅ Implemented — 15 explainable milestones, immutable authenticated awards, dashboard display, and unlock notifications.
+Quiz badges consume bounded, server-issued attempt receipts. Scores remain self-assessed browser input: lifecycle and storage are validated, but this gamification signal is not anti-cheat evidence and must not be used for certification or authorization.
 **Description:** Award visual badges for learning milestones (e.g., "First Quiz Passed", "Navigation Master", "Full Syllabus Complete", "Perfect Score", "7-Day Streak").
 
 **Rationale:** The points system exists but has no tangible rewards. Badges provide visual motivation and a sense of accomplishment. Common in successful e-learning platforms.
@@ -225,6 +227,7 @@ The official RYA Day Skipper Shorebased syllabus (SBT DS 03) contains **13 subje
 ---
 
 #### C2. Learning Streak Tracker
+**Status:** ✅ Implemented — Europe/Prague calendar-day activity, DST-safe streaks, idempotent daily recording, and one +5 point maintained-day bonus.
 **Description:** Track daily login/study streaks. Show current streak on dashboard. Bonus points for maintaining streaks.
 
 **Rationale:** Consistency is key for exam preparation. A streak mechanic encourages daily study habits — proven effective in Duolingo, Anki, etc.

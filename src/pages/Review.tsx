@@ -10,6 +10,8 @@ import { fetchDueQuestions, recordReview } from "@/features/spaced-repetition/re
 import { qualityForAnswer } from "@/features/spaced-repetition/sm2";
 import type { DueReview } from "@/features/spaced-repetition/reviewQuestions";
 import type { QuestionReview } from "@/features/spaced-repetition/reviewService";
+import { syncEngagementEvent } from "@/features/engagement/engagementService";
+import { toast } from "sonner";
 
 const Review = () => {
   const navigate = useNavigate();
@@ -103,6 +105,13 @@ const Review = () => {
     try {
       await recordReview(supabase, savedQuestionId, qualityForAnswer(isCorrect), savedReviewId, eventReviewedAt);
       if (generation !== generationRef.current || identityRef.current !== owner) return;
+      try {
+        const engagement = await syncEngagementEvent(supabase, owner!, { sourceType: "review", sourceId: savedReviewId });
+        if (generation !== generationRef.current || identityRef.current !== owner) return;
+        engagement.unlockedBadges.forEach((badge) => toast.success(`${badge.icon} Badge unlocked: ${badge.name}`));
+      } catch (error) {
+        console.error("Error recording review activity:", error);
+      }
       setReviews((items) => items.slice(1));
       setReviewed((count) => count + 1);
       if (isCorrect) setCorrect((count) => count + 1);

@@ -9,7 +9,7 @@ const mocks = vi.hoisted(() => ({
   saveProgress: vi.fn(),
   resetProgress: vi.fn(),
   seedQuizQuestions: vi.fn(),
-  insert: vi.fn(),
+  rpc: vi.fn(),
 }));
 vi.mock("@/contexts/AuthHooks", () => ({ useAuth: () => ({ user: mocks.auth.user }) }));
 vi.mock("@/hooks/useProgress", () => ({
@@ -24,7 +24,7 @@ vi.mock("./reviewService", async (importOriginal) => {
   return { ...actual, seedQuizQuestions: mocks.seedQuizQuestions };
 });
 vi.mock("@/integrations/supabase/client", () => ({
-  supabase: { from: () => ({ insert: mocks.insert }) },
+  supabase: { rpc: mocks.rpc },
 }));
 vi.mock("@/data/quizzes", () => ({
   quizRegistry: {
@@ -43,12 +43,16 @@ const renderQuiz = () => render(
 
 describe("quiz review seeding identity isolation", () => {
   beforeEach(() => {
+    localStorage.clear();
     mocks.auth.user = { id: "a" };
     mocks.loadProgress.mockReset().mockResolvedValue(null);
     mocks.saveProgress.mockReset().mockResolvedValue(true);
     mocks.resetProgress.mockReset().mockResolvedValue(undefined);
     mocks.seedQuizQuestions.mockReset().mockResolvedValue(undefined);
-    mocks.insert.mockReset().mockResolvedValue({ error: null });
+    mocks.rpc.mockReset().mockImplementation((name: string) => Promise.resolve({
+      data: name === "start_quiz_attempt" ? { attempt_id: "issued-attempt", started_at: new Date().toISOString() } : {},
+      error: null,
+    }));
   });
 
   test("should not seed a stale completed load after an A to B to A switch", async () => {
@@ -66,18 +70,156 @@ describe("quiz review seeding identity isolation", () => {
   });
 
   test("should not seed after auth changes while quiz completion persistence is pending", async () => {
-    let resolveInsert!: (value: { error: null }) => void;
-    mocks.insert.mockReturnValue(new Promise((resolve) => { resolveInsert = resolve; }));
+    let resolveInsert!: (value: { data: object; error: null }) => void;
+    mocks.rpc.mockImplementation((name: string) => name === "submit_quiz_score"
+      ? new Promise((resolve) => { resolveInsert = resolve; })
+      : Promise.resolve({ data: { attempt_id: "issued-attempt", started_at: new Date().toISOString() }, error: null }));
     const view = renderQuiz();
     fireEvent.click(await screen.findByRole("button", { name: "Right" }));
     fireEvent.click(screen.getByRole("button", { name: "Submit Answer" }));
     fireEvent.click(screen.getByRole("button", { name: "View Results" }));
-    await waitFor(() => expect(mocks.insert).toHaveBeenCalled());
+    await waitFor(() => expect(mocks.rpc).toHaveBeenCalledWith("submit_quiz_score", expect.any(Object)));
 
     mocks.auth.user = { id: "b" };
     view.rerender(<MemoryRouter initialEntries={["/quiz/test"]}><Routes><Route path="/quiz/:topicId" element={<Quiz />} /></Routes></MemoryRouter>);
-    await act(async () => resolveInsert({ error: null }));
+    await act(async () => resolveInsert({ data: {}, error: null }));
     expect(mocks.seedQuizQuestions).not.toHaveBeenCalled();
     expect(mocks.saveProgress.mock.calls.some((call) => call[1] === true)).toBe(false);
+  });
+
+  test("should reuse the issued attempt when score succeeds but final progress needs retry", async () => {
+    mocks.saveProgress.mockImplementation((_topic: string, completed: boolean) => Promise.resolve(!completed));
+    renderQuiz();
+    fireEvent.click(await screen.findByRole("button", { name: "Right" }));
+    fireEvent.click(screen.getByRole("button", { name: "Submit Answer" }));
+    fireEvent.click(screen.getByRole("button", { name: "View Results" }));
+    expect(await screen.findByRole("button", { name: "Retry completion save" })).toBeTruthy();
+    fireEvent.click(screen.getByRole("button", { name: "Retry completion save" }));
+    await waitFor(() => expect(mocks.saveProgress.mock.calls.filter((call) => call[1] === true)).toHaveLength(2));
+
+    expect(mocks.rpc.mock.calls.filter((call) => call[0] === "submit_quiz_score")).toHaveLength(1);
+    expect(localStorage.getItem("quiz-attempt:a:test")).toContain('"scoreSaved":true');
+  });
+
+  test("should prevent restarting on score evidence whose progress still needs recovery", async () => {
+    mocks.saveProgress.mockImplementation((_topic: string, completed: boolean) => Promise.resolve(!completed));
+    renderQuiz();
+    fireEvent.click(await screen.findByRole("button", { name: "Right" }));
+    fireEvent.click(screen.getByRole("button", { name: "Submit Answer" }));
+    fireEvent.click(screen.getByRole("button", { name: "View Results" }));
+
+    const blockedRestart = await screen.findByRole("button", { name: "Finish saving first" });
+    expect((blockedRestart as HTMLButtonElement).disabled).toBe(true);
+    fireEvent.click(blockedRestart);
+
+    expect(screen.getByText("Quiz Complete!")).toBeTruthy();
+    expect(mocks.rpc.mock.calls.filter((call) => call[0] === "start_quiz_attempt")).toHaveLength(1);
+    expect(mocks.rpc.mock.calls.filter((call) => call[0] === "submit_quiz_score")).toHaveLength(1);
+    expect(localStorage.getItem("quiz-attempt:a:test")).toContain('"scoreSaved":true');
+  });
+
+  test("should restore the exact scored completion after navigation and recover before a fresh attempt", async () => {
+    let completedSaveSucceeds = false;
+    let starts = 0;
+    mocks.saveProgress.mockImplementation((_topic: string, completed: boolean) =>
+      Promise.resolve(completed ? completedSaveSucceeds : true));
+    mocks.rpc.mockImplementation((name: string) => Promise.resolve({
+      data: name === "start_quiz_attempt"
+        ? { attempt_id: `issued-${++starts}`, started_at: new Date().toISOString() }
+        : {},
+      error: null,
+    }));
+
+    const firstView = renderQuiz();
+    fireEvent.click(await screen.findByRole("button", { name: "Right" }));
+    fireEvent.click(screen.getByRole("button", { name: "Submit Answer" }));
+    fireEvent.click(screen.getByRole("button", { name: "View Results" }));
+    await screen.findByRole("button", { name: "Retry completion save" });
+    const persistedWorkflow = JSON.parse(localStorage.getItem("quiz-attempt:a:test") ?? "null");
+    expect(persistedWorkflow).toHaveProperty("completion");
+    firstView.unmount();
+
+    renderQuiz();
+    expect(await screen.findByText("Quiz Complete!")).toBeTruthy();
+    expect(screen.getByText("100%")).toBeTruthy();
+    expect((screen.getByRole("button", { name: "Finish saving first" }) as HTMLButtonElement).disabled).toBe(true);
+    expect(screen.queryByRole("button", { name: "Right" })).toBeNull();
+
+    completedSaveSucceeds = true;
+    fireEvent.click(screen.getByRole("button", { name: "Retry completion save" }));
+    await waitFor(() => expect(localStorage.getItem("quiz-attempt:a:test")).toBeNull());
+    const recoveredCall = mocks.saveProgress.mock.calls.filter((call) => call[1] === true).at(-1);
+    expect(recoveredCall?.[2]).toBe(100);
+    expect(recoveredCall?.[4]).toMatchObject({
+      answers: persistedWorkflow.completion.answers,
+      currentQuestion: persistedWorkflow.completion.currentQuestion,
+      completed: true,
+    });
+    expect(mocks.rpc.mock.calls.filter((call) => call[0] === "submit_quiz_score")).toHaveLength(1);
+
+    fireEvent.click(screen.getByRole("button", { name: "Retry Quiz" }));
+    await waitFor(() => expect(localStorage.getItem("quiz-attempt:a:test")).toContain("issued-2"));
+  });
+
+  test("should leave another account's completion recovery when switching to an account without recovery", async () => {
+    localStorage.setItem("quiz-attempt:a:test", JSON.stringify({
+      attemptId: "scored-attempt",
+      scoreSaved: true,
+      startedAt: new Date().toISOString(),
+      completion: {
+        answers: [1],
+        currentQuestion: 0,
+        correctAnswers: 1,
+        percentage: 100,
+        passed: true,
+        pointsEarned: 10,
+      },
+    }));
+
+    const view = renderQuiz();
+    expect(await screen.findByText("Quiz Complete!")).toBeTruthy();
+    expect((screen.getByRole("button", { name: "Finish saving first" }) as HTMLButtonElement).disabled).toBe(true);
+
+    mocks.auth.user = { id: "b" };
+    view.rerender(<MemoryRouter initialEntries={["/quiz/test"]}><Routes><Route path="/quiz/:topicId" element={<Quiz />} /></Routes></MemoryRouter>);
+
+    expect(await screen.findByRole("button", { name: "Right" })).toBeTruthy();
+    expect(screen.queryByText("Quiz Complete!")).toBeNull();
+    expect(screen.queryByRole("button", { name: "Finish saving first" })).toBeNull();
+    await waitFor(() => expect(localStorage.getItem("quiz-attempt:b:test")).toContain("issued-attempt"));
+    expect(localStorage.getItem("quiz-attempt:a:test")).toContain('"scoreSaved":true');
+  });
+
+  test("should replace an interrupted attempt older than the server submission window", async () => {
+    localStorage.setItem("quiz-attempt:a:test", JSON.stringify({
+      attemptId: "expired-attempt",
+      scoreSaved: false,
+      startedAt: new Date(Date.now() - 2 * 60 * 60 * 1000 - 1).toISOString(),
+    }));
+
+    renderQuiz();
+
+    await waitFor(() => expect(mocks.rpc).toHaveBeenCalledWith("start_quiz_attempt", { p_topic_id: "test" }));
+    expect(localStorage.getItem("quiz-attempt:a:test")).toContain('"attemptId":"issued-attempt"');
+    expect(localStorage.getItem("quiz-attempt:a:test")).not.toContain("expired-attempt");
+  });
+
+  test("should discard the current unsaved attempt when restarting", async () => {
+    mocks.rpc.mockImplementation((name: string) => Promise.resolve({
+      data: name === "start_quiz_attempt"
+        ? { attempt_id: mocks.rpc.mock.calls.filter(([rpcName]) => rpcName === "start_quiz_attempt").length > 1
+          ? "replacement-attempt" : "issued-attempt", started_at: new Date().toISOString() }
+        : {},
+      error: name === "submit_quiz_score" ? new Error("offline") : null,
+    }));
+    renderQuiz();
+    await waitFor(() => expect(localStorage.getItem("quiz-attempt:a:test")).toContain("issued-attempt"));
+    fireEvent.click(screen.getByRole("button", { name: "Right" }));
+    fireEvent.click(screen.getByRole("button", { name: "Submit Answer" }));
+    fireEvent.click(screen.getByRole("button", { name: "View Results" }));
+    await screen.findByRole("button", { name: "Retry Quiz" });
+    fireEvent.click(screen.getByRole("button", { name: "Retry Quiz" }));
+
+    await waitFor(() => expect(localStorage.getItem("quiz-attempt:a:test")).toContain("replacement-attempt"));
   });
 });

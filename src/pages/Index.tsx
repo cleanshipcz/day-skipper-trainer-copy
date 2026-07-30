@@ -22,6 +22,8 @@ import {
   Route,
   ClipboardCheck,
   Brain,
+  Flame,
+  Award,
 } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { useAuth } from "@/contexts/AuthHooks";
@@ -31,6 +33,10 @@ import { ModuleMenuGrid } from "@/components/module-menu/ModuleMenuGrid";
 import type { ModuleMenuItem } from "@/components/module-menu/types";
 import { getRootTopics, type TopicEntry } from "@/constants/topicRegistry";
 import { useDueReviewCount } from "@/features/spaced-repetition/useDueReviewCount";
+import { badgeById, type BadgeDefinition } from "@/data/badges";
+import { calculateStreak, fetchAllStreakTimestamps } from "@/features/engagement/streaks";
+import { retryEngagementOutbox } from "@/features/engagement/engagementService";
+import { toast } from "sonner";
 
 /**
  * Dashboard display metadata for root topics. Keyed by topic registry ID.
@@ -173,7 +179,14 @@ const Index = () => {
   const [topicsCompleted, setTopicsCompleted] = useState(0);
   const [avgQuizScore, setAvgQuizScore] = useState(0);
   const [userProgress, setUserProgress] = useState<Record<string, UserProgressData>>({});
+  const [earnedBadges, setEarnedBadges] = useState<readonly BadgeDefinition[]>([]);
+  const [currentStreak, setCurrentStreak] = useState(0);
+  const [engagementOwner, setEngagementOwner] = useState<string | null>(null);
+  const [engagementLoading, setEngagementLoading] = useState(false);
+  const [engagementError, setEngagementError] = useState(false);
   const currentUserId = user?.id ?? null;
+  const engagementOwnerRef = React.useRef(currentUserId);
+  engagementOwnerRef.current = currentUserId;
   const visibleDueReviews = useDueReviewCount(currentUserId);
 
   const fetchProfile = React.useCallback(async () => {
@@ -218,12 +231,59 @@ const Index = () => {
     }
   }, [user]);
 
+  const fetchEngagement = React.useCallback(async () => {
+    if (!user) return;
+    const owner = user.id;
+    setEngagementLoading(true);
+    setEngagementError(false);
+    setEngagementOwner(owner);
+    try {
+      const retryResults = await retryEngagementOutbox(supabase, owner);
+      if (engagementOwnerRef.current !== owner) return;
+      retryResults.flatMap(({ unlockedBadges }) => unlockedBadges)
+        .forEach((badge) => toast.success(`${badge.icon} Badge unlocked: ${badge.name}`));
+    } catch {
+      if (engagementOwnerRef.current === owner) setEngagementError(true);
+    }
+    const [{ data: badgeRows, error: badgeError }, activityResult] = await Promise.all([
+      supabase.from("user_badges").select("badge_id").eq("user_id", owner).order("earned_at", { ascending: false }),
+      fetchAllStreakTimestamps(async (from, to) => {
+        const { data, error } = await supabase.from("daily_activity")
+          .select("first_activity_at")
+          .eq("user_id", owner)
+          .order("activity_date", { ascending: false })
+          .range(from, to);
+        if (error) throw error;
+        return (data ?? []).map(({ first_activity_at }) => first_activity_at);
+      }).then((timestamps) => ({ timestamps, error: null }))
+        .catch((error: unknown) => ({ timestamps: [] as readonly string[], error })),
+    ]);
+    if (engagementOwnerRef.current !== owner) return;
+    if (badgeError || activityResult.error) {
+      setEngagementError(true);
+      setEngagementLoading(false);
+      return;
+    }
+    setEarnedBadges((badgeRows ?? [])
+      .map(({ badge_id }) => badgeById.get(badge_id))
+      .filter((badge): badge is BadgeDefinition => Boolean(badge)));
+    setCurrentStreak(calculateStreak(activityResult.timestamps, new Date().toISOString()));
+    setEngagementLoading(false);
+  }, [user]);
+
   useEffect(() => {
     if (user) {
       fetchProfile();
       fetchProgress();
+      fetchEngagement();
+    } else {
+      setEarnedBadges([]);
+      setCurrentStreak(0);
+      setEngagementOwner(null);
+      setEngagementLoading(false);
+      setEngagementError(false);
     }
-  }, [user, fetchProfile, fetchProgress]);
+  }, [user, fetchProfile, fetchProgress, fetchEngagement]);
 
   const topicMenuModules: ModuleMenuItem[] = topics.map((topic) => ({
     id: topic.id,
@@ -295,6 +355,25 @@ const Index = () => {
 
       {/* Main Content */}
       <main className="container mx-auto px-4 py-8">
+        {user && <div className="grid gap-4 md:grid-cols-2 mb-8">
+          <Card className="border-2 border-orange-500/20"><CardContent className="pt-6 flex items-center gap-3">
+            <Flame className="w-9 h-9 text-orange-500" />
+            <div><h2 className="font-bold text-xl">{engagementOwner !== currentUserId || engagementLoading ? "Loading streak…" : `${currentStreak} day streak`}</h2>
+              <p className="text-sm text-muted-foreground">Europe/Prague study days · +5 points for each maintained day</p></div>
+          </CardContent></Card>
+          <Card className="border-2 border-accent/20"><CardContent className="pt-6">
+            <div className="flex items-center gap-2 mb-3"><Award className="w-7 h-7 text-accent" />
+              <h2 className="font-bold text-xl">Badges ({earnedBadges.length})</h2></div>
+            <div className="flex flex-wrap gap-2">
+              {engagementError ? <span role="alert" className="text-sm text-destructive">Engagement sync is pending; retry on your next visit.</span>
+                : engagementOwner !== currentUserId || engagementLoading ? <span className="text-sm text-muted-foreground">Loading badges…</span>
+                : earnedBadges.length === 0 ? <span className="text-sm text-muted-foreground">Complete learning milestones to earn badges.</span>
+                : earnedBadges.map((badge) => <Badge key={badge.id} variant="secondary" title={badge.description}>
+                  {badge.icon} {badge.name}
+                </Badge>)}
+            </div>
+          </CardContent></Card>
+        </div>}
         {user && <Card className="mb-8 border-2 border-secondary/20">
           <CardContent className="pt-6 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
             <div className="flex gap-3"><Brain className="w-8 h-8 text-secondary" /><div>
