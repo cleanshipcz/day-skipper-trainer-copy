@@ -101,6 +101,23 @@ describe("quiz review seeding identity isolation", () => {
     expect(localStorage.getItem("quiz-attempt:a:test")).toContain('"scoreSaved":true');
   });
 
+  test("should prevent restarting on score evidence whose progress still needs recovery", async () => {
+    mocks.saveProgress.mockImplementation((_topic: string, completed: boolean) => Promise.resolve(!completed));
+    renderQuiz();
+    fireEvent.click(await screen.findByRole("button", { name: "Right" }));
+    fireEvent.click(screen.getByRole("button", { name: "Submit Answer" }));
+    fireEvent.click(screen.getByRole("button", { name: "View Results" }));
+
+    const blockedRestart = await screen.findByRole("button", { name: "Finish saving first" });
+    expect((blockedRestart as HTMLButtonElement).disabled).toBe(true);
+    fireEvent.click(blockedRestart);
+
+    expect(screen.getByText("Quiz Complete!")).toBeTruthy();
+    expect(mocks.rpc.mock.calls.filter((call) => call[0] === "start_quiz_attempt")).toHaveLength(1);
+    expect(mocks.rpc.mock.calls.filter((call) => call[0] === "submit_quiz_score")).toHaveLength(1);
+    expect(localStorage.getItem("quiz-attempt:a:test")).toContain('"scoreSaved":true');
+  });
+
   test("should replace an interrupted attempt older than the server submission window", async () => {
     localStorage.setItem("quiz-attempt:a:test", JSON.stringify({
       attemptId: "expired-attempt",

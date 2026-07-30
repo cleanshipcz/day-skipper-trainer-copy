@@ -389,9 +389,13 @@ const Quiz = () => {
                 <ArrowLeft className="w-4 h-4 mr-2" />
                 Home
               </Button>
-              <Button className="flex-1 bg-secondary text-secondary-foreground" onClick={handleRestart}>
+              <Button
+                className="flex-1 bg-secondary text-secondary-foreground"
+                onClick={handleRestart}
+                disabled={completionSaveError && workflow?.scoreSaved === true}
+              >
                 <RotateCcw className="w-4 h-4 mr-2" />
-                Retry Quiz
+                {completionSaveError && workflow?.scoreSaved ? "Finish saving first" : "Retry Quiz"}
               </Button>
             </div>
             {seedStatus === "failed" && <div className="text-center space-y-2">
