@@ -27,6 +27,51 @@ legacy onward route resolves to the canonical nautical-terms quiz topic.
 
 ## Evidence and exercised paths
 
+### Runtime method and scope
+
+The production build was served locally and exercised in headless Chromium
+through the Chrome DevTools Protocol. The audit used placeholder local
+Supabase configuration (no credentials and no live backend) and a clean
+browser profile. It executed real pointer events, tab-key events, route
+navigation, responsive layout, all 20 answer interactions, completion, and the
+quiz handoff. A temporary Vitest/React runtime harness supplied controlled
+`loadProgress` results for returning-session and corrupt-session cases; that
+harness was removed after execution because this audit does not implement the
+follow-up fixes.
+
+Exact browser results:
+
+- Parent `/nautical-terms` card activation changed the path to
+  `/nautical-terms/boat-parts`.
+- At widths 375, 768, and 1280 px, the page rendered 20 markers with no
+  document-level horizontal overflow. The first side-view label circle measured
+  14.45, 33.35, and 38.00 CSS px respectively.
+- A pointer-selected Bow target presented `Stern`, `Keel`, `Bow`, and
+  `Backstay` in that seeded run. Selecting Stern produced “Wrong Choice!”,
+  `Attempts: 1`, and disabled Stern; selecting Bow then produced “Identified”
+  and a score of 5.
+- Eight successive Tab presses cycled only through the unnamed back button,
+  Reset, and the document body. Marker tab-stop count remained zero.
+- A fresh run answered all 20 markers correctly, rendered “All parts
+  identified”, `20/20`, score 200, and the **Take Full Quiz** control.
+  Activating it navigated to `/quiz/nautical-terms`, where the quiz heading
+  rendered as **Nautical Terms Quiz**.
+
+Exact controlled component-runtime results:
+
+- With `loadProgress` deliberately unresolved, `saveProgress` was called once
+  before hydration resolved.
+- A valid returning payload with all 20 parts correct and score 200 hydrated
+  to the completion card and displayed the saved score.
+- A partial persisted catalogue containing only Bow caused a render failure,
+  which the audit harness caught with an error boundary.
+
+An actual rejected `loadProgress` promise and a real remote Supabase
+round-trip were not exercised: no audit backend was available, and the current
+async effect has no rejection handler. The rejection risk is therefore based
+on the directly inspected control flow, while delayed, valid, and structurally
+partial payload behavior is runtime-confirmed.
+
 ### Reachability and navigation
 
 - The parent menu at `/nautical-terms` exposes **Boat Parts** as a learn item
@@ -81,8 +126,8 @@ legacy onward route resolves to the canonical nautical-terms quiz topic.
   option grid reduces to two columns. SVG `viewBox` scaling preserves the full
   drawing rather than clipping it.
 - Side-view markers have a 30-unit visual diameter in a 600-unit-wide SVG. At
-  common narrow phone content widths this is only about 16–19 CSS pixels; the
-  stern markers are also below a robust touch target. No separate hit area is
+  the exercised 375 px viewport the label circle was 14.45 CSS px; the stern
+  markers are also below a robust touch target. No separate hit area is
   provided.
 - All 20 markers are click-only SVG groups: no role, accessible name,
   `tabIndex`, or keyboard activation. A keyboard or screen-reader learner
@@ -114,3 +159,4 @@ in-diagram explanation removes material ambiguity.
 - [#140 — Make Boat Parts diagram and controls keyboard- and screen-reader-accessible](https://github.com/cleanshipcz/day-skipper-trainer-copy/issues/140)
 - [#141 — Harden Boat Parts saved-progress hydration and validation](https://github.com/cleanshipcz/day-skipper-trainer-copy/issues/141)
 - [#142 — Correct the Boat Parts jib/forestay diagram and verify label geometry](https://github.com/cleanshipcz/day-skipper-trainer-copy/issues/142)
+- [#143 — Resolve the unused Boat Parts raster asset lifecycle](https://github.com/cleanshipcz/day-skipper-trainer-copy/issues/143)
