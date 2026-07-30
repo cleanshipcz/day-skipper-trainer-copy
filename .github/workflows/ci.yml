@@ -42,6 +42,12 @@ jobs:
       - name: Build
         run: npm run build
 
+      - name: Install pinned Chromium for anchor browser checks
+        run: npm run setup:anchor-browser
+
+      - name: Anchor minigame browser characterization
+        run: npm run test:anchor-browser
+
       - name: Build budget
         run: npm run test:build-budget
 

@@ -1,6 +1,9 @@
 import { spawn } from "node:child_process";
 import { once } from "node:events";
-import { existsSync } from "node:fs";
+import { existsSync, mkdtempSync, readFileSync, rmSync } from "node:fs";
+import { tmpdir } from "node:os";
+import { join } from "node:path";
+import { createServer } from "node:net";
 
 const browserCandidates = [
   process.env.CHROMIUM_PATH,
@@ -14,15 +17,26 @@ if (!browserPath) {
   throw new Error("Chromium not found. Set CHROMIUM_PATH to run the anchor browser characterization.");
 }
 
-const previewPort = 4175;
-const debuggingPort = 9335;
 const children = [];
+let profileDirectory;
 const testEnvironment = {
   ...process.env,
   VITE_SUPABASE_URL: "http://127.0.0.1:54321",
   VITE_SUPABASE_PUBLISHABLE_KEY: "browser-characterization-placeholder",
 };
 const delay = (milliseconds) => new Promise((resolve) => setTimeout(resolve, milliseconds));
+const reservePort = async () => {
+  const server = createServer();
+  server.listen(0, "127.0.0.1");
+  await once(server, "listening");
+  const address = server.address();
+  const port = typeof address === "object" && address ? address.port : null;
+  server.close();
+  await once(server, "close");
+  if (!port) throw new Error("Could not reserve a local test port.");
+  return port;
+};
+const previewPort = await reservePort();
 const waitFor = async (callback, label) => {
   for (let attempt = 0; attempt < 100; attempt += 1) {
     try {
@@ -39,33 +53,48 @@ const waitFor = async (callback, label) => {
 const build = spawn(
   process.execPath,
   ["node_modules/vite/bin/vite.js", "build"],
-  { stdio: ["ignore", "pipe", "pipe"], env: testEnvironment },
+  { stdio: ["ignore", "inherit", "inherit"], env: testEnvironment },
 );
 const [buildCode] = await once(build, "exit");
 if (buildCode !== 0) throw new Error("Vite build failed before browser characterization.");
 
+profileDirectory = mkdtempSync(join(tmpdir(), "day-skipper-anchor-browser-"));
 const preview = spawn(
   process.execPath,
   ["node_modules/vite/bin/vite.js", "preview", "--host", "127.0.0.1", "--port", String(previewPort), "--strictPort"],
   { stdio: ["ignore", "pipe", "pipe"], env: testEnvironment },
 );
+preview.stdout.pipe(process.stdout);
+preview.stderr.pipe(process.stderr);
 children.push(preview);
 
 try {
   await waitFor(async () => (await fetch(`http://127.0.0.1:${previewPort}/anchor-minigame`)).ok, "Vite preview");
 
-  const browser = spawn(browserPath, [
+  const browserArguments = [
     "--headless=new",
     "--disable-gpu",
-    "--no-sandbox",
     "--disable-dev-shm-usage",
     "--disable-service-worker",
-    `--remote-debugging-port=${debuggingPort}`,
-    "--user-data-dir=/tmp/day-skipper-anchor-browser",
+    "--remote-debugging-port=0",
+    `--user-data-dir=${profileDirectory}`,
     "about:blank",
-  ], { stdio: ["ignore", "pipe", "pipe"] });
+  ];
+  if (process.env.CHROMIUM_NO_SANDBOX === "1") {
+    // Explicit opt-in is reserved for container runtimes that cannot provide
+    // Chromium's user-namespace sandbox; CI and normal local runs keep it on.
+    browserArguments.unshift("--no-sandbox");
+  }
+  const browser = spawn(browserPath, browserArguments, { stdio: ["ignore", "pipe", "pipe"] });
+  browser.stdout.pipe(process.stdout);
+  browser.stderr.pipe(process.stderr);
   children.push(browser);
 
+  const debuggingPort = await waitFor(() => {
+    const activePortPath = join(profileDirectory, "DevToolsActivePort");
+    if (!existsSync(activePortPath)) return null;
+    return Number(readFileSync(activePortPath, "utf8").split(/\r?\n/, 1)[0]);
+  }, "Chromium debugging port");
   const target = await waitFor(async () => {
     const targets = await (await fetch(`http://127.0.0.1:${debuggingPort}/json`)).json();
     return targets.find(({ type }) => type === "page");
@@ -75,7 +104,7 @@ try {
   await once(socket, "open");
   let commandId = 0;
   const pending = new Map();
-  const networkUrls = [];
+  const networkRequests = [];
   const runtimeErrors = [];
   socket.addEventListener("message", ({ data }) => {
     const message = JSON.parse(data);
@@ -85,7 +114,11 @@ try {
       if (message.error) callback.reject(new Error(message.error.message));
       else callback.resolve(message.result);
     } else if (message.method === "Network.requestWillBeSent") {
-      networkUrls.push(message.params.request.url);
+      networkRequests.push({
+        method: message.params.request.method,
+        url: message.params.request.url,
+        postData: message.params.request.postData,
+      });
     } else if (message.method === "Runtime.exceptionThrown") {
       runtimeErrors.push(message.params.exceptionDetails);
     }
@@ -104,6 +137,30 @@ try {
     () => evaluate(`document.body.innerText.includes(${JSON.stringify(text)})`),
     JSON.stringify(text),
   );
+  const snapshotStorage = () => evaluate(`(async () => {
+    const databases = [];
+    for (const descriptor of await indexedDB.databases()) {
+      if (!descriptor.name) continue;
+      const database = await new Promise((resolve, reject) => {
+        const request = indexedDB.open(descriptor.name);
+        request.onsuccess = () => resolve(request.result);
+        request.onerror = () => reject(request.error);
+      });
+      const stores = {};
+      for (const storeName of database.objectStoreNames) {
+        stores[storeName] = await new Promise((resolve, reject) => {
+          const transaction = database.transaction(storeName, "readonly");
+          const request = transaction.objectStore(storeName).getAll();
+          request.onsuccess = () => resolve(request.result);
+          request.onerror = () => reject(request.error);
+        });
+      }
+      databases.push({ name: descriptor.name, version: descriptor.version, stores });
+      database.close();
+    }
+    databases.sort((left, right) => left.name.localeCompare(right.name));
+    return { local: { ...localStorage }, session: { ...sessionStorage }, databases };
+  })()`);
   const buttonPoint = async (label) => evaluate(`(() => {
     const element = [...document.querySelectorAll("button")].find((button) => button.textContent.trim() === ${JSON.stringify(label)});
     if (!element) throw new Error("Missing button: " + ${JSON.stringify(label)});
@@ -138,18 +195,15 @@ try {
       deviceScaleFactor: 1,
       mobile: width === 375,
     });
-    networkUrls.length = 0;
+    networkRequests.length = 0;
     await send("Page.navigate", { url: `http://127.0.0.1:${previewPort}/anchor-minigame` });
     try {
       await waitForText("Anchoring Simulator");
     } catch (error) {
       const pageState = await evaluate(`({ url: location.href, text: document.body.innerText, html: document.body.innerHTML.slice(0, 1000) })`);
-      throw new Error(`${error.message}: ${JSON.stringify({ pageState, runtimeErrors, networkUrls })}`);
+      throw new Error(`${error.message}: ${JSON.stringify({ pageState, runtimeErrors, networkRequests })}`);
     }
-    const baseline = await evaluate(`Promise.all([
-      Promise.resolve({ local: { ...localStorage }, session: { ...sessionStorage } }),
-      indexedDB.databases().then((databases) => databases.map(({ name, version }) => ({ name, version }))),
-    ])`);
+    const baseline = await snapshotStorage();
     const layout = await evaluate(`(() => {
       const svg = document.querySelector('svg[aria-label="Anchoring side profile"]');
       const controls = [...document.querySelectorAll("button")].filter((button) =>
@@ -185,23 +239,34 @@ try {
     await key("Enter");
     await waitForText("Anchor secure");
 
-    const after = await evaluate(`Promise.all([
-      Promise.resolve({ local: { ...localStorage }, session: { ...sessionStorage } }),
-      indexedDB.databases().then((databases) => databases.map(({ name, version }) => ({ name, version }))),
-    ])`);
+    const after = await snapshotStorage();
     if (JSON.stringify(after) !== JSON.stringify(baseline)) {
       throw new Error(`${width}px interaction wrote browser persistence: ${JSON.stringify({ baseline, after })}`);
     }
-    const progressRequests = networkUrls.filter((url) => /user_progress|progress-queue/i.test(url));
+    const progressRequests = networkRequests.filter(({ method, url, postData = "" }) => {
+      const mutation = /^(?:POST|PUT|PATCH|DELETE)$/i.test(method);
+      const progressEndpoint = /\/rest\/v1\/(?:user_progress|rpc\/[^/?]*progress[^/?]*)/i.test(url);
+      const knownSaveRpc = /\/rest\/v1\/rpc\/save_topic_progress(?:[/?]|$)/i.test(url);
+      const progressPayload = /(?:topic_id|points_earned|answers_history|progress-queue)/i.test(postData);
+      return knownSaveRpc || (mutation && (progressEndpoint || progressPayload));
+    });
     if (progressRequests.length) {
-      throw new Error(`${width}px interaction attempted progress persistence: ${progressRequests.join(", ")}`);
+      throw new Error(`${width}px interaction attempted progress persistence: ${JSON.stringify(progressRequests)}`);
     }
   }
 
+  await send("Browser.close");
   socket.close();
   console.log("Anchor browser characterization passed at 375px, 768px, and 1280px (pointer, keyboard, layout, storage).");
 } finally {
   for (const child of children.reverse()) {
-    if (!child.killed) child.kill("SIGTERM");
+    if (child.exitCode === null && !child.killed) child.kill("SIGTERM");
+    if (child.exitCode === null) {
+      await Promise.race([once(child, "exit"), delay(5_000)]);
+    }
+    if (child.exitCode === null) child.kill("SIGKILL");
+  }
+  if (profileDirectory) {
+    rmSync(profileDirectory, { recursive: true, force: true, maxRetries: 5, retryDelay: 100 });
   }
 }
