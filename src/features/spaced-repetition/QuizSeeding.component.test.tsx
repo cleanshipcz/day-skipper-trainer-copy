@@ -50,7 +50,7 @@ describe("quiz review seeding identity isolation", () => {
     mocks.resetProgress.mockReset().mockResolvedValue(undefined);
     mocks.seedQuizQuestions.mockReset().mockResolvedValue(undefined);
     mocks.rpc.mockReset().mockImplementation((name: string) => Promise.resolve({
-      data: name === "start_quiz_attempt" ? { attempt_id: "issued-attempt" } : {},
+      data: name === "start_quiz_attempt" ? { attempt_id: "issued-attempt", started_at: new Date().toISOString() } : {},
       error: null,
     }));
   });
@@ -73,7 +73,7 @@ describe("quiz review seeding identity isolation", () => {
     let resolveInsert!: (value: { data: object; error: null }) => void;
     mocks.rpc.mockImplementation((name: string) => name === "submit_quiz_score"
       ? new Promise((resolve) => { resolveInsert = resolve; })
-      : Promise.resolve({ data: { attempt_id: "issued-attempt" }, error: null }));
+      : Promise.resolve({ data: { attempt_id: "issued-attempt", started_at: new Date().toISOString() }, error: null }));
     const view = renderQuiz();
     fireEvent.click(await screen.findByRole("button", { name: "Right" }));
     fireEvent.click(screen.getByRole("button", { name: "Submit Answer" }));
@@ -99,5 +99,38 @@ describe("quiz review seeding identity isolation", () => {
 
     expect(mocks.rpc.mock.calls.filter((call) => call[0] === "submit_quiz_score")).toHaveLength(1);
     expect(localStorage.getItem("quiz-attempt:a:test")).toContain('"scoreSaved":true');
+  });
+
+  test("should replace an interrupted attempt older than the server submission window", async () => {
+    localStorage.setItem("quiz-attempt:a:test", JSON.stringify({
+      attemptId: "expired-attempt",
+      scoreSaved: false,
+      startedAt: new Date(Date.now() - 2 * 60 * 60 * 1000 - 1).toISOString(),
+    }));
+
+    renderQuiz();
+
+    await waitFor(() => expect(mocks.rpc).toHaveBeenCalledWith("start_quiz_attempt", { p_topic_id: "test" }));
+    expect(localStorage.getItem("quiz-attempt:a:test")).toContain('"attemptId":"issued-attempt"');
+    expect(localStorage.getItem("quiz-attempt:a:test")).not.toContain("expired-attempt");
+  });
+
+  test("should discard the current unsaved attempt when restarting", async () => {
+    mocks.rpc.mockImplementation((name: string) => Promise.resolve({
+      data: name === "start_quiz_attempt"
+        ? { attempt_id: mocks.rpc.mock.calls.filter(([rpcName]) => rpcName === "start_quiz_attempt").length > 1
+          ? "replacement-attempt" : "issued-attempt", started_at: new Date().toISOString() }
+        : {},
+      error: name === "submit_quiz_score" ? new Error("offline") : null,
+    }));
+    renderQuiz();
+    await waitFor(() => expect(localStorage.getItem("quiz-attempt:a:test")).toContain("issued-attempt"));
+    fireEvent.click(screen.getByRole("button", { name: "Right" }));
+    fireEvent.click(screen.getByRole("button", { name: "Submit Answer" }));
+    fireEvent.click(screen.getByRole("button", { name: "View Results" }));
+    await screen.findByRole("button", { name: "Retry Quiz" });
+    fireEvent.click(screen.getByRole("button", { name: "Retry Quiz" }));
+
+    await waitFor(() => expect(localStorage.getItem("quiz-attempt:a:test")).toContain("replacement-attempt"));
   });
 });

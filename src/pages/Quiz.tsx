@@ -31,13 +31,23 @@ const quizAttemptKey = (owner: string, topic: string) => `quiz-attempt:${owner}:
 interface QuizWorkflow {
   readonly attemptId: string;
   readonly scoreSaved: boolean;
+  readonly startedAt?: string;
 }
+const QUIZ_ATTEMPT_MAX_AGE_MS = 2 * 60 * 60 * 1000;
 const readQuizWorkflow = (owner: string | undefined, topic: string): QuizWorkflow | null => {
   if (!owner) return null;
   try {
+    const key = quizAttemptKey(owner, topic);
     const parsed = JSON.parse(localStorage.getItem(quizAttemptKey(owner, topic)) ?? "null") as Partial<QuizWorkflow> | null;
-    return parsed && typeof parsed.attemptId === "string"
-      ? { attemptId: parsed.attemptId, scoreSaved: parsed.scoreSaved === true } : null;
+    if (!parsed || typeof parsed.attemptId !== "string") return null;
+    const scoreSaved = parsed.scoreSaved === true;
+    const startedAt = typeof parsed.startedAt === "string" ? parsed.startedAt : undefined;
+    const startedAtMs = startedAt ? Date.parse(startedAt) : Number.NaN;
+    if (!scoreSaved && (!Number.isFinite(startedAtMs) || Date.now() - startedAtMs >= QUIZ_ATTEMPT_MAX_AGE_MS)) {
+      localStorage.removeItem(key);
+      return null;
+    }
+    return { attemptId: parsed.attemptId, scoreSaved, startedAt };
   } catch { return null; }
 };
 
@@ -54,7 +64,6 @@ const Quiz = () => {
     const rng = createSeededRng(seed + 1);
 
     return shuffleWithRng([...source], rng)
-      .slice(0, Math.min(20, source.length))
       .map((q) => {
         const optionObjs = q.options.map((opt, idx) => ({ opt, idx }));
         const shuffledOptions = shuffleWithRng(optionObjs, rng);
@@ -161,7 +170,7 @@ const Quiz = () => {
     void (async () => {
       const { data, error } = await supabase.rpc("start_quiz_attempt", { p_topic_id: topicKey });
       if (error || !data || seedOwnerRef.current !== owner || seedGenerationRef.current !== generation) return;
-      const created = { attemptId: data.attempt_id, scoreSaved: false };
+      const created = { attemptId: data.attempt_id, scoreSaved: false, startedAt: data.started_at };
       localStorage.setItem(quizAttemptKey(owner, topicKey), JSON.stringify(created));
       setWorkflow(created);
     })();
@@ -325,6 +334,9 @@ const Quiz = () => {
   };
 
   const handleRestart = () => {
+    if (user && !workflow?.scoreSaved) {
+      localStorage.removeItem(quizAttemptKey(user.id, topicKey));
+    }
     setCurrentQuestion(0);
     setAnswers(createEmptyQuizAnswers(questions.length));
     setShowExplanation(false);

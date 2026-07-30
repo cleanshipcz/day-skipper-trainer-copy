@@ -16,7 +16,7 @@ revoke all on public.quiz_attempts from anon, authenticated;
 
 create or replace function public.start_quiz_attempt(p_topic_id text)
 returns public.quiz_attempts language plpgsql security definer set search_path=public,pg_temp as $$
-declare owner uuid:=auth.uid(); expected integer; active public.quiz_attempts; total_count integer;
+declare owner uuid:=auth.uid(); expected integer; active public.quiz_attempts; active_count integer;
 begin
   if owner is null then raise exception 'Authentication required'; end if;
   expected := case p_topic_id
@@ -24,7 +24,7 @@ begin
     when 'victualling' then 12 when 'engine' then 12 when 'rig' then 12
     when 'colregs' then 20 when 'lights-signals' then 20 when 'safety-mob-quiz' then 12
     when 'safety-fire-quiz' then 8 when 'safety-life-raft-quiz' then 10
-    when 'safety-flares-quiz' then 10 when 'safety' then 20 when 'pilotage' then 20
+    when 'safety-flares-quiz' then 10 when 'safety' then 24 when 'pilotage' then 20
     when 'weather' then 20 when 'passage-planning' then 20 else null end;
   if expected is null then raise exception 'Unknown quiz topic'; end if;
   perform pg_advisory_xact_lock(hashtextextended(owner::text||':quiz-attempts',0));
@@ -32,10 +32,13 @@ begin
     and completed_at is null and started_at>statement_timestamp()-interval '2 hours'
     order by started_at desc limit 1;
   if found then return active; end if;
-  delete from public.quiz_attempts where user_id=owner and completed_at is null
-    and started_at<statement_timestamp()-interval '24 hours';
-  select count(*) into total_count from public.quiz_attempts where user_id=owner;
-  if total_count>=500 then raise exception 'Quiz attempt retention limit reached'; end if;
+  delete from public.quiz_attempts where user_id=owner and (
+    (completed_at is null and started_at<statement_timestamp()-interval '24 hours')
+    or completed_at<statement_timestamp()-interval '31 days'
+  );
+  select count(*) into active_count from public.quiz_attempts
+    where user_id=owner and completed_at is null;
+  if active_count>=100 then raise exception 'Quiz attempt retention limit reached'; end if;
   insert into public.quiz_attempts(user_id,topic_id,expected_total)
   values(owner,p_topic_id,expected) returning * into active;
   return active;
@@ -53,8 +56,6 @@ begin
   if owner is null then raise exception 'Authentication required'; end if;
   if p_attempt_id is null then raise exception 'Issued attempt id required'; end if;
   perform pg_advisory_xact_lock(hashtextextended(owner::text||':quiz:'||p_attempt_id::text,0));
-  select * into issued from public.quiz_attempts where user_id=owner and attempt_id=p_attempt_id for update;
-  if not found then raise exception 'Issued quiz attempt not found'; end if;
   select * into existing from public.quiz_scores where user_id=owner and attempt_id=p_attempt_id;
   if found then
     if existing.topic_id<>p_topic_id or existing.score<>p_score or existing.total_questions<>p_total_questions then
@@ -62,6 +63,8 @@ begin
     end if;
     return existing;
   end if;
+  select * into issued from public.quiz_attempts where user_id=owner and attempt_id=p_attempt_id for update;
+  if not found then raise exception 'Issued quiz attempt not found'; end if;
   if issued.completed_at is not null then raise exception 'Attempt already consumed'; end if;
   if issued.topic_id<>p_topic_id or issued.expected_total<>p_total_questions then raise exception 'Attempt topic or total mismatch'; end if;
   if p_score<0 or p_score>issued.expected_total then raise exception 'Invalid quiz score'; end if;
