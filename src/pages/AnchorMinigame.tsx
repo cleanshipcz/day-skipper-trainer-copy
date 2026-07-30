@@ -15,31 +15,21 @@ import {
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { calculateSceneGeometry } from "@/pages/anchor-minigame/geometry";
+import {
+  BOAT_LENGTH,
+  CONDITION_SCOPE,
+  RODE_STEP,
+  changeRode as transitionRode,
+  checkPlacement as evaluatePlacement,
+  createInitialState,
+  getTargetRode,
+  getTotalDepth,
+  moveBoat as transitionBoat,
+  type AnchorScenario,
+} from "@/pages/anchor-minigame/state";
 
-type Condition = "mild" | "moderate" | "strong";
-
-interface Scenario {
-  id: number;
-  title: string;
-  condition: Condition;
-  depth: number; // charted depth in meters
-  bowHeight: number; // meters above the water
-  note: string;
-}
-
-const CONDITION_SCOPE: Record<Condition, number> = {
-  mild: 4, // calm chain: 4x+
-  moderate: 5, // breezy chain: 5x+
-  strong: 7, // tough holding: 7x+
-};
-
-const WORLD_LENGTH = 42; // meters visible across the SVG
-const BOAT_LENGTH = 8; // meters
-const MOVE_STEP = 0.8; // meters per key press
-const RODE_STEP = 1; // meters per key press
-const MAX_RODE = 120; // meters
-
-const scenarioPool: Omit<Scenario, "id">[] = [
+const scenarioPool: Omit<AnchorScenario, "id">[] = [
   {
     title: "Sheltered cove",
     condition: "mild",
@@ -80,42 +70,21 @@ const pickScenario = () => {
 
 const AnchorMinigame = () => {
   const navigate = useNavigate();
-  const [scenario, setScenario] = useState<Scenario>(() => pickScenario());
-  const startingBoatX = WORLD_LENGTH / 2 - BOAT_LENGTH / 2;
-  const startingCamera = startingBoatX + BOAT_LENGTH / 2 - WORLD_LENGTH / 2;
-  const [boatX, setBoatX] = useState(startingBoatX);
-  const [cameraOrigin, setCameraOrigin] = useState(startingCamera);
-  const [rode, setRode] = useState(0);
-  const [anchorOnBottom, setAnchorOnBottom] = useState(false);
-  const [anchorX, setAnchorX] = useState<number | null>(null);
+  const [scenario, setScenario] = useState<AnchorScenario>(() => pickScenario());
+  const [game, setGame] = useState(createInitialState);
   const [attempts, setAttempts] = useState(0);
   const [lastStatus, setLastStatus] = useState("Tap ↓ to lower the anchor. Drift back with ←.");
   const [resultOverlay, setResultOverlay] = useState<{ type: "success" | "failure"; message: string } | null>(null);
 
-  const totalDepth = useMemo(() => scenario.depth + scenario.bowHeight, [scenario]);
+  const totalDepth = useMemo(() => getTotalDepth(scenario), [scenario]);
   const requiredScope = CONDITION_SCOPE[scenario.condition];
-  const targetRode = requiredScope * totalDepth;
-  const bowX = boatX + BOAT_LENGTH / 2;
-  const bowTipX = boatX + BOAT_LENGTH;
-  const bowAttachX = bowTipX - 0.3;
-  const scope = rode > 0 ? rode / totalDepth : 0;
-
-  const horizontalAllowance =
-    anchorOnBottom && rode >= totalDepth
-      ? Math.sqrt(Math.max(rode * rode - totalDepth * totalDepth, 0))
-      : 0;
-
-  const anchorAheadBy = anchorOnBottom && anchorX !== null ? anchorX - bowTipX : 0;
-  const anchorDepthBelowSurface = anchorOnBottom
-    ? scenario.depth
-    : Math.min(Math.max(rode - scenario.bowHeight, 0), scenario.depth);
+  const targetRode = getTargetRode(scenario);
+  const bowTipX = game.boatX + BOAT_LENGTH;
+  const scope = game.rode > 0 ? game.rode / totalDepth : 0;
+  const anchorAheadBy = game.anchorOnBottom && game.anchorX !== null ? game.anchorX - bowTipX : 0;
 
   const resetPosition = () => {
-    setBoatX(startingBoatX);
-    setCameraOrigin(startingCamera);
-    setRode(0);
-    setAnchorOnBottom(false);
-    setAnchorX(null);
+    setGame(createInitialState());
     setLastStatus("Anchor stowed. Lower with ↓ and use ← to fall back.");
     setResultOverlay(null);
   };
@@ -132,115 +101,40 @@ const AnchorMinigame = () => {
 
   const moveBoat = useCallback(
     (direction: -1 | 1) => {
-      let nextBoat = boatX + direction * MOVE_STEP;
-
-      if (anchorOnBottom && anchorX !== null && horizontalAllowance) {
-        const candidateBow = nextBoat + BOAT_LENGTH - 0.3;
-        const limitedBow = Math.min(
-          Math.max(candidateBow, anchorX - horizontalAllowance),
-          anchorX + horizontalAllowance,
-        );
-        nextBoat = limitedBow - (BOAT_LENGTH - 0.3);
-      }
-
-      const viewLeft = cameraOrigin;
-      const viewRight = cameraOrigin + WORLD_LENGTH;
-      const nextBowTip = nextBoat + BOAT_LENGTH;
-      const leftMargin = viewLeft + WORLD_LENGTH * 0.25;
-      const rightMargin = viewRight - WORLD_LENGTH * 0.25;
-      let nextCamera = cameraOrigin;
-
-      if (nextBowTip > rightMargin) {
-        nextCamera = nextBowTip - WORLD_LENGTH * 0.75;
-      } else if (nextBoat < leftMargin) {
-        nextCamera = nextBoat - WORLD_LENGTH * 0.25;
-      }
-
-      setBoatX(nextBoat);
-      setCameraOrigin(nextCamera);
-      setLastStatus(direction === -1 ? "Drifting back from the anchor" : "Motoring ahead over the anchor");
+      const result = transitionBoat(game, direction, totalDepth);
+      setGame(result.state);
+      setLastStatus(result.status);
     },
-    [anchorOnBottom, anchorX, boatX, cameraOrigin, horizontalAllowance],
+    [game, totalDepth],
   );
 
   const changeRode = useCallback(
     (delta: number) => {
-      setRode((prev) => {
-        const proposed = Math.min(Math.max(prev + delta, 0), MAX_RODE);
-
-        // Anchor still traveling with the boat.
-        if (!anchorOnBottom) {
-          if (proposed >= totalDepth) {
-            setAnchorOnBottom(true);
-            setAnchorX(bowAttachX);
-            setLastStatus("Anchor just touched the seabed — it will stay put now.");
-            toast.success("Anchor on the bottom", { description: "Move astern with ← to lay out chain." });
-          }
-          return proposed;
-        }
-
-        // Anchor is set on the bottom: keep enough rode to reach it.
-        if (anchorOnBottom && anchorX !== null) {
-          const horizontal = Math.abs(anchorX - bowAttachX);
-          const minRode = Math.hypot(totalDepth, horizontal);
-
-          // If we are still offset from the anchor, clamp to the taut length so it doesn't teleport.
-          if (proposed < minRode && horizontal > 0.6) {
-            setLastStatus("Rode is taut — move the bow toward the anchor before heaving more.");
-            return minRode;
-          }
-
-          // If we are above the anchor and mostly vertical, allow lifting it.
-          if (horizontal <= 0.6 && proposed < totalDepth * 0.95) {
-            setAnchorOnBottom(false);
-            setAnchorX(null);
-            setLastStatus("Anchor coming up — keep heaving.");
-            return Math.max(proposed, totalDepth * 0.85);
-          }
-
-          return proposed;
-        }
-
-        return proposed;
-      });
+      const result = transitionRode(game, delta, totalDepth);
+      setGame(result.state);
+      if (result.status) setLastStatus(result.status);
+      if (result.event === "anchor-bottom") {
+        toast.success("Anchor on the bottom", { description: "Move astern with ← to lay out chain." });
+      }
     },
-    [anchorOnBottom, anchorX, bowAttachX, totalDepth],
+    [game, totalDepth],
   );
 
   const checkPlacement = useCallback(() => {
     setAttempts((value) => value + 1);
-    const issues: string[] = [];
-
-    if (!anchorOnBottom || anchorX === null) {
-      issues.push("anchor never made it to the seabed");
-    }
-
-    if (anchorOnBottom && anchorX !== null && anchorX - bowTipX <= 0.5) {
-      issues.push("anchor ended up under/behind the bow");
-    }
-
-    if (rode < targetRode) {
-      issues.push(`scope short by ${(targetRode - rode).toFixed(1)}m`);
-    }
-
-    if (issues.length === 0) {
+    const result = evaluatePlacement(game, scenario);
+    if (result.type === "success") {
       toast.success("Anchor set", {
-        description: `Scope ${scope.toFixed(1)}x with ${rode.toFixed(1)}m out. Well ahead of the bow.`,
+        description: `${result.message} Well ahead of the bow.`,
       });
-      setLastStatus("Secure: anchor is ahead with enough scope.");
-      setResultOverlay({
-        type: "success",
-        message: `Scope ${scope.toFixed(1)}x with ${rode.toFixed(1)}m out.`,
-      });
+      setLastStatus(result.status);
+      setResultOverlay(result);
     } else {
-      toast.error("Not secure yet", { description: issues.join(" • ") });
-      setLastStatus("Adjust and try again — keep anchor ahead with enough chain.");
-      setResultOverlay({
-        type: "failure",
-        message: issues.join(" • "),
-      });
+      toast.error("Not secure yet", { description: result.message });
+      setLastStatus(result.status);
+      setResultOverlay(result);
     }
-  }, [anchorOnBottom, anchorX, bowTipX, rode, scope, targetRode]);
+  }, [game, scenario]);
 
   useEffect(() => {
     const onKey = (event: KeyboardEvent) => {
@@ -271,83 +165,9 @@ const AnchorMinigame = () => {
     return () => window.removeEventListener("keydown", onKey);
   }, [changeRode, checkPlacement, moveBoat]);
 
-  const viewWidth = 760;
-  const viewHeight = 360;
-  const horizontalMargin = 28;
-  const xScale = (viewWidth - horizontalMargin * 2) / WORLD_LENGTH;
-  const verticalSpan = scenario.depth + scenario.bowHeight + 1.5;
-  const yScale = (viewHeight - 140) / verticalSpan;
-  const surfaceY = 70;
-  const seabedY = surfaceY + scenario.depth * yScale;
-
-  const toX = (meters: number) => horizontalMargin + (meters - cameraOrigin) * xScale;
-  const toY = (meters: number) => surfaceY + meters * yScale;
-
-  const boatTopY = surfaceY - 18;
-  const boatBottomY = surfaceY + 10;
-
-  const { anchorAttachPoint, anchorPoint, slackMeters, chainPath, boatPath } = useMemo(() => {
-    const mapX = (meters: number) => horizontalMargin + (meters - cameraOrigin) * xScale;
-    const mapY = (meters: number) => surfaceY + meters * yScale;
-
-    const nextAnchorAttachPoint = {
-      x: mapX(bowAttachX),
-      y: surfaceY - Math.min(scenario.bowHeight * yScale, 18),
-    };
-
-    const nextAnchorPoint = {
-      x: mapX(anchorOnBottom && anchorX !== null ? anchorX : bowAttachX),
-      y: mapY(anchorDepthBelowSurface),
-    };
-
-    const dxMeters = (nextAnchorPoint.x - nextAnchorAttachPoint.x) / xScale;
-    const dyMeters = (nextAnchorPoint.y - nextAnchorAttachPoint.y) / yScale;
-    const nextSlackMeters = Math.max(rode - Math.hypot(dxMeters, dyMeters), 0);
-
-    const start = nextAnchorAttachPoint;
-    const saggyEnd = (() => {
-      if (!anchorOnBottom || nextSlackMeters <= 0) return nextAnchorPoint;
-      const slackDirection = anchorX !== null ? Math.sign(anchorX - bowAttachX || 1) : 1;
-      const seabedSlack = Math.min(nextSlackMeters, 30);
-      return {
-        x: nextAnchorPoint.x - slackDirection * seabedSlack * xScale * 0.6,
-        y: nextAnchorPoint.y,
-      };
-    })();
-
-    const segments = 18;
-    const sagPx = Math.min(nextSlackMeters * xScale * 1.2 + 12, 260);
-    const commands: string[] = [];
-
-    for (let i = 0; i <= segments; i += 1) {
-      const t = i / segments;
-      const x = start.x + (saggyEnd.x - start.x) * t;
-      const baseY = start.y + (saggyEnd.y - start.y) * t;
-      const sag = Math.sin(Math.PI * t) * sagPx;
-      const y = Math.min(baseY + sag, seabedY);
-      commands.push(`${i === 0 ? "M" : "L"} ${x.toFixed(2)} ${y.toFixed(2)}`);
-    }
-
-    if (anchorOnBottom && nextSlackMeters > 0 && saggyEnd.x !== nextAnchorPoint.x) {
-      commands.push(`L ${nextAnchorPoint.x.toFixed(2)} ${nextAnchorPoint.y.toFixed(2)}`);
-    }
-
-    const nextBoatPath = `
-    M ${mapX(boatX - 0.6)} ${boatTopY}
-    L ${mapX(boatX + BOAT_LENGTH + 0.6)} ${boatTopY + 6}
-    L ${mapX(boatX + BOAT_LENGTH - 0.8)} ${boatBottomY}
-    L ${mapX(boatX - 1)} ${boatBottomY}
-    Z
-  `;
-
-    return {
-      anchorAttachPoint: nextAnchorAttachPoint,
-      anchorPoint: nextAnchorPoint,
-      slackMeters: nextSlackMeters,
-      chainPath: commands.join(" "),
-      boatPath: nextBoatPath,
-    };
-  }, [anchorOnBottom, anchorDepthBelowSurface, anchorX, boatBottomY, boatTopY, boatX, bowAttachX, cameraOrigin, horizontalMargin, rode, scenario.bowHeight, seabedY, surfaceY, xScale, yScale]);
+  const {
+    viewWidth, viewHeight, surfaceY, seabedY, boatTopY, boatBottomY, anchorPoint, chainPath, boatPath, toX,
+  } = useMemo(() => calculateSceneGeometry(game, scenario), [game, scenario]);
 
   const scopeColor =
     scope >= requiredScope ? "text-success" : scenario.condition === "strong" ? "text-destructive" : "text-accent";
@@ -428,7 +248,7 @@ const AnchorMinigame = () => {
             <CardContent className="space-y-2">
               <div className="flex items-center justify-between">
                 <span className="text-sm text-muted-foreground">Rode out</span>
-                <span className="font-semibold">{rode.toFixed(1)} m</span>
+                <span className="font-semibold">{game.rode.toFixed(1)} m</span>
               </div>
               <div className="flex items-center justify-between">
                 <span className="text-sm text-muted-foreground">Scope</span>
@@ -437,7 +257,7 @@ const AnchorMinigame = () => {
               <div className="flex items-center justify-between">
                 <span className="text-sm text-muted-foreground">Anchor position</span>
                 <span className="font-semibold">
-                  {anchorOnBottom
+                  {game.anchorOnBottom
                     ? anchorAheadBy >= 0
                       ? `${anchorAheadBy.toFixed(1)} m ahead`
                       : `${Math.abs(anchorAheadBy).toFixed(1)} m behind`
@@ -447,11 +267,11 @@ const AnchorMinigame = () => {
               <Badge
                 variant="outline"
                 className={`w-full justify-center gap-2 text-xs ${
-                  anchorOnBottom ? "bg-success/10 border-success/50 text-success" : ""
+                  game.anchorOnBottom ? "bg-success/10 border-success/50 text-success" : ""
                 }`}
               >
                 <AnchorIcon className="w-4 h-4" />
-                {anchorOnBottom ? "Anchor on seabed" : "Anchor not set"}
+                {game.anchorOnBottom ? "Anchor on seabed" : "Anchor not set"}
               </Badge>
             </CardContent>
           </Card>
@@ -485,7 +305,7 @@ const AnchorMinigame = () => {
 
           <CardContent className="space-y-4">
             <div className="relative overflow-hidden rounded-xl border border-border bg-gradient-to-b from-sky-100/80 via-sky-50 to-ocean-light/30">
-              <svg viewBox={`0 0 ${viewWidth} ${viewHeight}`} className="w-full h-full">
+              <svg aria-label="Anchoring side profile" viewBox={`0 0 ${viewWidth} ${viewHeight}`} className="w-full h-full">
                 <defs>
                   <linearGradient id="water" x1="0" x2="0" y1="0" y2="1">
                     <stop offset="0%" stopColor="hsl(var(--ocean-light))" stopOpacity="0.4" />
@@ -549,35 +369,35 @@ const AnchorMinigame = () => {
                 {/* Boat */}
                 <path d={boatPath} fill="white" stroke="hsl(var(--primary))" strokeWidth="2" />
                 <path
-                  d={`M ${toX(boatX + BOAT_LENGTH - 0.4)} ${boatTopY - 4} L ${toX(
-                    boatX + BOAT_LENGTH + 0.8,
-                  )} ${boatTopY + 2} L ${toX(boatX + BOAT_LENGTH - 0.4)} ${boatTopY + 2} Z`}
+                  d={`M ${toX(game.boatX + BOAT_LENGTH - 0.4)} ${boatTopY - 4} L ${toX(
+                    game.boatX + BOAT_LENGTH + 0.8,
+                  )} ${boatTopY + 2} L ${toX(game.boatX + BOAT_LENGTH - 0.4)} ${boatTopY + 2} Z`}
                   fill="hsl(var(--primary))"
                 />
                 <line
-                  x1={toX(boatX + BOAT_LENGTH - 1)}
+                  x1={toX(game.boatX + BOAT_LENGTH - 1)}
                   y1={boatTopY - 12}
-                  x2={toX(boatX + BOAT_LENGTH - 1)}
+                  x2={toX(game.boatX + BOAT_LENGTH - 1)}
                   y2={boatTopY + 2}
                   stroke="hsl(var(--primary))"
                   strokeWidth="2"
                 />
-                <text x={toX(boatX + BOAT_LENGTH / 2)} y={boatBottomY + 22} fontSize="12" fill="hsl(var(--foreground))" textAnchor="middle">
+                <text x={toX(game.boatX + BOAT_LENGTH / 2)} y={boatBottomY + 22} fontSize="12" fill="hsl(var(--foreground))" textAnchor="middle">
                   Bow →
                 </text>
 
                 {/* Depth scale */}
                 <line
-                  x1={toX(cameraOrigin + 1)}
+                  x1={toX(game.cameraOrigin + 1)}
                   y1={surfaceY}
-                  x2={toX(cameraOrigin + 1)}
+                  x2={toX(game.cameraOrigin + 1)}
                   y2={seabedY}
                   stroke="hsl(var(--secondary))"
                   strokeWidth="1.5"
                   strokeDasharray="4 4"
                 />
                 <text
-                  x={toX(cameraOrigin + 1)}
+                  x={toX(game.cameraOrigin + 1)}
                   y={surfaceY + (seabedY - surfaceY) / 2}
                   fontSize="12"
                   fill="hsl(var(--secondary))"

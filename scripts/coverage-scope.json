@@ -12,6 +12,8 @@
   "files": [
     "src/constants/durableProgressIds.ts",
     "src/constants/topicRegistry.ts",
+    "src/pages/anchor-minigame/geometry.ts",
+    "src/pages/anchor-minigame/state.ts",
     "src/features/dashboard/topicCompletion.ts",
     "src/features/engagement/engagementService.ts",
     "src/features/engagement/streaks.ts",
