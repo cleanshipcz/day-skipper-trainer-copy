@@ -138,12 +138,16 @@ variation and its instruction to subtract 5° to recover True. The successive
 true-bearing separations are about 87°, 70° and 203° (or 157° on the smaller
 arc), giving a plausible illustrative spread.
 
-The visible coordinate labels are not coherent chart evidence, however.
-`ChartSurface` advances its longitude minute labels as x increases but does not
-show a scale relationship between its 100-pixel grid and those minutes. Only
-major lines at five-grid intervals are visible, while labels are emitted at
-every grid position. The scenario points and LOP checks operate in arbitrary
-pixels, not the displayed geographic coordinates.
+`ChartSurface` does align each latitude/longitude minute label with its visible
+100-pixel pattern grid, so the graticule has a clear internal coordinate step.
+It nevertheless gives one minute of longitude the same x spacing as one minute
+of latitude has in y at about 50°N. That is not a geographically coherent local
+or Mercator scale: a longitude minute spans only `cos(latitude)` of a latitude
+minute on the ground, while Mercator's north/south chart scale expands with
+latitude. The scenario bearings and LOP checks are calculated directly from
+equal x/y pixel deltas without defining a projection or conversion from the
+displayed coordinates. They are therefore self-consistent screen geometry,
+not verified nautical-chart geometry.
 
 ### Broken and incomplete interaction
 
