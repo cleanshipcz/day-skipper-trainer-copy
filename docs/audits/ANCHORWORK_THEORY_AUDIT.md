@@ -2,7 +2,7 @@
 
 - Audit issue: [#92](https://github.com/cleanshipcz/day-skipper-trainer-copy/issues/92)
 - Route/topic: `/anchorwork` / `anchorwork`
-- Audited: 2026-07-30
+- Audited: 2026-07-30; reconciled with chain tip 2026-07-31
 - Primary implementation: `src/pages/AnchorTheory.tsx`
 - Topic catalogue: `src/data/anchorTopics.ts`
 - Related routes: `src/pages/AnchorMinigame.tsx`, `src/pages/Quiz.tsx`,
@@ -168,6 +168,12 @@ completion panel uses text as well as decoration. Remaining barriers include:
   hidden from assistive technology.
 
 ## Focused follow-up issues
+
+The linked issues were rechecked on 2026-07-31 against the current chain tip.
+Each remains open with the `agent-queue` label and includes reproduction or
+context, learner impact, acceptance criteria, and relevant implementation
+paths. Together they cover every distinct finding below without putting fixes
+into this audit branch.
 
 - [#168 — Keep Anchorwork topic completion state consistent and
   durable](https://github.com/cleanshipcz/day-skipper-trainer-copy/issues/168)
