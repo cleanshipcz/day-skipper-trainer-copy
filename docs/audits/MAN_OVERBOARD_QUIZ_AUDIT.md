@@ -13,9 +13,12 @@
 **The quiz is reachable and mechanically completable, but its safety content
 does not support the claim that a 70% result demonstrates Man Overboard
 mastery.** The catalogue resolves 12 stable question IDs, runtime shuffling
-preserves the keyed answers, submission locks a choice and reveals an
-explanation, retry starts a new shuffle, and authenticated save failures have
-explicit recovery paths.
+preserves the keyed answers, and submission transiently locks the current view
+while revealing an explanation. Submitted answers can be revisited and edited
+after navigating away. Retry starts a new shuffle. Only completion-save
+failures have explicit recovery; authenticated in-progress writes do not
+surface failure or offer retry, as tracked by
+[#313](https://github.com/cleanshipcz/day-skipper-trainer-copy/issues/313).
 
 The assessment is disproportionately radio recall and Williamson-turn recall:
 four of 12 questions concern distress/urgency communications and two describe
