@@ -23,9 +23,10 @@ point back toward the line, but it is derived from the wrong visual cue.
 The SVG is a plan view in which the learner moves a vessel icon onto an already
 known mathematical line between chart symbols. It never presents the
 front/rear sight picture that the theory asks the learner to interpret. It
-accepts any point near the infinite line, including land, hazards and positions
-beyond the useful leading-line segment; depicted depths and rocks have no
-effect. “Difficulty” is only a shrinking arbitrary pixel tolerance. One check
+accepts positions near the infinite line beyond the useful leading-line
+segment. Land, water, depth and hazard geometry are not inputs to validation,
+although the configured lines do not intersect the depicted walls or rocks.
+“Difficulty” is only a shrinking arbitrary pixel tolerance. One check
 locks each scenario permanently, gives no diagnostic correction, and any three
 checks—including three failures—unlock module completion.
 
@@ -141,8 +142,10 @@ teaching** (`src/pages/TransitsTheory.tsx`)
   cannot practise the lesson's defining sight cue.
 - `isOnTransit` measures perpendicular distance to the **infinite** line
   through the two markers. It does not constrain along-track position, useful
-  segment, land, water, depth or hazards. A vessel on a harbour wall, rock or
-  beyond/behind both marks can score correct.
+  segment, land, water, depth or hazards. Positions beyond/behind both marks can
+  score correct. In the current three scenarios, however, the accepted line
+  bands remain outside the depicted harbour walls and rocks; those artworks do
+  not provide a reproducible accepted land/hazard point.
 - The vessel can be dragged to every chart edge. The fixed rocks and soundings
   are decorative; collision, clearance and draught are not scenario inputs.
   Claims such as “safe approach,” “narrow channel,” “thread through” and “even
@@ -159,19 +162,22 @@ teaching** (`src/pages/TransitsTheory.tsx`)
   retry, review or mastery threshold. Three immediate failed checks satisfy
   `complete-exercise` exactly like three correct checks.
 - Unit tests establish render presence, data shape and one keyboard increment.
-  Geometry tests cover line distance, but no test rejects land/hazards/outside
-  segment, proves meaningful difficulty, checks pointer scaling/capture,
-  exercises all terminal outcomes or enforces mastery.
+  Geometry tests cover line distance, but no test constrains the useful segment
+  or defines how land/hazards would participate in validation, proves meaningful
+  difficulty, checks pointer scaling/capture, exercises all terminal outcomes
+  or enforces mastery.
 
 **Proposed focused issue B — Replace the plan-view placement game with valid
 transit competency** (`TransitExercise.tsx`, `transitScenarios.ts`,
 `transitCoordinates.ts` and tests)
 
-- Reproduction/context: place the vessel on the mathematical line inside a
-  harbour wall or beyond both marks; it is accepted. Alternatively fail all
-  three one-shot checks; the page unlocks completion.
+- Reproduction/context: place the vessel on the mathematical line beyond both
+  marks; it is accepted because only perpendicular distance is checked. (The
+  current configured line bands do not intersect the drawn walls or rocks.)
+  Alternatively fail all three one-shot checks; the page unlocks completion.
 - Learner impact: success demonstrates pixel-line placement, not recognition,
-  correction or safe use of a transit, while unsafe positions can be praised.
+  correction or safe use of a transit, while positions outside the declared
+  approach context can be praised.
 - Acceptance: define the assessable outcome and real geometry; present an
   observer sight picture and/or chart-to-view task; constrain useful water and
   segment; make hazards/depth meaningful or remove their claims; use
