@@ -5,7 +5,8 @@
 - Audited: 2026-07-30; reconciled with chain tip 2026-07-31
 - Primary implementation: `src/pages/AnchorTheory.tsx`
 - Topic catalogue: `src/data/anchorTopics.ts`
-- Related routes: `src/pages/AnchorMinigame.tsx`, `src/pages/Quiz.tsx`,
+- Related routes: `src/pages/AnchorMinigame.tsx`,
+  `src/pages/anchor-minigame/state.ts`, `src/pages/Quiz.tsx`,
   `src/constants/topicRegistry.ts`
 
 ## Verdict
@@ -51,6 +52,13 @@ Observed results:
   Native topic/action buttons worked with pointer and keyboard input.
 - Minigame buttons navigate to `/anchor-minigame`; the completion quiz action
   navigates to `/quiz/anchorwork`; Back navigates to global `/`.
+- The linked minigame does not validate the safety decisions taught here.
+  `checkPlacement` declares **Secure** from bottom contact, an anchor more than
+  0.5 m ahead, and a condition-only 4:1/5:1/7:1 rode ratio. Seabed and anchor
+  suitability, setting/holding checks, tide/current, hazards, and actual
+  swinging clearance do not affect its verdict. Thus even the “soft mud” and
+  “weak holding” setups can reward a learner based only on geometry while the
+  UI tells them to stay within a swinging circle it does not evaluate.
 
 No live authenticated persistence round-trip, real assistive-technology
 session, adverse-weather field validation, or physical anchor trial was
@@ -199,3 +207,13 @@ into this audit branch.
   path](https://github.com/cleanshipcz/day-skipper-trainer-copy/issues/173)
   — covers assessment alignment, topic-specific practice, durable readiness,
   return context, and remediation routing.
+- [#175 — Align Anchor Minigame success with qualified, safety-aware anchoring
+  decisions](https://github.com/cleanshipcz/day-skipper-trainer-copy/issues/175)
+  — covers the fixed-ratio **Secure** verdict, scenario inputs that do not
+  affect success, setting/holding evidence, available room, and consistency
+  with reviewed theory and quiz guidance.
+- [#176 — Model and teach Anchor Minigame holding checks, swinging clearance,
+  and recovery](https://github.com/cleanshipcz/day-skipper-trainer-copy/issues/176)
+  — covers the absent swept-area evaluation, hazards and differently swinging
+  neighbours, weak holding/dragging, condition changes, watchkeeping, and safe
+  recovery.
