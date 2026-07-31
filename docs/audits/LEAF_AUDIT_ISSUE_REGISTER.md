@@ -2,9 +2,9 @@
 
 This register reconciles the 52 learner-facing leaves in
 `LEAF_FUNCTIONALITY_ISSUE_DRAFTS.md` with the GitHub issues filed from that
-inventory. Issue numbers are contiguous because the issues were created in
-inventory order. Repository issue search verified all 52 issues carry the
-`agent-queue` label.
+inventory. Each mapping is matched by the inventory's exact issue title rather
+than inferred from issue-number order. Repository issue search verified all 52
+issues carry the `agent-queue` label.
 
 | # | Learner-facing leaf | Route / catalogue ID | Audit issue |
 |---:|---|---|---:|
@@ -25,8 +25,8 @@ inventory order. Repository issue search verified all 52 issues carry the
 | 15 | Steering & Sailing Rules | `/rules/colregs` · `colregs-theory` | [#101](https://github.com/cleanshipcz/day-skipper-trainer-copy/issues/101) |
 | 16 | Comprehensive Lights & Signals Theory | `/rules/lights/theory` · `lights-theory` | [#102](https://github.com/cleanshipcz/day-skipper-trainer-copy/issues/102) |
 | 17 | Rules of the Road Quiz | `/quiz/colregs` · `colregs` | [#103](https://github.com/cleanshipcz/day-skipper-trainer-copy/issues/103) |
-| 18 | Lights & Signals Mastery Quiz | `/quiz/lights-signals` · `lights-signals` | [#104](https://github.com/cleanshipcz/day-skipper-trainer-copy/issues/104) |
-| 19 | The Chart | `/navigation/charts` · `charts-theory` | [#105](https://github.com/cleanshipcz/day-skipper-trainer-copy/issues/105) |
+| 18 | Lights & Signals Mastery Quiz | `/quiz/lights-signals` · `lights-signals` | [#105](https://github.com/cleanshipcz/day-skipper-trainer-copy/issues/105) |
+| 19 | The Chart | `/navigation/charts` · `charts-theory` | [#104](https://github.com/cleanshipcz/day-skipper-trainer-copy/issues/104) |
 | 20 | The Compass | `/navigation/compass` · `compass-theory` | [#106](https://github.com/cleanshipcz/day-skipper-trainer-copy/issues/106) |
 | 21 | Position Fixing | `/navigation/position` · `position-theory` | [#107](https://github.com/cleanshipcz/day-skipper-trainer-copy/issues/107) |
 | 22 | Understanding Tides | `/navigation/tides/theory` · `tides-theory` | [#108](https://github.com/cleanshipcz/day-skipper-trainer-copy/issues/108) |
@@ -49,9 +49,9 @@ inventory order. Repository issue search verified all 52 issues carry the
 | 39 | Passage Plan Builder | `/passage-planning/builder` · `passage-planning-builder` | [#125](https://github.com/cleanshipcz/day-skipper-trainer-copy/issues/125) |
 | 40 | Pre-departure Checklist | `/passage-planning/checklist` · `passage-planning-checklist` | [#126](https://github.com/cleanshipcz/day-skipper-trainer-copy/issues/126) |
 | 41 | Passage Planning Quiz | `/quiz/passage-planning` · `passage-planning` | [#127](https://github.com/cleanshipcz/day-skipper-trainer-copy/issues/127) |
-| 42 | Man Overboard (MOB) | `/safety/mob` · `safety-mob` | [#128](https://github.com/cleanshipcz/day-skipper-trainer-copy/issues/128) |
-| 43 | Man Overboard Quiz | `/quiz/safety-mob-quiz` · `safety-mob-quiz` | [#129](https://github.com/cleanshipcz/day-skipper-trainer-copy/issues/129) |
-| 44 | Fire Safety | `/safety/fire` · `safety-fire` | [#130](https://github.com/cleanshipcz/day-skipper-trainer-copy/issues/130) |
+| 42 | Man Overboard (MOB) | `/safety/mob` · `safety-mob` | [#130](https://github.com/cleanshipcz/day-skipper-trainer-copy/issues/130) |
+| 43 | Man Overboard Quiz | `/quiz/safety-mob-quiz` · `safety-mob-quiz` | [#128](https://github.com/cleanshipcz/day-skipper-trainer-copy/issues/128) |
+| 44 | Fire Safety | `/safety/fire` · `safety-fire` | [#129](https://github.com/cleanshipcz/day-skipper-trainer-copy/issues/129) |
 | 45 | Fire Safety Quiz | `/quiz/safety-fire-quiz` · `safety-fire-quiz` | [#131](https://github.com/cleanshipcz/day-skipper-trainer-copy/issues/131) |
 | 46 | Life Raft & Abandon Ship | `/safety/life-raft` · `safety-life-raft` | [#132](https://github.com/cleanshipcz/day-skipper-trainer-copy/issues/132) |
 | 47 | Life Raft & Abandon Ship Quiz | `/quiz/safety-life-raft-quiz` · `safety-life-raft-quiz` | [#133](https://github.com/cleanshipcz/day-skipper-trainer-copy/issues/133) |
@@ -64,10 +64,9 @@ inventory order. Repository issue search verified all 52 issues carry the
 ## Reconciliation
 
 - Inventory leaves: **52** (36 theory/practice routes and 16 quiz catalogue entries).
-- Filed audit issues: **52** (`#87` through `#138`), one per inventory row.
+- Filed audit issues: **52** (`#87` through `#138`), one exact-title match per inventory row.
 - Duplicate or unassigned inventory rows: **0**.
 - Missing audit issues: **0**.
 - Every filed audit issue includes the leaf route/scope, relevant implementation/data files, the shared rigorous audit rubric, and the `agent-queue` label.
 - No learner-facing implementation is part of issue #84; this branch only preserves the inventory and filing register.
-
 
