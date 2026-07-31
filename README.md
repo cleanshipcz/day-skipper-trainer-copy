@@ -45,6 +45,8 @@ npm run typecheck
 npm run test -- --run --maxWorkers=1
 npm run guard:coverage-scope && npm run test:coverage -- --maxWorkers=1
 npm run build
+npm run setup:anchor-browser
+npm run test:anchor-browser
 npm run test:build-budget
 npm run test:quiz-chunks
 npm run guard:migrations
@@ -75,21 +77,28 @@ suite.
 
 ## Local Supabase
 
-With Docker running and the Supabase CLI installed:
+With Docker running, install the pinned project dependencies and start the
+local stack:
 
 ```sh
-supabase start
-supabase db reset
+npm ci
+npm run supabase:start
 npm run dev
 ```
 
-Useful commands:
+Regenerate the checked-in TypeScript types after adding a migration:
 
 ```sh
-supabase status
-supabase gen types typescript --local > src/integrations/supabase/types.ts
-supabase stop
+npm run supabase:types
 ```
+
+That command starts the local stack, resets it from the complete migration
+chain, and writes normalized output from the exact Supabase CLI version pinned
+in `package-lock.json`. It uses only the disposable local Docker services and
+does not require production credentials. CI runs
+`npm run guard:supabase-types` against the same migrated local schema and
+fails with the regeneration command if the checked-in file differs. Stop the
+stack with `npm run supabase:stop` when finished.
 
 Migrations are forward-only. Add a new timestamped migration and update the
 manifest; never edit an applied migration. The full conventions are recorded

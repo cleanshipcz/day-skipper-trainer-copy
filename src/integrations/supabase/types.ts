@@ -7,10 +7,30 @@ export type Json =
   | Json[]
 
 export type Database = {
-  // Allows to automatically instantiate createClient with right options
-  // instead of createClient<Database, { PostgrestVersion: 'XX' }>(URL, KEY)
-  __InternalSupabase: {
-    PostgrestVersion: "13.0.5"
+  graphql_public: {
+    Tables: {
+      [_ in never]: never
+    }
+    Views: {
+      [_ in never]: never
+    }
+    Functions: {
+      graphql: {
+        Args: {
+          extensions?: Json
+          operationName?: string
+          query?: string
+          variables?: Json
+        }
+        Returns: Json
+      }
+    }
+    Enums: {
+      [_ in never]: never
+    }
+    CompositeTypes: {
+      [_ in never]: never
+    }
   }
   public: {
     Tables: {
@@ -27,55 +47,56 @@ export type Database = {
           first_activity_at?: string
           user_id: string
         }
-        Update: never
+        Update: {
+          activity_date?: string
+          activity_type?: string
+          first_activity_at?: string
+          user_id?: string
+        }
         Relationships: []
       }
-      user_badges: {
+      engagement_events: {
         Row: {
-          badge_id: string
-          earned_at: string
+          activity_date: string
+          consumed_at: string | null
+          occurred_at: string
+          result: Json | null
+          source_id: string
+          source_type: string
           user_id: string
         }
         Insert: {
-          badge_id: string
-          earned_at?: string
-          user_id: string
-        }
-        Update: never
-        Relationships: []
-      }
-      question_reviews: {
-        Row: {
-          created_at: string
-          ease_factor: number
-          id: string
-          interval_days: number
-          last_reviewed_at: string | null
-          next_review_at: string
-          question_id: string
-          repetitions: number
-          updated_at: string
-          user_id: string
-        }
-        Insert: {
-          created_at?: string
-          ease_factor?: number
-          id?: string
-          interval_days?: number
-          last_reviewed_at?: string | null
-          next_review_at?: string
-          question_id: string
-          repetitions?: number
-          updated_at?: string
+          activity_date: string
+          consumed_at?: string | null
+          occurred_at: string
+          result?: Json | null
+          source_id: string
+          source_type: string
           user_id: string
         }
         Update: {
-          ease_factor?: number
-          interval_days?: number
-          last_reviewed_at?: string | null
-          next_review_at?: string
-          repetitions?: number
-          updated_at?: string
+          activity_date?: string
+          consumed_at?: string | null
+          occurred_at?: string
+          result?: Json | null
+          source_id?: string
+          source_type?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
+      exam_completion_awards: {
+        Row: {
+          awarded_at: string
+          user_id: string
+        }
+        Insert: {
+          awarded_at?: string
+          user_id: string
+        }
+        Update: {
+          awarded_at?: string
+          user_id?: string
         }
         Relationships: []
       }
@@ -84,8 +105,8 @@ export type Database = {
           attempt_id: string
           completed_at: string
           id: string
-          passed: boolean
           pass_mark: number
+          passed: boolean
           percentage: number
           score: number
           time_taken_seconds: number
@@ -97,8 +118,8 @@ export type Database = {
           attempt_id: string
           completed_at?: string
           id?: string
-          passed: boolean
           pass_mark?: number
+          passed: boolean
           percentage: number
           score: number
           time_taken_seconds: number
@@ -106,7 +127,19 @@ export type Database = {
           total_questions: number
           user_id: string
         }
-        Update: never
+        Update: {
+          attempt_id?: string
+          completed_at?: string
+          id?: string
+          pass_mark?: number
+          passed?: boolean
+          percentage?: number
+          score?: number
+          time_taken_seconds?: number
+          topic_breakdown?: Json
+          total_questions?: number
+          user_id?: string
+        }
         Relationships: []
       }
       profiles: {
@@ -145,6 +178,139 @@ export type Database = {
         }
         Relationships: []
       }
+      progress_awards: {
+        Row: {
+          awarded_at: string
+          points: number
+          topic_id: string
+          user_id: string
+        }
+        Insert: {
+          awarded_at?: string
+          points: number
+          topic_id: string
+          user_id: string
+        }
+        Update: {
+          awarded_at?: string
+          points?: number
+          topic_id?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
+      question_review_receipts: {
+        Row: {
+          created_at: string
+          quality: number
+          question_id: string
+          result: Json
+          review_id: string
+          reviewed_at: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          quality: number
+          question_id: string
+          result: Json
+          review_id: string
+          reviewed_at: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          quality?: number
+          question_id?: string
+          result?: Json
+          review_id?: string
+          reviewed_at?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "question_review_receipts_question_id_fkey"
+            columns: ["question_id"]
+            isOneToOne: false
+            referencedRelation: "review_question_catalog"
+            referencedColumns: ["question_id"]
+          },
+        ]
+      }
+      question_reviews: {
+        Row: {
+          created_at: string
+          ease_factor: number
+          id: string
+          interval_days: number
+          last_reviewed_at: string | null
+          next_review_at: string
+          question_id: string
+          repetitions: number
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          ease_factor?: number
+          id?: string
+          interval_days?: number
+          last_reviewed_at?: string | null
+          next_review_at?: string
+          question_id: string
+          repetitions?: number
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          ease_factor?: number
+          id?: string
+          interval_days?: number
+          last_reviewed_at?: string | null
+          next_review_at?: string
+          question_id?: string
+          repetitions?: number
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "question_reviews_question_id_fkey"
+            columns: ["question_id"]
+            isOneToOne: false
+            referencedRelation: "review_question_catalog"
+            referencedColumns: ["question_id"]
+          },
+        ]
+      }
+      quiz_attempts: {
+        Row: {
+          attempt_id: string
+          completed_at: string | null
+          expected_total: number
+          started_at: string
+          topic_id: string
+          user_id: string
+        }
+        Insert: {
+          attempt_id?: string
+          completed_at?: string | null
+          expected_total: number
+          started_at?: string
+          topic_id: string
+          user_id: string
+        }
+        Update: {
+          attempt_id?: string
+          completed_at?: string | null
+          expected_total?: number
+          started_at?: string
+          topic_id?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       quiz_scores: {
         Row: {
           attempt_id: string
@@ -178,17 +344,34 @@ export type Database = {
         }
         Relationships: []
       }
-      quiz_attempts: {
+      review_question_catalog: {
         Row: {
-          attempt_id: string
-          completed_at: string | null
-          expected_total: number
-          started_at: string
-          topic_id: string
+          question_id: string
+        }
+        Insert: {
+          question_id: string
+        }
+        Update: {
+          question_id?: string
+        }
+        Relationships: []
+      }
+      user_badges: {
+        Row: {
+          badge_id: string
+          earned_at: string
           user_id: string
         }
-        Insert: never
-        Update: never
+        Insert: {
+          badge_id: string
+          earned_at?: string
+          user_id: string
+        }
+        Update: {
+          badge_id?: string
+          earned_at?: string
+          user_id?: string
+        }
         Relationships: []
       }
       user_progress: {
@@ -229,54 +412,51 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
-      sync_engagement_event: {
-        Args: { p_source_id: string; p_source_type: string }
+      consume_engagement_event: {
+        Args: { p_source_id: string; p_source_type: string; p_user_id: string }
+        Returns: Json
+      }
+      increment_user_points: {
+        Args: { p_increment: number; p_user_id: string }
+        Returns: undefined
+      }
+      record_learning_activity: {
+        Args: { p_activity_type: string }
         Returns: {
           bonus_points: number
           current_streak: number
           unlocked_badge_ids: string[]
-        }
-      }
-      submit_quiz_score: {
-        Args: {
-          p_attempt_id: string
-          p_score: number
-          p_topic_id: string
-          p_total_questions: number
-        }
-        Returns: Database["public"]["Tables"]["quiz_scores"]["Row"]
-      }
-      start_quiz_attempt: {
-        Args: { p_topic_id: string }
-        Returns: Database["public"]["Tables"]["quiz_attempts"]["Row"]
+        }[]
       }
       record_question_review: {
         Args: {
-          p_question_id: string
           p_quality: number
+          p_question_id: string
           p_review_id: string
           p_reviewed_at?: string
         }
-        Returns: Database["public"]["Tables"]["question_reviews"]["Row"]
-      }
-      seed_question_reviews: {
-        Args: { p_question_ids: string[] }
-        Returns: undefined
-      }
-      submit_exam_result: {
-        Args: {
-          p_attempt_id: string
-          p_score: number
-          p_time_taken_seconds: number
-          p_topic_breakdown: Json
-          p_total_questions: number
-          p_pass_mark?: number
+        Returns: {
+          created_at: string
+          ease_factor: number
+          id: string
+          interval_days: number
+          last_reviewed_at: string | null
+          next_review_at: string
+          question_id: string
+          repetitions: number
+          updated_at: string
+          user_id: string
         }
-        Returns: Database["public"]["Tables"]["exam_results"]["Row"]
+        SetofOptions: {
+          from: "*"
+          to: "question_reviews"
+          isOneToOne: true
+          isSetofReturn: false
+        }
       }
       save_topic_progress: {
         Args: {
-          p_answers_history?: Json | null
+          p_answers_history?: Json
           p_completed?: boolean
           p_points?: number
           p_score?: number
@@ -287,6 +467,84 @@ export type Database = {
           completion_awarded: boolean
           points_awarded: boolean
         }[]
+      }
+      seed_question_reviews: {
+        Args: { p_question_ids: string[] }
+        Returns: undefined
+      }
+      start_quiz_attempt: {
+        Args: { p_topic_id: string }
+        Returns: {
+          attempt_id: string
+          completed_at: string | null
+          expected_total: number
+          started_at: string
+          topic_id: string
+          user_id: string
+        }
+        SetofOptions: {
+          from: "*"
+          to: "quiz_attempts"
+          isOneToOne: true
+          isSetofReturn: false
+        }
+      }
+      submit_exam_result: {
+        Args: {
+          p_attempt_id: string
+          p_pass_mark?: number
+          p_score: number
+          p_time_taken_seconds: number
+          p_topic_breakdown: Json
+          p_total_questions: number
+        }
+        Returns: {
+          attempt_id: string
+          completed_at: string
+          id: string
+          pass_mark: number
+          passed: boolean
+          percentage: number
+          score: number
+          time_taken_seconds: number
+          topic_breakdown: Json
+          total_questions: number
+          user_id: string
+        }
+        SetofOptions: {
+          from: "*"
+          to: "exam_results"
+          isOneToOne: true
+          isSetofReturn: false
+        }
+      }
+      submit_quiz_score: {
+        Args: {
+          p_attempt_id: string
+          p_score: number
+          p_topic_id: string
+          p_total_questions: number
+        }
+        Returns: {
+          attempt_id: string
+          completed_at: string
+          id: string
+          percentage: number
+          score: number
+          topic_id: string
+          total_questions: number
+          user_id: string
+        }
+        SetofOptions: {
+          from: "*"
+          to: "quiz_scores"
+          isOneToOne: true
+          isSetofReturn: false
+        }
+      }
+      sync_engagement_event: {
+        Args: { p_source_id: string; p_source_type: string }
+        Returns: Json
       }
     }
     Enums: {
@@ -416,6 +674,9 @@ export type CompositeTypes<
     : never
 
 export const Constants = {
+  graphql_public: {
+    Enums: {},
+  },
   public: {
     Enums: {},
   },
