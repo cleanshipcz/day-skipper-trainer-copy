@@ -15,8 +15,10 @@
 yet a fair, safe or applied assessment.** Its twelve entries have unique stable
 IDs, shuffled answers retain their correct mapping, percentage/pass calculation
 is sound, retry reshuffles, and authenticated completion has explicit recovery
-paths. The learner can reach the quiz from `/rig` and complete it by pointer or
-keyboard at phone, tablet and desktop widths.
+  paths after an attempt has started successfully. The learner can reach the
+quiz from `/rig` and complete it through pointer/programmatic native-control
+activation at phone, tablet and desktop widths. End-to-end browser keyboard
+activation was not established by this audit.
 
 The content does not meet the same standard. Five questions assess terminology
 the parent never teaches. Several others reward unsupported universal rules:
@@ -242,6 +244,14 @@ visuals needed to support visual assessment.
   completion.
 - If score submission succeeded but final progress failed, local workflow
   recovery retains completion and disables retry until final saving succeeds.
+- Authenticated attempt start has no visible loading, failure or retry state.
+  If `start_quiz_attempt` returns an error or no data, `workflow` remains null
+  while the learner can still answer every question. Completion then sets
+  **Your completion is not fully saved yet**, but **Retry completion save**
+  calls the same completion path with the same null workflow and cannot start
+  an attempt. The learner must discard the run through **Retry Quiz** (which
+  triggers a new attempt cycle) or reload; the completed answers cannot be
+  submitted idempotently after recovering attempt creation.
 - Active Back and completion Home navigate to `/`, not `/rig`. The unavailable
   state's **Nautical Terms** action is unrelated to Rig. Shared #155 owns
   contextual navigation.
@@ -293,9 +303,63 @@ visuals needed to support visual assessment.
 
 ## Focused follow-up issues
 
-No new issue proposal is needed: every distinct worthwhile remediation found
-here is already owned by a focused Rig or shared quiz-shell issue. These are
-the complete ready-to-file/reuse targets:
+One new issue proposal is needed for authenticated attempt-start recovery.
+Every other distinct worthwhile remediation found here is already owned by a
+focused Rig or shared quiz-shell issue. The new draft below is complete and
+ready to file; the remaining bullets are existing reuse targets.
+
+### Surface and recover authenticated quiz attempt-start failures
+
+**Proposed issue:** _pending_
+
+**Proposed title:** `Surface and recover authenticated quiz attempt-start failures`
+
+**Body:**
+
+> ## Context
+>
+> `Quiz.tsx` starts an authenticated attempt with `start_quiz_attempt`. An RPC
+> error or empty response is silently ignored, leaving `workflow` null while
+> the learner can complete all questions. At completion, **Retry completion
+> save** calls `handleComplete` again, sees the same null workflow and cannot
+> restart the attempt. The only available recovery is to discard the completed
+> run through **Retry Quiz** or reload.
+>
+> ## Learner impact
+>
+> A transient start failure is invisible until the end of a potentially long
+> quiz. The completed answers cannot be saved after connectivity recovers, the
+> advertised save retry is inert for this failure class, and repeated manual
+> recovery risks abandoned or duplicate attempt semantics.
+>
+> ## Acceptance criteria
+>
+> - Model attempt start as explicit idle/starting/ready/failed states and expose
+>   a clear, accessible failure message without waiting until completion.
+> - Define whether answering is blocked while start is pending/failed or safely
+>   buffered; never imply an authenticated run is saveable when no attempt ID
+>   exists.
+> - Provide a retry that actually reruns `start_quiz_attempt` and, after
+>   success, preserves/submits the current answers and completion where policy
+>   permits.
+> - Make start retry and eventual score submission idempotent across repeated
+>   clicks, delayed responses, reload, owner/topic change and ambiguous network
+>   outcomes; do not create duplicate scored attempts.
+> - Separate attempt-start failure copy/actions from final progress-save and
+>   review-sync failures so each retry invokes the correct operation.
+> - Preserve honest anonymous behavior and the existing successful
+>   authenticated workflow.
+> - Add component/integration tests for RPC error, empty data, delayed success,
+>   retry success/failure, completion before recovery, repeated retry, reload,
+>   owner/topic change and duplicate-submission prevention.
+>
+> ## Relevant paths
+>
+> - `src/pages/Quiz.tsx`
+> - quiz attempt RPC/migration definitions
+> - quiz workflow/component tests
+
+### Existing focused issues reused
 
 - [#206 — Align Rig theory handoff with safe, taught quiz
   objectives](https://github.com/cleanshipcz/day-skipper-trainer-copy/issues/206)
