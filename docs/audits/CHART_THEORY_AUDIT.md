@@ -29,7 +29,9 @@ Visited sections are not restored after reload. The shared completion gate
 ignores `saveProgress`'s Boolean result, so caught persistence/queue failures
 still navigate away; successfully queued offline work is not distinguished
 from a server save. The plotter is pointer-only and its SVG has no accessible
-name or text alternative. Back and zoom icon buttons lack accessible names.
+name or text alternative. Back lacks an accessible name. The zoom controls are
+named only “+” and “−”, which is technically exposed text but ambiguous without
+“Zoom in/out” wording or current-scale context.
 
 ## Evidence and audit bounds
 
@@ -107,9 +109,10 @@ The widget's coordinate model is the most serious functional defect:
   inherits the same defect.
 - The plot challenges' target pixels match the component's labels, but the
   “1 Large Square = 1 Nautical Mile (1′)” caption incorrectly applies the
-  latitude relationship to longitude. Only major lines every five squares are
-  visibly drawn by `ChartSurface`, while hints say each large square is one
-  minute; this makes tenths and half-minute plotting difficult to verify.
+  latitude relationship to longitude. `ChartSurface` draws a faint pattern
+  grid every one-minute square, with stronger guides and coordinate labels only
+  every five squares. The weak, unlabelled minor graduations make tenths and
+  half-minute plotting difficult to verify, especially at small sizes.
 - Exercise mode starts with Pan even though Challenge 1 requires Distance.
   Wrong-tool actions produce no feedback. Failed attempts reveal the expected
   numeric answer, enabling answer-copying; attempts and mastery are not scored.
@@ -208,6 +211,8 @@ The widget's coordinate model is the most serious functional defect:
    drill](https://github.com/cleanshipcz/day-skipper-trainer-copy/issues/228).
 5. [#229 — Make The Chart completion evidence-based, durable and
    save-aware](https://github.com/cleanshipcz/day-skipper-trainer-copy/issues/229).
+6. [#230 — Make The Chart page navigation and controls accessible and
+   responsive](https://github.com/cleanshipcz/day-skipper-trainer-copy/issues/230).
 
 ## Verification
 
