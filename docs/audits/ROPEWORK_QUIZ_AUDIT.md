@@ -23,7 +23,9 @@ or unsafe as general advice.
 The shared shell also exposes the correct answer through its live score before
 submission, so a learner can obtain 100% by cycling options. Anonymous progress
 is lost on reload; authenticated records persist unstable option indices; and
-the accessible name, answer-state, progress, announcement, and focus gaps found
+an authenticated attempt-start failure is silent and cannot be retried from the
+completion recovery action. The accessible name, answer-state, progress,
+announcement, and focus gaps found
 in the preceding Full Nautical Terms Quiz audit apply unchanged here. Back and
 completion return to global Home instead of the Ropework parent.
 
@@ -136,10 +138,15 @@ parent, plus three rope-handling claims not present there.
 
 - Anonymous state exists only in component memory, so reload discards the
   attempt. Authenticated state uses the canonical `quiz-ropework` key.
-- Attempt creation, score submission, final progress, engagement, and spaced
-  review seeding have separate recovery paths. A submitted score is retained
-  locally if final progress saving fails, preventing duplicate score
-  submission and disabling retry until completion is saved.
+- Score submission, final progress, engagement, and spaced-review seeding have
+  separate recovery paths. A submitted score is retained locally if final
+  progress saving fails, preventing duplicate score submission and disabling
+  retry until completion is saved.
+- Authenticated attempt creation is the exception: an RPC error or empty result
+  is silently reduced to a null workflow while answering remains enabled. At
+  completion, **Retry completion save** calls completion again but does not
+  restart the attempt, so it cannot recover the visible run; **Retry Quiz**
+  discards that run.
 - Saved sessions contain only shuffled option indices and a question index.
   `parseSavedQuizSession` accepts negative, fractional, and out-of-range finite
   answers. It records no question/option identities or shuffle seed, so reload
@@ -188,3 +195,7 @@ their selection, progress, feedback, or the new question.
   submission](https://github.com/cleanshipcz/day-skipper-trainer-copy/issues/157)
   — reused for the pre-submit score oracle that allows learners to discover
   every answer.
+- [#209 — Surface and recover authenticated quiz attempt-start
+  failures](https://github.com/cleanshipcz/day-skipper-trainer-copy/issues/209)
+  — reused for silent attempt-start failure and the completion action that
+  cannot retry it without discarding the learner's visible run.
