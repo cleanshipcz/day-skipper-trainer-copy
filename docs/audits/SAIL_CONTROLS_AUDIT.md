@@ -2,7 +2,8 @@
 
 - Audit issue: [#88](https://github.com/cleanshipcz/day-skipper-trainer-copy/issues/88)
 - Route/topic: `/nautical-terms/sail-controls` / `nautical-terms-sail-controls`
-- Audited: 2026-07-30
+- Audited: 2026-07-30; reconciled with the updated Boat Parts audit chain on
+  2026-07-31
 - Primary implementation: `src/pages/SailControls.tsx`
 - Related navigation and terminology: `src/pages/NauticalTermsMenu.tsx`,
   `src/pages/NauticalTerms.tsx`, `src/constants/topicRegistry.ts`
@@ -118,9 +119,13 @@ technical revision:
 - Jib-sheet trimming is said to flatten the sail and improve pointing as an
   unconditional effect; lead position, existing trim, and over-trim matter.
 
-Terminology overlaps cleanly with Boat Parts for mast, boom, mainsail, jib,
-forestay, backstay, head, clew, tack, luff, leech, and foot. The more detailed
-control claims above require configuration-aware wording.
+Terminology uses the same names as Boat Parts for mast, boom, mainsail, jib,
+forestay, backstay, head, clew, tack, luff, leech, and foot. That agreement is
+not proof that all shared definitions are sound: the updated Boat Parts audit
+requires configuration-aware corrections for boom and mainsail in #153, while
+the more detailed Sail Controls taxonomy and trim claims require the focused
+corrections in #147. Those two follow-ups explicitly coordinate their wording,
+and #142 owns the shared visual relationship between jib and forestay.
 
 ## Focused follow-up issues
 
@@ -131,3 +136,4 @@ control claims above require configuration-aware wording.
 - [#149 — Load Sail Controls progress and surface durable save failures](https://github.com/cleanshipcz/day-skipper-trainer-copy/issues/149)
 - [#150 — Make the Sail Controls schematic legible and touch-usable at responsive sizes](https://github.com/cleanshipcz/day-skipper-trainer-copy/issues/150)
 - [#142 — Correct jib/forestay geometry across Boat Parts and Sail Controls](https://github.com/cleanshipcz/day-skipper-trainer-copy/issues/142)
+- [#153 — Correct configuration-dependent Nautical Terms and Boat Parts definitions](https://github.com/cleanshipcz/day-skipper-trainer-copy/issues/153)
