@@ -69,6 +69,13 @@ Supabase round-trip. Responsive behavior at 320–1280 CSS px, focus, semantics,
 and failure paths were assessed from the rendered structure and shared-shell
 tests rather than a browser session.
 
+The evidence was reconciled on 2026-07-31 after rebasing onto chain tip
+`f661f95`. None of the Victualling bank, shared quiz shell/services, parent
+theory/data, topic registry, or route definitions changed between the audit's
+qualifying commit and that tip, so the verdict below still describes the
+current chain. All linked follow-ups (#154–#157, #187–#189, #191, #193, and
+#194) were also rechecked as open with the `agent-queue` label.
+
 ### Alignment with the parent module
 
 Only `v1`–`v5` are directly represented in the parent:
@@ -100,6 +107,23 @@ unlock this quiz by clicking 18 possession boxes, not by receiving instruction
 on these subjects. Explanations state conclusions but provide no source,
 assumptions, remediation link, or route back to relevant theory. The mismatch
 and completion policy are owned by #191.
+
+### Downstream reuse in exams and daily review
+
+The exposure is not confined to `/quiz/victualling`. `Exam.tsx` bulk-loads
+every registered question bank, and `selectExamQuestions` assigns Victualling
+a non-zero weight. Any of `v1`–`v12`, including the unsafe `v6`/`v12` claims
+and the fixed universal allowances, can therefore become a scored practice-
+exam item without first passing through the Victualling theory route.
+
+Authenticated quiz completion also passes every bank ID to
+`seedQuizQuestions`. Due-review loading rebuilds its registry from those same
+catalogues and resolves persisted IDs back to the canonical question object.
+The disputed wording and answer can consequently recur in daily review rather
+than being a one-time topic-quiz exposure. Removing a question makes an old
+review row non-displayable, but the remediation still needs an explicit
+cleanup/migration policy and integration tests across quiz, exam, and review.
+Issue #191 now owns that cross-consumer correction or withdrawal.
 
 ### Answer accuracy and safety
 
@@ -262,7 +286,9 @@ issue's context, acceptance criteria, and test scope.
   quiz](https://github.com/cleanshipcz/day-skipper-trainer-copy/issues/191) —
   reused for the seven untaught objectives, unsafe tin-label advice,
   unsupported oilskin/scald claim, safer galley controls, remediation, and
-  theory/quiz completion policy.
+  theory/quiz completion policy. Its scope also covers consistent correction
+  or withdrawal across the topic quiz, practice exam, and spaced repetition,
+  including existing review rows and cross-consumer integration coverage.
 - [#187 — Replace Victualling's universal allowances with a passage-specific
   provisioning plan](https://github.com/cleanshipcz/day-skipper-trainer-copy/issues/187)
   — reused for `v1`, `v2`, `v3`, and `v5` quantity/superlative corrections.

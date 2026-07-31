@@ -78,6 +78,16 @@ responsive classes and DOM semantics were assessed for 320–1280 CSS px and
 high-zoom/large-text risk. No real engine was operated, no engine compartment
 was inspected, and no live authenticated persistence round-trip occurred.
 
+### Current-chain reconciliation
+
+The audit was reconciled after rebasing onto the current chained base
+`d52dba3` on 2026-07-31. No scoped implementation changed between the original
+audit base `e129553` and that chain tip: `EngineTheory.tsx`, `engineChecks.ts`,
+the Engine quiz catalogue/shell, topic registry and route remain unchanged.
+The evidence and verdict therefore still describe the current chain. Focused
+follow-ups #196–#200 and reused quiz-shell follow-ups #154–#157, #193 and #194
+were also verified open with the `agent-queue` label.
+
 ### Scope and learning model
 
 The page never states what plant it describes. “Sea cock,” raw-water impeller,
@@ -275,8 +285,19 @@ corrected. Current accuracy issues include:
   that exhaust/tell-tale design applies, but omits immediate safe stop/no-restart
   action when expected flow is absent.
 
+This exposure is not confined to `/quiz/engine`. `Exam.tsx` bulk-loads every
+quiz catalogue, and `examEngine.ts` assigns Engine questions to practice-exam
+selection. Completing the topic quiz also seeds its stable question IDs into
+authenticated spaced repetition; the review registry resolves those IDs from
+the same live Engine bank. Consequently `e2`, `e3` and `e5`–`e12` can repeat in
+practice exams and daily review, including from review rows already seeded
+before the catalogue is corrected. A correction must therefore withdraw or
+migrate unsafe identities deliberately across quiz, exam and review rather
+than treating a changed quiz-route rendering as sufficient.
+
 Issue [#199](https://github.com/cleanshipcz/day-skipper-trainer-copy/issues/199)
-owns corrected objective mapping, answer rationales, remediation and handoff.
+owns corrected objective mapping, answer rationales, remediation, downstream
+consumer/seeded-record handling and handoff.
 Shared quiz-shell issues [#154](https://github.com/cleanshipcz/day-skipper-trainer-copy/issues/154)
 through [#157](https://github.com/cleanshipcz/day-skipper-trainer-copy/issues/157),
 plus [#193](https://github.com/cleanshipcz/day-skipper-trainer-copy/issues/193)
