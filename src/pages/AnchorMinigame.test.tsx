@@ -46,4 +46,22 @@ describe("AnchorMinigame", () => {
     expect(sessionSetItem).not.toHaveBeenCalled();
     expect(indexedDbOpen).not.toHaveBeenCalled();
   });
+
+  it("lets a focused control handle Enter without also running the global placement check", async () => {
+    const user = userEvent.setup();
+    render(<MemoryRouter><AnchorMinigame /></MemoryRouter>);
+
+    const checkButton = screen.getByRole("button", { name: "Enter (check)" });
+    checkButton.focus();
+    await user.keyboard("{Enter}");
+
+    expect(screen.getByText("Attempted 1 time")).toBeTruthy();
+
+    const payOutButton = screen.getByRole("button", { name: "↓ Down (pay out)" });
+    payOutButton.focus();
+    await user.keyboard("{Enter}");
+
+    expect(screen.getByText("1.0 m")).toBeTruthy();
+    expect(screen.getByText("Attempted 1 time")).toBeTruthy();
+  });
 });

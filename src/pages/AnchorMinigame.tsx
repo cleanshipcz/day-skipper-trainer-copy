@@ -138,6 +138,14 @@ const AnchorMinigame = () => {
 
   useEffect(() => {
     const onKey = (event: KeyboardEvent) => {
+      const target = event.target;
+      if (
+        target instanceof HTMLElement
+        && target.closest("button, a, input, select, textarea, [role='button'], [contenteditable='true']")
+      ) {
+        return;
+      }
+
       if (["ArrowLeft", "ArrowRight", "ArrowUp", "ArrowDown", "Enter"].includes(event.key)) {
         event.preventDefault();
       }
