@@ -69,6 +69,13 @@ Supabase round-trip. Responsive behavior at 320–1280 CSS px, focus, semantics,
 and failure paths were assessed from the rendered structure and shared-shell
 tests rather than a browser session.
 
+The evidence was reconciled on 2026-07-31 after rebasing onto chain tip
+`f661f95`. None of the Victualling bank, shared quiz shell/services, parent
+theory/data, topic registry, or route definitions changed between the audit's
+qualifying commit and that tip, so the verdict below still describes the
+current chain. All linked follow-ups (#154–#157, #187–#189, #191, #193, and
+#194) were also rechecked as open with the `agent-queue` label.
+
 ### Alignment with the parent module
 
 Only `v1`–`v5` are directly represented in the parent:
