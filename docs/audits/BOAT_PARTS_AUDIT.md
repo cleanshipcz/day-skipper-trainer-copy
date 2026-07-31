@@ -146,8 +146,8 @@ are short and mostly accurate for the particular fin-keel, tiller-steered
 sloop being depicted. However, definitions for the keel, boom, mainsail, and
 stern overgeneralize configuration-dependent characteristics. These require
 content correction rather than optional polish: [#153](https://github.com/cleanshipcz/day-skipper-trainer-copy/issues/153)
-tracks the authoritative terminology review and explicitly coordinates the
-quiz wording with Boat Parts and the related diagram follow-ups.
+tracks the authoritative terminology review and consistent corrections across
+the Boat Parts activity, its onward quiz, and the related diagram follow-ups.
 
 The stern view correctly states that port appears on the viewer's left when
 looking forward from behind the boat, and uses the conventional red/green
@@ -160,4 +160,4 @@ in-diagram explanation removes material ambiguity.
 - [#141 — Harden Boat Parts saved-progress hydration and validation](https://github.com/cleanshipcz/day-skipper-trainer-copy/issues/141)
 - [#142 — Correct the Boat Parts jib/forestay diagram and verify label geometry](https://github.com/cleanshipcz/day-skipper-trainer-copy/issues/142)
 - [#143 — Resolve the unused Boat Parts raster asset lifecycle](https://github.com/cleanshipcz/day-skipper-trainer-copy/issues/143)
-- [#153 — Correct configuration-dependent claims in Nautical Terms quiz answers](https://github.com/cleanshipcz/day-skipper-trainer-copy/issues/153)
+- [#153 — Correct configuration-dependent Nautical Terms and Boat Parts definitions](https://github.com/cleanshipcz/day-skipper-trainer-copy/issues/153)
