@@ -183,8 +183,8 @@ by #175 and #176 rather than the theory-only follow-ups from audit #92.
   condition changes, recovery, and linked remediation.
 - [#180 — Make Anchor Minigame keyboard scope and result handling
   accessible](https://github.com/cleanshipcz/day-skipper-trainer-copy/issues/180)
-  — covers global shortcut hijacking, Enter suppressing focused actions,
-  modal/background behavior, focus, announcements, names, and non-colour state.
+  — covers global shortcuts behind the result overlay, modal/background
+  behavior, focus, announcements, names, and non-colour state.
 - [#177 — Provide efficient pointer and touch manipulation with equivalent
   controls](https://github.com/cleanshipcz/day-skipper-trainer-copy/issues/177)
   — covers direct/continuous adjustment, coarse/fine movement, gesture safety,
