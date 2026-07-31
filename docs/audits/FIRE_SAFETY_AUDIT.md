@@ -20,13 +20,15 @@ suitability and calls CO2 uniquely best for an unspecified diesel engine-space
 fire. The engine procedure delays MAYDAY and omits essential alarm, muster,
 lifejacket, escape, smoke-entry, installed-system and re-ignition controls.
 
-The drill shuffles and scores six stable scenarios, prevents double submission
-within a question, gives visible feedback and can restart. It tests only one
-extinguisher label per scenario, however, so it reinforces the unsafe absolutes
-rather than an escape-first decision process. Both theory and drill completion
-are fire-and-forget writes: any learner can claim 100% theory completion, even a
-0/6 drill is persisted as completed with points, failures are invisible, and
-neither state is restored. There are no component tests for the page or drill.
+The drill shuffles and scores six stable scenarios, gives visible feedback and
+can restart, but rapid/programmatic duplicate Check Answer activation can queue
+multiple increments and toasts for one question because the state updater does
+not reject an already answered state. It tests only one extinguisher label per
+scenario, so it reinforces the unsafe absolutes rather than an escape-first
+decision process. Both theory and drill completion are fire-and-forget writes:
+any learner can claim 100% theory completion, even a 0/6 drill is persisted as
+completed with points, failures are invisible, and neither state is restored.
+There are no component tests for the page or drill.
 
 ## Evidence and audit bounds
 
@@ -121,19 +123,23 @@ owns complete, escape-first procedure and prevention.
 ## Drill behavior and assessment quality
 
 - Six scenarios and four options are shuffled; every scenario appears once.
-  Check Answer is disabled until selection, one submission increments totals
-  once, options lock, correct and selected-wrong states use icon/text/colour,
-  explanation appears, and Next advances. Completion reports the correct/total
-  score; Restart resets and reshuffles.
+  Check Answer is disabled until selection and normal activation then locks the
+  options, shows correct and selected-wrong states with icon/text/colour,
+  reveals an explanation and enables Next. `handleSubmit` does not guard
+  `prev.answered`, however, so rapid/programmatic duplicate activations queued
+  before the disabled render can increment `correctCount`/`totalAnswered` and
+  emit toasts more than once for the same scenario. Completion can therefore
+  report a score whose denominator exceeds six. Restart resets and reshuffles.
 - All scenarios require one supposedly best medium. They never assess whether
   to alarm, evacuate, call, isolate fuel/power/ventilation, preserve escape or
   decline firefighting. The engine, mattress and gas cases omit information
   needed to declare one safe action.
 - Incorrect feedback always reveals the answer. Restart repeats the same six,
   enabling memorised completion; there is no pass threshold or remediation.
-- Reaching the end calls `onComplete` once per run, but the parent marks
-  `safety-fire-drill` completed and sends 10 points regardless of score. A 0/6
-  run is therefore “completed.” Restart permits repeated completion writes.
+- Reaching the end calls `onComplete` once per run, but the potentially inflated
+  totals are passed to the parent, which marks `safety-fire-drill` completed and
+  sends 10 points regardless of score. A 0/6 run is therefore “completed.”
+  Restart permits repeated completion writes.
 - No checked-in test mentions `FireSafetyTheory`, `FireExtinguisherDrill` or the
   fire data. Shuffle mapping, score, reset, one-shot callback, zero score,
   persistence and accessibility are unprotected.
@@ -176,9 +182,9 @@ Accessibility, persistence and assessment remediation are tracked together in
 
 ## Follow-up ownership
 
-1. [#337 — Correct Fire Safety classifications and extinguisher suitability guidance](https://github.com/cleanshipcz/day-skipper-trainer-copy/issues/337)
-2. [#338 — Teach a complete, escape-first onboard fire procedure](https://github.com/cleanshipcz/day-skipper-trainer-copy/issues/338)
-3. [#339 — Make Fire Safety drill and completion durable, evidence-based, and accessible](https://github.com/cleanshipcz/day-skipper-trainer-copy/issues/339)
+1. [#337 — Correct Fire Safety classifications and extinguisher suitability guidance](https://github.com/cleanshipcz/day-skipper-trainer-copy/issues/337) — owns medium/class/rating correctness and equipment mappings inside scenarios
+2. [#338 — Teach a complete, escape-first onboard fire procedure](https://github.com/cleanshipcz/day-skipper-trainer-copy/issues/338) — owns alarm, escape, isolation and procedural sequence, including applied escape-first scenario design; consume #337's corrected equipment model
+3. [#339 — Make Fire Safety drill and completion durable, evidence-based, and accessible](https://github.com/cleanshipcz/day-skipper-trainer-copy/issues/339) — owns duplicate Check Answer idempotency as well as completion/persistence/accessibility
 4. [#131 — Audit functionality and content quality: Fire Safety Quiz](https://github.com/cleanshipcz/day-skipper-trainer-copy/issues/131) — existing queued adjacent audit; it does not own this theory/drill remediation
 
 ## Authoritative sources
