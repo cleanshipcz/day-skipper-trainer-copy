@@ -81,7 +81,7 @@ Observed browser results at 375, 768 and 1280 CSS px:
 - Initial state was 0 checked. A pointer activation changed the first item to
   1/12 and 8 points; activating it again left it checked and left the score at
   8. Reload restored 0/12.
-- A clean keyboard path focused and Space-activated each of the twelve native
+- A clean keyboard path focused and Space-activated each of the twelve Radix
   checkbox controls. It reached 12/12, 96 points and **All checks complete!**
   at every width.
 - The completion action activated by pointer when visible and by focused Enter
