@@ -2,7 +2,7 @@
 
 - Audit issue: [#93](https://github.com/cleanshipcz/day-skipper-trainer-copy/issues/93)
 - Route/topic: `/anchor-minigame` / Anchorwork practice
-- Audited: 2026-07-30
+- Audited: 2026-07-30; reconciled with chain tip 2026-07-31
 - Primary implementation: `src/pages/AnchorMinigame.tsx`
 - Simulation model: `src/pages/anchor-minigame/state.ts`
 - Scene geometry: `src/pages/anchor-minigame/geometry.ts`
@@ -166,6 +166,10 @@ than colour alone. Significant barriers remain:
   as a named threshold state.
 
 ## Focused follow-up issues
+
+All seven follow-ups below were rechecked on 2026-07-31: each remains open and
+has the `agent-queue` label. The safety-model findings are intentionally owned
+by #175 and #176 rather than the theory-only follow-ups from audit #92.
 
 - [#175 — Align Anchor Minigame success with qualified, safety-aware anchoring
   decisions](https://github.com/cleanshipcz/day-skipper-trainer-copy/issues/175)
