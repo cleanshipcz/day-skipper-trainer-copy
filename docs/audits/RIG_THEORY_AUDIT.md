@@ -31,7 +31,7 @@ halyards, while “Running Rigging” contains the boom and hardware.
 
 There is no rig diagram, defect photograph, normal/abnormal comparison, guided
 walk-round, passage-preparation sequence or defect disposition. The linked
-quiz repeats several unsupported rules and tests four concepts the page never
+quiz repeats several unsupported rules and tests five concepts the page never
 teaches. Targeted work is needed on safe, configuration-aware content; a
 practical visual lesson; honest durable completion; theory/quiz alignment; and
 accessibility/responsive behavior.
@@ -42,11 +42,13 @@ accessibility/responsive behavior.
 
 The route, topic registry, home navigation data, page state transitions,
 checklist catalogue, shared progress architecture, linked quiz bank, quiz shell
-and preceding audit patterns were inspected directly. The content was compared
-with current World Sailing offshore requirements, Seldén's rigging and tuning
-instructions, RYA overhead-line advice, and an MAIB dismasting case. Focused
-catalogue tests, typecheck, lint, production build and the internal-artifact
-guard were run.
+and preceding audit patterns were inspected directly. A production build using
+local placeholder Supabase configuration (no credentials or live backend) was
+served locally and exercised in headless Chromium through the Chrome DevTools
+Protocol with a clean browser profile. The content was compared with current
+World Sailing offshore requirements, Seldén's rigging and tuning instructions,
+RYA overhead-line advice, and an MAIB dismasting case. Focused catalogue tests,
+typecheck, lint, production build and the internal-artifact guard were run.
 
 Observed and source-confirmed behavior:
 
@@ -72,11 +74,33 @@ Observed and source-confirmed behavior:
   keyboard. The Back icon has no accessible name; score/count, toast and
   completion insertion have no deliberate status/focus behavior.
 
-Browser control was unavailable, so no claim is made for pixel-level overflow,
-touch-device behavior, screen-reader output or browser-specific focus. Static
-responsive classes and DOM semantics were assessed for 320–1280 CSS px and
-high-zoom/large-text risk. No yacht was inspected, no person was sent aloft,
-and no authenticated persistence round-trip occurred.
+Observed browser results at 375, 768 and 1280 CSS px:
+
+- The dashboard's **Rig Checks & Preparation** card navigated to `/rig` at all
+  three widths.
+- Initial state was 0 checked. A pointer activation changed the first item to
+  1/12 and 8 points; activating it again left it checked and left the score at
+  8. Reload restored 0/12.
+- A clean keyboard path focused and Space-activated each of the twelve native
+  checkbox controls. It reached 12/12, 96 points and **All checks complete!**
+  at every width.
+- The completion action activated by pointer when visible and by focused Enter
+  after scrolling where needed; each path navigated to `/quiz/rig`, which
+  rendered **Question 1 of 12**.
+- Document `scrollWidth` equalled viewport client width in each run (375/375,
+  753/753 and 1265/1265; desktop client widths exclude the 15 px scrollbar).
+  No document-level horizontal overflow was observed.
+- Before completion there were thirteen tab stops: one unnamed Back button and
+  twelve checkboxes. On completion, focus remained on the final checkbox while
+  the new heading appeared below the viewport at 375 px (`top: 1431` in a
+  900 px viewport) and at the lower edge at desktop widths (`top: 894`). No
+  focus or announcement directed the learner to it.
+- No uncaught browser runtime exception was recorded.
+
+The run did not emulate a screen reader, touch hardware, high zoom, forced
+colours, reduced motion, long localization or a live authenticated backend.
+Those behaviors remain unverified; responsive risks outside the exact widths
+remain source-assessed. No yacht was inspected and no person was sent aloft.
 
 ### Scope, terminology and learning model
 
@@ -227,7 +251,7 @@ as “correct angle,” “tips protected,” “secure fittings” and “corre
 cannot be applied reliably without examples.
 
 Quiz questions `rg2`–`rg5`, `rg8`–`rg9` and `rg12` repeat or extend checklist
-claims. Four concepts are not taught by the parent:
+claims. Five concepts are not taught by the parent:
 
 - `rg1` defines standing rigging;
 - `rg6` defines the forestay;
@@ -308,7 +332,14 @@ Remaining defects:
 
 ## Focused follow-up issue proposals
 
+The five drafts below are deliberately complete and ready for extraction.
+After the lead files them, replace each `Proposed issue: _pending_` placeholder
+with the resulting GitHub issue link; do not remove the body evidence or
+acceptance criteria.
+
 ### 1. Make Rig checklist outcomes reversible, durable, and honest
+
+**Proposed issue:** _pending_
 
 **Proposed title:** `Make Rig checklist outcomes reversible, durable, and honest`
 
@@ -352,6 +383,8 @@ Remaining defects:
 > - shared progress/storage features
 
 ### 2. Correct and scope Rig inspection, tuning, and aloft safety guidance
+
+**Proposed issue:** _pending_
 
 **Proposed title:** `Correct and scope Rig inspection, tuning, and aloft safety guidance`
 
@@ -399,6 +432,8 @@ Remaining defects:
 
 ### 3. Turn Rig Checks into a practical, visual preparation lesson
 
+**Proposed issue:** _pending_
+
 **Proposed title:** `Turn Rig Checks into a practical, visual preparation lesson`
 
 **Body:**
@@ -445,6 +480,8 @@ Remaining defects:
 
 ### 4. Align Rig theory handoff with safe, taught quiz objectives
 
+**Proposed issue:** _pending_
+
 **Proposed title:** `Align Rig theory handoff with safe, taught quiz objectives`
 
 **Body:**
@@ -486,6 +523,8 @@ Remaining defects:
 > - `src/pages/Quiz.tsx`
 
 ### 5. Make Rig checklist and completion accessible and responsive
+
+**Proposed issue:** _pending_
 
 **Proposed title:** `Make Rig checklist and completion accessible and responsive`
 
