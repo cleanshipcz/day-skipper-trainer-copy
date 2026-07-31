@@ -43,6 +43,13 @@ completion, remount/reload, empty-catalogue arithmetic, and quiz navigation.
 
 Observed and source-confirmed results:
 
+- The audit was reconciled after rebasing onto chain tip `bba8964`. None of
+  `VictuallingTheory.tsx`, `victuallingItems.ts`, the linked Victualling quiz,
+  shared quiz flow, progress hook, topic registry, or route definition changed
+  between the audit's qualifying commit and that tip, so the evidence and
+  verdict below describe the current chain rather than the older branch base.
+  Follow-ups #186–#191 were also rechecked as open and queued for agent work.
+
 - `/victualling` is registered as a lazy route and as a root topic. The
   dashboard has a Victualling card, and the completion action targets the
   registered `/quiz/victualling` route.
