@@ -131,6 +131,8 @@ chart-derived safe limit** (`src/pages/ClearingBearingsTheory.tsx`)
   qualify tide/chart uncertainty and corrective action; teach identification,
   publications, monitoring trend and cross-checks; cite current authoritative
   sources; test the safety-critical labels and examples.
+- GitHub link: [#267 — Correct Clearing Bearings theory and teach a
+  chart-derived safe limit](https://github.com/cleanshipcz/day-skipper-trainer-copy/issues/267).
 
 ## Exercise geometry, validation and feedback
 
@@ -184,6 +186,8 @@ and tests)
   meaningful; use directional rather than symmetric acceptance; give
   explanatory retry feedback; wire declared mastery to page completion; add
   deterministic geometry, wrap, boundary, input and terminal-flow tests.
+- GitHub link: [#268 — Rebuild the Clearing Bearing exercise around valid
+  chart geometry and mastery](https://github.com/cleanshipcz/day-skipper-trainer-copy/issues/268).
 
 ## Accessibility, responsive layout and input methods
 
@@ -227,14 +231,17 @@ accessible and responsive** (`ClearingBearingsTheory.tsx`,
   any future plot interaction; verify contrast; add component/a11y coverage and
   document checks at 375/768/1280 CSS pixels, 200% zoom, keyboard, touch and a
   screen reader.
+- GitHub link: [#269 — Make the Clearing Bearing learning path accessible and
+  responsive](https://github.com/cleanshipcz/day-skipper-trainer-copy/issues/269).
 
 ## Follow-up ownership
 
-1. Proposed: Correct Clearing Bearings theory and teach a chart-derived safe
-   limit.
-2. Proposed: Rebuild the Clearing Bearing exercise around valid chart geometry
-   and mastery.
-3. Proposed: Make the Clearing Bearing learning path accessible and responsive.
+1. [#267 — Correct Clearing Bearings theory and teach a chart-derived safe
+   limit](https://github.com/cleanshipcz/day-skipper-trainer-copy/issues/267).
+2. [#268 — Rebuild the Clearing Bearing exercise around valid chart geometry
+   and mastery](https://github.com/cleanshipcz/day-skipper-trainer-copy/issues/268).
+3. [#269 — Make the Clearing Bearing learning path accessible and
+   responsive](https://github.com/cleanshipcz/day-skipper-trainer-copy/issues/269).
 4. Existing shared owner: [#238 — completion persistence and save-failure
    behavior](https://github.com/cleanshipcz/day-skipper-trainer-copy/issues/238).
 
