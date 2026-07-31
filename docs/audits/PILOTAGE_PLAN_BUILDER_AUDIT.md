@@ -133,6 +133,8 @@ tests)
   speed-over-ground or defensible vector inputs and expose assumptions/rounding;
   reject non-finite and operationally invalid data; include deterministic unit
   tests for ordinary, boundary and hostile numeric cases.
+- GitHub link: [#271 — Correct the Pilotage Plan model, example and timing
+  calculations](https://github.com/cleanshipcz/day-skipper-trainer-copy/issues/271).
 
 ## Exercise validity, pedagogy and cockpit output
 
@@ -167,6 +169,8 @@ progress payload/output and tests)
   require a review/briefing mastery step; produce a concise printable/exportable
   ordered cockpit plan with leg and cumulative timing; preserve/reopen drafts
   with a versioned model; test every operation and terminal flow.
+- GitHub link: [#272 — Turn Pilotage Plan Builder into a scenario-based
+  planning and briefing exercise](https://github.com/cleanshipcz/day-skipper-trainer-copy/issues/272).
 
 ## Accessibility, responsive layout and input feedback
 
@@ -205,14 +209,17 @@ tests)
   the final cockpit artifact readable non-visually; add component/a11y checks
   and documented 375/768/1280 CSS-pixel, 200%-zoom, keyboard, touch and screen-
   reader verification.
+- GitHub link: [#273 — Make Pilotage Plan input, errors and output accessible
+  and responsive](https://github.com/cleanshipcz/day-skipper-trainer-copy/issues/273).
 
 ## Follow-up ownership
 
-1. Proposed: **Correct the Pilotage Plan model, example and timing calculations**.
-2. Proposed: **Turn Pilotage Plan Builder into a scenario-based planning and
-   briefing exercise**.
-3. Proposed: **Make Pilotage Plan input, errors and output accessible and
-   responsive**.
+1. [#271 — Correct the Pilotage Plan model, example and timing
+   calculations](https://github.com/cleanshipcz/day-skipper-trainer-copy/issues/271).
+2. [#272 — Turn Pilotage Plan Builder into a scenario-based planning and
+   briefing exercise](https://github.com/cleanshipcz/day-skipper-trainer-copy/issues/272).
+3. [#273 — Make Pilotage Plan input, errors and output accessible and
+   responsive](https://github.com/cleanshipcz/day-skipper-trainer-copy/issues/273).
 4. Existing shared owner: [#238 — completion persistence and save-failure
    behavior](https://github.com/cleanshipcz/day-skipper-trainer-copy/issues/238).
 
