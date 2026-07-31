@@ -79,8 +79,8 @@ partial payload behavior is runtime-confirmed.
 - The page's back control returns to `/nautical-terms`.
 - Completion offers `/quiz/nautical-terms`. `Quiz.tsx` intentionally maps that
   legacy topic ID to `nautical-terms-quiz`, while the menu and topic registry
-  use the canonical `/quiz/nautical-terms-quiz`. The handoff therefore works,
-  though future changes should prefer the registry/canonical route.
+  use the canonical `/quiz/nautical-terms-quiz`. The handoff therefore works
+  through the application's supported legacy alias.
 
 ### Diagram, labels, and discovery interaction
 
@@ -143,11 +143,11 @@ partial payload behavior is runtime-confirmed.
 
 The 20 terms are useful, common introductory yacht vocabulary. Descriptions
 are short and mostly accurate for the particular fin-keel, tiller-steered
-sloop being depicted. Statements such as the keel's weight keeping the boat
-upright and the mainsail being the largest sail are configuration-dependent;
-the surrounding diagram makes that scope reasonably inferable, but a future
-content pass could name the depicted yacht type explicitly. No separate issue
-was filed for that optional wording polish.
+sloop being depicted. However, definitions for the keel, boom, mainsail, and
+stern overgeneralize configuration-dependent characteristics. These require
+content correction rather than optional polish: [#153](https://github.com/cleanshipcz/day-skipper-trainer-copy/issues/153)
+tracks the authoritative terminology review and explicitly coordinates the
+quiz wording with Boat Parts and the related diagram follow-ups.
 
 The stern view correctly states that port appears on the viewer's left when
 looking forward from behind the boat, and uses the conventional red/green
@@ -160,3 +160,4 @@ in-diagram explanation removes material ambiguity.
 - [#141 — Harden Boat Parts saved-progress hydration and validation](https://github.com/cleanshipcz/day-skipper-trainer-copy/issues/141)
 - [#142 — Correct the Boat Parts jib/forestay diagram and verify label geometry](https://github.com/cleanshipcz/day-skipper-trainer-copy/issues/142)
 - [#143 — Resolve the unused Boat Parts raster asset lifecycle](https://github.com/cleanshipcz/day-skipper-trainer-copy/issues/143)
+- [#153 — Correct configuration-dependent claims in Nautical Terms quiz answers](https://github.com/cleanshipcz/day-skipper-trainer-copy/issues/153)
