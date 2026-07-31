@@ -96,7 +96,9 @@ Some are valuable objectives after correction. They currently appear only
 after ten physical-checklist self-attestation clicks, without explanation,
 component diagrams, practical examples or remediation. Explanations assert
 answers but provide no assumptions, source or link to a relevant theory
-section. #199 owns objective mapping, corrected rationale and remediation.
+section. #199 now requires a stable corrected-theory↔assessment coverage matrix,
+explicitly justified formative-only objectives, corrected rationale and
+remediation.
 
 ### Mechanical and safety accuracy
 
@@ -268,7 +270,10 @@ No new issue was needed after searching existing Engine and shared-quiz work:
 - [#199 — Align Engine theory and quiz with installation-specific safe
   guidance](https://github.com/cleanshipcz/day-skipper-trainer-copy/issues/199)
   owns content coverage, mechanical/safety corrections, explanations,
-  remediation, route handoff and tests.
+  remediation, route handoff and tests. Its coverage matrix and representative
+  scenarios explicitly include hot/rotating/electrical isolation, alarms and
+  starter limits, leak/fire/CO response, abnormal noise/smoke/vibration,
+  pollution, propeller safety and competent-person boundaries.
 - [#154 — Restore quiz focus and expose answer/progress state
   accessibly](https://github.com/cleanshipcz/day-skipper-trainer-copy/issues/154)
 - [#155 — Return topic quizzes to their parent module instead of global
