@@ -249,9 +249,13 @@ visuals needed to support visual assessment.
   while the learner can still answer every question. Completion then sets
   **Your completion is not fully saved yet**, but **Retry completion save**
   calls the same completion path with the same null workflow and cannot start
-  an attempt. The learner must discard the run through **Retry Quiz** (which
-  triggers a new attempt cycle) or reload; the completed answers cannot be
-  submitted idempotently after recovering attempt creation.
+  an attempt. **Retry Quiz** destructively clears the in-memory answers and
+  triggers a new attempt cycle. Reload is different: it can rerun
+  `start_quiz_attempt` and separately rehydrate incomplete answers/current
+  position from canonical progress if those per-answer saves succeeded. That
+  recovery is opaque, depends on a second persistence channel which may itself
+  fail, and does not give the completion screen a direct, idempotent way to
+  recover attempt creation while preserving the visible run.
 - Active Back and completion Home navigate to `/`, not `/rig`. The unavailable
   state's **Nautical Terms** action is unrelated to Rig. Shared #155 owns
   contextual navigation.
@@ -322,15 +326,19 @@ ready to file; the remaining bullets are existing reuse targets.
 > error or empty response is silently ignored, leaving `workflow` null while
 > the learner can complete all questions. At completion, **Retry completion
 > save** calls `handleComplete` again, sees the same null workflow and cannot
-> restart the attempt. The only available recovery is to discard the completed
-> run through **Retry Quiz** or reload.
+> restart the attempt. **Retry Quiz** discards the visible run and starts a new
+> cycle. Reload may instead rerun attempt creation and independently hydrate
+> incomplete answers/current position from canonical progress, but only when
+> those separate progress writes succeeded; this recovery is neither explained
+> nor controlled from the completion screen.
 >
 > ## Learner impact
 >
 > A transient start failure is invisible until the end of a potentially long
-> quiz. The completed answers cannot be saved after connectivity recovers, the
-> advertised save retry is inert for this failure class, and repeated manual
-> recovery risks abandoned or duplicate attempt semantics.
+> quiz. The advertised save retry is inert for this failure class. Recovery
+> either destroys the visible run or relies opaquely on a reload plus separately
+> persisted progress that may be missing, while repeated manual recovery risks
+> abandoned or duplicate attempt semantics.
 >
 > ## Acceptance criteria
 >
