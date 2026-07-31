@@ -43,6 +43,11 @@ with placeholder Supabase configuration was exercised in clean Chromium at
 keyboard selection/submission, explanations, Next flow, completion, and retry
 were checked against the actual production chunk.
 
+The evidence was reconciled on 2026-07-31 against chain base `688dac6`. No
+later change on that chain alters the audited Anchorwork bank or shared quiz
+behavior described below. All linked follow-ups (#154–#157, #173, #183, and
+#184) were also verified open with the `agent-queue` label.
+
 Observed results:
 
 - The parent reveals **Take Quiz** only after all five click-completed theory
