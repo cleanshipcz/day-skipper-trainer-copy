@@ -74,7 +74,9 @@ forced colours, high zoom or audible output was exercised.
   [#217](https://github.com/cleanshipcz/day-skipper-trainer-copy/issues/217),
   [#218](https://github.com/cleanshipcz/day-skipper-trainer-copy/issues/218)
   and [#219](https://github.com/cleanshipcz/day-skipper-trainer-copy/issues/219)
-  own content correction and prerequisite alignment.
+  own theory correction and prerequisite alignment. Focused
+  [#232](https://github.com/cleanshipcz/day-skipper-trainer-copy/issues/232)
+  owns the quiz bank, assessment coverage and parent promise.
 
 ## Coverage and answer accuracy
 
@@ -139,9 +141,9 @@ signal is shown, sounded or described with an accessible structured equivalent.
 - All 20 source answers are index zero. Runtime option shuffling prevents a
   visible all-A pattern, but the source design makes authoring mistakes harder
   to notice and does not improve construct coverage.
-- Seventeen items are direct “what is it/what does it mean” recall; none asks
-  the learner to interpret an aspect, choose between confusable combinations,
-  apply an exception or decide a safe response.
+- All 20 items are recognition/recall prompts; none asks the learner to
+  interpret an aspect, choose between confusable combinations, apply an
+  exception or decide a safe response.
 - Mnemonics such as “Captain is Dead” are memorable but explanations do not
   distinguish memory aids from rule text. Most feedback merely restates the
   keyed answer and rule number.
@@ -154,8 +156,11 @@ signal is shown, sounded or described with an accessible structured equivalent.
 
 - `countCorrectAnswers` compares stored indices with the current shuffled
   questions; `percentageScore` and `quizCompletionOutcome` apply a 70% pass
-  threshold. A failed quiz is still saved as completed but does not receive
-  trusted completion points.
+  threshold. `saveProgress` receives `passed` as its top-level completion
+  Boolean, so a score below 70% is saved with `completed=false` and receives no
+  trusted completion points. The nested `answers_history.completed=true`
+  records that the attempt reached results; it does not mark the topic
+  complete. The score RPC still submits the failed attempt.
 - Previous navigation permits changing an unsubmitted answer. After Submit,
   answer buttons are disabled and feedback appears before Next. Retry reshuffles
   the bank/options and starts a new authenticated attempt.
@@ -202,17 +207,19 @@ signal is shown, sounded or described with an accessible structured equivalent.
 
 ## Follow-up ownership
 
-No new issue is required; the findings fit existing focused scopes:
+Quiz-bank remediation has a focused new owner; shared-shell and prerequisite
+work remains with existing issues:
 
-1. [#217 — Correct and complete COLREG lights and day shapes](https://github.com/cleanshipcz/day-skipper-trainer-copy/issues/217)
-2. [#218 — Complete COLREG sound and light signal teaching](https://github.com/cleanshipcz/day-skipper-trainer-copy/issues/218)
-3. [#219 — Correct and contextualize Annex IV distress signals](https://github.com/cleanshipcz/day-skipper-trainer-copy/issues/219)
-4. [#154 — Restore quiz focus and expose answer/progress state accessibly](https://github.com/cleanshipcz/day-skipper-trainer-copy/issues/154)
-5. [#155 — Return topic quizzes to their parent module instead of global Home](https://github.com/cleanshipcz/day-skipper-trainer-copy/issues/155)
-6. [#156 — Validate persisted quiz answers against stable question and option identities](https://github.com/cleanshipcz/day-skipper-trainer-copy/issues/156)
-7. [#157 — Do not reveal quiz correctness through the live score before submission](https://github.com/cleanshipcz/day-skipper-trainer-copy/issues/157)
-8. [#194 — Define privacy-safe anonymous quiz attempt persistence and recovery](https://github.com/cleanshipcz/day-skipper-trainer-copy/issues/194)
-9. [#209 — Surface and recover authenticated quiz attempt-start failures](https://github.com/cleanshipcz/day-skipper-trainer-copy/issues/209)
+1. [#232 — Correct and complete the Lights & Signals mastery quiz bank](https://github.com/cleanshipcz/day-skipper-trainer-copy/issues/232) — new; question accuracy, applied coverage, explanations, tests and parent copy
+2. [#217 — Correct and complete COLREG lights and day shapes](https://github.com/cleanshipcz/day-skipper-trainer-copy/issues/217) — theory prerequisite
+3. [#218 — Complete COLREG sound and light signal teaching](https://github.com/cleanshipcz/day-skipper-trainer-copy/issues/218) — theory prerequisite
+4. [#219 — Correct and contextualize Annex IV distress signals](https://github.com/cleanshipcz/day-skipper-trainer-copy/issues/219) — theory prerequisite
+5. [#154 — Restore quiz focus and expose answer/progress state accessibly](https://github.com/cleanshipcz/day-skipper-trainer-copy/issues/154)
+6. [#155 — Return topic quizzes to their parent module instead of global Home](https://github.com/cleanshipcz/day-skipper-trainer-copy/issues/155)
+7. [#156 — Validate persisted quiz answers against stable question and option identities](https://github.com/cleanshipcz/day-skipper-trainer-copy/issues/156)
+8. [#157 — Do not reveal quiz correctness through the live score before submission](https://github.com/cleanshipcz/day-skipper-trainer-copy/issues/157)
+9. [#194 — Define privacy-safe anonymous quiz attempt persistence and recovery](https://github.com/cleanshipcz/day-skipper-trainer-copy/issues/194)
+10. [#209 — Surface and recover authenticated quiz attempt-start failures](https://github.com/cleanshipcz/day-skipper-trainer-copy/issues/209)
 
 ## Authoritative sources
 
