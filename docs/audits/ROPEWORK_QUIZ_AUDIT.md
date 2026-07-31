@@ -137,7 +137,8 @@ parent, plus three rope-handling claims not present there.
 ### Persistence and edge behavior
 
 - Anonymous state exists only in component memory, so reload discards the
-  attempt. Authenticated state uses the canonical `quiz-ropework` key.
+  attempt; privacy-safe persistence and recovery are tracked in [#194](https://github.com/cleanshipcz/day-skipper-trainer-copy/issues/194).
+  Authenticated state uses the canonical `quiz-ropework` key.
 - Score submission, final progress, engagement, and spaced-review seeding have
   separate recovery paths. A submitted score is retained locally if final
   progress saving fails, preventing duplicate score submission and disabling
@@ -195,6 +196,10 @@ their selection, progress, feedback, or the new question.
   submission](https://github.com/cleanshipcz/day-skipper-trainer-copy/issues/157)
   — reused for the pre-submit score oracle that allows learners to discover
   every answer.
+- [#194 — Define privacy-safe anonymous quiz attempt persistence and
+  recovery](https://github.com/cleanshipcz/day-skipper-trainer-copy/issues/194)
+  — reused for component-memory-only anonymous attempts that are lost on
+  reload, navigation, or browser restart without a documented privacy policy.
 - [#209 — Surface and recover authenticated quiz attempt-start
   failures](https://github.com/cleanshipcz/day-skipper-trainer-copy/issues/209)
   — reused for silent attempt-start failure and the completion action that
