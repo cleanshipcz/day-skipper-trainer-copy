@@ -18,9 +18,11 @@ from its parent, answered all 20 shuffled questions, showed every explanation,
 calculated 100%, and completed cleanly at all required viewport widths.
 However, tentative option selection is included in the visible score before
 Submit locks the answer. A learner can cycle the four choices and use the score
-increment as an answer oracle on every question. Pass threshold, retry setup,
-catalogue failure UI, canonical progress keys, and authenticated save retry
-logic are otherwise thoughtfully separated and substantially tested.
+increment as an answer oracle on every question. Pass threshold, catalogue
+failure UI, and canonical progress keys are otherwise thoughtfully separated
+and substantially tested. Authenticated completion recovery is incomplete: an
+attempt-start failure can remain invisible until completion and cannot be
+repaired by the completion retry.
 
 The “Full” bank nevertheless contains only Boat Parts material and no Sail
 Controls questions. Several explanations overstate one common yacht
@@ -122,10 +124,15 @@ observations.
 - Authenticated in-progress state saves under the canonical
   `quiz-nautical-terms-quiz` key. A legacy topic record can be migrated and
   reset. Completed records are not resumed as editable sessions.
-- Server attempt creation, score submission, final progress, engagement, and
-  spaced-review seeding have separate recovery behavior. A score submitted
-  before final progress is retained locally so completion save can be retried
-  without submitting the score twice.
+- Score submission, final progress, engagement, and spaced-review seeding have
+  separate recovery behavior. A score submitted before final progress is
+  retained locally so completion save can be retried without submitting the
+  score twice. Attempt bootstrap is an exception: an error or empty result from
+  `start_quiz_attempt` silently leaves `workflow` null. The learner can still
+  finish, but completion retry only reruns `handleComplete`, which reports that
+  the attempt is still starting and never reruns the start RPC because
+  `attemptCycle` is unchanged. Starting a new quiz discards the completed run;
+  this dead end is tracked in #209.
 - The session payload stores question position and option indices only.
   `parseSavedQuizSession` accepts any finite answer value, including negative,
   fractional, or out-of-range numbers. It cannot detect option/question
@@ -154,3 +161,4 @@ alone. Remaining gaps affect orientation through the multi-step task:
 - [#156 — Validate persisted quiz answers against stable question and option identities](https://github.com/cleanshipcz/day-skipper-trainer-copy/issues/156)
 - [#157 — Do not reveal quiz correctness through the live score before submission](https://github.com/cleanshipcz/day-skipper-trainer-copy/issues/157)
 - [#193 — Validate every quiz question and explanation at catalogue load time](https://github.com/cleanshipcz/day-skipper-trainer-copy/issues/193)
+- [#209 — Surface and recover authenticated quiz attempt-start failures](https://github.com/cleanshipcz/day-skipper-trainer-copy/issues/209)
