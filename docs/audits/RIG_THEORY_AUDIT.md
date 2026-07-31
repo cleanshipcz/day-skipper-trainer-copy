@@ -332,14 +332,12 @@ Remaining defects:
 
 ## Focused follow-up issue proposals
 
-The five drafts below are deliberately complete and ready for extraction.
-After the lead files them, replace each `Proposed issue: _pending_` placeholder
-with the resulting GitHub issue link; do not remove the body evidence or
-acceptance criteria.
+The five drafts below were filed as focused `agent-queue` issues. Their links,
+body evidence, and acceptance criteria are retained here for audit traceability.
 
 ### 1. Make Rig checklist outcomes reversible, durable, and honest
 
-**Proposed issue:** _pending_
+**Proposed issue:** [#203](https://github.com/cleanshipcz/day-skipper-trainer-copy/issues/203)
 
 **Proposed title:** `Make Rig checklist outcomes reversible, durable, and honest`
 
@@ -384,7 +382,7 @@ acceptance criteria.
 
 ### 2. Correct and scope Rig inspection, tuning, and aloft safety guidance
 
-**Proposed issue:** _pending_
+**Proposed issue:** [#204](https://github.com/cleanshipcz/day-skipper-trainer-copy/issues/204)
 
 **Proposed title:** `Correct and scope Rig inspection, tuning, and aloft safety guidance`
 
@@ -432,7 +430,7 @@ acceptance criteria.
 
 ### 3. Turn Rig Checks into a practical, visual preparation lesson
 
-**Proposed issue:** _pending_
+**Proposed issue:** [#205](https://github.com/cleanshipcz/day-skipper-trainer-copy/issues/205)
 
 **Proposed title:** `Turn Rig Checks into a practical, visual preparation lesson`
 
@@ -480,7 +478,7 @@ acceptance criteria.
 
 ### 4. Align Rig theory handoff with safe, taught quiz objectives
 
-**Proposed issue:** _pending_
+**Proposed issue:** [#206](https://github.com/cleanshipcz/day-skipper-trainer-copy/issues/206)
 
 **Proposed title:** `Align Rig theory handoff with safe, taught quiz objectives`
 
@@ -524,7 +522,7 @@ acceptance criteria.
 
 ### 5. Make Rig checklist and completion accessible and responsive
 
-**Proposed issue:** _pending_
+**Proposed issue:** [#207](https://github.com/cleanshipcz/day-skipper-trainer-copy/issues/207)
 
 **Proposed title:** `Make Rig checklist and completion accessible and responsive`
 
