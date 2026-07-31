@@ -133,6 +133,10 @@ observations.
   the attempt is still starting and never reruns the start RPC because
   `attemptCycle` is unchanged. Starting a new quiz discards the completed run;
   this dead end is tracked in #209.
+- Server attempt creation, score submission, final progress, engagement, and
+  spaced-review seeding have separate recovery behavior. A score submitted
+  before final progress is retained locally so completion save can be retried
+  without submitting the score twice.
 - The session payload stores question position and option indices only.
   `parseSavedQuizSession` accepts any finite answer value, including negative,
   fractional, or out-of-range numbers. It cannot detect option/question

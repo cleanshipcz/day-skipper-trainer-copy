@@ -2,8 +2,8 @@
 
 - Audit issue: [#88](https://github.com/cleanshipcz/day-skipper-trainer-copy/issues/88)
 - Route/topic: `/nautical-terms/sail-controls` / `nautical-terms-sail-controls`
-- Audited: 2026-07-30; reconciled with the updated Boat Parts audit chain on
-  2026-07-31
+- Audited: 2026-07-30; reconciled with the updated Boat Parts audit chain on 2026-07-31
+- Audited: 2026-07-30
 - Primary implementation: `src/pages/SailControls.tsx`
 - Related navigation and terminology: `src/pages/NauticalTermsMenu.tsx`,
   `src/pages/NauticalTerms.tsx`, `src/constants/topicRegistry.ts`
