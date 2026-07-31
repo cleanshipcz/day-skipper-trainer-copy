@@ -178,8 +178,8 @@ owns evidence-based, recoverable completion plus header/tab accessibility.
 
 1. [#335 — Correct unsafe and misleading Man Overboard Quiz guidance](https://github.com/cleanshipcz/day-skipper-trainer-copy/issues/335) — existing; shared approach, Williamson, medical and DSC/MAYDAY wording in quiz/theory
 2. [#336 — Align the Man Overboard Quiz with complete, applied recovery outcomes](https://github.com/cleanshipcz/day-skipper-trainer-copy/issues/336) — existing; quiz coverage/count/prerequisite/remediation
-3. [#340 — Complete and safety-review Man Overboard theory and recovery guidance](https://github.com/cleanshipcz/day-skipper-trainer-copy/issues/340) — new; remaining theory/recovery/prevention coverage
-4. [#341 — Redesign the MOB ordering game around concurrent roles and usable feedback](https://github.com/cleanshipcz/day-skipper-trainer-copy/issues/341) — new; drill model, feedback and accessibility
+3. [#340 — Complete and safety-review Man Overboard theory and recovery guidance](https://github.com/cleanshipcz/day-skipper-trainer-copy/issues/340) — new; authoritative theory/outcome content for roles, recovery and prevention; game path is alignment-only
+4. [#341 — Redesign the MOB ordering game around concurrent roles and usable feedback](https://github.com/cleanshipcz/day-skipper-trainer-copy/issues/341) — new; sole owner of drill representation, interaction, feedback and accessibility, consuming #340's reviewed model
 5. [#342 — Stop auto-completing Man Overboard theory on page load](https://github.com/cleanshipcz/day-skipper-trainer-copy/issues/342) — new; evidence, persistence and page-shell accessibility
 
 ## Authoritative sources
