@@ -132,7 +132,8 @@ teaching** (`src/pages/TransitsTheory.tsx`)
   publication checks; give a chart-based clearing-line example with named safe
   side and margin; cite current authoritative sources; test the crucial labels
   and safety qualifications.
-- GitHub link: pending parent-created issue.
+- GitHub link: [#263 — Correct Transits & Leading Lines theory and teach safe
+  operational use](https://github.com/cleanshipcz/day-skipper-trainer-copy/issues/263).
 
 ## Exercise geometry, scenarios and feedback
 
@@ -184,7 +185,8 @@ transit competency** (`TransitExercise.tsx`, `transitScenarios.ts`,
   scale-independent tolerances; provide side-specific explanatory feedback and
   retry; require declared mastery for completion; add deterministic geometry,
   edge-state and terminal-flow tests.
-- GitHub link: pending parent-created issue.
+- GitHub link: [#264 — Replace the transit placement game with a valid
+  competency exercise](https://github.com/cleanshipcz/day-skipper-trainer-copy/issues/264).
 
 ## Accessibility, touch and responsive behavior
 
@@ -226,7 +228,8 @@ interaction** (`TransitExercise.tsx`, page header and interaction tests)
   manage focus; retain a robust keyboard path; use a stable pointer-capture
   lifecycle and intentional touch-action policy; label the back button; verify
   at 375/768/1280 CSS pixels, 200% zoom, keyboard, touch and a screen reader.
-- GitHub link: pending parent-created issue.
+- GitHub link: [#265 — Make the transit exercise accessible, touch-safe, and
+  responsive](https://github.com/cleanshipcz/day-skipper-trainer-copy/issues/265).
 
 ## Completion and persistence
 
@@ -247,10 +250,12 @@ interaction** (`TransitExercise.tsx`, page header and interaction tests)
 
 ## Follow-up ownership
 
-1. Proposed issue A — Correct and complete transit/clearing-line teaching
-2. Proposed issue B — Replace the plan-view placement game with valid transit
-   competency
-3. Proposed issue C — Provide an accessible, touch-safe transit interaction
+1. [#263 — Correct Transits & Leading Lines theory and teach safe operational
+   use](https://github.com/cleanshipcz/day-skipper-trainer-copy/issues/263)
+2. [#264 — Replace the transit placement game with a valid competency
+   exercise](https://github.com/cleanshipcz/day-skipper-trainer-copy/issues/264)
+3. [#265 — Make the transit exercise accessible, touch-safe, and
+   responsive](https://github.com/cleanshipcz/day-skipper-trainer-copy/issues/265)
 4. Existing shared owner: [#238 — completion persistence and save-failure
    behavior](https://github.com/cleanshipcz/day-skipper-trainer-copy/issues/238)
 
