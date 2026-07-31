@@ -8,13 +8,14 @@ import {
   Flag,
   RefreshCcw,
   Target,
-  Trophy,
   Wind,
   Waves,
 } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { AnchorControls } from "@/pages/anchor-minigame/AnchorControls";
+import { AnchorResultOverlay, type AnchorResult } from "@/pages/anchor-minigame/AnchorResultOverlay";
 import { calculateSceneGeometry } from "@/pages/anchor-minigame/geometry";
 import {
   BOAT_LENGTH,
@@ -74,7 +75,7 @@ const AnchorMinigame = () => {
   const [game, setGame] = useState(createInitialState);
   const [attempts, setAttempts] = useState(0);
   const [lastStatus, setLastStatus] = useState("Tap ↓ to lower the anchor. Drift back with ←.");
-  const [resultOverlay, setResultOverlay] = useState<{ type: "success" | "failure"; message: string } | null>(null);
+  const [resultOverlay, setResultOverlay] = useState<AnchorResult | null>(null);
 
   const totalDepth = useMemo(() => getTotalDepth(scenario), [scenario]);
   const requiredScope = CONDITION_SCOPE[scenario.condition];
@@ -138,6 +139,14 @@ const AnchorMinigame = () => {
 
   useEffect(() => {
     const onKey = (event: KeyboardEvent) => {
+      const target = event.target;
+      if (
+        target instanceof HTMLElement
+        && target.closest("button, a, input, select, textarea, [role='button'], [contenteditable='true']")
+      ) {
+        return;
+      }
+
       if (["ArrowLeft", "ArrowRight", "ArrowUp", "ArrowDown", "Enter"].includes(event.key)) {
         event.preventDefault();
       }
@@ -286,21 +295,12 @@ const AnchorMinigame = () => {
               </CardTitle>
               <CardDescription>{lastStatus}</CardDescription>
             </div>
-            <div className="flex flex-wrap gap-2">
-              <Button variant="secondary" onClick={() => moveBoat(-1)}>
-                ← Left
-              </Button>
-              <Button variant="secondary" onClick={() => moveBoat(1)}>
-                → Right
-              </Button>
-              <Button variant="secondary" onClick={() => changeRode(RODE_STEP)}>
-                ↓ Down (pay out)
-              </Button>
-              <Button variant="secondary" onClick={() => changeRode(-RODE_STEP)}>
-                ↑ Up (heave)
-              </Button>
-              <Button onClick={checkPlacement}>Enter (check)</Button>
-            </div>
+            <AnchorControls
+              onMove={moveBoat}
+              onChangeRode={changeRode}
+              onCheck={checkPlacement}
+              rodeStep={RODE_STEP}
+            />
           </CardHeader>
 
           <CardContent className="space-y-4">
@@ -407,43 +407,14 @@ const AnchorMinigame = () => {
                 </text>
               </svg>
               {resultOverlay && (
-                <div
-                  className={`absolute inset-0 flex flex-col items-center justify-center gap-4 backdrop-blur-sm border-2 shadow-lg ${
-                    resultOverlay.type === "success"
-                      ? "bg-success/15 border-success"
-                      : "bg-destructive/10 border-destructive"
-                  }`}
-                >
-                  <div
-                    className={`flex items-center gap-2 font-semibold text-lg ${
-                      resultOverlay.type === "success" ? "text-success" : "text-destructive"
-                    }`}
-                  >
-                    {resultOverlay.type === "success" ? (
-                      <Trophy className="w-6 h-6" />
-                    ) : (
-                      <Target className="w-6 h-6" />
-                    )}
-                    {resultOverlay.type === "success" ? "Anchor secure" : "Not secure"}
-                  </div>
-                  <p className="text-sm text-muted-foreground text-center px-6">{resultOverlay.message}</p>
-                  <div className="flex gap-2 flex-wrap justify-center">
-                    <Button
-                      onClick={() => {
-                        if (resultOverlay.type === "success") {
-                          rollScenario();
-                        }
-                        setResultOverlay(null);
-                      }}
-                      className={resultOverlay.type === "success" ? "bg-success text-success-foreground" : ""}
-                    >
-                      {resultOverlay.type === "success" ? "Next setup" : "Close"}
-                    </Button>
-                    <Button variant="outline" onClick={resetPosition}>
-                      Try again here
-                    </Button>
-                  </div>
-                </div>
+                <AnchorResultOverlay
+                  result={resultOverlay}
+                  onContinue={() => {
+                    if (resultOverlay.type === "success") rollScenario();
+                    setResultOverlay(null);
+                  }}
+                  onReset={resetPosition}
+                />
               )}
             </div>
 
