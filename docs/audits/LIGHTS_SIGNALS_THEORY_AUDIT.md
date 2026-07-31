@@ -37,9 +37,11 @@ Completion measures tab activation, not learning. Lights is visited on mount;
 pressing ArrowRight three times visits the remaining tabs and immediately
 unlocks completion. Reload discards that local evidence. Save failure behavior
 is inherited from the shared gate: a resolved `false` is treated as success,
-while a rejection has no recovery UI. At 375 CSS px the default Lights tab had
-44 px of horizontal overflow and both bottom actions extended off-screen. Back
-has no accessible name.
+so non-retryable save failures and offline-queue failures still navigate away.
+A successfully queued retryable save also navigates, but the page itself does
+not distinguish queued from server-saved state. At 375 CSS px the default
+Lights tab had 44 px of horizontal overflow and both bottom actions extended
+off-screen. Back has no accessible name.
 
 ## Evidence and audit bounds
 
@@ -97,7 +99,10 @@ not exercised.
   not saved, and returning evidence is not loaded into the hook.
 - Completion awaits `markCompleted()` and then navigates. The hook ignores the
   Boolean returned by `saveProgress`; resolved `false` still returns `true`.
-  Rejection escapes without a loading, failure, retry or queued/offline state.
+  `useProgress` catches persistence errors: non-retryable errors return `false`,
+  retryable errors return `true` after successful offline queuing, and queue
+  failures return `false`. The page navigates in all three cases, with no
+  page-level loading, failure, retry or saved-versus-queued state.
 
 ## Part C: lights and shapes
 
@@ -197,8 +202,9 @@ does not encode the signal.
   objective evidence. Content can change without invalidating completion.
 - The first partial state can be saved, but later tabs are never persisted and
   reload starts empty.
-- Resolved-false, rejection, offline, delayed save, rapid double activation,
-  owner change and repeated reward behavior have no page-specific UI/tests.
+- Resolved-false, queued/offline, queue-failure, delayed save, rapid double
+  activation, owner change and repeated reward behavior have no page-specific
+  UI/tests.
 - Completion and quiz controls compete side by side; at 375 px their combined
   full-width/margin layout extends beyond both viewport edges.
 
