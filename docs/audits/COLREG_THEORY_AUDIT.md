@@ -297,9 +297,12 @@ Defects and unverified risks:
 
 ## Focused follow-up issue proposals
 
+The five focused `agent-queue` issues below were filed from this audit. Their
+links, evidence, and acceptance criteria are retained for traceability.
+
 ### 1. Correct and complete Steering & Sailing Rules 4–19
 
-**Proposed issue:** _pending_
+**Proposed issue:** [#211](https://github.com/cleanshipcz/day-skipper-trainer-copy/issues/211)
 
 **Proposed title:** `Correct and complete Steering & Sailing Rules 4–19`
 
@@ -338,7 +341,7 @@ Defects and unverified risks:
 
 ### 2. Add applied, accessible COLREG encounter exercises and diagrams
 
-**Proposed issue:** _pending_
+**Proposed issue:** [#212](https://github.com/cleanshipcz/day-skipper-trainer-copy/issues/212)
 
 **Proposed title:** `Add applied, accessible COLREG encounter exercises and diagrams`
 
@@ -379,7 +382,7 @@ Defects and unverified risks:
 
 ### 3. Make COLREG theory completion evidence-based and save-aware
 
-**Proposed issue:** _pending_
+**Proposed issue:** [#213](https://github.com/cleanshipcz/day-skipper-trainer-copy/issues/213)
 
 **Proposed title:** `Make COLREG theory completion evidence-based and save-aware`
 
@@ -420,7 +423,7 @@ Defects and unverified risks:
 
 ### 4. Align the combined Rules quiz with explicit prerequisites and safe theory
 
-**Proposed issue:** _pending_
+**Proposed issue:** [#214](https://github.com/cleanshipcz/day-skipper-trainer-copy/issues/214)
 
 **Proposed title:** `Align the combined Rules quiz with explicit prerequisites and safe theory`
 
@@ -462,7 +465,7 @@ Defects and unverified risks:
 
 ### 5. Make Steering & Sailing Rules accessible and responsive
 
-**Proposed issue:** _pending_
+**Proposed issue:** [#215](https://github.com/cleanshipcz/day-skipper-trainer-copy/issues/215)
 
 **Proposed title:** `Make Steering & Sailing Rules accessible and responsive`
 
