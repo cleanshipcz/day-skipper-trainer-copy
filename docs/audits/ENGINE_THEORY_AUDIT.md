@@ -78,6 +78,16 @@ responsive classes and DOM semantics were assessed for 320–1280 CSS px and
 high-zoom/large-text risk. No real engine was operated, no engine compartment
 was inspected, and no live authenticated persistence round-trip occurred.
 
+### Current-chain reconciliation
+
+The audit was reconciled after rebasing onto the current chained base
+`d52dba3` on 2026-07-31. No scoped implementation changed between the original
+audit base `e129553` and that chain tip: `EngineTheory.tsx`, `engineChecks.ts`,
+the Engine quiz catalogue/shell, topic registry and route remain unchanged.
+The evidence and verdict therefore still describe the current chain. Focused
+follow-ups #196–#200 and reused quiz-shell follow-ups #154–#157, #193 and #194
+were also verified open with the `agent-queue` label.
+
 ### Scope and learning model
 
 The page never states what plant it describes. “Sea cock,” raw-water impeller,
