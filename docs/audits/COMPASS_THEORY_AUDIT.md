@@ -219,10 +219,12 @@ owns the model and answer-key correction.
 - Drill correctness depends on green/red borders; the correct-row icon has no
   accessible label and wrong rows have no textual status or answer.
 - The converter intentionally stacks at below `md`, which is a reasonable
-  source-level mobile approach. The drill remains a five-column table with
-  fixed-width hints and a compound final cell, without an explicit overflow
-  wrapper/reflow treatment. Browser verification at 375/768/1280 was blocked,
-  so clipping and touch target behavior remain unverified.
+  source-level mobile approach. The shared `Table` component already contains
+  the five-column drill in a full-width `overflow-auto` wrapper. The table
+  still uses fixed-width hints and a compound final cell, so the usability of
+  internal horizontal scrolling, column compression and touch targets at
+  375/768/1280 and 200% zoom remains unverified because browser verification
+  was blocked.
   [#236](https://github.com/cleanshipcz/day-skipper-trainer-copy/issues/236)
   owns accessible feedback and checked-in responsive coverage.
 
