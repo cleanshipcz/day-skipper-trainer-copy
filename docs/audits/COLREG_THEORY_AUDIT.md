@@ -37,9 +37,9 @@ module does not make the three Rule 3 definition questions visible
 prerequisites.
 
 Finally, reaching 80% page scroll marks the sole section visited. Completion
-can therefore be unlocked without reading or understanding anything, save
-failure is ignored, and the page navigates away after `markCompleted` whether
-or not persistence succeeded.
+can therefore be unlocked without reading or understanding anything. A
+resolved-`false` save is ignored and the page navigates away; a rejected save
+prevents navigation and strands the learner without recovery.
 
 ## Evidence and audit bounds
 
