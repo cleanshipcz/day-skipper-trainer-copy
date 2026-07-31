@@ -10,11 +10,11 @@
 
 ## Verdict
 
-**This page is a useful nine-card aide-mémoire, but it is not a safe or
+**This page is a useful compact aide-mémoire, but it is not a safe or
 complete lesson on Part B (Rules 4–19).** It is registered and reachable from
 Rules of the Road, several short statements closely paraphrase the Rules, four
-diagrams reinforce common encounters, and scrolling unlocks durable topic
-completion. However, Rules 4, 11 and 19 are wholly absent; Rules 5–10 and 12–18
+diagrams reinforce common encounters, and scrolling unlocks the topic
+completion control. However, Rules 4, 11 and 19 are wholly absent; Rules 5–10 and 12–18
 are reduced enough to omit important conditions, duties and follow-through.
 
 The most serious defect is the Rule 18 “Hierarchy.” COLREG does not establish
@@ -53,11 +53,37 @@ Rules text/handbook.[^imo][^uscg][^handbook]
 
 The image assets were inspected at their native 1024×1024 resolution.
 Typecheck, lint, production build, focused completion/catalogue tests and the
-internal-artifact guard were run. A browser session was not run within this
-bounded audit, so pixel-level responsive layout, actual keyboard focus,
-screen-reader announcements, touch behavior, zoom/reflow and live persistence
-are not claimed as runtime-verified. Static DOM/classes were assessed at the
-requested phone-to-desktop range; the proposals require browser coverage.
+internal-artifact guard were run. A production build was also served locally
+and exercised in headless Chromium through the Chrome DevTools Protocol with a
+clean profile at 375, 768 and 1280 CSS px.
+
+Observed browser results:
+
+- The parent **Steering & Sailing Rules** card reached `/rules/colregs` at all
+  three widths. The initial completion button was disabled.
+- Immediately below the computed boundary
+  `scrollY = 0.8 × documentHeight − viewportHeight`, the button remained
+  disabled. At/above it, the button enabled. At 375 px, a real keyboard End key
+  moved to maximum scroll and unlocked it; focus remained on `body`.
+- Reload returned the local gate to locked at all three widths, confirming that
+  visited state was not hydrated into this component.
+- Document scroll/client widths were exactly 375/375, 768/768 and 1280/1280;
+  no document-level horizontal overflow was observed.
+- All four images completed loading with natural width 1024. Rendered widths
+  were 292/200/200/200 px at 375, 318/200/200/200 at 768, and
+  382/200/200/200 at 1280.
+- Back had no accessible name. Focusing Complete and dispatching a real Enter
+  key left the page at `/rules/colregs` after 1.2 seconds with the placeholder
+  backend; that run does not establish whether the key failed or the awaited
+  save remained unresolved. Completion keyboard navigation is therefore not
+  claimed.
+- From the parent, the quiz card reached `/quiz/colregs` and rendered
+  **Question 1 of 20** at every width. No uncaught runtime exception was
+  recorded.
+
+Screen-reader output, touch hardware, high zoom/reflow, forced colours, reduced
+motion, long localization and a live authenticated persistence round-trip were
+not exercised.
 
 ### Reachability and implemented flow
 
@@ -67,10 +93,16 @@ requested phone-to-desktop range; the proposals require browser coverage.
   at Rule 5 and ends at Rule 18.
 - A scroll listener computes `(viewport bottom / document height) * 100`. At
   80%, it marks the only required section, `read-content`, visited.
+- Because `read-content` is the only required section, marking it visited
+  immediately derives the local `completed` gate state. The hook's
+  `persistInProgressIfNeeded` sees `completed`, not `in_progress`, so it does
+  not persist a scroll/read-content checkpoint.
 - `canComplete` then enables **Complete Module**. Activation awaits
-  `markCompleted()` and unconditionally navigates to `/rules-of-the-road`.
-- `markCompleted` awaits `saveProgress` but neither it nor the page checks the
-  returned success Boolean. Save rejection is not caught locally. There is no
+  `markCompleted()`. If `saveProgress` resolves `false`, `markCompleted` still
+  returns `true` and the page navigates to `/rules-of-the-road`. If
+  `saveProgress` rejects, the uncaught rejection prevents the subsequent
+  `navigate` call.
+- Neither the hook nor page checks the resolved success Boolean. There is no
   loading, saving, failure, retry, offline, returning-completed or identity
   change state on this page.
 - The page has no learner interaction beyond scrolling, Back and Complete. It
@@ -94,9 +126,9 @@ requested phone-to-desktop range; the proposals require browser coverage.
 
 ### Rules 5–10: any visibility
 
-- **Rule 5:** The paraphrase omits that lookout must be maintained “at all
-  times,” appropriate to prevailing circumstances/conditions, for full
-  appraisal of both situation and collision risk. It gives no practical scan,
+- **Rule 5:** The paraphrase correctly says “at all times” and covers sight,
+  hearing, available means and full appraisal. It does not explicitly retain
+  “prevailing circumstances and conditions,” and gives no practical scan,
   hearing, radar/AIS limitation, blind-sector, fatigue/distraction or
   communication method.
 - **Rule 6:** The stopping-distance principle is correct but omits every stated
@@ -188,12 +220,15 @@ visual noise without replacing bearings or geometry.
   restoration or layout change can unlock completion without engaging any rule.
 - The single required section supplies no stable rule/objective identity.
   Revising or reordering content cannot identify what a returning learner saw.
-- In-progress persistence fires once when the 80% threshold is crossed.
-  Returning visited state is not loaded into the hook, so reload starts the
-  local gate locked even if remote progress exists.
-- Completion awards ten points through shared progress, but the page navigates
-  away without proving the save succeeded. Repeated completion/reward
-  idempotency is delegated to backend behavior and not communicated.
+- No in-progress persistence fires at the 80% threshold: the only required
+  section immediately makes the derived gate state `completed`, while the hook
+  persists only an `in_progress` state. Returning visited state is not loaded,
+  so reload starts the local gate locked even if remote progress exists.
+- Completion requests ten points through shared progress. A resolved `false`
+  result still navigates away without proving the save succeeded; a rejected
+  save prevents navigation and has no local recovery UI. Repeated
+  completion/reward idempotency is delegated to backend behavior and not
+  communicated.
 - Save failure, offline queuing, delayed save, double activation, unmount,
   owner change and malformed/empty content have no page-specific tests or UI.
 
@@ -353,8 +388,10 @@ Defects and unverified risks:
 > ## Context
 >
 > Scrolling until the viewport bottom reaches 80% marks the only section
-> visited. Completion ignores `saveProgress`'s success result and navigates away
-> after failure; returning visited state is not loaded.
+> visited, immediately deriving local completion without persisting an
+> in-progress checkpoint. A resolved `false` save still navigates away; a
+> rejected save prevents navigation without recovery UI. Returning visited
+> state is not loaded.
 >
 > ## Learner impact
 >
@@ -367,8 +404,9 @@ Defects and unverified risks:
 >   checks rather than raw scroll depth.
 > - Load/resume/migrate visited state for anonymous and authenticated learners
 >   under the supported persistence policy.
-> - Expose saving/saved/queued/failed states; navigate only after confirmed or
->   honestly queued completion and provide retry without duplicate points.
+> - Expose saving/saved/queued/failed states; interpret resolved-false and
+>   rejected saves distinctly, navigate only after confirmed or honestly queued
+>   completion, and provide retry without duplicate points.
 > - Handle reload, browser restoration, rapid activation, owner change,
 >   catalogue revision and offline reconciliation deterministically.
 > - Add component/integration tests for gate evidence, resume, save false/
