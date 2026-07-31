@@ -2,7 +2,7 @@
 
 - Audit issue: [#89](https://github.com/cleanshipcz/day-skipper-trainer-copy/issues/89)
 - Route/topic: `/quiz/nautical-terms-quiz` / `nautical-terms-quiz`
-- Audited: 2026-07-30
+- Audited: 2026-07-30; reconciled against the updated audit chain 2026-07-31
 - Primary implementation: `src/pages/Quiz.tsx`
 - Question catalogue: `src/data/quizzes/index.ts`,
   `src/data/quizzes/nauticalTerms.ts`
@@ -108,6 +108,11 @@ observations.
   the shuffle seed, and requests a new server attempt when authenticated.
 - Unknown, empty, and rejected catalogues have an explicit unavailable card;
   rejected imports can be retried and the catalogue cache evicts failures.
+  Catalogue validation currently proves only a non-empty array and non-empty,
+  unique question IDs. The current 20-question bank is structurally valid, but
+  the loader does not reject blank question text/explanations, too few, blank,
+  or duplicate options, or a fractional/out-of-range `correctAnswer`; this
+  shared integrity gap is tracked in #193.
 - Both active Back and completed Home navigate to `/`, although the quiz was
   entered from `/nautical-terms`. The unavailable branch alone provides a
   parent-specific Nautical Terms action.
@@ -148,3 +153,4 @@ alone. Remaining gaps affect orientation through the multi-step task:
 - [#155 — Return topic quizzes to their parent module instead of global Home](https://github.com/cleanshipcz/day-skipper-trainer-copy/issues/155)
 - [#156 — Validate persisted quiz answers against stable question and option identities](https://github.com/cleanshipcz/day-skipper-trainer-copy/issues/156)
 - [#157 — Do not reveal quiz correctness through the live score before submission](https://github.com/cleanshipcz/day-skipper-trainer-copy/issues/157)
+- [#193 — Validate every quiz question and explanation at catalogue load time](https://github.com/cleanshipcz/day-skipper-trainer-copy/issues/193)
