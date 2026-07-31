@@ -10,6 +10,40 @@ on:
       - 'fix/**'
 
 jobs:
+  supabase-schema:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Start local Supabase
+        run: npm run supabase:start
+
+      - name: Verify generated database types
+        run: npm run guard:supabase-types
+
+      - name: Upload generated database types on mismatch
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: supabase-types-generated
+          path: .tmp/supabase-types.generated.ts
+          if-no-files-found: error
+          retention-days: 1
+
+      - name: Stop local Supabase
+        if: always()
+        run: npm run supabase:stop
+
   quality:
     runs-on: ubuntu-latest
     steps:
