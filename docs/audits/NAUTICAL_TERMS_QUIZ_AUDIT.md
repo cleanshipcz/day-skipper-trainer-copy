@@ -2,7 +2,7 @@
 
 - Audit issue: [#89](https://github.com/cleanshipcz/day-skipper-trainer-copy/issues/89)
 - Route/topic: `/quiz/nautical-terms-quiz` / `nautical-terms-quiz`
-- Audited: 2026-07-30
+- Audited: 2026-07-30; reconciled against the updated audit chain 2026-07-31
 - Primary implementation: `src/pages/Quiz.tsx`
 - Question catalogue: `src/data/quizzes/index.ts`,
   `src/data/quizzes/nauticalTerms.ts`
@@ -18,9 +18,11 @@ from its parent, answered all 20 shuffled questions, showed every explanation,
 calculated 100%, and completed cleanly at all required viewport widths.
 However, tentative option selection is included in the visible score before
 Submit locks the answer. A learner can cycle the four choices and use the score
-increment as an answer oracle on every question. Pass threshold, retry setup,
-catalogue failure UI, canonical progress keys, and authenticated save retry
-logic are otherwise thoughtfully separated and substantially tested.
+increment as an answer oracle on every question. Pass threshold, catalogue
+failure UI, and canonical progress keys are otherwise thoughtfully separated
+and substantially tested. Authenticated completion recovery is incomplete: an
+attempt-start failure can remain invisible until completion and cannot be
+repaired by the completion retry.
 
 The “Full” bank nevertheless contains only Boat Parts material and no Sail
 Controls questions. Several explanations overstate one common yacht
@@ -108,6 +110,11 @@ observations.
   the shuffle seed, and requests a new server attempt when authenticated.
 - Unknown, empty, and rejected catalogues have an explicit unavailable card;
   rejected imports can be retried and the catalogue cache evicts failures.
+  Catalogue validation currently proves only a non-empty array and non-empty,
+  unique question IDs. The current 20-question bank is structurally valid, but
+  the loader does not reject blank question text/explanations, too few, blank,
+  or duplicate options, or a fractional/out-of-range `correctAnswer`; this
+  shared integrity gap is tracked in #193.
 - Both active Back and completed Home navigate to `/`, although the quiz was
   entered from `/nautical-terms`. The unavailable branch alone provides a
   parent-specific Nautical Terms action.
@@ -117,10 +124,15 @@ observations.
 - Authenticated in-progress state saves under the canonical
   `quiz-nautical-terms-quiz` key. A legacy topic record can be migrated and
   reset. Completed records are not resumed as editable sessions.
-- Server attempt creation, score submission, final progress, engagement, and
-  spaced-review seeding have separate recovery behavior. A score submitted
-  before final progress is retained locally so completion save can be retried
-  without submitting the score twice.
+- Score submission, final progress, engagement, and spaced-review seeding have
+  separate recovery behavior. A score submitted before final progress is
+  retained locally so completion save can be retried without submitting the
+  score twice. Attempt bootstrap is an exception: an error or empty result from
+  `start_quiz_attempt` silently leaves `workflow` null. The learner can still
+  finish, but completion retry only reruns `handleComplete`, which reports that
+  the attempt is still starting and never reruns the start RPC because
+  `attemptCycle` is unchanged. Starting a new quiz discards the completed run;
+  this dead end is tracked in #209.
 - The session payload stores question position and option indices only.
   `parseSavedQuizSession` accepts any finite answer value, including negative,
   fractional, or out-of-range numbers. It cannot detect option/question
@@ -148,3 +160,5 @@ alone. Remaining gaps affect orientation through the multi-step task:
 - [#155 — Return topic quizzes to their parent module instead of global Home](https://github.com/cleanshipcz/day-skipper-trainer-copy/issues/155)
 - [#156 — Validate persisted quiz answers against stable question and option identities](https://github.com/cleanshipcz/day-skipper-trainer-copy/issues/156)
 - [#157 — Do not reveal quiz correctness through the live score before submission](https://github.com/cleanshipcz/day-skipper-trainer-copy/issues/157)
+- [#193 — Validate every quiz question and explanation at catalogue load time](https://github.com/cleanshipcz/day-skipper-trainer-copy/issues/193)
+- [#209 — Surface and recover authenticated quiz attempt-start failures](https://github.com/cleanshipcz/day-skipper-trainer-copy/issues/209)

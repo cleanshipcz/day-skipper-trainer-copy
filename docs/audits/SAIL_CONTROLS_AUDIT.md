@@ -2,7 +2,8 @@
 
 - Audit issue: [#88](https://github.com/cleanshipcz/day-skipper-trainer-copy/issues/88)
 - Route/topic: `/nautical-terms/sail-controls` / `nautical-terms-sail-controls`
-- Audited: 2026-07-30
+- Audited: 2026-07-30; reconciled with the updated Boat Parts audit chain on
+  2026-07-31
 - Primary implementation: `src/pages/SailControls.tsx`
 - Related navigation and terminology: `src/pages/NauticalTermsMenu.tsx`,
   `src/pages/NauticalTerms.tsx`, `src/constants/topicRegistry.ts`
@@ -13,11 +14,12 @@
 leaf.** The route is reachable, all 12 entries reveal substantial explanatory
 content, and the 12-question purpose-to-name quiz can be completed with
 coherent first/second-attempt scoring. However, the complete learning
-interaction is unavailable from a keyboard or screen reader, save success is
-assumed rather than verified and returning progress is not loaded, delayed
+interaction is unavailable from a keyboard or screen reader, the leaf does not
+track durable save state or load returning progress, delayed
 quiz transitions can outlive the run that created them, and several sail-trim
 statements and the page's rigging taxonomy need correction. The quiz also does
-not perform the diagram identification promised by its instructions.
+not perform the diagram identification promised by its instructions, while the
+parent's Full Nautical Terms Quiz does not assess Sail Controls at all.
 
 ## Evidence and exercised paths
 
@@ -63,10 +65,18 @@ not invalidate it.
   closes it.
 - Quiz completion offers **Review Controls** and **Try Again**, but no
   parent/full-quiz handoff. Review preserves the completed score/state in
-  memory; Try Again resets it.
+  memory; Try Again resets it. The parent's separately linked **Full Nautical
+  Terms Quiz** has a 20-question bank covering Boat Parts concepts only, so
+  neither completion nor that assessment currently tests the Sail Controls
+  catalogue; #152 owns the scope and coverage decision.
 - Completion calls `saveProgress` with the registered durable topic ID only
   when `user` is truthy. It does not await or inspect the result, show a
-  saving/failure state, or load an existing record.
+  leaf-level saving/saved/failed/retry state, or load an existing record. The
+  shared hook does provide transient feedback: non-retryable save and failed
+  queue attempts produce **Failed to save progress**, while retryable failures
+  successfully queued offline produce **Progress saved offline and will sync
+  when you reconnect.** The completed page itself stays unchanged in every
+  case, and a queued result is not yet durable remote confirmation.
 
 ### Quiz, scoring, and edge behavior
 
@@ -118,9 +128,13 @@ technical revision:
 - Jib-sheet trimming is said to flatten the sail and improve pointing as an
   unconditional effect; lead position, existing trim, and over-trim matter.
 
-Terminology overlaps cleanly with Boat Parts for mast, boom, mainsail, jib,
-forestay, backstay, head, clew, tack, luff, leech, and foot. The more detailed
-control claims above require configuration-aware wording.
+Terminology uses the same names as Boat Parts for mast, boom, mainsail, jib,
+forestay, backstay, head, clew, tack, luff, leech, and foot. That agreement is
+not proof that all shared definitions are sound: the updated Boat Parts audit
+requires configuration-aware corrections for boom and mainsail in #153, while
+the more detailed Sail Controls taxonomy and trim claims require the focused
+corrections in #147. Those two follow-ups explicitly coordinate their wording,
+and #142 owns the shared visual relationship between jib and forestay.
 
 ## Focused follow-up issues
 
@@ -131,3 +145,5 @@ control claims above require configuration-aware wording.
 - [#149 — Load Sail Controls progress and surface durable save failures](https://github.com/cleanshipcz/day-skipper-trainer-copy/issues/149)
 - [#150 — Make the Sail Controls schematic legible and touch-usable at responsive sizes](https://github.com/cleanshipcz/day-skipper-trainer-copy/issues/150)
 - [#142 — Correct jib/forestay geometry across Boat Parts and Sail Controls](https://github.com/cleanshipcz/day-skipper-trainer-copy/issues/142)
+- [#152 — Cover Sail Controls content in the Full Nautical Terms Quiz](https://github.com/cleanshipcz/day-skipper-trainer-copy/issues/152)
+- [#153 — Correct configuration-dependent Nautical Terms and Boat Parts definitions](https://github.com/cleanshipcz/day-skipper-trainer-copy/issues/153)
