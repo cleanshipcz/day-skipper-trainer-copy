@@ -30,9 +30,10 @@ correction before the result is used as evidence of emergency competence.
 Shared quiz-shell defects also apply: the live Score badge reveals correctness
 before Submit, persisted shuffled indices can be reinterpreted, anonymous
 reload loses the attempt, topic actions return to global Home, attempt-start
-failure has no direct retry, and selection/progress/feedback/focus semantics
-are insufficient for assistive technology. Existing focused issues own those
-shared problems.
+failure has no direct retry, and in-progress writes can fail without any
+learner-visible saving/failed state or retry. Selection/progress/feedback/focus
+semantics are also insufficient for assistive technology. Existing focused
+issues own those shared problems.
 
 ## Evidence and audit bounds
 
@@ -139,10 +140,14 @@ a route to the exact parent material. Accuracy remediation is tracked by
 - The Score badge recalculates on selection, before Submit. Cycling choices
   exposes the correct answer; [#157](https://github.com/cleanshipcz/day-skipper-trainer-copy/issues/157)
   owns this assessment-validity defect.
-- Submit is unavailable until a choice exists. Submission disables all options,
-  marks correct/selected-wrong with icon and text, shows one generic explanation
-  and enables Next. Previous is available only before submitting the current
-  item.
+- Submit is unavailable until a choice exists. Submission disables the current
+  view's options, marks correct/selected-wrong with icon and text, shows one
+  generic explanation and enables Next. That lock is transient: Next clears
+  `showExplanation`, and navigating Previous from a later unsubmitted question
+  clears it again, so an earlier submitted answer becomes editable. Together
+  with the live Score oracle, this permits answer correction after feedback;
+  [#157](https://github.com/cleanshipcz/day-skipper-trainer-copy/issues/157)
+  owns the validity problem.
 - A passing result says “You've mastered this topic!” although nine short
   recognition answers can omit multiple safety-critical outcomes. A failing
   result only says to review material; it does not identify missed outcomes or
@@ -157,6 +162,14 @@ a route to the exact parent material. Accuracy remediation is tracked by
   `quiz-safety-mob-quiz`; anonymous attempts exist only in component state and
   disappear on reload. [#194](https://github.com/cleanshipcz/day-skipper-trainer-copy/issues/194)
   owns the anonymous policy.
+- For authenticated in-progress attempts, selection and Previous/Next update
+  React state first and then await `saveProgress`. A resolved `false` result is
+  ignored, while a rejection escapes the async event handler. There is no
+  saving/saved/failed indicator, navigation warning or retry, so the UI can
+  appear successful even when resumable state was not stored. Concurrent slow
+  writes also have no explicit ordering/version contract. Existing
+  [#313](https://github.com/cleanshipcz/day-skipper-trainer-copy/issues/313)
+  owns failure reporting, retry and write ordering.
 - Saved sessions store shuffled question-position and option indices, not stable
   question/option identities or a shuffle seed. Catalogue/shuffle changes can
   reinterpret restored answers; malformed finite answer indices also survive
@@ -206,6 +219,7 @@ Existing shared issues:
 4. [#157 — Do not reveal quiz correctness through the live score before submission](https://github.com/cleanshipcz/day-skipper-trainer-copy/issues/157)
 5. [#194 — Define privacy-safe anonymous quiz attempt persistence and recovery](https://github.com/cleanshipcz/day-skipper-trainer-copy/issues/194)
 6. [#209 — Surface and recover authenticated quiz attempt-start failures](https://github.com/cleanshipcz/day-skipper-trainer-copy/issues/209)
+7. [#313 — Surface and recover in-progress quiz session persistence failures](https://github.com/cleanshipcz/day-skipper-trainer-copy/issues/313)
 
 ## Authoritative sources
 
