@@ -11,6 +11,9 @@ assessment even though they share `/quiz/:topicId`. Of the 52 catalogue leaves,
 51 are reachable through current learner navigation and one (`/quiz/safety`) is
 implemented but orphaned; its audit must investigate that reachability defect.
 
+The filed issue mapping is maintained in
+[`LEAF_AUDIT_ISSUE_REGISTER.md`](./LEAF_AUDIT_ISSUE_REGISTER.md).
+
 ## How to create the issues
 
 For each row below:
