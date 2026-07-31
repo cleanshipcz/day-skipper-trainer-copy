@@ -22,9 +22,11 @@ The time model is the most consequential defect. It adds an arbitrary signed
 number of “tidal offset” minutes to distance / speed. A tidal stream changes
 course and speed over the ground as a vector; it is not an independently chosen
 number of minutes. A learner can enter `-10000` and receive a zero-minute plan.
-The guided “Safe-water mark” also carries `Q(6)+LFl.10s`, the characteristic
-of a south cardinal mark, not a safe-water mark. The exercise therefore embeds
-both unsafe navigational content and no meaningful mastery check.
+The guided “Safe-water mark” also carries the malformed `Q(6)+LFl.10s`. It
+combines a south-cardinal six-flash-plus-long-flash grouping with the wrong
+period for Q (the valid forms are `VQ(6)+LFl.10s` or `Q(6)+LFl.15s`) and is not
+a safe-water characteristic.[^iala] The exercise therefore embeds both unsafe
+navigational content and no meaningful mastery check.
 
 The basic calculation is deterministic for ordinary finite data, completion
 correctly waits for a successful persistence result, and controls are native
@@ -81,9 +83,12 @@ suite; responsive and accessibility findings are source-based.
 
 ## Navigational content, fields and calculation safety
 
-- `Q(6)+LFl.10s` is the IALA south-cardinal quick-group characteristic. A
-  safe-water mark may use Iso, Oc, LFl.10s or Morse “A”; labelling the guided
-  object “Safe-water mark” teaches a dangerous identification error.
+- `Q(6)+LFl.10s` is not a valid IALA characteristic. It combines the
+  south-cardinal six-flash-plus-long-flash grouping with the 10-second period
+  used by the very-quick form; valid south-cardinal forms are
+  `VQ(6)+LFl.10s` and `Q(6)+LFl.15s`. A safe-water mark may use Iso, Oc,
+  LFl.10s or Morse “A”.[^iala] Labelling the guided object “Safe-water mark”
+  teaches both malformed notation and a dangerous identification error.
 - “Port Victoria” has no country, coordinates, chart or publication. Bearings,
   distances, marks, harbour call and speed limit are therefore untraceable and
   should be unmistakably fictional or tied to current authoritative data.
@@ -117,12 +122,13 @@ timing calculations** (`PilotagePlan.tsx`, `pilotagePlan.ts`, guided data and
 tests)
 
 - Reproduction/context: inspect the first mark and enter a very negative tidal
-  offset; the builder identifies a south-cardinal light as safe water and can
-  report zero minutes for a 2.6 NM approach.
+  offset; the builder labels a malformed hybrid of the south-cardinal grouping
+  and period as safe water and can report zero minutes for a 2.6 NM approach.
 - Learner impact: learners are rewarded for a false light identification and a
   physically unsupported ETA that can understate confined-water time.
 - Acceptance: replace the example with explicitly fictional, internally
-  coherent data or traceable current source material; correct every mark/light;
+  coherent data or traceable current source material; give the safe-water mark
+  a valid safe-water characteristic and correct every other mark/light;
   model named legs and bearing direction/reference; derive timing from defined
   speed-over-ground or defensible vector inputs and expose assumptions/rounding;
   reject non-finite and operationally invalid data; include deterministic unit
@@ -214,6 +220,10 @@ tests)
 
 All sources were accessed 2026-07-31.
 
+[^iala]: International Association of Marine Aids to Navigation and Lighthouse
+  Authorities, [Recommendation R1001, The IALA Maritime Buoyage
+  System](https://www.iala-aism.org/repository/20220217/recommendations/R1001%20The%20IALA%20Maritime%20Buoyage%20System%20Ed1.1%20June%202017.pdf),
+  edition 1.1, sections 2.2.4.4 and 2.5.4.
 [^imo]: International Maritime Organization, [Resolution A.893(21), Guidelines
   for Voyage Planning](https://wwwcdn.imo.org/localresources/en/KnowledgeCentre/IndexofIMOResolutions/AssemblyDocuments/A.893%2821%29.pdf),
   paragraphs 1–4.
