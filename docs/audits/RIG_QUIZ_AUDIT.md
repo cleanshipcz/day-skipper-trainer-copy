@@ -307,14 +307,14 @@ visuals needed to support visual assessment.
 
 ## Focused follow-up issues
 
-One new issue proposal is needed for authenticated attempt-start recovery.
+One new focused issue was filed for authenticated attempt-start recovery.
 Every other distinct worthwhile remediation found here is already owned by a
-focused Rig or shared quiz-shell issue. The new draft below is complete and
-ready to file; the remaining bullets are existing reuse targets.
+focused Rig or shared quiz-shell issue. The filed issue is retained below for
+audit traceability; the remaining bullets are existing reuse targets.
 
 ### Surface and recover authenticated quiz attempt-start failures
 
-**Proposed issue:** _pending_
+**Proposed issue:** [#209](https://github.com/cleanshipcz/day-skipper-trainer-copy/issues/209)
 
 **Proposed title:** `Surface and recover authenticated quiz attempt-start failures`
 
