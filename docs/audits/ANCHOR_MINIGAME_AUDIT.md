@@ -24,11 +24,12 @@ That simplification directly reinforces the unsafe universal scope guidance
 identified in the Anchorwork Theory audit: even “soft mud” and “weak holding”
 setups pass based on wind-labelled 4:1 or 5:1 ratios alone. “Stay within the
 swinging circle” is displayed without a circle, boundary, obstacle, or
-clearance calculation. Global key handling also makes Enter and arrow keys
-operate the game from unrelated controls and behind the result overlay; Enter
-checks placement instead of activating a focused control. The overlay is not a
-dialog and status/scene changes are not announced. Success, attempts, and
-scenario history disappear on navigation or reload.
+clearance calculation. Global Enter and arrow-key shortcuts remain active when
+focus is outside an interactive control, including behind the result overlay.
+Focused controls are correctly excluded: Enter activates the focused button
+without also checking placement. The overlay is not a dialog and status/scene
+changes are not announced. Success, attempts, and scenario history disappear
+on navigation or reload.
 
 ## Evidence and exercised paths
 
@@ -149,12 +150,13 @@ the SVG has a concise accessible label. Feedback includes text and icons rather
 than colour alone. Significant barriers remain:
 
 - Back is an unnamed icon-only button.
-- A window-level listener intercepts every arrow key and Enter anywhere on the
-  page. It operates the game while focus is on New setup, Back, or result
-  actions. Its `preventDefault()` suppresses the focused button's native Enter
-  activation, so placement is checked instead of activating that control.
-- The same global handler remains active behind the result overlay, so a learner
-  can mutate/check concealed state while handling the result.
+- A window-level listener handles arrow keys and Enter whenever focus is not in
+  a button, link, form field, button role, or editable region. Focused controls
+  are guarded and a regression test proves Enter activates a focused button
+  without also checking placement.
+- The global handler remains active behind the result overlay when focus is on
+  the document or another unguarded target, so a learner can mutate/check
+  concealed state while handling the result.
 - The overlay has no dialog role, accessible name, initial focus, focus trap,
   or focus restoration. Background controls remain reachable.
 - Live readout, last status, attempts, anchor-bottom state, and result changes
