@@ -15,12 +15,13 @@ shuffle, submit feedback, score calculation and the 70% pass threshold work.
 The production build is healthy, and existing unit tests cover the registry,
 shuffle, arithmetic and persistence helpers.
 
-The bank samples only Rules 3, 6, 9, 12–16, 18, 23, 25, 30, 34 and 35. It
+The bank samples only Rules 3, 6, 9, 12–18, 23, 25, 30, 34 and 35. It
 omits foundational lookout, risk-of-collision and avoiding-action assessment,
 Rule 17's complete stand-on obligations, traffic separation, restricted
 visibility collision avoidance and most responsibilities, lights, shapes and
-signals. Eleven questions depend on material outside the visible Steering &
-Sailing prerequisite, including three Rule 3 definitions taught by neither
+signals. The parent explicitly recommends both theory leaves before the quiz,
+but the route is not gated. Eleven questions fall outside Steering & Sailing:
+eight assess Parts C/D and three Rule 3 definitions are taught by neither
 visible prerequisite.
 
 Several retained answers reward unsafe shortcuts. A single red or green
@@ -88,10 +89,14 @@ existing component/unit coverage are identified separately below.
 
 - Rules of the Road exposes **Rules of the Road Quiz** at `/quiz/colregs`; the
   route and asynchronous catalogue resolve the correct 20-question bank.
-- The parent copy says “20 questions covering all topics,” but only nine items
-  map directly to the sibling Steering & Sailing lesson. Five assess Parts
-  C/D, and six assess Rules 3, 6 and 9; the route does not require both theory
-  leaves or describe itself as a diagnostic.
+- The parent card promises **“20+ scenario questions”**, although the bank has
+  exactly 20 items and only six include an image; most are recall prompts. Its
+  intro correctly tells learners to complete Steering & Sailing and then
+  Lights & Shapes before testing. Navigation does not enforce either
+  prerequisite or distinguish the quiz as an unlocked diagnostic.
+- Nine items map directly to Steering & Sailing. The eleven outside that lesson
+  are eight Part C/D items (`cr6`–`cr9`, `cr15`, `cr17`–`cr19`) and three Rule
+  3 definitions (`cr12`, `cr13`, `cr16`) taught by neither visible prerequisite.
 - There is no question-to-objective matrix. Stable count/shape tests preserve
   20 items and valid indices but cannot fail when critical objectives disappear
   or an unsafe answer is introduced.
@@ -231,16 +236,26 @@ Material shared-shell gaps remain:
 
 ## Follow-up issues
 
-No duplicate issues were created. Existing focused work fully covers the
-findings:
+One new quiz-specific visual issue was required. Existing #212 and #215 cover
+applied diagrams and accessible structured descriptions in
+`ColregTheory.tsx`, but do not own how `Quiz.tsx` renders assessment images,
+the missing A/B evidence or quiz-asset provenance. Other findings reuse
+existing focused work:
 
-1. [#214 — Align the combined Rules quiz with explicit prerequisites and safe theory](https://github.com/cleanshipcz/day-skipper-trainer-copy/issues/214)
-2. [#154 — Restore quiz focus and expose answer/progress state accessibly](https://github.com/cleanshipcz/day-skipper-trainer-copy/issues/154)
-3. [#155 — Return topic quizzes to their parent module instead of global Home](https://github.com/cleanshipcz/day-skipper-trainer-copy/issues/155)
-4. [#156 — Validate persisted quiz answers against stable question and option identities](https://github.com/cleanshipcz/day-skipper-trainer-copy/issues/156)
-5. [#157 — Do not reveal quiz correctness through the live score before submission](https://github.com/cleanshipcz/day-skipper-trainer-copy/issues/157)
-6. [#194 — Define privacy-safe anonymous quiz attempt persistence and recovery](https://github.com/cleanshipcz/day-skipper-trainer-copy/issues/194)
-7. [#209 — Surface and recover authenticated quiz attempt-start failures](https://github.com/cleanshipcz/day-skipper-trainer-copy/issues/209)
+1. [#223 — Make Rules of the Road quiz scenario images accessible, complete and traceable](https://github.com/cleanshipcz/day-skipper-trainer-copy/issues/223) — new; quiz rendering, equivalents and provenance
+2. [#214 — Align the combined Rules quiz with explicit prerequisites and safe theory](https://github.com/cleanshipcz/day-skipper-trainer-copy/issues/214)
+3. [#154 — Restore quiz focus and expose answer/progress state accessibly](https://github.com/cleanshipcz/day-skipper-trainer-copy/issues/154)
+4. [#155 — Return topic quizzes to their parent module instead of global Home](https://github.com/cleanshipcz/day-skipper-trainer-copy/issues/155)
+5. [#156 — Validate persisted quiz answers against stable question and option identities](https://github.com/cleanshipcz/day-skipper-trainer-copy/issues/156)
+6. [#157 — Do not reveal quiz correctness through the live score before submission](https://github.com/cleanshipcz/day-skipper-trainer-copy/issues/157)
+7. [#194 — Define privacy-safe anonymous quiz attempt persistence and recovery](https://github.com/cleanshipcz/day-skipper-trainer-copy/issues/194)
+8. [#209 — Surface and recover authenticated quiz attempt-start failures](https://github.com/cleanshipcz/day-skipper-trainer-copy/issues/209)
+
+Related theory-only visual work remains in
+[#212](https://github.com/cleanshipcz/day-skipper-trainer-copy/issues/212) and
+[#215](https://github.com/cleanshipcz/day-skipper-trainer-copy/issues/215);
+#223 should coordinate shared assets without treating those theory scopes as
+coverage for the quiz.
 
 Content fixes in #214 should coordinate with the Steering & Sailing and Lights
 & Signals remediation issues linked by audits #101 and #102 rather than
