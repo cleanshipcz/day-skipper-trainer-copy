@@ -31,6 +31,14 @@ credentials/live backend) was exercised in clean headless Chromium via CDP.
 - Pointer-clicking each card rendered its Steps panel. Seven clicks produced
   score 105, **7/7 learned**, and **All knots learned! Ready for the quiz?**
 - **Take Quiz** navigated to `/quiz/ropework`.
+- The destination is registered as a 12-question quiz, but its catalogue is not
+  aligned with this lesson: Rolling Hitch is never assessed, while six
+  questions assess material not taught here (surging, coiling, Alpine
+  Butterfly, riding turns, rope-end treatment, and cleating). Its Bowline,
+  Clove Hitch, Reef Knot, Round Turn, coiling, rope-end, and cleating guidance
+  also contains safety-relevant overstatement or missing qualification. These
+  are covered by the focused quiz follow-ups #165 and #166 rather than being
+  duplicated for this parent leaf.
 - Root reachability is wired through the topic registry: `ropework` is a root
   topic with route `/ropework`, and `Index.tsx` supplies the dashboard card
   labelled **Ropework & Knots** (“Master essential knots with visual guides”).
@@ -106,3 +114,5 @@ purposes are broadly appropriate. Safety-critical qualification is missing:
 - [#161 — Persist Ropework learning completion and recover save failures](https://github.com/cleanshipcz/day-skipper-trainer-copy/issues/161)
 - [#162 — Add licensed self-contained knot visuals and resilient tutorial links](https://github.com/cleanshipcz/day-skipper-trainer-copy/issues/162)
 - [#163 — Replace Ropework click-to-learn points with meaningful practice checks](https://github.com/cleanshipcz/day-skipper-trainer-copy/issues/163)
+- [#165 — Align the Ropework quiz with every taught knot and teach assessed material](https://github.com/cleanshipcz/day-skipper-trainer-copy/issues/165)
+- [#166 — Correct unsafe and overbroad Ropework quiz guidance](https://github.com/cleanshipcz/day-skipper-trainer-copy/issues/166)
