@@ -20,9 +20,9 @@ The causal model stops at one near-side “bulge,” omitting differential forci
 the far-side bulge, the lunar day, the normal timing vocabulary and how the
 idealized equilibrium model differs from observed local tides. It contains no
 worked example, concept check, tide-table connection, prediction limitation or
-safety context. Its statement that Northern Hemisphere amphidromic rotation is
-generally anti-clockwise is too broad, while its North Sea image visibly shows
-clockwise arrows and unexplained, duplicated phase labels.
+safety context. Its qualified statement that Northern Hemisphere amphidromic
+rotation is generally anti-clockwise is a useful tendency, but its North Sea
+image visibly shows clockwise arrows and unexplained, duplicated phase labels.
 
 There is no learning interaction. **Mark as Complete** is enabled on first
 render, immediately displays a local completed state, and discards every
@@ -126,11 +126,12 @@ height and stream leaves.
   schematic titled “TIDAL AMPHIDROMIC SYSTEM: NORTH SEA.”
 - The prose says the North Sea wave rotates anti-clockwise. The image's large
   arrows point right at the top, down at the right, left at the bottom and up
-  at the left: visibly clockwise. At least one of the paired teaching elements
-  is wrong.
-- The prose generalizes that rotation is “generally anti-clockwise in the
-  northern hemisphere.” Basin geometry controls amphidromic propagation;
-  hemisphere alone is not a universal direction rule.
+  at the left: visibly clockwise. This contradicts both the prose and the
+  North Sea's anti-clockwise tidal-wave propagation.
+- “Generally anti-clockwise in the northern hemisphere” is a supportable
+  introductory tendency. Local propagation still depends on basin geometry,
+  so retaining the page's qualifier and anchoring the claim to this specific
+  North Sea example are important.
 - Blue radial lines carry repeated `0h`, `3h`, `6h`, `9h` and `12h` labels,
   but the page never defines co-tidal lines or the time/reference implied.
   Concentric red circles are called “Co-range Lines (meters)” with values
