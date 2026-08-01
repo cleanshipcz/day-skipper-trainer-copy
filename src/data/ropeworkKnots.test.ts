@@ -26,6 +26,15 @@ describe("ropework knot safety guidance", () => {
       expect(entry.steps.join(" ")).toMatch(/dress|snug/i);
       expect(entry.steps.join(" ")).toMatch(/inspect/i);
       expect(entry.steps.join(" ")).toMatch(/tail/i);
+      expect(entry.visualDescription).toMatch(/final/i);
+      expect(entry.visualDescription).toMatch(/standing part/i);
+      expect(entry.visualDescription).toMatch(/working end/i);
+      expect(entry.visualDescription).toMatch(/load/i);
+      expect(entry.visualDescription).toMatch(/dress/i);
+      const tutorial = new URL(entry.tutorialUrl);
+      expect(tutorial.protocol).toBe("https:");
+      expect(tutorial.hostname).toBe("www.animatedknots.com");
+      expect(tutorial.pathname).toContain(entry.id === "reef-knot" ? "square-knot" : entry.id === "figure-eight" ? "figure-8-knot" : entry.id.replace("round-turn", "round-turn-two-half-hitches"));
     }
   });
 

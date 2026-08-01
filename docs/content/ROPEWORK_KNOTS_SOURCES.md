@@ -58,3 +58,19 @@ tucked second turn, finishing half hitch, and material/load-direction
 limitations. Exact assertions deliberately bind each knot, operating condition,
 warning or prohibition, and failure mode together so reversed advice cannot
 pass as a bag of matching keywords.
+
+## Diagram provenance and licence
+
+All seven final-form diagrams in `src/components/ropework/KnotDiagram.tsx`
+were drawn for this project as original, code-native SVG paths on 2026-08-01.
+They do not copy or trace the linked tutorial artwork. They are project-owned
+work and are distributed under the same licence as this repository. The
+external tutorials are optional references only; no external image, animation,
+page text, or other copyrighted media is bundled or scraped.
+
+Each catalogue record owns a plain-text visual description naming the standing
+part, working end, load direction, dressing, and final form. The SVG exposes
+that description as its accessible name and repeats it as a visible caption.
+Automated content checks validate the known HTTPS tutorial destinations and
+their knot-specific path without fetching third-party pages. This deliberately
+checks link integrity and content match without scraping external content.

@@ -101,4 +101,20 @@ describe("RopeworkTheory accessible knot discovery", () => {
     await user.click(screen.getByRole("button", { name: "Back to Home" }));
     expect(await screen.findByText("Current path: /")).toBeTruthy();
   });
+
+  it("keeps a complete accessible lesson when the optional tutorial is unavailable", async () => {
+    const user = userEvent.setup();
+    renderPage();
+    await screen.findByText(/Sign in to save/);
+    await user.click(screen.getByRole("button", { name: knots[0].name }));
+
+    expect(screen.getByRole("img", { name: new RegExp(`${knots[0].name} final-form diagram`) })).toBeTruthy();
+    expect(screen.getByText(knots[0].visualDescription)).toBeTruthy();
+    const link = screen.getByRole("link", { name: /optional external tutorial/i });
+    expect(link.getAttribute("target")).toBe("_blank");
+    expect(link.getAttribute("rel")).toBe("noopener noreferrer");
+    expect(screen.getByText(/may be blocked, offline, moved, or unavailable/i)).toBeTruthy();
+    await user.click(link);
+    expect(screen.getByRole("status").textContent).toContain("new tab");
+  });
 });

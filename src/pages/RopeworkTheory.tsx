@@ -2,13 +2,14 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { ArrowLeft, ExternalLink, Play, Trophy } from "lucide-react";
+import { ArrowLeft, ExternalLink, Trophy } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 
 import { knots, Knot } from "@/data/ropeworkKnots";
 import { TOPIC_IDS } from "@/constants/topicRegistry";
 import { useProgress, type ProgressSaveResult } from "@/hooks/useProgress";
 import { useAuth } from "@/contexts/AuthHooks";
+import { KnotDiagram } from "@/components/ropework/KnotDiagram";
 
 const POINTS_PER_KNOT = 15;
 const ROPEWORK_PROGRESS_VERSION = 1;
@@ -231,6 +232,7 @@ const RopeworkSession = () => {
             <CardContent>
               {selectedKnot ? (
                 <div className="space-y-4">
+                  <KnotDiagram knot={selectedKnot} />
                   <div>
                     <h3 className="font-semibold mb-2">Uses:</h3>
                     <p className="text-sm text-muted-foreground">{selectedKnot.uses}</p>
@@ -248,14 +250,13 @@ const RopeworkSession = () => {
                     </ol>
                   </div>
 
-                  <Button
-                    className="w-full bg-accent text-accent-foreground hover:bg-accent/90"
-                    onClick={() => window.open(selectedKnot.tutorialUrl, "_blank")}
-                  >
-                    <Play className="w-4 h-4 mr-2" />
-                    Watch Tutorial
+                  <Button asChild className="w-full bg-accent text-accent-foreground hover:bg-accent/90">
+                    <a href={selectedKnot.tutorialUrl} target="_blank" rel="noopener noreferrer" onClick={() => setAnnouncement(`Opening optional external tutorial for ${selectedKnot.name} in a new tab.`)}>
+                    Optional external tutorial
                     <ExternalLink className="w-4 h-4 ml-2" />
+                    </a>
                   </Button>
+                  <p className="text-xs text-muted-foreground">{selectedKnot.tutorialTitle}. External content may be blocked, offline, moved, or unavailable. The diagram and steps above remain the complete lesson.</p>
                   <Button
                     variant="outline"
                     className="w-full"
@@ -266,7 +267,7 @@ const RopeworkSession = () => {
                 </div>
               ) : (
                 <p className="text-center text-muted-foreground py-8">
-                  Select a knot to see details and a video tutorial
+                  Select a knot to see its self-contained diagram and steps
                 </p>
               )}
             </CardContent>

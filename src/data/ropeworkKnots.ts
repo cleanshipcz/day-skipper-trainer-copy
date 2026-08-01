@@ -1,9 +1,13 @@
+export type KnotId = "bowline" | "clove-hitch" | "reef-knot" | "figure-eight" | "round-turn" | "sheet-bend" | "rolling-hitch";
+
 export interface Knot {
-  id: string;
+  id: KnotId;
   name: string;
   uses: string;
   difficulty: "Easy" | "Medium" | "Hard";
   tutorialUrl: string;
+  tutorialTitle: string;
+  visualDescription: string;
   steps: string[];
   discovered: boolean;
 }
@@ -15,6 +19,8 @@ export const knots: Knot[] = [
     uses: "Creates a fixed loop at a rope's end. It can secure a mooring line to a ring or post, but cyclic loading or shaking while slack can work it loose; do not use it where the line must be released under load.",
     difficulty: "Medium",
     tutorialUrl: "https://www.animatedknots.com/bowline-knot",
+    tutorialTitle: "Animated Knots: Bowline",
+    visualDescription: "Final form: the standing part leaves upward under load; the fixed loop extends left; the working end finishes downward inside the collar. Dress the collar snugly around the standing part and keep the loop uncrossed.",
     steps: [
       "Allow a generous working end, then make a small loop in the standing part with the standing part on top",
       "Pass the working end up through the small loop",
@@ -31,6 +37,8 @@ export const knots: Knot[] = [
     uses: "A quick, adjustable temporary attachment, such as for a fender. Do not rely on it alone for mooring or critical loads: it can slip under changing loads and bind after heavy loading.",
     difficulty: "Easy",
     tutorialUrl: "https://www.animatedknots.com/clove-hitch-knot-rope-end",
+    tutorialTitle: "Animated Knots: Clove Hitch using the rope end",
+    visualDescription: "Final form around a post: the standing part loads upward, two turns cross diagonally at the front, and the working end exits downward beneath the second turn. Dress both turns together without overlap.",
     steps: [
       "Pass the working end around the object, leaving a generous tail",
       "Cross over the standing part and pass around the object a second time in the same direction",
@@ -46,6 +54,8 @@ export const knots: Knot[] = [
     uses: "A binding knot for tying reef points or securing a bundle. Never use it as a bend to join load-bearing ropes: it can spill, capsize, or pull undone.",
     difficulty: "Easy",
     tutorialUrl: "https://www.animatedknots.com/square-knot",
+    tutorialTitle: "Animated Knots: Square (Reef) Knot",
+    visualDescription: "Final binding form: the two standing parts load away from each other left and right; both working ends return beside their own standing parts. Dress the two interlocking half-knots flat and symmetrical.",
     steps: [
       "Cross the left working end over the right and tuck it under to make the first half knot",
       "Reverse the crossing: take the end now on the right over the end now on the left and tuck it under",
@@ -61,6 +71,8 @@ export const knots: Knot[] = [
     uses: "Stopper knot to prevent rope running through a block.",
     difficulty: "Easy",
     tutorialUrl: "https://www.animatedknots.com/figure-8-knot",
+    tutorialTitle: "Animated Knots: Figure Eight",
+    visualDescription: "Final stopper form: the standing part loads upward; the rope crosses through a clear figure-eight; the working end exits downward beside the standing part. Dress both lobes evenly and leave a generous tail.",
     steps: [
       "Make a loop in the rope",
       "Pass the end around behind the standing part",
@@ -76,6 +88,8 @@ export const knots: Knot[] = [
     uses: "Secures a rope to a post or ring; the round turn controls strain while the hitches are tied.",
     difficulty: "Medium",
     tutorialUrl: "https://www.animatedknots.com/round-turn-two-half-hitches-knot",
+    tutorialTitle: "Animated Knots: Round Turn and Two Half Hitches",
+    visualDescription: "Final form at a ring: the standing part loads to the right after a full round turn; the working end makes two same-direction half hitches around it and exits downward. Dress the hitches together against the round turn.",
     steps: [
       "Leave a generous tail and pass it twice around the post or through the ring to make a round turn",
       "Use the round turn to control the strain, adding turns before tying if the load requires them",
@@ -91,6 +105,8 @@ export const knots: Knot[] = [
     uses: "Joining two ropes of different thickness.",
     difficulty: "Medium",
     tutorialUrl: "https://www.animatedknots.com/sheet-bend-knot",
+    tutorialTitle: "Animated Knots: Sheet Bend",
+    visualDescription: "Final form: the thicker rope forms a left-facing bight; the thinner rope enters from below, circles both legs, and tucks under its own standing part. Both working ends finish on the same side; dress all parts snugly before loading the standing parts apart.",
     steps: [
       "Make a bight in the thicker or less flexible rope, leaving a generous tail",
       "Pass the thinner rope up through the bight from below",
@@ -107,6 +123,8 @@ export const knots: Knot[] = [
     uses: "Attaches a usually smaller rope to a larger rope for a pull nearly parallel to the larger rope, gripping in one stated direction only. It may fail on slippery modern rope or if pulled away from the main rope.",
     difficulty: "Medium",
     tutorialUrl: "https://www.animatedknots.com/rolling-hitch-knot",
+    tutorialTitle: "Animated Knots: Rolling Hitch",
+    visualDescription: "Final directional form: the main rope runs horizontally and the standing part of the hitching rope loads left, toward two gripping turns. The working end finishes downward after the outer half hitch. Dress the doubled turns tightly together toward the load.",
     steps: [
       "Point the standing part of the hitching rope in the exact direction of the expected pull, nearly parallel to the main rope, and leave a generous working end",
       "On the side from which that pull is expected, pass the working end around the main rope to make the first turn",

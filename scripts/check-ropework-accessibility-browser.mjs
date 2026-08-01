@@ -126,6 +126,18 @@ try {
     const state = await evaluate("({ active: document.activeElement.outerHTML, pressed: document.querySelector('button[aria-labelledby=bowline-name]').getAttribute('aria-pressed') })");
     throw new Error(`${error.message}: ${JSON.stringify(state)}`);
   }
+  for (const width of [375, 768, 1280]) {
+    await send("Emulation.setDeviceMetricsOverride", { width, height: 900, deviceScaleFactor: 1, mobile: width === 375 });
+    const layout = await evaluate(`(() => ({
+      overflow: document.documentElement.scrollWidth > document.documentElement.clientWidth,
+      diagramWidth: document.querySelector('figure svg')?.getBoundingClientRect().width ?? 0,
+      viewport: document.documentElement.clientWidth,
+    }))()`);
+    if (layout.overflow || layout.diagramWidth <= 0 || layout.diagramWidth > layout.viewport) {
+      throw new Error(`Ropework diagram layout failed at ${width}px: ${JSON.stringify(layout)}`);
+    }
+  }
+  await send("Emulation.clearDeviceMetricsOverride");
   await key("Tab");
   await key("Tab");
   if (!await evaluate("document.activeElement.textContent.includes('Back to Bowline in knot list')")) throw new Error("Details controls are not in predictable order.");
