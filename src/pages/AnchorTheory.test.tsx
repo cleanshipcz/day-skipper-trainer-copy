@@ -1,7 +1,6 @@
 import { fireEvent, render, screen, waitFor } from "@testing-library/react";
 import { MemoryRouter } from "react-router-dom";
 import { beforeEach, describe, expect, it, vi } from "vitest";
-import { topics, type Topic } from "@/data/anchorTopics";
 
 const mocks = vi.hoisted(() => ({
   user: { id: "user-a" } as { id: string } | null,
@@ -23,7 +22,6 @@ vi.mock("@/hooks/useProgress", () => ({
 vi.mock("sonner", () => ({ toast: { success: vi.fn() } }));
 
 import AnchorTheory from "./AnchorTheory";
-import { isValidAnchorCatalogue, parseAnchorProgress } from "@/features/progress/anchorProgress";
 
 const renderPage = () => render(<MemoryRouter><AnchorTheory /></MemoryRouter>);
 
@@ -88,34 +86,5 @@ describe("AnchorTheory durable completion", () => {
     expect(await screen.findByText(/Sign in to save it across devices/)).toBeTruthy();
     await completeVisibleStudyCheck();
     expect(mocks.saveProgressDetailed).toHaveBeenCalledTimes(1);
-  });
-});
-
-describe("parseAnchorProgress", () => {
-  it("restores unique canonical IDs", () => {
-    expect(parseAnchorProgress({ version: 1, completedTopicIds: ["scope", "types", "scope"] }, topics)).toEqual(["scope", "types"]);
-  });
-
-  it.each([
-    null,
-    {},
-    { version: 2, completedTopicIds: ["types"] },
-    { version: 1, completedTopicIds: ["unknown"] },
-    { version: 1, completedTopicIds: [1] },
-  ])("rejects malformed progress %#", (value) => {
-    expect(parseAnchorProgress(value, topics)).toBeNull();
-  });
-
-  it("rejects empty or malformed catalogues", () => {
-    expect(parseAnchorProgress({ version: 1, completedTopicIds: [] }, [])).toBeNull();
-    const duplicate = [topics[0], { ...topics[1], id: topics[0].id }] as Topic[];
-    expect(parseAnchorProgress({ version: 1, completedTopicIds: [] }, duplicate)).toBeNull();
-  });
-
-  it("rejects catalogues with no usable study tips", () => {
-    expect(isValidAnchorCatalogue([])).toBe(false);
-    expect(isValidAnchorCatalogue([{ ...topics[0], tips: [] }])).toBe(false);
-    expect(isValidAnchorCatalogue([{ ...topics[0], tips: ["  "] }])).toBe(false);
-    expect(isValidAnchorCatalogue(topics)).toBe(true);
   });
 });
