@@ -110,6 +110,30 @@ describe("useProgress", () => {
     expect(mocks.toastError).not.toHaveBeenCalled();
   });
 
+  it("exposes confirmed, queued, and failed outcomes without changing the boolean API", async () => {
+    const { result } = renderHook(() => useProgress());
+
+    expect(await result.current.saveProgressDetailed("topic-a", false)).toBe("remote");
+
+    mocks.retryable = true;
+    mocks.saveProgressRecord.mockRejectedValueOnce(new Error("offline"));
+    expect(await result.current.saveProgressDetailed("topic-a", false)).toBe("queued");
+
+    mocks.retryable = false;
+    mocks.saveProgressRecord.mockRejectedValueOnce(new Error("invalid"));
+    expect(await result.current.saveProgressDetailed("topic-a", false)).toBe("failed");
+  });
+
+  it("reports a failed outcome when the offline queue also fails", async () => {
+    mocks.retryable = true;
+    mocks.saveProgressRecord.mockRejectedValueOnce(new Error("offline"));
+    mocks.queueProgress.mockRejectedValueOnce(new Error("queue unavailable"));
+    const { result } = renderHook(() => useProgress());
+
+    expect(await result.current.saveProgressDetailed("topic-a", true)).toBe("failed");
+    expect(mocks.toastError).toHaveBeenCalledWith("Failed to save progress");
+  });
+
   it("does not show points toast when persistence reports no new award", async () => {
     mocks.saveProgressRecord.mockResolvedValueOnce({ pointsAwarded: false, completionAwarded: false, awardedPoints: 0 });
     const { result } = renderHook(() => useProgress());

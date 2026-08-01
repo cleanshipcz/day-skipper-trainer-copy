@@ -9,6 +9,8 @@ import { isRetryableProgressError, queueProgress } from "@/features/offline/prog
 
 type UserProgressRow = Tables<"user_progress">;
 
+export type ProgressSaveResult = "anonymous" | "remote" | "queued" | "failed";
+
 export const useProgress = () => {
   const { user } = useAuth();
   const ownerRef = useRef(user?.id ?? null);
@@ -36,7 +38,7 @@ export const useProgress = () => {
     [user]
   );
 
-  const saveProgress = useCallback(
+  const saveProgressDetailed = useCallback(
     async (
       topicId: string,
       completed: boolean = false,
@@ -44,7 +46,7 @@ export const useProgress = () => {
       pointsEarned: number = 0,
       answersHistory?: Record<string, unknown>
     ) => {
-      if (!user) return false;
+      if (!user) return "anonymous" as const;
 
       try {
         const { pointsAwarded, completionAwarded, awardedPoints } = await saveProgressRecord({
@@ -66,9 +68,9 @@ export const useProgress = () => {
         }
         if (completed) {
           try {
-            if (ownerRef.current !== user.id) return true;
+            if (ownerRef.current !== user.id) return "remote" as const;
             const engagement = await syncEngagementEvent(supabase, user.id, { sourceType: "progress", sourceId: topicId });
-            if (ownerRef.current !== user.id) return true;
+            if (ownerRef.current !== user.id) return "remote" as const;
             engagement.unlockedBadges.forEach((badge) => {
               toast.success(`${badge.icon} Badge unlocked: ${badge.name}`);
             });
@@ -76,25 +78,36 @@ export const useProgress = () => {
             console.error("Error recording learning activity:", error);
           }
         }
-        return true;
+        return "remote" as const;
       } catch (error) {
         console.error("Error saving progress:", error);
         if (!isRetryableProgressError(error)) {
           toast.error("Failed to save progress");
-          return false;
+          return "failed" as const;
         }
         try {
           await queueProgress({ userId: user.id, topicId, completed, score, pointsEarned, answersHistory });
           toast.info("Progress saved offline and will sync when you reconnect.");
-          return true;
+          return "queued" as const;
         } catch (queueError) {
           console.error("Error queueing progress:", queueError);
           toast.error("Failed to save progress");
-          return false;
+          return "failed" as const;
         }
       }
     },
     [user]
+  );
+
+  // Keep the long-standing boolean contract for existing consumers while
+  // allowing leaves that expose durable state to distinguish queueing from a
+  // confirmed server write.
+  const saveProgress = useCallback(
+    async (...args: Parameters<typeof saveProgressDetailed>) => {
+      const result = await saveProgressDetailed(...args);
+      return result === "remote" || result === "queued";
+    },
+    [saveProgressDetailed]
   );
 
   const resetProgress = useCallback(
@@ -117,5 +130,5 @@ export const useProgress = () => {
     [user]
   );
 
-  return { loadProgress, saveProgress, resetProgress };
+  return { loadProgress, saveProgress, saveProgressDetailed, resetProgress };
 };

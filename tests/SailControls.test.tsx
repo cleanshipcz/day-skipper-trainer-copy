@@ -1,15 +1,24 @@
-import { act, fireEvent, render, screen } from "@testing-library/react";
-import { describe, expect, it, vi } from "vitest";
+import { act, fireEvent, render, screen, waitFor } from "@testing-library/react";
+import { beforeEach, describe, expect, it, vi } from "vitest";
 import { toast } from "sonner";
 import SailControls from "../src/pages/SailControls";
 import TestRouter from "./TestRouter";
 
+const progressMocks = vi.hoisted(() => ({
+  user: null as { id: string } | null,
+  loadProgress: vi.fn(),
+  saveProgressDetailed: vi.fn(),
+}));
+
 vi.mock("@/hooks/useProgress", () => ({
-  useProgress: () => ({ saveProgress: vi.fn() }),
+  useProgress: () => ({
+    loadProgress: progressMocks.loadProgress,
+    saveProgressDetailed: progressMocks.saveProgressDetailed,
+  }),
 }));
 
 vi.mock("@/contexts/AuthHooks", () => ({
-  useAuth: () => ({ user: null }),
+  useAuth: () => ({ user: progressMocks.user }),
 }));
 
 vi.mock("sonner", () => ({
@@ -30,7 +39,78 @@ const answerForCurrentQuestion = () => {
   return screen.getByRole("button", { name: answer! });
 };
 
+beforeEach(() => {
+  progressMocks.user = null;
+  progressMocks.loadProgress.mockReset();
+  progressMocks.loadProgress.mockResolvedValue(null);
+  progressMocks.saveProgressDetailed.mockReset();
+  progressMocks.saveProgressDetailed.mockResolvedValue("remote");
+});
+
+const finishQuiz = () => {
+  fireEvent.click(screen.getByRole("button", { name: "Start Quiz" }));
+  for (let question = 1; question <= 12; question += 1) {
+    fireEvent.click(answerForCurrentQuestion());
+    act(() => vi.advanceTimersByTime(1000));
+  }
+};
+
 describe("SailControls schematic geometry", () => {
+  it.each([
+    ["remote", "Completion saved to your account."],
+    ["queued", "Completion saved offline and queued to sync."],
+    ["failed", "Completion is still available here, but could not be saved."],
+  ])("surfaces the %s durable completion outcome", async (result, message) => {
+    vi.useFakeTimers();
+    progressMocks.user = { id: "user-a" };
+    progressMocks.saveProgressDetailed.mockResolvedValue(result);
+    render(<TestRouter><SailControls /></TestRouter>);
+    await act(async () => { await Promise.resolve(); });
+
+    finishQuiz();
+    await act(async () => { await Promise.resolve(); });
+
+    expect(screen.getByTestId("durable-status").textContent).toBe(message);
+    expect(progressMocks.saveProgressDetailed).toHaveBeenCalledTimes(1);
+    if (result === "failed") {
+      progressMocks.saveProgressDetailed.mockResolvedValueOnce("remote");
+      fireEvent.click(screen.getByRole("button", { name: "Retry saving" }));
+      await act(async () => { await Promise.resolve(); });
+      expect(screen.getByTestId("durable-status").textContent).toBe("Completion saved to your account.");
+      expect(progressMocks.saveProgressDetailed).toHaveBeenCalledTimes(2);
+    }
+    vi.useRealTimers();
+  });
+
+  it("waits for hydration and restores a valid returning completion", async () => {
+    let resolveLoad!: (value: unknown) => void;
+    progressMocks.user = { id: "user-a" };
+    progressMocks.loadProgress.mockReturnValue(new Promise((resolve) => { resolveLoad = resolve; }));
+    render(<TestRouter><SailControls /></TestRouter>);
+
+    expect(screen.getByRole("button", { name: "Loading progress…" }).hasAttribute("disabled")).toBe(true);
+    resolveLoad({ user_id: "user-a", topic_id: "nautical-terms-sail-controls", completed: true, score: 100, answers_history: { module: "sail-controls", version: 1, score: 120 } });
+
+    await waitFor(() => expect(screen.getByRole("heading", { name: "Quiz Complete!" })).toBeTruthy());
+    expect(screen.getByText("Completion saved to your account.")).toBeTruthy();
+    expect(progressMocks.saveProgressDetailed).not.toHaveBeenCalled();
+  });
+
+  it("uses a valid durable completion while safely ignoring its malformed or stale payload", async () => {
+    progressMocks.user = { id: "user-a" };
+    progressMocks.loadProgress.mockResolvedValue({
+      completed: true,
+      score: 100,
+      user_id: "user-a",
+      topic_id: "nautical-terms-sail-controls",
+      answers_history: { module: "sail-controls", version: 0, score: 120 },
+    });
+    render(<TestRouter><SailControls /></TestRouter>);
+
+    await waitFor(() => expect(screen.getByRole("heading", { name: "Quiz Complete!" })).toBeTruthy());
+    expect(screen.getByText(/Final Score:/).textContent).toContain("120");
+    expect(progressMocks.saveProgressDetailed).not.toHaveBeenCalled();
+  });
   it("preserves safety-critical taxonomy and trim guidance", () => {
     const { container } = render(<TestRouter><SailControls /></TestRouter>);
 
@@ -232,6 +312,7 @@ describe("SailControls schematic geometry", () => {
     const completionHeading = screen.getByRole("heading", { name: "Quiz Complete!" });
     expect(document.activeElement).toBe(completionHeading);
     expect(screen.getByRole("status").textContent).toMatch(/Quiz complete\. Final score:/);
+    expect(screen.getByText("Completed on this device. Sign in to save your progress.")).toBeTruthy();
     expect(toast.success).not.toHaveBeenCalled();
     expect(toast.error).not.toHaveBeenCalled();
 
