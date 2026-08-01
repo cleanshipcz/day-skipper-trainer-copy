@@ -10,15 +10,18 @@ import { isRetryableProgressError, queueProgress } from "@/features/offline/prog
 type UserProgressRow = Tables<"user_progress">;
 
 export type ProgressSaveResult = "anonymous" | "remote" | "queued" | "failed";
+export type ProgressLoadResult =
+  | { status: "remote"; record: UserProgressRow }
+  | { status: "missing" | "anonymous" | "failed"; record: null };
 
 export const useProgress = () => {
   const { user } = useAuth();
   const ownerRef = useRef(user?.id ?? null);
   ownerRef.current = user?.id ?? null;
 
-  const loadProgress = useCallback(
-    async (topicId: string): Promise<UserProgressRow | null> => {
-      if (!user) return null;
+  const loadProgressDetailed = useCallback(
+    async (topicId: string): Promise<ProgressLoadResult> => {
+      if (!user) return { status: "anonymous", record: null };
 
       try {
         const { data, error } = await supabase
@@ -29,13 +32,21 @@ export const useProgress = () => {
           .maybeSingle();
 
         if (error) throw error;
-        return data;
+        return data ? { status: "remote", record: data } : { status: "missing", record: null };
       } catch (error) {
         console.error("Error loading progress:", error);
-        return null;
+        return { status: "failed", record: null };
       }
     },
     [user]
+  );
+
+  const loadProgress = useCallback(
+    async (topicId: string): Promise<UserProgressRow | null> => {
+      const result = await loadProgressDetailed(topicId);
+      return result.record;
+    },
+    [loadProgressDetailed]
   );
 
   const saveProgressDetailed = useCallback(
@@ -130,5 +141,5 @@ export const useProgress = () => {
     [user]
   );
 
-  return { loadProgress, saveProgress, saveProgressDetailed, resetProgress };
+  return { loadProgress, loadProgressDetailed, saveProgress, saveProgressDetailed, resetProgress };
 };

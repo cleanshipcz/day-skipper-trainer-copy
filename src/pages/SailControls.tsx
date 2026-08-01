@@ -559,7 +559,7 @@ const SchematicDiagram = ({
 const SailControls = () => {
   const navigate = useNavigate();
   const { user } = useAuth();
-  const { loadProgress, saveProgressDetailed } = useProgress();
+  const { loadProgressDetailed, saveProgressDetailed } = useProgress();
   const [mode, setMode] = useState<"learn" | "quiz">("learn");
   const [partProgress, setPartProgress] = useState<Record<string, PartProgress>>(() => {
     const initial: Record<string, PartProgress> = {};
@@ -585,6 +585,8 @@ const SailControls = () => {
   ownerRef.current = user?.id ?? null;
   const [durableStatus, setDurableStatus] = useState<DurableStatus>(user ? "loading" : "anonymous");
   const [pendingCompletion, setPendingCompletion] = useState<{ percentage: number; score: number } | null>(null);
+  const [loadRevision, setLoadRevision] = useState(0);
+  const [hasDurableCompletion, setHasDurableCompletion] = useState(false);
 
   const persistCompletion = useCallback(async (percentage: number, finalScore: number) => {
     if (!user) {
@@ -622,8 +624,13 @@ const SailControls = () => {
     }
 
     setDurableStatus("loading");
-    void loadProgress(TOPIC_IDS.NAUTICAL_TERMS_SAIL_CONTROLS).then((record) => {
+    void loadProgressDetailed(TOPIC_IDS.NAUTICAL_TERMS_SAIL_CONTROLS).then((loadResult) => {
       if (cancelled || ownerRef.current !== ownerId) return;
+      if (loadResult.status === "failed") {
+        setDurableStatus("failed");
+        return;
+      }
+      const record = loadResult.record;
       let payload: unknown = record?.answers_history;
       if (typeof payload === "string") {
         try { payload = JSON.parse(payload); } catch { payload = null; }
@@ -639,8 +646,10 @@ const SailControls = () => {
         setActivePart(null);
         setPartProgress(Object.fromEntries(sailControls.map((part) => [part.id, { state: "correct", attempts: 1 }] as const)));
         setPendingCompletion({ percentage: record?.score ?? 0, score: restoredScore });
+        setHasDurableCompletion(true);
         setDurableStatus("remote");
       } else {
+        setHasDurableCompletion(false);
         setDurableStatus("ready");
       }
     }).catch((error) => {
@@ -648,7 +657,7 @@ const SailControls = () => {
       if (!cancelled && ownerRef.current === ownerId) setDurableStatus("failed");
     });
     return () => { cancelled = true; };
-  }, [loadProgress, user?.id]);
+  }, [loadProgressDetailed, loadRevision, user?.id]);
 
   const invalidatePendingTransition = useCallback(() => {
     quizGenerationRef.current += 1;
@@ -839,6 +848,16 @@ const SailControls = () => {
       </header>
 
       <main className="container mx-auto px-4 py-6">
+        {durableStatus === "failed" && !pendingCompletion && user && (
+          <Card className="mb-6 border-orange-500" role="alert">
+            <CardContent className="flex flex-wrap items-center justify-between gap-3 pt-6">
+              <p>Saved progress could not be loaded. You can continue locally or retry.</p>
+              <Button variant="outline" onClick={() => setLoadRevision((revision) => revision + 1)}>
+                Retry loading progress
+              </Button>
+            </CardContent>
+          </Card>
+        )}
         <div className="sr-only" role="status" aria-live="polite" aria-atomic="true">
           {quizAnnouncement}
         </div>
@@ -1096,7 +1115,9 @@ const SailControls = () => {
                       {durableStatus === "anonymous" && "Completed on this device. Sign in to save your progress."}
                       {durableStatus === "saving" && "Saving completion…"}
                       {durableStatus === "queued" && "Completion saved offline and queued to sync."}
-                      {durableStatus === "remote" && "Completion saved to your account."}
+                      {durableStatus === "remote" && (hasDurableCompletion
+                        ? "A completion is saved to your account. Retakes do not replace that durable record."
+                        : "Completion saved to your account.")}
                       {durableStatus === "failed" && "Completion is still available here, but could not be saved."}
                     </div>
                     {durableStatus === "failed" && pendingCompletion && user && (

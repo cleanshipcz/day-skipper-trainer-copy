@@ -7,12 +7,14 @@ import TestRouter from "./TestRouter";
 const progressMocks = vi.hoisted(() => ({
   user: null as { id: string } | null,
   loadProgress: vi.fn(),
+  loadProgressDetailed: vi.fn(),
   saveProgressDetailed: vi.fn(),
 }));
 
 vi.mock("@/hooks/useProgress", () => ({
   useProgress: () => ({
     loadProgress: progressMocks.loadProgress,
+    loadProgressDetailed: progressMocks.loadProgressDetailed,
     saveProgressDetailed: progressMocks.saveProgressDetailed,
   }),
 }));
@@ -43,6 +45,8 @@ beforeEach(() => {
   progressMocks.user = null;
   progressMocks.loadProgress.mockReset();
   progressMocks.loadProgress.mockResolvedValue(null);
+  progressMocks.loadProgressDetailed.mockReset();
+  progressMocks.loadProgressDetailed.mockResolvedValue({ status: "missing", record: null });
   progressMocks.saveProgressDetailed.mockReset();
   progressMocks.saveProgressDetailed.mockResolvedValue("remote");
 });
@@ -85,31 +89,71 @@ describe("SailControls schematic geometry", () => {
   it("waits for hydration and restores a valid returning completion", async () => {
     let resolveLoad!: (value: unknown) => void;
     progressMocks.user = { id: "user-a" };
-    progressMocks.loadProgress.mockReturnValue(new Promise((resolve) => { resolveLoad = resolve; }));
+    progressMocks.loadProgressDetailed.mockReturnValue(new Promise((resolve) => { resolveLoad = resolve; }));
     render(<TestRouter><SailControls /></TestRouter>);
 
     expect(screen.getByRole("button", { name: "Loading progress…" }).hasAttribute("disabled")).toBe(true);
-    resolveLoad({ user_id: "user-a", topic_id: "nautical-terms-sail-controls", completed: true, score: 100, answers_history: { module: "sail-controls", version: 1, score: 120 } });
+    resolveLoad({ status: "remote", record: { user_id: "user-a", topic_id: "nautical-terms-sail-controls", completed: true, score: 100, answers_history: { module: "sail-controls", version: 1, score: 120 } } });
 
     await waitFor(() => expect(screen.getByRole("heading", { name: "Quiz Complete!" })).toBeTruthy());
-    expect(screen.getByText("Completion saved to your account.")).toBeTruthy();
+    expect(screen.getByText(/A completion is saved to your account/)).toBeTruthy();
     expect(progressMocks.saveProgressDetailed).not.toHaveBeenCalled();
   });
 
   it("uses a valid durable completion while safely ignoring its malformed or stale payload", async () => {
     progressMocks.user = { id: "user-a" };
-    progressMocks.loadProgress.mockResolvedValue({
+    progressMocks.loadProgressDetailed.mockResolvedValue({ status: "remote", record: {
       completed: true,
       score: 100,
       user_id: "user-a",
       topic_id: "nautical-terms-sail-controls",
       answers_history: { module: "sail-controls", version: 0, score: 120 },
-    });
+    } });
     render(<TestRouter><SailControls /></TestRouter>);
 
     await waitFor(() => expect(screen.getByRole("heading", { name: "Quiz Complete!" })).toBeTruthy());
     expect(screen.getByText(/Final Score:/).textContent).toContain("120");
     expect(progressMocks.saveProgressDetailed).not.toHaveBeenCalled();
+  });
+
+  it("distinguishes a failed load and retries it", async () => {
+    progressMocks.user = { id: "user-a" };
+    progressMocks.loadProgressDetailed
+      .mockResolvedValueOnce({ status: "failed", record: null })
+      .mockResolvedValueOnce({ status: "missing", record: null });
+    render(<TestRouter><SailControls /></TestRouter>);
+
+    await waitFor(() => expect(screen.getByRole("alert")).toBeTruthy());
+    expect(screen.getByText(/could not be loaded/)).toBeTruthy();
+    fireEvent.click(screen.getByRole("button", { name: "Retry loading progress" }));
+
+    await waitFor(() => expect(screen.getByRole("button", { name: "Start Quiz" })).toBeTruthy());
+    expect(progressMocks.loadProgressDetailed).toHaveBeenCalledTimes(2);
+  });
+
+  it("does not claim a retake replaced an already durable completion", async () => {
+    vi.useFakeTimers();
+    progressMocks.user = { id: "user-a" };
+    progressMocks.loadProgressDetailed.mockResolvedValue({ status: "remote", record: {
+      user_id: "user-a", topic_id: "nautical-terms-sail-controls", completed: true, score: 100,
+      answers_history: { module: "sail-controls", version: 1, score: 120 },
+    } });
+    progressMocks.saveProgressDetailed.mockResolvedValue("remote");
+    render(<TestRouter><SailControls /></TestRouter>);
+    await act(async () => { await Promise.resolve(); });
+
+    fireEvent.click(screen.getByRole("button", { name: "Try Again" }));
+    for (let question = 1; question <= 12; question += 1) {
+      fireEvent.click(answerForCurrentQuestion());
+      act(() => vi.advanceTimersByTime(1000));
+    }
+    await act(async () => { await Promise.resolve(); });
+
+    expect(screen.getByTestId("durable-status").textContent).toBe(
+      "A completion is saved to your account. Retakes do not replace that durable record."
+    );
+    expect(progressMocks.saveProgressDetailed).toHaveBeenCalledTimes(1);
+    vi.useRealTimers();
   });
   it("preserves safety-critical taxonomy and trim guidance", () => {
     const { container } = render(<TestRouter><SailControls /></TestRouter>);
