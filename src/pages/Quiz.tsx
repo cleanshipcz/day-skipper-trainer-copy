@@ -130,6 +130,7 @@ const Quiz = () => {
   const verifiedScoreAttemptRef = useRef<string | null>(null);
   const seedOwnerRef = useRef(user?.id ?? null);
   const seedGenerationRef = useRef(0);
+  const assessmentPersistenceRef = useRef<Promise<void> | null>(null);
   const currentSeedOwner = user?.id ?? null;
   if (seedOwnerRef.current !== currentSeedOwner) {
     seedOwnerRef.current = currentSeedOwner;
@@ -293,15 +294,22 @@ const Quiz = () => {
   };
 
   const handleSubmit = async () => {
-    if (tentativeAnswer === null || assessedAnswer !== null) return;
+    if (tentativeAnswer === null || assessedAnswer !== null || assessmentPersistenceRef.current) return;
     const nextAnswers = [...answers];
     nextAnswers[currentQuestion] = tentativeAnswer;
     setAnswers(nextAnswers);
     setTentativeAnswer(null);
-    await persistSession(nextAnswers, currentQuestion);
+    const persistence = persistSession(nextAnswers, currentQuestion);
+    assessmentPersistenceRef.current = persistence;
+    try {
+      await persistence;
+    } finally {
+      if (assessmentPersistenceRef.current === persistence) assessmentPersistenceRef.current = null;
+    }
   };
 
   const handleNext = async () => {
+    await assessmentPersistenceRef.current;
     focusQuestionAfterAdvanceRef.current = currentQuestion < questions.length - 1;
     const newQuestion = currentQuestion < questions.length - 1 ? currentQuestion + 1 : currentQuestion;
     setCurrentQuestion(newQuestion);

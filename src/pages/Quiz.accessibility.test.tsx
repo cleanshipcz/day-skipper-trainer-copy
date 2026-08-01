@@ -137,6 +137,30 @@ describe("Quiz accessible interaction and reflow", () => {
     await waitFor(() => expect(mocks.saveProgress).toHaveBeenCalledTimes(1));
   });
 
+  it("prevents navigation from overtaking a pending assessment save", async () => {
+    mocks.user = { id: "quiz-user" };
+    let releaseSave!: (value: boolean) => void;
+    const pendingSave = new Promise<boolean>((resolve) => { releaseSave = resolve; });
+    mocks.saveProgress.mockImplementationOnce(() => pendingSave).mockResolvedValue(true);
+    const user = userEvent.setup();
+    renderQuiz();
+
+    await user.click(await screen.findByRole("radio", { name: /correct/i }));
+    await user.click(screen.getByRole("button", { name: "Submit Answer" }));
+
+    const next = screen.getByRole("button", { name: "Next Question" });
+    await user.click(next);
+    expect(screen.getByText(/Question 1 of 2/)).toBeTruthy();
+    expect(mocks.saveProgress).toHaveBeenCalledTimes(1);
+
+    releaseSave(true);
+    expect(await screen.findByText(/Question 2 of 2/)).toBeTruthy();
+    await waitFor(() => expect(mocks.saveProgress).toHaveBeenCalledTimes(2));
+    const firstSavedQuestion = (mocks.saveProgress.mock.calls[0][4] as { currentQuestionId: string }).currentQuestionId;
+    const secondSavedQuestion = (mocks.saveProgress.mock.calls[1][4] as { currentQuestionId: string }).currentQuestionId;
+    expect(secondSavedQuestion).not.toBe(firstSavedQuestion);
+  });
+
   it("announces feedback once and focuses each advanced question and completion", async () => {
     const user = userEvent.setup();
     renderQuiz("/quiz/ropework");
