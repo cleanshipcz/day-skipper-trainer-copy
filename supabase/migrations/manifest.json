@@ -10,5 +10,6 @@
   "20260730110000_engagement.sql": "e5ca5a28762be084ed4107db79b5f4f5895721b88571b13f903b874676c82848",
   "20260730111000_harden_engagement_evidence.sql": "0e00f6eadafbcbfca8b5cde43888359f99972c1a2988e1018941dd19e3d6b183",
   "20260730112000_issued_quiz_attempts.sql": "f14bcbee62522a44582203cc02dffa4322e49b6db184ddc5773510024aba2046",
-  "20260801081500_expand_nautical_terms_quiz_attempts.sql": "544fbe054f46ce982d1c6bf7029c3e0365adb322671fa4dced3a490c96ea60ff"
+  "20260801081500_expand_nautical_terms_quiz_attempts.sql": "544fbe054f46ce982d1c6bf7029c3e0365adb322671fa4dced3a490c96ea60ff",
+  "20260801170000_register_ropework_progress.sql": "b6628053ab5fb278a0e7df2ed25e148bde875eac5306106e4c7f5a7ce97adf54"
 }
