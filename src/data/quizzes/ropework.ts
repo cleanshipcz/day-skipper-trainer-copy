@@ -21,12 +21,12 @@ const ropeworkQuestions: readonly Question[] = [
     question: "A fixed loop is needed on a mooring line, but the line may repeatedly shake while slack. Which choice matches the Bowline lesson?",
     options: [
       "Use a Bowline with a short tail because shaking tightens it",
-      "Use a dressed Bowline with a generous tail and approved backup protection against cyclic slack loading",
+      "Use a dressed Bowline with a generous tail and approved backup protection against cyclic slack loading, but choose another arrangement if it must release under load",
       "Use a Reef Knot because it cannot spill",
       "Use a Figure Eight because it creates a fixed loop",
     ],
     correctAnswer: 1,
-    explanation: "A Bowline creates a fixed loop, but cyclic loading or shaking while slack can work it loose. Dress and set it, leave a generous tail, and use an approved backup where that risk exists.",
+    explanation: "A Bowline creates a fixed loop, but cyclic loading or shaking while slack can work it loose. Dress and set it, leave a generous tail, and use an approved backup where that risk exists. It cannot be released while loaded, so choose another arrangement when ready release under load is required.",
   },
   {
     id: "r2",
@@ -34,11 +34,11 @@ const ropeworkQuestions: readonly Question[] = [
     options: [
       "The sole attachment for a critical mooring load",
       "A permanent bend joining two loaded ropes",
-      "A quick adjustable fender attachment, with additional half hitches securing the tail",
+      "A quick adjustable fender attachment, with additional half hitches securing the tail, accepting that it can bind after heavy loading",
       "A stopper for a line running through a block",
     ],
     correctAnswer: 2,
-    explanation: "A Clove Hitch is quick and adjustable for temporary attachments such as fenders. Its crossing turns should be dressed without overlap and its tail secured; it can slip under changing loads, so it is not a sole critical mooring attachment.",
+    explanation: "A Clove Hitch is quick and adjustable for temporary attachments such as fenders. Its crossing turns should be dressed without overlap and its tail secured; it can slip under changing loads or bind after heavy loading, so it is not a sole critical mooring attachment and does not guarantee ready release.",
   },
   {
     id: "r3",
