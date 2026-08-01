@@ -1,7 +1,7 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { render, screen, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
-import { MemoryRouter, Route, Routes } from "react-router-dom";
+import { MemoryRouter, Route, Routes, useLocation } from "react-router-dom";
 
 const mocks = vi.hoisted(() => ({
   loadProgress: vi.fn(),
@@ -14,11 +14,12 @@ vi.mock("@/contexts/AuthHooks", () => ({ useAuth: () => ({ user: null }) }));
 vi.mock("@/hooks/useProgress", () => ({ useProgress: () => mocks }));
 vi.mock("@/integrations/supabase/client", () => ({ supabase: { rpc: vi.fn() } }));
 vi.mock("@/data/quizzes", () => ({
-  isQuizTopicId: (topic: string) => ["test", "nautical-terms-quiz", "ropework"].includes(topic),
+  isQuizTopicId: (topic: string) => ["test", "nautical-terms-quiz", "ropework", "lights-signals"].includes(topic),
   topicMeta: {
     test: { title: "A very long localized quiz title that must reflow", subtitle: "Long localized supporting text" },
     "nautical-terms-quiz": { title: "Full Nautical Terms Quiz", subtitle: "Terms" },
     ropework: { title: "Ropework Quiz", subtitle: "Knots" },
+    "lights-signals": { title: "Lights & Signals Mastery", subtitle: "Signals" },
   },
   loadQuizTopic: mocks.loadQuizTopic,
 }));
@@ -30,11 +31,16 @@ const questions = [
   { id: "q2", question: "Second question?", options: ["Second wrong", "Second correct"], correctAnswer: 1, explanation: "Second explanation." },
 ];
 
+const LocationProbe = () => {
+  const location = useLocation();
+  return <p>Current path: {location.pathname}</p>;
+};
+
 const renderQuiz = (path = "/quiz/test") => render(
   <MemoryRouter initialEntries={[path]}>
     <Routes>
       <Route path="/quiz/:topicId" element={<Quiz />} />
-      <Route path="*" element={<p>Destination reached</p>} />
+      <Route path="*" element={<LocationProbe />} />
     </Routes>
   </MemoryRouter>,
 );
@@ -49,20 +55,23 @@ describe("Quiz accessible interaction and reflow", () => {
   });
 
   it.each([
-    ["/quiz/nautical-terms-quiz", "Back to Nautical Terms & Boat Parts from Full Nautical Terms Quiz"],
-    ["/quiz/nautical-terms", "Back to Nautical Terms & Boat Parts from Full Nautical Terms Quiz"],
-    ["/quiz/ropework", "Back to Ropework & Knots from Ropework Quiz"],
-  ])("returns active and legacy quiz routes to their registered parent", async (path, backName) => {
+    ["/quiz/nautical-terms-quiz", "Back to Nautical Terms & Boat Parts from Full Nautical Terms Quiz", "/nautical-terms"],
+    ["/quiz/nautical-terms", "Back to Nautical Terms & Boat Parts from Full Nautical Terms Quiz", "/nautical-terms"],
+    ["/quiz/ropework", "Back to Ropework & Knots from Ropework Quiz", "/ropework"],
+    ["/quiz/lights-signals", "Back to Lights & Signals Theory from Lights & Signals Mastery", "/rules/lights"],
+  ])("returns active and legacy quiz routes to their registered parent", async (path, backName, expectedPath) => {
     const user = userEvent.setup();
     renderQuiz(path);
     await user.click(await screen.findByRole("button", { name: backName }));
-    expect(await screen.findByText("Destination reached")).toBeTruthy();
+    expect(await screen.findByText(`Current path: ${expectedPath}`)).toBeTruthy();
   });
 
   it("uses the same safe fallback in the unavailable state", async () => {
+    const user = userEvent.setup();
     mocks.loadQuizTopic.mockRejectedValueOnce(new Error("missing"));
     renderQuiz("/quiz/unknown-deep-link");
-    expect(await screen.findByRole("button", { name: "Back to Home" })).toBeTruthy();
+    await user.click(await screen.findByRole("button", { name: "Back to Home" }));
+    expect(await screen.findByText("Current path: /")).toBeTruthy();
     expect(screen.queryByRole("button", { name: "Nautical Terms" })).toBeNull();
   });
 

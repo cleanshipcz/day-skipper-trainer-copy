@@ -409,4 +409,14 @@ describe("quiz parent destinations", () => {
     expect(resolveQuizParentDestination("../nautical-terms")).toEqual({ route: "/", label: "Home" });
     expect(resolveQuizParentDestination("")).toEqual({ route: "/", label: "Home" });
   });
+
+  it("returns a registered non-quiz owner for every registered quiz route", () => {
+    const quizTopicIds = new Set(topicRegistry.flatMap(({ quizRoute }) => quizRoute ? [quizRoute.replace("/quiz/", "")] : []));
+
+    for (const quizTopicId of quizTopicIds) {
+      const destination = resolveQuizParentDestination(quizTopicId);
+      expect(destination.route.startsWith("/quiz/")).toBe(false);
+      expect(topicRegistry.some(({ route, label }) => route === destination.route && label === destination.label)).toBe(true);
+    }
+  });
 });
