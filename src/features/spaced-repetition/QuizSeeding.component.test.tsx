@@ -10,6 +10,7 @@ const mocks = vi.hoisted(() => ({
   resetProgress: vi.fn(),
   seedQuizQuestions: vi.fn(),
   rpc: vi.fn(),
+  questions: [{ id: "a1", question: "Question?", options: ["Wrong", "Right"], correctAnswer: 1, explanation: "Why." }],
 }));
 vi.mock("@/contexts/AuthHooks", () => ({ useAuth: () => ({ user: mocks.auth.user }) }));
 vi.mock("@/hooks/useProgress", () => ({
@@ -27,7 +28,7 @@ vi.mock("@/integrations/supabase/client", () => ({
   supabase: { rpc: mocks.rpc },
 }));
 vi.mock("@/data/quizzes", () => ({
-  loadQuizTopic: vi.fn().mockResolvedValue([{ id: "a1", question: "Question?", options: ["Wrong", "Right"], correctAnswer: 1, explanation: "Why." }]),
+  loadQuizTopic: vi.fn().mockImplementation(() => Promise.resolve(mocks.questions)),
   isQuizTopicId: (value: string) => value === "test",
   topicMeta: { test: { title: "Test quiz", subtitle: "Test" } },
 }));
@@ -44,6 +45,7 @@ describe("quiz review seeding identity isolation", () => {
   beforeEach(() => {
     localStorage.clear();
     mocks.auth.user = { id: "a" };
+    mocks.questions = [{ id: "a1", question: "Question?", options: ["Wrong", "Right"], correctAnswer: 1, explanation: "Why." }];
     mocks.loadProgress.mockReset().mockResolvedValue(null);
     mocks.saveProgress.mockReset().mockResolvedValue(true);
     mocks.resetProgress.mockReset().mockResolvedValue(undefined);
@@ -168,8 +170,12 @@ describe("quiz review seeding identity isolation", () => {
       scoreSaved: true,
       startedAt: new Date().toISOString(),
       completion: {
-        answers: [1],
-        currentQuestion: 0,
+        session: {
+          version: 2,
+          catalogueVersion: "old-catalogue",
+          answers: [{ questionId: "a1", optionId: "Right" }],
+          currentQuestionId: "a1",
+        },
         correctAnswers: 1,
         percentage: 100,
         passed: true,
@@ -222,5 +228,88 @@ describe("quiz review seeding identity isolation", () => {
     fireEvent.click(screen.getByRole("button", { name: "Retry Quiz" }));
 
     await waitFor(() => expect(localStorage.getItem("quiz-attempt:a:test")).toContain("replacement-attempt"));
+  });
+
+  test("should reconcile scored completion identities after catalogue drift before retrying progress", async () => {
+    mocks.questions = [{ id: "a1", question: "Question?", options: ["Right", "Replacement"], correctAnswer: 0, explanation: "Why." }];
+    localStorage.setItem("quiz-attempt:a:test", JSON.stringify({
+      version: 1,
+      attemptId: "scored-attempt",
+      scoreSaved: true,
+      startedAt: new Date().toISOString(),
+      completion: {
+        session: {
+          version: 2,
+          catalogueVersion: "old-catalogue",
+          answers: [{ questionId: "a1", optionId: "Right" }],
+          currentQuestionId: "a1",
+        },
+        correctAnswers: 1,
+        percentage: 100,
+        passed: true,
+        pointsEarned: 10,
+      },
+    }));
+
+    renderQuiz();
+    await screen.findByText("Quiz Complete!");
+    fireEvent.click(screen.getByRole("button", { name: "Retry completion save" }));
+
+    await waitFor(() => expect(mocks.saveProgress).toHaveBeenCalledWith(
+      "quiz-test", true, 100, 10,
+      expect.objectContaining({
+        version: 2,
+        answers: [{ questionId: "a1", optionId: "Right" }],
+        currentQuestionId: "a1",
+        completed: true,
+      }),
+    ));
+  });
+
+  test("should not retry-write a legacy positional scored completion", async () => {
+    localStorage.setItem("quiz-attempt:a:test", JSON.stringify({
+      attemptId: "legacy-scored-attempt",
+      scoreSaved: true,
+      startedAt: new Date().toISOString(),
+      completion: {
+        answers: [1], currentQuestion: 0, correctAnswers: 1,
+        percentage: 100, passed: true, pointsEarned: 10,
+      },
+    }));
+
+    renderQuiz();
+
+    expect(await screen.findByRole("radio", { name: "Right" })).toBeTruthy();
+    await waitFor(() => expect(localStorage.getItem("quiz-attempt:a:test")).toContain("issued-attempt"));
+    expect(mocks.saveProgress.mock.calls.some((call) => call[1] === true)).toBe(false);
+  });
+
+  test("should not reload the abandoned server session immediately after Retry Quiz", async () => {
+    mocks.loadProgress.mockResolvedValue({
+      completed: false,
+      answers_history: {
+        version: 2,
+        catalogueVersion: "saved",
+        answers: [{ questionId: "a1", optionId: "Right" }],
+        currentQuestionId: "a1",
+      },
+    });
+    mocks.rpc.mockImplementation((name: string) => Promise.resolve({
+      data: name === "start_quiz_attempt" ? { attempt_id: "issued-attempt", started_at: new Date().toISOString() } : {},
+      error: name === "submit_quiz_score" ? new Error("offline") : null,
+    }));
+
+    renderQuiz();
+    const restored = await screen.findByRole("radio", { name: "Right" }) as HTMLInputElement;
+    expect(restored.checked).toBe(true);
+    fireEvent.click(screen.getByRole("button", { name: "Submit Answer" }));
+    fireEvent.click(screen.getByRole("button", { name: "View Results" }));
+    await screen.findByRole("button", { name: "Retry Quiz" });
+    const loadsBeforeRestart = mocks.loadProgress.mock.calls.length;
+    fireEvent.click(screen.getByRole("button", { name: "Retry Quiz" }));
+
+    const restarted = await screen.findByRole("radio", { name: "Right" }) as HTMLInputElement;
+    await waitFor(() => expect(restarted.checked).toBe(false));
+    expect(mocks.loadProgress).toHaveBeenCalledTimes(loadsBeforeRestart);
   });
 });

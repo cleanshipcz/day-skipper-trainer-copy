@@ -36,8 +36,7 @@ interface QuizWorkflow {
   readonly scoreSaved: boolean;
   readonly startedAt?: string;
   readonly completion?: {
-    readonly answers: readonly (number | null)[];
-    readonly currentQuestion: number;
+    readonly session: ReturnType<typeof buildQuizSessionProgress>;
     readonly correctAnswers: number;
     readonly percentage: number;
     readonly passed: boolean;
@@ -64,14 +63,19 @@ const readQuizWorkflow = (owner: string | undefined, topic: string): QuizWorkflo
       return null;
     }
     const completion = parsed.completion
-      && Array.isArray(parsed.completion.answers)
-      && typeof parsed.completion.currentQuestion === "number"
+      && parsed.completion.session?.version === 2
       && typeof parsed.completion.correctAnswers === "number"
       && typeof parsed.completion.percentage === "number"
       && typeof parsed.completion.passed === "boolean"
       && typeof parsed.completion.pointsEarned === "number"
       ? parsed.completion as QuizWorkflow["completion"]
       : undefined;
+    if (scoreSaved && !completion) {
+      // Positional v1 completion evidence cannot be attributed safely after
+      // catalogue drift. Start a distinct attempt instead of retry-writing it.
+      removeStored(localStorage, key);
+      return null;
+    }
     return { attemptId: parsed.attemptId, scoreSaved, startedAt, completion };
   } catch { return null; }
 };
@@ -120,16 +124,17 @@ const Quiz = () => {
   const quizParent = resolveQuizParentDestination(topicKey);
 
   const [workflow, setWorkflow] = useState<QuizWorkflow | null>(() => readQuizWorkflow(user?.id, topicKey));
-  const [currentQuestion, setCurrentQuestion] = useState(() => workflow?.completion?.currentQuestion ?? 0);
-  const [answers, setAnswers] = useState<(number | null)[]>(() => workflow?.completion ? [...workflow.completion.answers] : []);
+  const [currentQuestion, setCurrentQuestion] = useState(0);
+  const [answers, setAnswers] = useState<(number | null)[]>([]);
   const [showExplanation, setShowExplanation] = useState(false);
-  const [isComplete, setIsComplete] = useState(() => Boolean(workflow?.scoreSaved && workflow.completion));
+  const [isComplete, setIsComplete] = useState(false);
   const [seedStatus, setSeedStatus] = useState<"idle" | "saving" | "saved" | "failed">("idle");
   const [completionSaveError, setCompletionSaveError] = useState(() => Boolean(workflow?.scoreSaved && workflow.completion));
   const [attemptCycle, setAttemptCycle] = useState(0);
   const questionHeadingRef = useRef<HTMLHeadingElement>(null);
   const completionHeadingRef = useRef<HTMLHeadingElement>(null);
   const focusQuestionAfterAdvanceRef = useRef(false);
+  const suppressNextProgressLoadRef = useRef(false);
   const seedOwnerRef = useRef(user?.id ?? null);
   const seedGenerationRef = useRef(0);
   const currentSeedOwner = user?.id ?? null;
@@ -159,14 +164,36 @@ const Quiz = () => {
     const initQuiz = async () => {
       const recovery = readQuizWorkflow(user?.id, topicKey);
       if (recovery?.scoreSaved && recovery.completion) {
-        setAnswers([...recovery.completion.answers]);
-        setCurrentQuestion(recovery.completion.currentQuestion);
+        const recoveredSession = parseSavedQuizSession(recovery.completion.session, questions);
+        if (recoveredSession) {
+          setAnswers(recoveredSession.answers);
+          setCurrentQuestion(recoveredSession.currentQuestion);
+          setWorkflow({
+            ...recovery,
+            completion: {
+              ...recovery.completion,
+              session: buildQuizSessionProgress(recoveredSession.answers, recoveredSession.currentQuestion, questions),
+            },
+          });
+          setIsComplete(true);
+          setCompletionSaveError(true);
+          return;
+        }
+        // The score was already accepted, so never discard or reinterpret an
+        // unreconcilable recovery record. Keep retry disabled until the saved
+        // completion can be understood by this catalogue.
         setIsComplete(true);
         setCompletionSaveError(true);
         return;
       }
       setIsComplete(false);
       setCompletionSaveError(false);
+      if (suppressNextProgressLoadRef.current) {
+        suppressNextProgressLoadRef.current = false;
+        setAnswers(createEmptyQuizAnswers(questions.length));
+        setCurrentQuestion(0);
+        return;
+      }
       const owner = seedOwnerRef.current;
       const generation = seedGenerationRef.current;
       const canonicalKey = canonicalQuizProgressKey(topicKey);
@@ -336,12 +363,17 @@ const Quiz = () => {
       toast.error("Quiz attempt is still starting. Retry saving.");
       return;
     }
+    if (activeWorkflow.scoreSaved && activeWorkflow.completion
+      && !parseSavedQuizSession(activeWorkflow.completion.session, questions)) {
+      setCompletionSaveError(true);
+      toast.error("Saved completion does not match this quiz version.");
+      return;
+    }
     setCompletionSaveError(false);
 
     const calculatedCompletion = quizCompletionOutcome(correctAnswers, questions.length);
     const completion = activeWorkflow.completion ?? {
-      answers: [...answers],
-      currentQuestion,
+      session: buildQuizSessionProgress([...answers], currentQuestion, questions),
       correctAnswers,
       ...calculatedCompletion,
     };
@@ -370,7 +402,7 @@ const Quiz = () => {
         percentage,
         pointsEarned,
         {
-          ...buildQuizSessionProgress([...completion.answers], completion.currentQuestion, questions),
+          ...completion.session,
           completed: true,
         }
       );
@@ -413,6 +445,7 @@ const Quiz = () => {
     setSeed((n) => n + 1);
     setWorkflow(null);
     setCompletionSaveError(false);
+    suppressNextProgressLoadRef.current = true;
     setAttemptCycle((value) => value + 1);
   };
 
