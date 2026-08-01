@@ -81,7 +81,7 @@ const ropeworkQuestions: readonly Question[] = [
       "Two flat interlocking half-knots with all four ends loaded",
     ],
     correctAnswer: 1,
-    explanation: "The round turn takes and controls strain while tying. The two half hitches are made in the same direction, dressed together against the round turn, and the tail is inspected before loading.",
+    explanation: "The round turn takes and controls strain while tying. The two half hitches are made in the same direction, dressed together against the round turn, and the tail is inspected before loading. The hitches can tighten or jam after heavy or sustained loading, so this is not a promise of ready release under load.",
   },
   {
     id: "r7",

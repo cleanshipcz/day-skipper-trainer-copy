@@ -140,6 +140,23 @@ describe("Ropework taught-to-assessed coverage", () => {
 
     expect([...cataloguedIds].sort()).toEqual(questions.map((question) => question.id).sort());
   });
+
+  it("preserves the reviewed safety qualifications and excludes removed untaught handling advice", async () => {
+    const { default: questions } = await import("./ropework");
+    const byId = new Map(questions.map((question) => [question.id, question]));
+    const assessmentCopy = questions
+      .flatMap((question) => [question.question, ...question.options, question.explanation])
+      .join(" ");
+
+    expect(byId.get("r1")?.explanation).toContain("cyclic loading or shaking while slack can work it loose");
+    expect(byId.get("r2")?.explanation).toContain("not a sole critical mooring attachment");
+    expect(byId.get("r5")?.explanation).toContain("binding knot");
+    expect(byId.get("r5")?.explanation).toContain("can spill, capsize, or pull undone");
+    expect(byId.get("r6")?.explanation).toContain("can tighten or jam after heavy or sustained loading");
+    expect(byId.get("r6")?.explanation).toContain("not a promise of ready release under load");
+
+    expect(assessmentCopy).not.toMatch(/coil|laid rope|braided line|heat-seal|melt|whip(?:ping)?|fume|cleat|locking turn/i);
+  });
 });
 
 describe("Quiz data registry", () => {

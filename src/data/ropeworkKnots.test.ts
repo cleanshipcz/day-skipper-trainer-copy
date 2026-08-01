@@ -75,6 +75,12 @@ describe("ropework knot safety guidance", () => {
     );
   });
 
+  it("does not promise that Round Turn and Two Half Hitches releases after loading", () => {
+    expect(knot("round-turn").uses).toBe(
+      "Secures a rope to a post or ring; the round turn controls strain while the hitches are tied. The half hitches can tighten or jam after heavy or sustained loading, so do not assume the line will release readily under load.",
+    );
+  });
+
   it("makes Rolling Hitch direction, finishing, and limits explicit", () => {
     const rollingHitch = knot("rolling-hitch");
     expect(rollingHitch.uses).toBe(

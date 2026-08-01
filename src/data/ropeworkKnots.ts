@@ -93,7 +93,7 @@ export const knots: Knot[] = [
   {
     id: "round-turn",
     name: "Round Turn & Two Half Hitches",
-    uses: "Secures a rope to a post or ring; the round turn controls strain while the hitches are tied.",
+    uses: "Secures a rope to a post or ring; the round turn controls strain while the hitches are tied. The half hitches can tighten or jam after heavy or sustained loading, so do not assume the line will release readily under load.",
     difficulty: "Medium",
     tutorialUrl: "https://www.animatedknots.com/round-turn-two-half-hitches-knot",
     tutorialTitle: "Animated Knots: Round Turn and Two Half Hitches",

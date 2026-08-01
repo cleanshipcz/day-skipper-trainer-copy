@@ -78,6 +78,32 @@ implied. This explicit artwork licence is independent of any software licence.
 The external tutorials are optional references only; no external image, animation,
 page text, or other copyrighted media is bundled or scraped.
 
+## Quiz review and scope
+
+The 12 questions in `src/data/quizzes/ropework.ts` were reviewed against these
+seven lessons on 2026-08-01. Every answer and explanation is limited to a knot
+the learner has just been taught. In particular, the assessment preserves the
+Bowline cyclic-slack and release-under-load limits, the Clove Hitch temporary
+use and backup requirement, the Reef Knot load-bearing prohibition, and the
+possibility that the half hitches in Round Turn and Two Half Hitches tighten or
+jam after heavy or sustained loading.
+
+The former questions about coiling, rope-end treatment, and cleating were
+removed rather than silently teaching new material in the assessment. If those
+subjects are added to a future lesson, the instruction must distinguish laid
+rope from braided line and follow the rope manufacturer's coiling or flaking
+guidance; make end treatment specific to the fibre and construction, using heat
+only where the manufacturer permits it and with suitable tools, ventilation,
+fire precautions, and fume protection; and distinguish making a line secure
+from keeping a loaded line readily releasable. The number of cleat turns depends
+on the line, load, cleat, and vessel procedure, while a locking turn can jam and
+must not be prescribed for a line that may need prompt release under load.
+
+`quizData.test.ts` binds the assessment to the seven-lesson catalogue, checks
+the four safety-critical explanations, and rejects the removed rope-handling
+subjects. That guard prevents a stale quiz item from reintroducing the unsafe
+absolutes without first adding reviewed parent instruction.
+
 Each catalogue record owns a plain-text visual description naming the standing
 part, working end, load direction, dressing, and final form. The SVG exposes
 that description as its accessible name and repeats it as a visible caption.
