@@ -20,4 +20,26 @@ describe("full nautical terms quiz coverage", () => {
     expect(Object.values(nauticalTermsCoverage.boatParts).every((id) => id.startsWith("nt-") && !id.startsWith("nt-control-"))).toBe(true);
     expect(Object.values(nauticalTermsCoverage.sailControls).every((id) => id.startsWith("nt-control-"))).toBe(true);
   });
+
+  it("keeps configuration-dependent terms precise and every question single-answer", () => {
+    const byId = new Map(nauticalTermsQuestions.map((question) => [question.id, question]));
+
+    expect(byId.get("nt-stern")).toMatchObject({
+      question: "What is the rear end of a boat called?",
+      options: ["Keel", "Stern", "Beam", "Bow"],
+      correctAnswer: 1,
+    });
+    expect(byId.get("nt-keel")?.explanation).toContain("Some keels contain ballast");
+    expect(byId.get("nt-boom")?.explanation).toContain("may be loose-footed");
+    expect(byId.get("nt-mainsail")?.question).toContain("luff set on or next to the main mast");
+    expect(byId.get("nt-forestay")?.question).toBe("Which standing rigging provides forward support for a mast?");
+    expect(byId.get("nt-backstay")?.question).toBe("Which rigging primarily provides aft support for a mast?");
+
+    for (const question of nauticalTermsQuestions) {
+      expect(question.options).toHaveLength(4);
+      expect(question.correctAnswer).toBeGreaterThanOrEqual(0);
+      expect(question.correctAnswer).toBeLessThan(question.options.length);
+      expect(new Set(question.options).size).toBe(question.options.length);
+    }
+  });
 });

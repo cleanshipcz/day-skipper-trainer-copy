@@ -25,9 +25,9 @@ const nauticalTermsQuestions: readonly Question[] = [
   {
     id: "nt-stern",
     question: "What is the rear end of a boat called?",
-    options: ["Keel", "Stern", "Beam", "Transom"],
+    options: ["Keel", "Stern", "Beam", "Bow"],
     correctAnswer: 1,
-    explanation: "The stern is the aft (rear) end of the boat and houses the rudder and helm area.",
+    explanation: "The stern is the aft (rear) end of a boat. Rudder and helm arrangements vary between boats.",
   },
   {
     id: "nt-beam",
@@ -52,10 +52,11 @@ const nauticalTermsQuestions: readonly Question[] = [
   },
   {
     id: "nt-keel",
-    question: "Which structure prevents sideways drift and adds stability?",
+    question: "Which underwater centreline structure chiefly resists a sailing yacht's sideways motion?",
     options: ["Boom", "Keel", "Spreaders", "Forestay"],
     correctAnswer: 1,
-    explanation: "The keel is the heavy underwater fin that stops leeway and keeps the boat upright.",
+    explanation:
+      "A yacht's keel chiefly provides lateral resistance. Some keels contain ballast and add righting moment, but keel shapes and stability arrangements vary.",
   },
   {
     id: "nt-rudder",
@@ -85,17 +86,19 @@ const nauticalTermsQuestions: readonly Question[] = [
   },
   {
     id: "nt-boom",
-    question: "What horizontal spar holds the foot of the mainsail?",
+    question: "Which spar extends aft from the mast and helps control the mainsail's angle and shape?",
     options: ["Spreaders", "Boom", "Traveller", "Keel"],
     correctAnswer: 1,
-    explanation: "The boom attaches to the mast and supports the bottom edge (foot) of the mainsail.",
+    explanation:
+      "The boom is the spar extending aft from the mast. The mainsail may be attached along it or may be loose-footed.",
   },
   {
     id: "nt-mainsail",
-    question: "Which sail is set aft of the mast and provides most driving force?",
+    question: "Which sail has its luff set on or next to the main mast?",
     options: ["Jib", "Mainsail", "Spinnaker", "Staysail"],
     correctAnswer: 1,
-    explanation: "The mainsail sits behind the mast and is typically the largest working sail.",
+    explanation:
+      "The mainsail is defined by being set on the main mast; its size and share of the driving force depend on the sail plan and conditions.",
   },
   {
     id: "nt-jib",
@@ -106,17 +109,19 @@ const nauticalTermsQuestions: readonly Question[] = [
   },
   {
     id: "nt-forestay",
-    question: "Which rigging line runs from masthead to the bow to support the mast?",
+    question: "Which standing rigging provides forward support for a mast?",
     options: ["Backstay", "Shrouds", "Forestay", "Halyard"],
     correctAnswer: 2,
-    explanation: "The forestay supports the mast from the front and often carries the jib on hanks or a furler.",
+    explanation:
+      "The forestay provides forward support for the mast. Its mast and deck attachment points vary, and it may also support a headsail.",
   },
   {
     id: "nt-backstay",
-    question: "Which cable runs from masthead to stern providing aft support?",
+    question: "Which rigging primarily provides aft support for a mast?",
     options: ["Backstay", "Forestay", "Boom vang", "Halyard"],
     correctAnswer: 0,
-    explanation: "The backstay supports the mast from the stern and can be tensioned to control mast bend.",
+    explanation:
+      "A backstay provides aft mast support. Attachment and adjustment vary by rig, and some rigs use running backstays or no backstay.",
   },
   {
     id: "nt-shrouds",
