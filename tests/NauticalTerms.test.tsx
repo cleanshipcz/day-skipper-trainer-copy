@@ -141,7 +141,10 @@ describe("NauticalTerms progress writes", () => {
     const markerHitAreas = container.querySelectorAll('[role="button"] > circle[r="28"]');
     expect(markerHitAreas).toHaveLength(20);
     markerHitAreas.forEach((hitArea) => expect(hitArea.getAttribute("fill")).toBe("transparent"));
-    expect(container.querySelector('svg[viewBox="0 0 600 400"]')?.classList.contains("min-w-[550px]")).toBe(true);
-    expect(container.querySelector('svg[viewBox="0 0 400 400"]')?.classList.contains("min-w-[400px]")).toBe(true);
+    const markerControls = container.querySelectorAll('[role="button"][data-marker-id]');
+    const sideViewSvg = markerControls[0]?.closest("svg");
+    const backViewSvg = markerControls[15]?.closest("svg");
+    expect(sideViewSvg?.classList.contains("min-w-[550px]")).toBe(true);
+    expect(backViewSvg?.classList.contains("min-w-[400px]")).toBe(true);
   });
 });
