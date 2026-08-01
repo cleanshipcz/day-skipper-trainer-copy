@@ -185,6 +185,27 @@ try {
       await delay(75);
     }
   };
+  const manipulationPoint = () => evaluate(`(() => {
+    const surface = document.querySelector('[role="application"][aria-label^="Anchor manipulation surface"]');
+    if (!surface) throw new Error("Missing anchor manipulation surface");
+    surface.scrollIntoView({ block: "center", inline: "center" });
+    const rect = surface.getBoundingClientRect();
+    return {
+      x: rect.left + rect.width / 2,
+      y: rect.top + rect.height / 2,
+      touchAction: getComputedStyle(surface).touchAction,
+      parentTouchAction: getComputedStyle(surface.parentElement).touchAction,
+    };
+  })()`);
+  const readManipulationState = () => evaluate(`(() => {
+    const label = [...document.querySelectorAll("span")].find((element) => element.textContent.trim() === "Rode out");
+    const rode = label?.parentElement?.querySelector("span:last-child")?.textContent?.trim();
+    const status = document.querySelector('[role="application"]')?.closest("div.relative")?.parentElement
+      ?.parentElement?.querySelector("[data-description]")?.textContent?.trim()
+      ?? document.body.innerText;
+    return { rode, status };
+  })()`);
+  const waitForRode = (rode) => waitFor(async () => (await readManipulationState()).rode === rode, `${rode} rode readout`);
 
   await send("Runtime.enable");
   await send("Network.enable");
@@ -195,6 +216,49 @@ try {
       if (forced !== null) Math.random = () => Number(forced);
     })();`,
   });
+
+  for (const width of [320, 375, 768, 1280]) {
+    await send("Emulation.setDeviceMetricsOverride", {
+      width,
+      height: 900,
+      deviceScaleFactor: 1,
+      mobile: width <= 375,
+    });
+    await send("Page.navigate", { url: `http://127.0.0.1:${previewPort}/anchor-minigame?scenarioRandom=0` });
+    await waitForText("Anchoring Simulator");
+    await delay(100);
+
+    const mousePoint = await manipulationPoint();
+    if (mousePoint.touchAction !== "none" || mousePoint.parentTouchAction === "none") {
+      throw new Error(`${width}px gesture suppression escaped the active surface: ${JSON.stringify(mousePoint)}`);
+    }
+    await send("Input.dispatchMouseEvent", { type: "mousePressed", x: mousePoint.x, y: mousePoint.y, button: "left", clickCount: 1 });
+    await send("Input.dispatchMouseEvent", { type: "mouseMoved", x: mousePoint.x - 38, y: mousePoint.y + 30, button: "left" });
+    await send("Input.dispatchMouseEvent", { type: "mouseReleased", x: mousePoint.x - 38, y: mousePoint.y + 30, button: "left", clickCount: 1 });
+    await waitForRode("2.0 m");
+    if (!(await readManipulationState()).status.includes("Drifting back from the anchor")) {
+      throw new Error(`${width}px mouse drag did not update boat status: ${JSON.stringify(await readManipulationState())}`);
+    }
+
+    await clickButton("New setup");
+    await waitForRode("0.0 m");
+    const touchPoint = await manipulationPoint();
+    await send("Input.dispatchTouchEvent", { type: "touchStart", touchPoints: [{ x: touchPoint.x, y: touchPoint.y, id: 1 }] });
+    await send("Input.dispatchTouchEvent", { type: "touchMove", touchPoints: [{ x: touchPoint.x - 38, y: touchPoint.y + 30, id: 1 }] });
+    await send("Input.dispatchTouchEvent", { type: "touchEnd", touchPoints: [] });
+    await waitForRode("2.0 m");
+    if (!(await readManipulationState()).status.includes("Drifting back from the anchor")) {
+      throw new Error(`${width}px touch drag did not update boat status: ${JSON.stringify(await readManipulationState())}`);
+    }
+
+    const cancelPoint = await manipulationPoint();
+    await send("Input.dispatchTouchEvent", { type: "touchStart", touchPoints: [{ x: cancelPoint.x, y: cancelPoint.y, id: 2 }] });
+    await send("Input.dispatchTouchEvent", { type: "touchCancel", touchPoints: [] });
+    await send("Input.dispatchTouchEvent", { type: "touchStart", touchPoints: [{ x: cancelPoint.x, y: cancelPoint.y, id: 3 }] });
+    await send("Input.dispatchTouchEvent", { type: "touchMove", touchPoints: [{ x: cancelPoint.x, y: cancelPoint.y + 30, id: 3 }] });
+    await send("Input.dispatchTouchEvent", { type: "touchEnd", touchPoints: [] });
+    await waitForRode("4.0 m");
+  }
 
   const coverageMatrix = [
     { width: 375, random: 0, title: "Sheltered cove", rode: 32, overRoomRode: 43, astern: 5, settingLoads: 3 },
@@ -339,7 +403,7 @@ try {
 
   await send("Browser.close");
   socket.close();
-  console.log("Anchor browser characterization passed every scenario fixture across 375px, 768px, and 1280px (negative safety gates, pointer, keyboard, layout, storage).");
+  console.log("Anchor browser characterization passed direct mouse/touch manipulation across 320px, 375px, 768px, and 1280px plus every scenario fixture (cancellation, negative safety gates, buttons, keyboard, layout, storage).");
 } finally {
   for (const child of children.reverse()) {
     if (child.exitCode === null && !child.killed) child.kill("SIGTERM");
