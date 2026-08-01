@@ -45,6 +45,7 @@ npm run typecheck
 npm run test -- --run --maxWorkers=1
 npm run guard:coverage-scope && npm run test:coverage -- --maxWorkers=1
 npm run build
+npm run guard:boat-parts-assets
 npm run setup:anchor-browser
 npm run test:anchor-browser
 npm run test:build-budget

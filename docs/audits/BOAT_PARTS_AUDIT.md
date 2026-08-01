@@ -6,7 +6,7 @@
 - Primary implementation: `src/pages/NauticalTerms.tsx`
 - Related navigation and assessment: `src/pages/NauticalTermsMenu.tsx`,
   `src/pages/Quiz.tsx`, `src/constants/topicRegistry.ts`
-- Named media reviewed: `src/resources/boatparts.gif`,
+- Retired media reviewed: `src/resources/boatparts.gif`,
   `src/resources/sailboat-explained.png`, `src/resources/sailboat.png`
 
 ## Verdict
@@ -98,12 +98,38 @@ partial payload behavior is runtime-confirmed.
   luff beside the mast while the forestay runs diagonally to the bow, contrary
   to both the expected rig relationship and the source comment. This is a
   substantive visual-teaching defect, not cosmetic polish.
-- The three named raster assets are not imported anywhere in application code.
-  Visual inspection shows that they are heterogeneous references: a detailed
-  labelled rigging GIF, a rendered multi-view hull-parts plate, and an
-  unlabelled line drawing. None is currently learner-visible and none explains
-  the active SVG's geometry. Their intended lifecycle needs an explicit
-  decision alongside the diagram correction.
+- The three named raster assets were not imported anywhere in application
+  code. Visual inspection showed that they were heterogeneous references: a
+  detailed labelled rigging GIF, a rendered multi-view hull-parts plate, and
+  an unlabelled line drawing. None was learner-visible or explained the active
+  SVG's geometry. They have now been retired; the lifecycle decision and its
+  evidence are recorded below.
+
+### Raster asset lifecycle decision (#143)
+
+Repository history establishes only that `boatparts.gif`,
+`sailboat-explained.png`, and `sailboat.png` were added together in the initial
+commit (`30c6d60`, 2026-02-07). No commit message, repository document,
+attribution file, embedded metadata tracked by the project, or license record
+identifies their creators, original sources, reuse terms, or intended product
+role. Their provenance and licensing therefore cannot be established from the
+available evidence; no attribution or permission is inferred.
+
+The explicit decision for each file is:
+
+| Retired file | Previously apparent role | Decision and rationale |
+| --- | --- | --- |
+| `boatparts.gif` | Labelled rigging reference | Remove. It was unused and its provenance and reuse permission are unknown. |
+| `sailboat-explained.png` | Rendered multi-view hull-parts reference | Remove. It was unused, unusually large for an offline application, and its provenance and reuse permission are unknown. |
+| `sailboat.png` | Unlabelled sailboat line-art reference | Remove. It was unused, unusually large for an offline application, and its provenance and reuse permission are unknown. |
+
+`src/pages/NauticalTerms.tsx` is now the single active and reviewable source of
+truth for the learner-facing Boat Parts diagrams: both views are inline SVG,
+with their labels, hit targets, and geometry colocated with the activity. The
+retired rasters are neither build inputs nor PWA assets. CI runs
+`guard:boat-parts-assets` after the production build and fails if any retired
+filename is restored under `src`/`public` or emitted into `dist`, preventing
+accidental bundling or service-worker precaching.
 
 ### Knowledge checks, completion, and persistence
 
