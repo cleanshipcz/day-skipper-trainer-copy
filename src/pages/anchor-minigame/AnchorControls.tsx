@@ -5,6 +5,9 @@ export interface AnchorControlsProps {
   onChangeRode: (delta: number) => void;
   onCheck: () => void;
   onApplyLoad: () => void;
+  onApplyChange: () => void;
+  onWatch: () => void;
+  onRecover: () => void;
   rodeStep: number;
 }
 
@@ -13,6 +16,9 @@ export const AnchorControls = ({
   onChangeRode,
   onCheck,
   onApplyLoad,
+  onApplyChange,
+  onWatch,
+  onRecover,
   rodeStep,
 }: AnchorControlsProps) => (
   <div className="flex flex-wrap gap-2">
@@ -29,6 +35,9 @@ export const AnchorControls = ({
       ↑ Up (heave)
     </Button>
     <Button variant="secondary" onClick={onApplyLoad}>Apply setting load</Button>
+    <Button variant="secondary" onClick={onApplyChange}>Apply wind/tide change</Button>
+    <Button variant="secondary" onClick={onWatch}>Run anchor watch</Button>
+    <Button variant="outline" onClick={onRecover}>Safe recovery</Button>
     <Button onClick={onCheck}>Enter (check)</Button>
   </div>
 );

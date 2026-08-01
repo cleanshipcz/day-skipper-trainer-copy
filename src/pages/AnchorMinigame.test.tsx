@@ -51,7 +51,9 @@ describe("AnchorMinigame", () => {
     expect(screen.getByText("10 m chain plus nylon rode")).toBeTruthy();
     expect(screen.getByText(/RNLI SAR Unit 9, p\. 67; MCA MGN 592/)).toBeTruthy();
     expect(screen.getByText(/numeric exercise bounds are conservative training fixtures, not universal recommendations/)).toBeTruthy();
-    expect(screen.getByText(/Unmodeled: actual holding, equipment condition, yaw, traffic and later weather\/tide changes/)).toBeTruthy();
+    expect(screen.getByText(/Simplified: the circular worst-case sweep/)).toBeTruthy();
+    expect(screen.getByLabelText("Anchoring swept-area plan")).toBeTruthy();
+    expect(screen.getByText(/Differently swinging neighbours:/)).toBeTruthy();
   });
 
   it("supports keyboard placement, checking, and reset without writing browser storage", () => {
@@ -67,6 +69,8 @@ describe("AnchorMinigame", () => {
     fireEvent.keyDown(window, { key: "Enter" });
     fireEvent.click(screen.getByRole("button", { name: "Close" }));
     now.mockReturnValue(6_000);
+    fireEvent.click(screen.getByRole("button", { name: "Apply wind/tide change" }));
+    fireEvent.click(screen.getByRole("button", { name: "Run anchor watch" }));
     fireEvent.keyDown(window, { key: "Enter" });
 
     expect(screen.getByText("Modeled checks passed")).toBeTruthy();
