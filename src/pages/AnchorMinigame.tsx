@@ -155,6 +155,13 @@ const AnchorMinigame = () => {
   const scope = game.rode > 0 ? game.rode / maximumVerticalDistance : 0;
   const plannedSwingRadius = getPlannedSwingRadius(game.rode, scenario);
   const sweptRadius = getSweptRadius(game.rode, scenario);
+  const planMaximumExtent = Math.max(
+    scenario.availableSwingRadius,
+    sweptRadius,
+    ...scenario.hazards.map(({ distance, clearance }) => distance + clearance),
+    ...scenario.neighbours.map(({ distance, swingRadius }) => distance + swingRadius),
+  );
+  const planScale = 150 / planMaximumExtent;
   const anchorAheadBy = game.anchorOnBottom && game.anchorX !== null ? game.anchorX - bowTipX : 0;
 
   const resetPosition = () => {
@@ -197,7 +204,10 @@ const AnchorMinigame = () => {
   const checkPlacement = useCallback(() => {
     setAttempts((value) => value + 1);
     const result = evaluatePlacement(game, scenario);
-    if (result.type === "failure" && result.issues.length === 1 && result.issues[0] === "verification") {
+    if (result.type === "failure"
+      && result.issues.includes("verification")
+      && !result.issues.includes("procedure")
+      && !result.issues.includes("scope")) {
       setGame(startHoldingObservation(game));
       setLastStatus("Fixed-position observation started. Hold the progressive setting load and re-check after 5 seconds without moving or changing rode.");
     }
@@ -221,10 +231,10 @@ const AnchorMinigame = () => {
   }, [game, scenario]);
 
   const applyChange = useCallback(() => {
-    const result = applyWindTideChange(game);
+    const result = applyWindTideChange(game, scenario);
     setGame(result.state);
     setLastStatus(result.status);
-  }, [game]);
+  }, [game, scenario]);
 
   const watchAnchor = useCallback(() => {
     const result = runAnchorWatch(game, scenario);
@@ -526,7 +536,8 @@ const AnchorMinigame = () => {
                   onReset={resetPosition}
                   onRemediate={() => navigate(anchorTheoryRoute(resultOverlay.type === "success"
                     ? returnTopic
-                    : resultOverlay.issues?.includes("procedure") ? "procedure" : "scope", "practice"))}
+                    : resultOverlay.issues?.includes("procedure") ? "procedure"
+                    : resultOverlay.issues?.includes("watch") ? "swinging-room" : "scope", "practice"))}
                 />
               )}
             </div>
@@ -569,20 +580,20 @@ const AnchorMinigame = () => {
           </CardHeader>
           <CardContent className="space-y-3">
             <svg aria-label="Anchoring swept-area plan" viewBox="0 0 520 360" className="w-full max-h-96 rounded-lg border bg-muted/20">
-              <circle cx="260" cy="180" r="150" fill="none" stroke="hsl(var(--border))" strokeWidth="3" />
-              <circle cx="260" cy="180" r={Math.min(145, sweptRadius / scenario.availableSwingRadius * 150)} fill="hsl(var(--ocean-light))" fillOpacity="0.25" stroke="hsl(var(--ocean))" strokeWidth="3" strokeDasharray="8 5" />
+              <circle data-testid="room-boundary" cx="260" cy="180" r={scenario.availableSwingRadius * planScale} fill="none" stroke="hsl(var(--border))" strokeWidth="3" />
+              <circle data-testid="swept-area" cx="260" cy="180" r={sweptRadius * planScale} fill="hsl(var(--ocean-light))" fillOpacity="0.25" stroke={sweptRadius > scenario.availableSwingRadius ? "hsl(var(--destructive))" : "hsl(var(--ocean))"} strokeWidth="3" strokeDasharray="8 5" />
               <circle cx="260" cy="180" r="5" fill="hsl(var(--primary))" />
               <text x="268" y="174" fontSize="12">Anchor</text>
               {scenario.hazards.map((hazard) => {
                 const radians = hazard.bearing * Math.PI / 180;
-                const scale = 150 / scenario.availableSwingRadius;
+                const scale = planScale;
                 const x = 260 + Math.sin(radians) * hazard.distance * scale;
                 const y = 180 - Math.cos(radians) * hazard.distance * scale;
                 return <g key={hazard.label}><circle cx={x} cy={y} r={hazard.clearance * scale} fill="hsl(var(--destructive))" fillOpacity="0.3" /><text x={x + 6} y={y} fontSize="11">{hazard.label}</text></g>;
               })}
               {scenario.neighbours.map((neighbour) => {
                 const radians = neighbour.bearing * Math.PI / 180;
-                const scale = 150 / scenario.availableSwingRadius;
+                const scale = planScale;
                 const x = 260 + Math.sin(radians) * neighbour.distance * scale;
                 const y = 180 - Math.cos(radians) * neighbour.distance * scale;
                 return <g key={neighbour.label}><circle cx={x} cy={y} r={neighbour.swingRadius * scale} fill="hsl(var(--accent))" fillOpacity="0.25" stroke="hsl(var(--accent))" /><text x={x + 6} y={y} fontSize="11">{neighbour.label}</text></g>;

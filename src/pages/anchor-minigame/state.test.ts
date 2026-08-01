@@ -133,7 +133,7 @@ describe("anchor minigame transitions", () => {
     const placed = {
       ...createInitialState(), boatX: 10, rode: 39, anchorOnBottom: true, anchorX: 24,
     };
-    expect(checkPlacement({ ...placed, setLoadSteps: 3 }, scenario, 5_000).issues).toEqual(["verification"]);
+    expect(checkPlacement({ ...placed, setLoadSteps: 3 }, scenario, 5_000).issues).toEqual(["verification", "watch"]);
     expect(checkPlacement({
       ...placed,
       rode: 43,
@@ -181,11 +181,24 @@ describe("anchor minigame transitions", () => {
       holdingObservationStartedAt: 0, holdingReferenceBowX: 10,
     };
     expect(runAnchorWatch(observed, scenario, 5_000).status).toContain("wind/tide change");
-    const changed = applyWindTideChange(observed).state;
+    const changed = applyWindTideChange(observed, scenario, 5_000).state;
     expect(runAnchorWatch(changed, scenario, 5_000).state.anchorWatchComplete).toBe(true);
     const weak = runAnchorWatch(changed, { ...scenario, weakHolding: true }, 5_000);
     expect(weak.state.dragging).toBe(true);
     expect(weak.status).toContain("detected dragging");
+  });
+
+  it("cannot apply the condition change before setting and observation, and invalidates it on later changes", () => {
+    expect(applyWindTideChange(createInitialState(), scenario, 5_000).state.conditionsChanged).toBe(false);
+    const eligible = {
+      ...createInitialState(), anchorOnBottom: true, anchorX: 24, boatX: 10, rode: 32, setLoadSteps: 3,
+      holdingObservationStartedAt: 0, holdingReferenceBowX: 10,
+    };
+    const changed = applyWindTideChange(eligible, scenario, 5_000).state;
+    expect(changed.conditionsChanged).toBe(true);
+    expect(moveBoat(changed, -1, 6.6).state.conditionsChanged).toBe(false);
+    expect(changeRode(changed, 1, 6.6).state.conditionsChanged).toBe(false);
+    expect(applySettingLoad(changed, scenario).state.conditionsChanged).toBe(false);
   });
 
   it("requires engine support before recovery and preserves a safer re-anchor path", () => {

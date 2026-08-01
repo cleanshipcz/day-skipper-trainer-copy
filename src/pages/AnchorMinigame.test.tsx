@@ -56,6 +56,33 @@ describe("AnchorMinigame", () => {
     expect(screen.getByText(/Differently swinging neighbours:/)).toBeTruthy();
   });
 
+  it("draws an unsafe swept area beyond the room boundary", async () => {
+    const user = userEvent.setup();
+    render(<MemoryRouter><AnchorMinigame /></MemoryRouter>);
+    for (let index = 0; index < 43; index += 1) await user.click(screen.getByRole("button", { name: "↓ Down (pay out)" }));
+    const room = Number(screen.getByTestId("room-boundary").getAttribute("r"));
+    const swept = Number(screen.getByTestId("swept-area").getAttribute("r"));
+    expect(swept).toBeGreaterThan(room);
+    expect(screen.getByTestId("swept-area").getAttribute("stroke")).toContain("destructive");
+  });
+
+  it("routes missing post-change watch work to the anchor-watch lesson", async () => {
+    const now = vi.spyOn(Date, "now").mockReturnValue(1_000);
+    const Probe = () => { const location = useLocation(); return <p>Route: {location.pathname}{location.search}</p>; };
+    render(<MemoryRouter><Routes><Route path="/" element={<AnchorMinigame />} /><Route path="*" element={<Probe />} /></Routes></MemoryRouter>);
+    for (let index = 0; index < 32; index += 1) fireEvent.keyDown(window, { key: "ArrowDown" });
+    for (let index = 0; index < 10; index += 1) fireEvent.keyDown(window, { key: "ArrowLeft" });
+    for (let index = 0; index < 3; index += 1) fireEvent.click(screen.getByRole("button", { name: "Apply setting load" }));
+    fireEvent.keyDown(window, { key: "Enter" });
+    fireEvent.click(screen.getByRole("button", { name: "Close" }));
+    now.mockReturnValue(6_000);
+    fireEvent.click(screen.getByRole("button", { name: "Apply wind/tide change" }));
+    fireEvent.keyDown(window, { key: "Enter" });
+    fireEvent.click(screen.getByRole("button", { name: "Review anchor-watch lesson" }));
+    expect(await screen.findByText("Route: /anchorwork?topic=swinging-room&from=practice")).toBeTruthy();
+    now.mockRestore();
+  });
+
   it("supports keyboard placement, checking, and reset without writing browser storage", () => {
     const now = vi.spyOn(Date, "now").mockReturnValue(1_000);
     const localSetItem = vi.spyOn(window.localStorage, "setItem");
