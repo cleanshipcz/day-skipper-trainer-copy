@@ -80,6 +80,29 @@ describe("RopeworkTheory durable progress", () => {
     expect(mocks.save.mock.calls[1]).toEqual(mocks.save.mock.calls[0]);
   });
 
+  it("keeps learning read-only after a failed authenticated load until retry succeeds", async () => {
+    mocks.load
+      .mockResolvedValueOnce({ status: "failed", record: null })
+      .mockResolvedValueOnce({
+        status: "remote",
+        record: record({ version: 1, learnedKnotIds: [knots[1].id] }, false, 14),
+      });
+    const user = userEvent.setup();
+    renderPage();
+
+    const bowline = screen.getByRole("button", { name: knots[0].name }) as HTMLButtonElement;
+    const retry = await screen.findByRole("button", { name: "Retry load" });
+    expect(bowline.disabled).toBe(true);
+    await user.click(bowline);
+    expect(mocks.save).not.toHaveBeenCalled();
+
+    await user.click(retry);
+    await waitFor(() => expect(bowline.disabled).toBe(false));
+    expect(mocks.load).toHaveBeenCalledTimes(2);
+    expect(screen.getByText("Learned", { selector: `#${knots[1].id}-state` })).toBeTruthy();
+    expect(mocks.save).not.toHaveBeenCalled();
+  });
+
   it("keeps anonymous learning local and marks completion without remote points", async () => {
     mocks.load.mockResolvedValue({ status: "anonymous", record: null });
     mocks.save.mockResolvedValue("anonymous");

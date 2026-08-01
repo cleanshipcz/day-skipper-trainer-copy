@@ -38,11 +38,13 @@ const RopeworkTheory = () => {
   const [announcement, setAnnouncement] = useState("");
   const [persistenceStatus, setPersistenceStatus] = useState<"loading" | "ready" | "saving" | "saved" | "anonymous" | "failed">("loading");
   const [pendingLearnedIds, setPendingLearnedIds] = useState<string[] | null>(null);
+  const [loadRevision, setLoadRevision] = useState(0);
   const knotButtonRefs = useRef<Record<string, HTMLButtonElement | null>>({});
   const detailsHeadingRef = useRef<HTMLHeadingElement>(null);
 
   useEffect(() => {
     let cancelled = false;
+    setPendingLearnedIds(null);
     setPersistenceStatus("loading");
     void loadProgressDetailed(TOPIC_IDS.ROPEWORK).then((result) => {
       if (cancelled) return;
@@ -61,7 +63,7 @@ const RopeworkTheory = () => {
       if (!cancelled) setPersistenceStatus("failed");
     });
     return () => { cancelled = true; };
-  }, [loadProgressDetailed]);
+  }, [loadProgressDetailed, loadRevision]);
 
   const persistLearnedIds = async (learnedIds: string[]) => {
     setPersistenceStatus("saving");
@@ -86,7 +88,7 @@ const RopeworkTheory = () => {
   };
 
   const handleKnotClick = (knot: Knot) => {
-    if (persistenceStatus === "loading" || persistenceStatus === "saving") return;
+    if (persistenceStatus === "loading" || persistenceStatus === "saving" || persistenceStatus === "failed") return;
     const wasDiscovered = knot.discovered;
 
     if (!knot.discovered) {
@@ -158,9 +160,11 @@ const RopeworkTheory = () => {
           {persistenceStatus === "anonymous" && "Progress is available for this visit. Sign in to save it across devices."}
           {persistenceStatus === "failed" && (
             <span className="inline-flex items-center gap-3">
-              Progress could not be saved.
-              {pendingLearnedIds && (
+              {pendingLearnedIds ? "Progress could not be saved." : "Saved progress could not be loaded. Learning is paused to protect your existing progress."}
+              {pendingLearnedIds ? (
                 <Button size="sm" variant="outline" onClick={() => void persistLearnedIds(pendingLearnedIds)}>Retry save</Button>
+              ) : (
+                <Button size="sm" variant="outline" onClick={() => setLoadRevision((revision) => revision + 1)}>Retry load</Button>
               )}
             </span>
           )}
@@ -183,7 +187,7 @@ const RopeworkTheory = () => {
                   aria-describedby={`${knot.id}-uses ${knot.id}-state`}
                   className="absolute inset-0 z-10 rounded-lg focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
                   onClick={() => handleKnotClick(knot)}
-                  disabled={persistenceStatus === "loading" || persistenceStatus === "saving"}
+                  disabled={persistenceStatus === "loading" || persistenceStatus === "saving" || persistenceStatus === "failed"}
                 />
                 <CardHeader>
                   <div className="flex items-start justify-between">
