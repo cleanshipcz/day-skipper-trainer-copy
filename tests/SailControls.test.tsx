@@ -155,6 +155,50 @@ describe("SailControls schematic geometry", () => {
     expect(progressMocks.saveProgressDetailed).toHaveBeenCalledTimes(1);
     vi.useRealTimers();
   });
+
+  it("tracks a confirmed first save so its immediate retake is described as preserved", async () => {
+    vi.useFakeTimers();
+    progressMocks.user = { id: "user-a" };
+    progressMocks.loadProgressDetailed.mockResolvedValue({ status: "missing", record: null });
+    progressMocks.saveProgressDetailed.mockResolvedValue("remote");
+    render(<TestRouter><SailControls /></TestRouter>);
+    await act(async () => { await Promise.resolve(); });
+
+    finishQuiz();
+    await act(async () => { await Promise.resolve(); });
+    expect(screen.getByTestId("durable-status").textContent).toBe("Completion saved to your account.");
+
+    fireEvent.click(screen.getByRole("button", { name: "Try Again" }));
+    for (let question = 1; question <= 12; question += 1) {
+      fireEvent.click(answerForCurrentQuestion());
+      act(() => vi.advanceTimersByTime(1000));
+    }
+    await act(async () => { await Promise.resolve(); });
+
+    expect(screen.getByTestId("durable-status").textContent).toBe(
+      "A completion is saved to your account. Retakes do not replace that durable record."
+    );
+    expect(progressMocks.saveProgressDetailed).toHaveBeenCalledTimes(2);
+    vi.useRealTimers();
+  });
+
+  it("describes a confirmed save conservatively when the earlier load failed", async () => {
+    vi.useFakeTimers();
+    progressMocks.user = { id: "user-a" };
+    progressMocks.loadProgressDetailed.mockResolvedValue({ status: "failed", record: null });
+    progressMocks.saveProgressDetailed.mockResolvedValue("remote");
+    render(<TestRouter><SailControls /></TestRouter>);
+    await act(async () => { await Promise.resolve(); });
+    expect(screen.getByRole("alert")).toBeTruthy();
+
+    finishQuiz();
+    await act(async () => { await Promise.resolve(); });
+
+    expect(screen.getByTestId("durable-status").textContent).toBe(
+      "A completion is saved to your account. Because earlier progress could not be loaded, this may be the previously saved record."
+    );
+    vi.useRealTimers();
+  });
   it("preserves safety-critical taxonomy and trim guidance", () => {
     const { container } = render(<TestRouter><SailControls /></TestRouter>);
 

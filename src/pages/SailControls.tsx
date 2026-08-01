@@ -37,6 +37,8 @@ type DurableStatus =
   | "queued"
   | "remote"
   | "failed";
+type DurableCompletionKnowledge = "absent" | "existing" | "unknown";
+type RemoteSaveSemantics = "new" | "preserved" | "unknown";
 
 interface SailControlsProgressPayload {
   module: "sail-controls";
@@ -586,7 +588,10 @@ const SailControls = () => {
   const [durableStatus, setDurableStatus] = useState<DurableStatus>(user ? "loading" : "anonymous");
   const [pendingCompletion, setPendingCompletion] = useState<{ percentage: number; score: number } | null>(null);
   const [loadRevision, setLoadRevision] = useState(0);
-  const [hasDurableCompletion, setHasDurableCompletion] = useState(false);
+  const [durableCompletionKnowledge, setDurableCompletionKnowledge] = useState<DurableCompletionKnowledge>(
+    user ? "unknown" : "absent"
+  );
+  const [remoteSaveSemantics, setRemoteSaveSemantics] = useState<RemoteSaveSemantics>("new");
 
   const persistCompletion = useCallback(async (percentage: number, finalScore: number) => {
     if (!user) {
@@ -594,6 +599,7 @@ const SailControls = () => {
       return;
     }
     const ownerId = user.id;
+    const knowledgeBeforeSave = durableCompletionKnowledge;
     setDurableStatus("saving");
     setPendingCompletion({ percentage, score: finalScore });
     const payload: SailControlsProgressPayload = { module: "sail-controls", version: 1, score: finalScore };
@@ -611,8 +617,14 @@ const SailControls = () => {
       result = "failed";
     }
     if (ownerRef.current !== ownerId) return;
+    if (result === "remote") {
+      setRemoteSaveSemantics(
+        knowledgeBeforeSave === "absent" ? "new" : knowledgeBeforeSave === "existing" ? "preserved" : "unknown"
+      );
+      setDurableCompletionKnowledge("existing");
+    }
     setDurableStatus(result === "remote" ? "remote" : result === "queued" ? "queued" : result === "anonymous" ? "anonymous" : "failed");
-  }, [saveProgressDetailed, user]);
+  }, [durableCompletionKnowledge, saveProgressDetailed, user]);
 
   useEffect(() => {
     let cancelled = false;
@@ -627,6 +639,7 @@ const SailControls = () => {
     void loadProgressDetailed(TOPIC_IDS.NAUTICAL_TERMS_SAIL_CONTROLS).then((loadResult) => {
       if (cancelled || ownerRef.current !== ownerId) return;
       if (loadResult.status === "failed") {
+        setDurableCompletionKnowledge("unknown");
         setDurableStatus("failed");
         return;
       }
@@ -646,10 +659,12 @@ const SailControls = () => {
         setActivePart(null);
         setPartProgress(Object.fromEntries(sailControls.map((part) => [part.id, { state: "correct", attempts: 1 }] as const)));
         setPendingCompletion({ percentage: record?.score ?? 0, score: restoredScore });
-        setHasDurableCompletion(true);
+        setDurableCompletionKnowledge("existing");
+        setRemoteSaveSemantics("preserved");
         setDurableStatus("remote");
       } else {
-        setHasDurableCompletion(false);
+        setDurableCompletionKnowledge("absent");
+        setRemoteSaveSemantics("new");
         setDurableStatus("ready");
       }
     }).catch((error) => {
@@ -1115,9 +1130,11 @@ const SailControls = () => {
                       {durableStatus === "anonymous" && "Completed on this device. Sign in to save your progress."}
                       {durableStatus === "saving" && "Saving completion…"}
                       {durableStatus === "queued" && "Completion saved offline and queued to sync."}
-                      {durableStatus === "remote" && (hasDurableCompletion
-                        ? "A completion is saved to your account. Retakes do not replace that durable record."
-                        : "Completion saved to your account.")}
+                      {durableStatus === "remote" && remoteSaveSemantics === "new" && "Completion saved to your account."}
+                      {durableStatus === "remote" && remoteSaveSemantics === "preserved" &&
+                        "A completion is saved to your account. Retakes do not replace that durable record."}
+                      {durableStatus === "remote" && remoteSaveSemantics === "unknown" &&
+                        "A completion is saved to your account. Because earlier progress could not be loaded, this may be the previously saved record."}
                       {durableStatus === "failed" && "Completion is still available here, but could not be saved."}
                     </div>
                     {durableStatus === "failed" && pendingCompletion && user && (
