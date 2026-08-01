@@ -61,13 +61,13 @@ describe("ropework knot safety guidance", () => {
     expect(rollingHitch.uses).toBe(
       "Attaches a usually smaller rope to a larger rope for a pull nearly parallel to the larger rope, gripping in one stated direction only. It may fail on slippery modern rope or if pulled away from the main rope.",
     );
-    expect(rollingHitch.steps).toEqual(
-      expect.arrayContaining([
-        "Point the standing part of the hitching rope in the exact direction of the expected pull, nearly parallel to the main rope, and leave a generous working end",
-        "Continue in the same direction for a second turn toward the pull; cross over the first turn and tuck the working end between the first turn and the main rope",
-        "Continue around the main rope in the same direction and finish with a half hitch on the side away from the pull",
-        "Inspect the direction and tail, then test progressively: it must grip only along the main rope toward the doubled turns; do not use it on slippery rope or for a sideways pull",
-      ]),
-    );
+    expect(rollingHitch.steps).toEqual([
+      "Point the standing part of the hitching rope in the exact direction of the expected pull, nearly parallel to the main rope, and leave a generous working end",
+      "On the side from which that pull is expected, pass the working end around the main rope to make the first turn",
+      "Continue in the same direction for a second turn toward the pull; cross over the first turn and tuck the working end between the first turn and the main rope",
+      "Continue around the main rope in the same direction and finish with a half hitch on the side away from the pull",
+      "Dress the two gripping turns tightly together toward the pull, snug the final half hitch, and set the hitch before applying load",
+      "Inspect the direction and tail, then test progressively: it must grip only along the main rope toward the doubled turns; do not use it on slippery rope or for a sideways pull",
+    ]);
   });
 });
