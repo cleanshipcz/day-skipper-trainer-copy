@@ -189,8 +189,22 @@ try {
   await send("Runtime.enable");
   await send("Network.enable");
   await send("Page.enable");
+  await send("Page.addScriptToEvaluateOnNewDocument", {
+    source: `(() => {
+      const forced = new URL(location.href).searchParams.get("scenarioRandom");
+      if (forced !== null) Math.random = () => Number(forced);
+    })();`,
+  });
 
-  for (const width of [375, 768, 1280]) {
+  const coverageMatrix = [
+    { width: 375, random: 0, title: "Sheltered cove", rode: 32, overRoomRode: 43, astern: 5, settingLoads: 3 },
+    { width: 768, random: 0.26, title: "Harbour afternoon", rode: 48, overRoomRode: 59, astern: 6, settingLoads: 4 },
+    { width: 1280, random: 0.51, title: "Open roadstead", rode: 78, overRoomRode: 89, astern: 7, settingLoads: 5 },
+    { width: 768, random: 0.76, title: "Tidal river bend", rode: 46, overRoomRode: 53, astern: 6, settingLoads: 4 },
+  ];
+
+  for (const workflow of coverageMatrix) {
+    const { width } = workflow;
     await send("Emulation.setDeviceMetricsOverride", {
       width,
       height: 900,
@@ -198,7 +212,7 @@ try {
       mobile: width === 375,
     });
     networkRequests.length = 0;
-    await send("Page.navigate", { url: `http://127.0.0.1:${previewPort}/anchor-minigame` });
+    await send("Page.navigate", { url: `http://127.0.0.1:${previewPort}/anchor-minigame?scenarioRandom=${workflow.random}` });
     try {
       await waitForText("Anchoring Simulator");
     } catch (error) {
@@ -226,13 +240,23 @@ try {
     }
 
     const scenarioTitle = await evaluate(`document.querySelector("main h3")?.textContent?.trim()`);
-    const workflow = {
-      "Sheltered cove": { rode: 32, astern: 5, settingLoads: 3 },
-      "Harbour afternoon": { rode: 48, astern: 6, settingLoads: 4 },
-      "Open roadstead": { rode: 78, astern: 7, settingLoads: 5 },
-      "Tidal river bend": { rode: 46, astern: 6, settingLoads: 4 },
-    }[scenarioTitle];
-    if (!workflow) throw new Error(`${width}px unknown scenario fixture: ${scenarioTitle}`);
+    if (scenarioTitle !== workflow.title) {
+      throw new Error(`${width}px deterministic scenario mismatch: expected ${workflow.title}, received ${scenarioTitle}`);
+    }
+
+    // Negative checkpoints keep both safety gates observable in the browser
+    // characterization: adequate geometry alone cannot replace setting load,
+    // and extra rode is rejected when its calculated swing exceeds the fixture.
+    await clickButton("↓ Down (pay out)", workflow.rode);
+    await clickButton("← Left", workflow.astern);
+    await clickButton("Enter (check)");
+    await waitForText("progressive setting load not completed");
+    await clickButton("Close");
+    await clickButton("↓ Down (pay out)", workflow.overRoomRode - workflow.rode);
+    await clickButton("Enter (check)");
+    await waitForText("planned swing exceeds safe room");
+    await clickButton("Try again here");
+    await waitForText("Anchor not set");
 
     await clickButton("↓ Down (pay out)", workflow.rode);
     await clickButton("← Left", workflow.astern);
@@ -285,7 +309,7 @@ try {
 
   await send("Browser.close");
   socket.close();
-  console.log("Anchor browser characterization passed at 375px, 768px, and 1280px (pointer, keyboard, layout, storage).");
+  console.log("Anchor browser characterization passed every scenario fixture across 375px, 768px, and 1280px (negative safety gates, pointer, keyboard, layout, storage).");
 } finally {
   for (const child of children.reverse()) {
     if (child.exitCode === null && !child.killed) child.kill("SIGTERM");
