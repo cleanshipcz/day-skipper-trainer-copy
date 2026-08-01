@@ -35,7 +35,7 @@ describe("AnchorMinigame", () => {
     expect(screen.getByRole("button", { name: "Review procedure lesson" })).toBeTruthy();
   });
 
-  it.each([375, 768, 1280])("supports pointer controls in a %ipx viewport", async (width) => {
+  it.each([320, 375, 768, 1280])("supports pointer controls in a %ipx viewport", async (width) => {
     Object.defineProperty(window, "innerWidth", { configurable: true, value: width });
     const user = userEvent.setup();
     const { container } = render(<MemoryRouter><AnchorMinigame /></MemoryRouter>);
@@ -43,6 +43,41 @@ describe("AnchorMinigame", () => {
     await user.click(screen.getByRole("button", { name: "↓ Down (pay out)" }));
     expect(screen.getByText("1.0 m")).toBeTruthy();
     expect(container.querySelector('svg[aria-label="Anchoring side profile"]')?.getAttribute("viewBox")).toBe("0 0 760 360");
+  });
+
+  it.each(["mouse", "touch"])("supports continuous %s manipulation on the active surface", (pointerType) => {
+    render(<MemoryRouter><AnchorMinigame /></MemoryRouter>);
+    const surface = screen.getByRole("application", { name: /Anchor manipulation surface/ });
+    let captured: number | null = null;
+    surface.setPointerCapture = vi.fn((pointerId) => { captured = pointerId; });
+    surface.hasPointerCapture = vi.fn((pointerId) => captured === pointerId);
+    surface.releasePointerCapture = vi.fn(() => { captured = null; });
+
+    fireEvent.pointerDown(surface, { pointerId: 7, pointerType, isPrimary: true, button: 0, clientX: 100, clientY: 100 });
+    fireEvent.pointerMove(surface, { pointerId: 7, pointerType, isPrimary: true, clientX: 62, clientY: 130 });
+    fireEvent.pointerUp(surface, { pointerId: 7, pointerType, isPrimary: true, clientX: 62, clientY: 130 });
+
+    expect(screen.getByText("2.0 m")).toBeTruthy();
+    expect(screen.getByText("Drifting back from the anchor")).toBeTruthy();
+    expect(surface.className).toContain("touch-none");
+  });
+
+  it("stops manipulation safely after pointer cancellation or capture loss", () => {
+    render(<MemoryRouter><AnchorMinigame /></MemoryRouter>);
+    const surface = screen.getByRole("application", { name: /Anchor manipulation surface/ });
+    surface.setPointerCapture = vi.fn();
+    surface.hasPointerCapture = vi.fn(() => false);
+    surface.releasePointerCapture = vi.fn();
+
+    fireEvent.pointerDown(surface, { pointerId: 8, pointerType: "touch", isPrimary: true, clientX: 20, clientY: 20 });
+    fireEvent.pointerCancel(surface, { pointerId: 8, pointerType: "touch", isPrimary: true });
+    fireEvent.pointerMove(surface, { pointerId: 8, pointerType: "touch", isPrimary: true, clientX: 20, clientY: 100 });
+    expect(screen.getByText("0.0 m")).toBeTruthy();
+
+    fireEvent.pointerDown(surface, { pointerId: 9, pointerType: "mouse", isPrimary: true, button: 0, clientX: 20, clientY: 20 });
+    fireEvent.lostPointerCapture(surface, { pointerId: 9, pointerType: "mouse", isPrimary: true });
+    fireEvent.pointerMove(surface, { pointerId: 9, pointerType: "mouse", isPrimary: true, clientX: 20, clientY: 100 });
+    expect(screen.getByText("0.0 m")).toBeTruthy();
   });
 
   it("shows the scenario factors, reviewed basis, and limits of the model", () => {
