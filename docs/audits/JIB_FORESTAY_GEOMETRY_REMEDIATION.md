@@ -29,8 +29,13 @@ References:
   after the redraw.
 - Sail Controls uses the same conceptual orientation at its independent scale.
   The jib halyard starts at the head, and the jib sheet starts at the clew and
-  runs through the fairlead area. Their labels, highlight groups, and click
-  handlers remain on the same SVG groups as the redrawn paths.
+  runs aft (away from the bow) through the fairlead toward the cockpit/winch.
+  Their labels, highlight groups, and click handlers remain on the same SVG
+  groups as the redrawn paths.
 - Automated DOM geometry tests lock the jib, forestay, halyard, sheet, marker,
-  and endpoint coordinates. The responsive SVG view boxes and existing minimum
-  touch-target scaling remain unchanged for desktop and mobile layouts.
+  and endpoint relationships, including the clew-to-fairlead-to-winch aftward
+  ordering. The Sail Controls diagram retains a 600 px effective minimum width
+  in a horizontal scroll container on narrow screens, and each of its 12
+  controls has a transparent SVG hit region at least 44 by 44 units. Interaction
+  tests exercise sheet highlighting and fairlead activation through that hit
+  region.
