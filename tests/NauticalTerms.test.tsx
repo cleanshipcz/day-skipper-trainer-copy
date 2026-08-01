@@ -1,22 +1,24 @@
 import { describe, it, expect, vi, beforeEach } from "vitest";
-import { render, screen } from "@testing-library/react";
+import { render, screen, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import NauticalTerms from "../src/pages/NauticalTerms";
 import TestRouter from "./TestRouter";
 
 const saveProgressMock = vi.fn();
+const saveProgressAccountBMock = vi.fn();
 const loadProgressMock = vi.fn().mockResolvedValue(null);
+let currentUser: { id: string } | null = { id: "test-user" };
 
 vi.mock("@/hooks/useProgress", () => ({
   useProgress: () => ({
-    saveProgress: saveProgressMock,
+    saveProgress: currentUser?.id === "account-b" ? saveProgressAccountBMock : saveProgressMock,
     loadProgress: loadProgressMock,
   }),
 }));
 
 vi.mock("@/contexts/AuthHooks", () => ({
   useAuth: () => ({
-    user: { id: "test-user" },
+    user: currentUser,
   }),
 }));
 
@@ -33,8 +35,186 @@ vi.mock("sonner", () => ({
 
 describe("NauticalTerms progress writes", () => {
   beforeEach(() => {
-    saveProgressMock.mockClear();
-    loadProgressMock.mockClear();
+    saveProgressMock.mockReset().mockResolvedValue(true);
+    saveProgressAccountBMock.mockReset().mockResolvedValue(true);
+    loadProgressMock.mockReset().mockResolvedValue(null);
+    currentUser = { id: "test-user" };
+  });
+
+  it("does not write initial state while hydration is delayed or after it completes", async () => {
+    let resolveLoad: (value: null) => void = () => undefined;
+    loadProgressMock.mockReturnValueOnce(
+      new Promise<null>((resolve) => {
+        resolveLoad = resolve;
+      })
+    );
+
+    render(
+      <TestRouter>
+        <NauticalTerms />
+      </TestRouter>
+    );
+
+    await waitFor(() => expect(loadProgressMock).toHaveBeenCalledOnce());
+    expect(saveProgressMock).not.toHaveBeenCalled();
+
+    resolveLoad(null);
+    await waitFor(() => expect(screen.getAllByRole("button", { name: /marker \d+, undiscovered/i })).toHaveLength(20));
+    expect(saveProgressMock).not.toHaveBeenCalled();
+  });
+
+  it("normalizes partial, stale, and malformed saved progress against the current catalogue", async () => {
+    loadProgressMock.mockResolvedValueOnce({
+      answers_history: {
+        partProgress: {
+          bow: { state: "correct", attempts: 1 },
+          stern: { state: "corrupt", attempts: -10 },
+          hull: { state: "wrong", attempts: Number.POSITIVE_INFINITY },
+          obsolete_part: { state: "correct", attempts: 1 },
+        },
+        score: 999,
+      },
+    });
+
+    const { container } = render(
+      <TestRouter>
+        <NauticalTerms />
+      </TestRouter>
+    );
+
+    await waitFor(() => expect(screen.getByRole("progressbar").getAttribute("aria-valuenow")).toBe("1"));
+    expect(screen.getByRole("button", { name: /marker 1, correct/i })).toBeTruthy();
+    expect(screen.getByRole("button", { name: /marker 2, undiscovered/i })).toBeTruthy();
+    expect(screen.getByRole("button", { name: /marker 3, wrong/i })).toBeTruthy();
+    expect(container.querySelector('[data-marker-id="obsolete_part"]')).toBeNull();
+    expect(container.querySelector("header")?.textContent).toContain("200");
+    expect(saveProgressMock).not.toHaveBeenCalled();
+  });
+
+  it("recovers from rejected and malformed loads without an unhandled rejection or premature write", async () => {
+    const user = userEvent.setup();
+    const consoleError = vi.spyOn(console, "error").mockImplementation(() => undefined);
+    loadProgressMock.mockRejectedValueOnce(new Error("offline"));
+
+    render(
+      <TestRouter>
+        <NauticalTerms />
+      </TestRouter>
+    );
+
+    await waitFor(() => expect(consoleError).toHaveBeenCalledWith("Error loading boat parts progress:", expect.any(Error)));
+    expect(screen.getAllByRole("button", { name: /marker \d+, undiscovered/i })).toHaveLength(20);
+    expect(saveProgressMock).not.toHaveBeenCalled();
+
+    await user.click(screen.getByRole("button", { name: /marker 1, undiscovered/i }));
+    await user.click(screen.getByRole("button", { name: "Bow" }));
+    await waitFor(() => expect(saveProgressMock).toHaveBeenCalled());
+    consoleError.mockRestore();
+  });
+
+  it("serializes saves and coalesces queued changes so reset remains the latest persisted state", async () => {
+    const user = userEvent.setup();
+    let resolveFirstSave: (value: boolean) => void = () => undefined;
+    saveProgressMock
+      .mockReturnValueOnce(
+        new Promise<boolean>((resolve) => {
+          resolveFirstSave = resolve;
+        })
+      )
+      .mockResolvedValue(true);
+
+    render(
+      <TestRouter>
+        <NauticalTerms />
+      </TestRouter>
+    );
+
+    const marker = await screen.findByRole("button", { name: /marker 1, undiscovered/i });
+    await waitFor(() => expect(loadProgressMock).toHaveBeenCalledOnce());
+    await user.click(marker);
+    await waitFor(() => expect(saveProgressMock).toHaveBeenCalledTimes(1));
+
+    await user.click(screen.getByRole("button", { name: "Bow" }));
+    await user.click(screen.getByRole("button", { name: /reset/i }));
+    expect(saveProgressMock).toHaveBeenCalledTimes(1);
+
+    resolveFirstSave(true);
+    await waitFor(() => expect(saveProgressMock).toHaveBeenCalledTimes(2));
+
+    const [, completed, scorePercentage, , history] = saveProgressMock.mock.calls[1];
+    expect(completed).toBe(false);
+    expect(scorePercentage).toBe(0);
+    expect(history.score).toBe(0);
+    expect(Object.values(history.partProgress)).toHaveLength(20);
+    expect(Object.values(history.partProgress).every((progress) => progress.state === "hidden" && progress.attempts === 0)).toBe(
+      true
+    );
+  });
+
+  it("cannot flush a new account snapshot through the previous account save callback", async () => {
+    const user = userEvent.setup();
+    let resolveAccountASave: (value: boolean) => void = () => undefined;
+    saveProgressMock.mockReturnValueOnce(
+      new Promise<boolean>((resolve) => {
+        resolveAccountASave = resolve;
+      })
+    );
+
+    const view = render(
+      <TestRouter>
+        <NauticalTerms />
+      </TestRouter>
+    );
+
+    await waitFor(() => expect(loadProgressMock).toHaveBeenCalledTimes(1));
+    await user.click(screen.getByRole("button", { name: /marker 1, undiscovered/i }));
+    await waitFor(() => expect(saveProgressMock).toHaveBeenCalledTimes(1));
+
+    currentUser = { id: "account-b" };
+    view.rerender(
+      <TestRouter>
+        <NauticalTerms />
+      </TestRouter>
+    );
+    await waitFor(() => expect(loadProgressMock).toHaveBeenCalledTimes(2));
+    await user.click(screen.getByRole("button", { name: /marker 2, undiscovered/i }));
+    await waitFor(() => expect(saveProgressAccountBMock).toHaveBeenCalledOnce());
+
+    resolveAccountASave(true);
+    await waitFor(() => expect(saveProgressMock).toHaveBeenCalledOnce());
+    expect(saveProgressAccountBMock).toHaveBeenCalledOnce();
+    const accountBHistory = saveProgressAccountBMock.mock.calls[0][4];
+    expect(accountBHistory.partProgress.stern.state).toBe("guessing");
+    expect(accountBHistory.partProgress.bow.state).toBe("hidden");
+  });
+
+  it("continues with the newest queued snapshot after an unexpected save rejection", async () => {
+    const user = userEvent.setup();
+    let rejectFirstSave: (reason: Error) => void = () => undefined;
+    const consoleError = vi.spyOn(console, "error").mockImplementation(() => undefined);
+    saveProgressMock
+      .mockReturnValueOnce(
+        new Promise<boolean>((_resolve, reject) => {
+          rejectFirstSave = reject;
+        })
+      )
+      .mockResolvedValue(true);
+
+    render(
+      <TestRouter>
+        <NauticalTerms />
+      </TestRouter>
+    );
+    await waitFor(() => expect(loadProgressMock).toHaveBeenCalledOnce());
+    await user.click(screen.getByRole("button", { name: /marker 1, undiscovered/i }));
+    await waitFor(() => expect(saveProgressMock).toHaveBeenCalledOnce());
+    await user.click(screen.getByRole("button", { name: /reset/i }));
+
+    rejectFirstSave(new Error("unexpected"));
+    await waitFor(() => expect(saveProgressMock).toHaveBeenCalledTimes(2));
+    expect(consoleError).toHaveBeenCalledWith("Unexpected error saving boat parts progress:", expect.any(Error));
+    expect(saveProgressMock.mock.calls[1][4].score).toBe(0);
+    consoleError.mockRestore();
   });
 
   it("does not write completion for unrelated modules when resetting", async () => {
@@ -56,6 +236,7 @@ describe("NauticalTerms progress writes", () => {
   });
 
   it("exposes marker instructions, state, progress, and icon-only control labels", async () => {
+    loadProgressMock.mockReturnValueOnce(new Promise(() => undefined));
     render(
       <TestRouter>
         <NauticalTerms />
@@ -132,6 +313,7 @@ describe("NauticalTerms progress writes", () => {
   });
 
   it("preserves mobile scale for 44px touch targets without covering the diagram", () => {
+    loadProgressMock.mockReturnValueOnce(new Promise(() => undefined));
     const { container } = render(
       <TestRouter>
         <NauticalTerms />
