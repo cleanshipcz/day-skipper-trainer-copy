@@ -69,8 +69,12 @@ The bank contains 24 four-option questions, four in each explicit namespace:
 
 All IDs are unique, every intended index is in range, every entry has an
 explanation, and catalogue tests lock the count at 24. Seeded option shuffling
-retains each intended answer mapping. Percentage rounding is sound and 70% or
-more passes; client-scored quiz answers intentionally award zero profile points.
+retains each intended answer mapping. Percentage rounding is mathematically
+sound, but the shared whole-bank threshold is not a sound comprehensive Safety
+mastery rule: a learner can miss all four questions from one leaf, answer 17 of
+the other 20 correctly, and pass with the rounded score **71%**. No per-leaf or
+safety-critical-item floor prevents that blind spot. Client-scored quiz answers
+intentionally award zero profile points.
 
 Equal counts should not be mistaken for comprehensive competence coverage. The
 bank has no ordered emergency-response task, equipment/defect image, MAYDAY/DSC
@@ -99,12 +103,23 @@ Three entries require definite correction:
    more specific and demonstrates the variation: qualifying canister rafts may
    be serviced at commissioning, year 3, year 5 or 6 and annually thereafter,
    while valise/ORC rafts are annual and service history changes the rule.
-2. **`safety-flare2` asserts an unexplained universal minimum.** A six-flare
+2. **Every flare item repeats claims that need the dedicated flare corrections
+   coordinated by #348 and #350.** `safety-flare1` presents approximately 300 m
+   launch height and 40 km visibility as universal characteristics;
+   `safety-flare2` asserts an unexplained universal minimum; `safety-flare3`
+   turns product firing instructions into a universal “downwind” holding rule;
+   and `safety-flare4` makes 60 seconds a standard burn time. Height,
+   visibility, orientation/holding and duration depend on product instructions,
+   specification and conditions. A six-flare
    combination may be a familiar recreational pack, but the question supplies
    no country, vessel length/use, voyage category or source. UK carriage
    requirements vary with vessel and distance, while commercial/training codes
    use different tables. “Within 7 miles of shore” does not by itself establish
-   this exact scored answer.
+   this exact scored answer. The comprehensive-bank work must consume the
+   authoritative decisions and corrected wording from the existing leaf-level
+   flare issues [#348](https://github.com/cleanshipcz/day-skipper-trainer-copy/issues/348)
+   and [#350](https://github.com/cleanshipcz/day-skipper-trainer-copy/issues/350),
+   not conduct or ship a conflicting independent flare review.
 3. **`safety-mob3` overclaims mechanism and terminology.** Current MCA/IMO
    recovery guidance supports horizontal or near-horizontal recovery where
    practicable and says vertical recovery risks cardiac arrest in hypothermic
@@ -215,15 +230,29 @@ exam/review sessions.
   establish a sourced carriage recommendation/requirement, or assess selecting
   equipment from the vessel's applicable guidance instead of memorizing an
   unexplained six-flare pack.
+- Consume and coordinate the authoritative flare corrections already owned by
+  #348 and #350: reconcile `safety-flare1` launch height/visibility,
+  `safety-flare3` holding/orientation and `safety-flare4` burn duration with the
+  corrected dedicated flare theory/quiz. Do not create a separate competing set
+  of product claims.
 - Rewrite `safety-mob3` to assess horizontal or near-horizontal recovery where
   practicable and the cardiac-arrest risk of vertical recovery, without
   asserting an unsupported blood-chemistry mechanism.
 - Review every remaining intended answer and explanation against authoritative
-  current guidance plus the corrected six Safety leaves; state vessel,
-  conditions and manufacturer assumptions wherever they affect correctness.
+  current guidance plus the corrected six Safety leaves. Consume and coordinate
+  the existing leaf-level correction issues (including #348/#350) as the source
+  of truth instead of duplicating six independent maritime reviews; state
+  vessel, conditions and manufacturer assumptions wherever they affect
+  correctness.
 - Create and test an explicit `4 × 6` objective matrix, including applied
   emergency sequencing and stop/escalate/manufacturer-instruction boundaries,
   not just namespace counts.
+- Replace the single whole-bank 70% mastery rule with an explicitly justified
+  policy that cannot pass a learner who misses an entire Safety leaf. Require a
+  tested minimum for every leaf and require every designated safety-critical
+  item (or an equivalent critical-objective check) to be answered correctly
+  before the quiz records mastery; completion feedback must identify the leaf
+  or critical objective that needs remediation.
 - Add bank tests for the corrected critical answers/explanations and preserve
   unique stable IDs or provide a review-session migration/retirement plan.
 
