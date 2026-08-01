@@ -24,6 +24,7 @@ const AnchorTheorySession = () => {
   const [tipChecks, setTipChecks] = useState<number[]>([]);
   const [persistenceStatus, setPersistenceStatus] = useState<"loading" | "ready" | "saving" | "saved" | "anonymous" | "failed">("loading");
   const [pendingCompletedIds, setPendingCompletedIds] = useState<string[] | null>(null);
+  const [pendingCompletionTitle, setPendingCompletionTitle] = useState<string | null>(null);
   const [loadRevision, setLoadRevision] = useState(0);
   const [announcement, setAnnouncement] = useState("");
   const topicHeadingRef = useRef<HTMLHeadingElement>(null);
@@ -59,9 +60,10 @@ const AnchorTheorySession = () => {
     return () => { cancelled = true; };
   }, [loadProgressDetailed, loadRevision]);
 
-  const persistCompletedIds = async (completedIds: string[]) => {
+  const persistCompletedIds = async (completedIds: string[], completedTopicTitle?: string) => {
     setPersistenceStatus("saving");
     setPendingCompletedIds(completedIds);
+    setPendingCompletionTitle(completedTopicTitle ?? null);
     const completed = completedIds.length === topics.length;
     const score = Math.round((completedIds.length / topics.length) * 100);
     let result: ProgressSaveResult;
@@ -75,16 +77,20 @@ const AnchorTheorySession = () => {
     }
     if (result === "failed") {
       setPersistenceStatus("failed");
-      setAnnouncement("Anchorwork progress could not be saved. Use Retry save to try again.");
+      setAnnouncement(`${completedTopicTitle ? `${completedTopicTitle} completed. ${completedIds.length} of ${topics.length} topics completed. ` : ""}Anchorwork progress could not be saved. Use Retry save to try again.`);
       return;
     }
     setPendingCompletedIds(null);
+    setPendingCompletionTitle(null);
     setPersistenceStatus(result === "anonymous" ? "anonymous" : "saved");
-    setAnnouncement(result === "anonymous"
+    const completionSummary = completedTopicTitle
+      ? `${completedTopicTitle} completed. ${completedIds.length} of ${topics.length} topics completed. `
+      : "";
+    setAnnouncement(`${completionSummary}${result === "anonymous"
       ? "Completion recorded for this visit. Sign in to save it across devices."
       : result === "queued"
         ? "Anchorwork progress saved offline and queued to sync."
-        : "Anchorwork progress saved.");
+        : "Anchorwork progress saved."}`);
   };
 
   const selectTopic = (topic: Topic) => {
@@ -110,7 +116,7 @@ const AnchorTheorySession = () => {
     setTipChecks([]);
     setAnnouncement(`${topic.title} completed. ${completedIds.length} of ${topics.length} topics completed. Saving progress.`);
     toast.success("Topic study check completed.");
-    void persistCompletedIds(completedIds);
+    void persistCompletedIds(completedIds, topic.title);
     requestAnimationFrame(() => topicHeadingRef.current?.focus());
   };
 
@@ -162,7 +168,7 @@ const AnchorTheorySession = () => {
               <Button
                 size="sm"
                 variant="outline"
-                onClick={() => pendingCompletedIds ? void persistCompletedIds(pendingCompletedIds) : setLoadRevision((revision) => revision + 1)}
+                onClick={() => pendingCompletedIds ? void persistCompletedIds(pendingCompletedIds, pendingCompletionTitle ?? undefined) : setLoadRevision((revision) => revision + 1)}
               >
                 {pendingCompletedIds ? "Retry save" : "Retry load"}
               </Button>
@@ -183,7 +189,7 @@ const AnchorTheorySession = () => {
                   id={`anchor-topic-tab-${topic.id}`}
                   role="tab"
                   aria-selected={selectedTopic?.id === topic.id}
-                  aria-controls={`anchor-topic-panel-${topic.id}`}
+                  aria-controls="anchor-topic-panel"
                   aria-label={`${topic.title}${topic.completed ? ", completed" : ", not completed"}`}
                   tabIndex={selectedTopic?.id === topic.id ? 0 : -1}
                   onClick={() => selectTopic(topic)}
@@ -221,7 +227,7 @@ const AnchorTheorySession = () => {
           <div className="lg:col-span-3 space-y-6">
             {selectedTopic && (
               <>
-                <Card id={`anchor-topic-panel-${selectedTopic.id}`} role="tabpanel" aria-labelledby={`anchor-topic-tab-${selectedTopic.id}`}>
+                <Card id="anchor-topic-panel" role="tabpanel" aria-labelledby={`anchor-topic-tab-${selectedTopic.id}`}>
                   <CardHeader>
                     <div className="flex items-start justify-between">
                       <div>

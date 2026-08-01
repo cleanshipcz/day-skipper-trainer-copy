@@ -97,6 +97,11 @@ describe("AnchorTheory durable completion", () => {
     expect(progress.getAttribute("aria-valuetext")).toBe("0 of 5 topics completed");
 
     const tabs = screen.getAllByRole("tab");
+    for (const tab of tabs) {
+      const controlledId = tab.getAttribute("aria-controls");
+      expect(controlledId).toBe("anchor-topic-panel");
+      expect(document.getElementById(controlledId!)).toBeTruthy();
+    }
     expect(tabs[0].getAttribute("aria-selected")).toBe("true");
     expect(tabs[0].getAttribute("tabindex")).toBe("0");
     expect(tabs[1].getAttribute("tabindex")).toBe("-1");
@@ -112,9 +117,25 @@ describe("AnchorTheory durable completion", () => {
     renderPage();
     await completeVisibleStudyCheck();
 
-    await waitFor(() => expect(screen.getByRole("status").textContent).toBe("Anchorwork progress saved."));
+    await waitFor(() => expect(screen.getByRole("status").textContent).toBe("Plan and Select completed. 1 of 5 topics completed. Anchorwork progress saved."));
     expect(document.activeElement?.textContent).toContain("Plan and Select");
     expect(screen.getByRole("tab", { name: "Plan and Select, completed" })).toBeTruthy();
     expect(document.querySelectorAll("svg:not([aria-hidden='true']):not([role='img'])")).toHaveLength(0);
+  });
+
+  it("keeps completion detail observable while saving and combines it with the final outcome", async () => {
+    let resolveSave!: (result: "remote") => void;
+    mocks.saveProgressDetailed.mockReturnValue(new Promise((resolve) => { resolveSave = resolve; }));
+    renderPage();
+    await completeVisibleStudyCheck();
+
+    expect(screen.getAllByRole("status")).toHaveLength(1);
+    expect(screen.getByRole("status").textContent).toBe("Plan and Select completed. 1 of 5 topics completed. Saving progress.");
+
+    resolveSave("remote");
+    await waitFor(() => expect(screen.getByRole("status").textContent).toBe(
+      "Plan and Select completed. 1 of 5 topics completed. Anchorwork progress saved.",
+    ));
+    expect(screen.getAllByRole("status")).toHaveLength(1);
   });
 });
