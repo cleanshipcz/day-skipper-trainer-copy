@@ -11,6 +11,7 @@ import { TOPIC_IDS } from "@/constants/topicRegistry";
 import { useProgress, type ProgressSaveResult } from "@/hooks/useProgress";
 import { useAuth } from "@/contexts/AuthHooks";
 import { ANCHOR_PROGRESS_VERSION, isValidAnchorCatalogue, parseAnchorProgress } from "@/features/progress/anchorProgress";
+import { AnchorGeometryVisuals } from "@/components/anchorwork/AnchorGeometryVisuals";
 
 const POINTS_PER_TOPIC = 20;
 const ANCHOR_CATALOGUE_VALID = isValidAnchorCatalogue(topics);
@@ -286,71 +287,7 @@ const AnchorTheorySession = () => {
                     </div>
                   </CardHeader>
                   <CardContent>
-                    <div className="relative w-full aspect-video bg-gradient-to-b from-ocean-light/20 to-ocean/40 rounded-lg border-2 border-ocean/30 flex items-center justify-center">
-                      <svg className="w-full h-full" viewBox="0 0 400 250">
-                        {/* Water surface */}
-                        <line
-                          x1="0"
-                          y1="80"
-                          x2="400"
-                          y2="80"
-                          stroke="hsl(var(--ocean))"
-                          strokeWidth="2"
-                          strokeDasharray="5,5"
-                        />
-
-                        {/* Seabed */}
-                        <path
-                          d="M 0 200 Q 100 195 200 200 T 400 200 L 400 250 L 0 250 Z"
-                          fill="hsl(var(--muted))"
-                          opacity="0.3"
-                        />
-
-                        {/* Boat */}
-                        <path
-                          d="M 180 50 L 160 75 L 240 75 L 220 50 Z"
-                          fill="hsl(var(--card))"
-                          stroke="hsl(var(--primary))"
-                          strokeWidth="2"
-                        />
-                        <rect
-                          x="190"
-                          y="35"
-                          width="20"
-                          height="15"
-                          fill="hsl(var(--muted))"
-                          stroke="hsl(var(--primary))"
-                          strokeWidth="1"
-                        />
-
-                        {/* Anchor rode */}
-                        <line x1="200" y1="75" x2="280" y2="195" stroke="hsl(var(--rope))" strokeWidth="3" />
-
-                        {/* Anchor */}
-                        <path
-                          d="M 280 195 L 270 210 M 280 195 L 290 210 M 280 185 L 280 210"
-                          stroke="hsl(var(--primary))"
-                          strokeWidth="3"
-                        />
-
-                        {/* Scope annotation */}
-                        <path d="M 200 90 L 280 90" stroke="hsl(var(--accent))" strokeWidth="1" strokeDasharray="3,3" />
-                        <text x="230" y="110" fill="hsl(var(--accent))" fontSize="12" fontWeight="bold">
-                          Scope 5:1
-                        </text>
-
-                        {/* Depth annotation */}
-                        <path
-                          d="M 150 80 L 150 195"
-                          stroke="hsl(var(--secondary))"
-                          strokeWidth="1"
-                          strokeDasharray="3,3"
-                        />
-                        <text x="120" y="140" fill="hsl(var(--secondary))" fontSize="12" fontWeight="bold">
-                          Depth
-                        </text>
-                      </svg>
-                    </div>
+                    <AnchorGeometryVisuals />
                   </CardContent>
                 </Card>
               </>
