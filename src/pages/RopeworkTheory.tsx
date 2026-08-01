@@ -245,8 +245,7 @@ const RopeworkSession = () => {
 
                   <form className="space-y-3 border-t pt-4" onSubmit={(event) => { event.preventDefault(); handlePracticeSubmit(); }}>
                     <fieldset disabled={selectedKnot.discovered || persistenceStatus === "saving"}>
-                      <legend className="font-semibold">Practice check</legend>
-                      <p className="mt-1 text-sm">{selectedKnot.practice.question}</p>
+                      <legend className="font-semibold">Practice check: {selectedKnot.practice.question}</legend>
                       <div className="mt-3 space-y-2">
                         {selectedKnot.practice.options.map((option, index) => (
                           <label key={option} className="flex cursor-pointer items-start gap-2 text-sm">

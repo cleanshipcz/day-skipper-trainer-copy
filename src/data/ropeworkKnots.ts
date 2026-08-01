@@ -34,7 +34,7 @@ export const knots: Knot[] = [
       "Dress the collar and loop neatly, then set the knot by pulling the standing part against the loop",
       "Inspect the path and leave a generous tail appropriate to the rope; use an approved backup where cyclic loading could shake the bowline loose",
     ],
-    practice: { question: "Which job is a Bowline suited to?", options: ["Creating a fixed loop at the end of a rope", "Joining two loaded ropes of unequal size", "Making a quick stopper knot"], correctOption: 0 },
+    practice: { question: "A dinghy painter needs a loop that will keep its size around a harbour ring. Which choice best fits?", options: ["Make a non-tightening eye, inspect it, and add protection against repeated movement", "Cross the painter ends twice and pull the binding flat", "Wrap the painter twice around the ring and finish on its standing part"], correctOption: 0 },
     discovered: false,
   },
   {
@@ -52,7 +52,7 @@ export const knots: Knot[] = [
       "Dress the crossing turns snugly together and set by pulling both ends",
       "Inspect before use; for a fender, secure the tail with additional half hitches around the standing part, and choose a more secure hitch for changing or critical loads",
     ],
-    practice: { question: "Which is an appropriate use of a Clove Hitch?", options: ["A sole attachment for a critical mooring load", "A quick, adjustable temporary fender attachment", "A permanent bend between two ropes"], correctOption: 1 },
+    practice: { question: "You are hanging a fender temporarily from a rail. Which plan is proportionate?", options: ["Use the hitch alone for the yacht's permanent mooring", "Make the adjustable attachment, then add securing half hitches", "Join the fender line to a second line and load both tails"], correctOption: 1 },
     discovered: false,
   },
   {
@@ -70,7 +70,7 @@ export const knots: Knot[] = [
       "Set by pulling both standing parts and inspect that it is a symmetrical reef knot, not a granny knot",
       "Use only as a binding knot; choose a suitable bend, such as a correctly tied Sheet Bend, for joining ropes under load",
     ],
-    practice: { question: "Which job is appropriate for a Reef Knot?", options: ["Joining two load-bearing ropes", "Making a fixed rescue loop", "Binding reef points or securing a bundle"], correctOption: 2 },
+    practice: { question: "The sail is reefed and two reef-point ends must hold a bundle without carrying sheet load. What should you do?", options: ["Form an end loop and load its standing part", "Join the ends as though they were two loaded ropes", "Alternate the two crossings and verify a balanced, mirror-like finish"], correctOption: 2 },
     discovered: false,
   },
   {
@@ -88,7 +88,7 @@ export const knots: Knot[] = [
       "Dress the figure-eight shape, pull it snug, and leave a generous tail",
       "Inspect it before use; choose a larger or more secure stopper for a large opening or slippery rope",
     ],
-    practice: { question: "What is the Figure Eight used for here?", options: ["Preventing a rope from running through a block", "Attaching a fender to a rail", "Taking strain around a post"], correctOption: 0 },
+    practice: { question: "A halyard tail could disappear through a fairlead. Which response addresses that risk?", options: ["Form, dress, and inspect a bulky stopper near the tail", "Make two gripping turns around a second line", "Create a loop that stays the same size under load"], correctOption: 0 },
     discovered: false,
   },
   {
@@ -106,7 +106,7 @@ export const knots: Knot[] = [
       "Make a second half hitch around the standing part in the same direction as the first",
       "Dress and set both hitches against the round turn, then inspect the knot and tail before loading",
     ],
-    practice: { question: "Why use a Round Turn and Two Half Hitches?", options: ["To bind two reef points", "To secure to a post or ring while controlling strain", "To make a stopper for a block"], correctOption: 1 },
+    practice: { question: "A line is under strain while you secure it to a ring. Which sequence lets you control that strain before finishing?", options: ["Make a small loop, circle its standing part, then return through it", "Take two passes at the ring, then add two same-direction hitches", "Cross two ends twice, reversing the second crossing"], correctOption: 1 },
     discovered: false,
   },
   {
@@ -125,7 +125,7 @@ export const knots: Knot[] = [
       "Dress the knot so both tails lie on the same side; set by pulling both standing parts and inspect the tails",
       "Use a Double Sheet Bend and longer tails when the ropes differ greatly in size or the material is slippery",
     ],
-    practice: { question: "Which job is a Sheet Bend suited to?", options: ["Joining two ropes, especially of unequal size", "Making an adjustable temporary attachment to a rail", "Stopping a rope at a block"], correctOption: 0 },
+    practice: { question: "A thin heaving line must be connected to a thicker warp. Which arrangement should you recognise as suitable?", options: ["The thin line passes through and around a bight in the thicker line, with both tails together", "Both lines make identical interlocking end loops", "The thin line makes doubled gripping turns along the straight warp"], correctOption: 0 },
     discovered: false,
   },
   {
@@ -144,7 +144,7 @@ export const knots: Knot[] = [
       "Dress the two gripping turns tightly together toward the pull, snug the final half hitch, and set the hitch before applying load",
       "Inspect the direction and tail, then test progressively: it must grip only along the main rope toward the doubled turns; do not use it on slippery rope or for a sideways pull",
     ],
-    practice: { question: "When is a Rolling Hitch useful?", options: ["Binding a sail bundle", "Taking a pull along another rope in one direction", "Making a fixed loop at a rope end"], correctOption: 1 },
+    practice: { question: "A loaded line is jammed and you need a second line to take pull along it toward one side. What should the finished hitch show?", options: ["Two opposite half-knots lying flat between paired ends", "Extra coils gathered on the side receiving the effort", "A stopper shape with two even lobes beside the tail"], correctOption: 1 },
     discovered: false,
   },
 ];

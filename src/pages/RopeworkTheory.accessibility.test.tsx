@@ -57,6 +57,11 @@ describe("RopeworkTheory accessible knot discovery", () => {
 
     expect(controls[0].getAttribute("aria-pressed")).toBe("true");
     expect(screen.getByText("Not learned", { selector: `#${knots[0].id}-state` })).toBeTruthy();
+    expect(screen.getByRole("group", { name: `Practice check: ${knots[0].practice.question}` })).toBeTruthy();
+    expect(screen.queryByText(/correct answer/i)).toBeNull();
+    for (const radio of screen.getAllByRole("radio")) {
+      expect(radio.getAttributeNames().some((name) => /correct|answer|score/i.test(name))).toBe(false);
+    }
     const detailsHeading = screen.getByRole("heading", { name: `${knots[0].name} details` });
     await waitFor(() => expect(document.activeElement).toBe(detailsHeading));
     expect(screen.getByRole("status").textContent).toContain("practice check");

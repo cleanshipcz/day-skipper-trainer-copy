@@ -2,6 +2,8 @@ import { describe, expect, it } from "vitest";
 
 import { knots } from "./ropeworkKnots";
 
+const significantWords = (value: string) => new Set(value.toLocaleLowerCase().match(/[a-z]{5,}/g) ?? []);
+
 const knot = (id: string) => {
   const match = knots.find((candidate) => candidate.id === id);
   expect(match, `Missing knot: ${id}`).toBeDefined();
@@ -31,6 +33,17 @@ describe("ropework knot safety guidance", () => {
       expect(entry.visualDescription).toMatch(/working end/i);
       expect(entry.visualDescription).toMatch(/load/i);
       expect(entry.visualDescription).toMatch(/dress/i);
+      const visibleLesson = [entry.uses, entry.visualDescription, ...entry.steps].join(" ").toLocaleLowerCase();
+      for (const option of entry.practice.options) {
+        expect(visibleLesson).not.toContain(option.toLocaleLowerCase());
+      }
+      const correctWords = significantWords(entry.practice.options[entry.practice.correctOption]);
+      const lessonWords = significantWords(visibleLesson);
+      const overlap = [...correctWords].filter((word) => lessonWords.has(word)).length / correctWords.size;
+      expect(overlap, `${entry.id} answer too closely copies its lesson`).toBeLessThan(0.8);
+      expect(entry.practice.options).toHaveLength(3);
+      expect(entry.practice.correctOption).toBeGreaterThanOrEqual(0);
+      expect(entry.practice.correctOption).toBeLessThan(entry.practice.options.length);
       const tutorial = new URL(entry.tutorialUrl);
       expect(tutorial.protocol).toBe("https:");
       expect(tutorial.hostname).toBe("www.animatedknots.com");
