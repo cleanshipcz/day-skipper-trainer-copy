@@ -622,6 +622,10 @@ const SailControls = () => {
         knowledgeBeforeSave === "absent" ? "new" : knowledgeBeforeSave === "existing" ? "preserved" : "unknown"
       );
       setDurableCompletionKnowledge("existing");
+    } else if (result === "queued") {
+      // Replay can make this durable at any point, so a later save cannot
+      // safely be described as the first remote record.
+      setDurableCompletionKnowledge("unknown");
     }
     setDurableStatus(result === "remote" ? "remote" : result === "queued" ? "queued" : result === "anonymous" ? "anonymous" : "failed");
   }, [durableCompletionKnowledge, saveProgressDetailed, user]);
@@ -1134,7 +1138,7 @@ const SailControls = () => {
                       {durableStatus === "remote" && remoteSaveSemantics === "preserved" &&
                         "A completion is saved to your account. Retakes do not replace that durable record."}
                       {durableStatus === "remote" && remoteSaveSemantics === "unknown" &&
-                        "A completion is saved to your account. Because earlier progress could not be loaded, this may be the previously saved record."}
+                        "A completion is saved to your account. Because earlier progress may already exist or have synced, this may be the previously saved record."}
                       {durableStatus === "failed" && "Completion is still available here, but could not be saved."}
                     </div>
                     {durableStatus === "failed" && pendingCompletion && user && (

@@ -195,8 +195,38 @@ describe("SailControls schematic geometry", () => {
     await act(async () => { await Promise.resolve(); });
 
     expect(screen.getByTestId("durable-status").textContent).toBe(
-      "A completion is saved to your account. Because earlier progress could not be loaded, this may be the previously saved record."
+      "A completion is saved to your account. Because earlier progress may already exist or have synced, this may be the previously saved record."
     );
+    vi.useRealTimers();
+  });
+
+  it("treats a queued completion as potentially replayed before a retake saves", async () => {
+    vi.useFakeTimers();
+    progressMocks.user = { id: "user-a" };
+    progressMocks.loadProgressDetailed.mockResolvedValue({ status: "missing", record: null });
+    progressMocks.saveProgressDetailed
+      .mockResolvedValueOnce("queued")
+      .mockResolvedValueOnce("remote");
+    render(<TestRouter><SailControls /></TestRouter>);
+    await act(async () => { await Promise.resolve(); });
+
+    finishQuiz();
+    await act(async () => { await Promise.resolve(); });
+    expect(screen.getByTestId("durable-status").textContent).toBe("Completion saved offline and queued to sync.");
+
+    // The queue may replay between these two user actions; the component must
+    // not claim that the retake created a brand-new durable record.
+    fireEvent.click(screen.getByRole("button", { name: "Try Again" }));
+    for (let question = 1; question <= 12; question += 1) {
+      fireEvent.click(answerForCurrentQuestion());
+      act(() => vi.advanceTimersByTime(1000));
+    }
+    await act(async () => { await Promise.resolve(); });
+
+    expect(screen.getByTestId("durable-status").textContent).toBe(
+      "A completion is saved to your account. Because earlier progress may already exist or have synced, this may be the previously saved record."
+    );
+    expect(progressMocks.saveProgressDetailed).toHaveBeenCalledTimes(2);
     vi.useRealTimers();
   });
   it("preserves safety-critical taxonomy and trim guidance", () => {
