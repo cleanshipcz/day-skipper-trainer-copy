@@ -20,13 +20,16 @@ import { calculateSceneGeometry } from "@/pages/anchor-minigame/geometry";
 import {
   BOAT_LENGTH,
   RODE_STEP,
+  applySettingLoad,
   changeRode as transitionRode,
   checkPlacement as evaluatePlacement,
   createInitialState,
   getTargetRode,
-  getTotalDepth,
+  getCurrentVerticalDistance,
+  getMaximumVerticalDistance,
+  getPlannedSwingRadius,
   moveBoat as transitionBoat,
-  recordHoldingCheck,
+  startHoldingObservation,
   type AnchorScenario,
 } from "@/pages/anchor-minigame/state";
 import { anchorPracticeSkills, anchorTheoryRoute } from "@/features/anchorwork/learningPath";
@@ -43,8 +46,10 @@ const scenarioPool: Omit<AnchorScenario, "id">[] = [
     anchorAndVessel: "Manufacturer-approved bower anchor for this training yacht",
     seabed: "Firm mud; local guidance permits anchoring",
     minimumRode: 32,
-    maximumRode: 42,
+    availableSwingRadius: 50,
+    vesselExtent: 8,
     minimumSetDistance: 3,
+    minimumSetLoadSteps: 3,
     guidance: "Use 32–42 m for this fixture, set progressively astern, then verify holding.",
     basis: ["RNLI SAR Unit 9, p. 67", "MCA MGN 592 §§2.3–2.4"],
   },
@@ -59,8 +64,10 @@ const scenarioPool: Omit<AnchorScenario, "id">[] = [
     anchorAndVessel: "Manufacturer-approved bower anchor for this training yacht",
     seabed: "Good-holding sand; anchoring permitted by local guidance",
     minimumRode: 48,
-    maximumRode: 58,
+    availableSwingRadius: 66,
+    vesselExtent: 8,
     minimumSetDistance: 4,
+    minimumSetLoadSteps: 4,
     guidance: "Use 48–58 m for the forecast load and available room; verify the set after ferry wash.",
     basis: ["RNLI SAR Unit 9, p. 67", "MCA MGN 592 §§2.3–2.4"],
   },
@@ -75,8 +82,10 @@ const scenarioPool: Omit<AnchorScenario, "id">[] = [
     anchorAndVessel: "Heavy-weather anchor approved for this training yacht",
     seabed: "Firm sand; no protected habitat in the exercise fixture",
     minimumRode: 78,
-    maximumRode: 88,
+    availableSwingRadius: 96,
+    vesselExtent: 8,
     minimumSetDistance: 5,
+    minimumSetLoadSteps: 5,
     guidance: "Use 78–88 m for this exposed fixture and confirm holding under progressive load.",
     basis: ["RNLI SAR Unit 9, p. 67", "MCA MGN 592 §§2.3–2.4", "RYA anchoring and mooring guidance"],
   },
@@ -91,8 +100,10 @@ const scenarioPool: Omit<AnchorScenario, "id">[] = [
     anchorAndVessel: "Manufacturer-approved bower anchor for this training yacht",
     seabed: "Soft mud; local guidance permits anchoring",
     minimumRode: 46,
-    maximumRode: 52,
+    availableSwingRadius: 60,
+    vesselExtent: 8,
     minimumSetDistance: 4,
+    minimumSetLoadSteps: 4,
     guidance: "Use 46–52 m; the upper bound preserves clearance when the current reverses.",
     basis: ["RNLI SAR Unit 9, p. 67", "MCA MGN 592 §§2.3–2.4"],
   },
@@ -116,11 +127,13 @@ const AnchorMinigame = () => {
   const [lastStatus, setLastStatus] = useState("Tap ↓ to lower the anchor. Drift back with ←.");
   const [resultOverlay, setResultOverlay] = useState<AnchorResult | null>(null);
 
-  const totalDepth = useMemo(() => getTotalDepth(scenario), [scenario]);
+  const currentVerticalDistance = useMemo(() => getCurrentVerticalDistance(scenario), [scenario]);
+  const maximumVerticalDistance = useMemo(() => getMaximumVerticalDistance(scenario), [scenario]);
   const targetRode = getTargetRode(scenario);
-  const requiredScope = targetRode / totalDepth;
+  const requiredScope = targetRode / maximumVerticalDistance;
   const bowTipX = game.boatX + BOAT_LENGTH;
-  const scope = game.rode > 0 ? game.rode / totalDepth : 0;
+  const scope = game.rode > 0 ? game.rode / maximumVerticalDistance : 0;
+  const plannedSwingRadius = getPlannedSwingRadius(game.rode, scenario);
   const anchorAheadBy = game.anchorOnBottom && game.anchorX !== null ? game.anchorX - bowTipX : 0;
 
   const resetPosition = () => {
@@ -141,31 +154,31 @@ const AnchorMinigame = () => {
 
   const moveBoat = useCallback(
     (direction: -1 | 1) => {
-      const result = transitionBoat(game, direction, totalDepth);
+      const result = transitionBoat(game, direction, currentVerticalDistance);
       setGame(result.state);
       setLastStatus(result.status);
     },
-    [game, totalDepth],
+    [game, currentVerticalDistance],
   );
 
   const changeRode = useCallback(
     (delta: number) => {
-      const result = transitionRode(game, delta, totalDepth);
+      const result = transitionRode(game, delta, currentVerticalDistance);
       setGame(result.state);
       if (result.status) setLastStatus(result.status);
       if (result.event === "anchor-bottom") {
         toast.success("Anchor on the bottom", { description: "Move astern with ← to lay out chain." });
       }
     },
-    [game, totalDepth],
+    [game, currentVerticalDistance],
   );
 
   const checkPlacement = useCallback(() => {
     setAttempts((value) => value + 1);
     const result = evaluatePlacement(game, scenario);
     if (result.type === "failure" && result.issues.length === 1 && result.issues[0] === "verification") {
-      setGame(recordHoldingCheck(game));
-      setLastStatus("Holding check recorded. Re-check without moving or changing rode to confirm the modeled position remains unchanged.");
+      setGame(startHoldingObservation(game));
+      setLastStatus("Fixed-position observation started. Hold the progressive setting load and re-check after 5 seconds without moving or changing rode.");
     }
     if (result.type === "success") {
       toast.success("Modeled placement passed", {
@@ -178,6 +191,12 @@ const AnchorMinigame = () => {
       setLastStatus(result.status);
       setResultOverlay(result);
     }
+  }, [game, scenario]);
+
+  const applyLoad = useCallback(() => {
+    const result = applySettingLoad(game, scenario);
+    setGame(result.state);
+    setLastStatus(result.status);
   }, [game, scenario]);
 
   useEffect(() => {
@@ -288,7 +307,7 @@ const AnchorMinigame = () => {
               </div>
               <div className="flex items-center justify-between border-t border-border pt-3">
                 <span className="text-sm text-muted-foreground">Total depth from bow</span>
-                <span className="font-semibold text-primary">{totalDepth.toFixed(1)} m</span>
+                <span className="font-semibold text-primary">{currentVerticalDistance.toFixed(1)} m now / {maximumVerticalDistance.toFixed(1)} m at high tide</span>
               </div>
             </CardContent>
           </Card>
@@ -346,6 +365,7 @@ const AnchorMinigame = () => {
               onMove={moveBoat}
               onChangeRode={changeRode}
               onCheck={checkPlacement}
+              onApplyLoad={applyLoad}
               rodeStep={RODE_STEP}
             />
           </CardHeader>
@@ -383,7 +403,7 @@ const AnchorMinigame = () => {
                   Surface
                 </text>
                 <text x="10" y={seabedY - 6} fontSize="12" fill="hsl(var(--muted-foreground))">
-                  Seabed ({totalDepth.toFixed(1)} m from bow)
+                  Seabed ({currentVerticalDistance.toFixed(1)} m from bow now)
                 </text>
 
                 {/* Wind indicator */}
@@ -450,7 +470,7 @@ const AnchorMinigame = () => {
                   fill="hsl(var(--secondary))"
                   textAnchor="start"
                 >
-                  {totalDepth.toFixed(1)} m
+                  {currentVerticalDistance.toFixed(1)} m
                 </text>
               </svg>
               {resultOverlay && (
@@ -475,7 +495,7 @@ const AnchorMinigame = () => {
                   Win condition
                 </div>
                 <p className="text-xs text-muted-foreground mt-1">
-                  Lower under control, set at least {scenario.minimumSetDistance.toFixed(1)}m astern, then use {targetRode.toFixed(1)}–{scenario.maximumRode.toFixed(1)}m for this fixture ({requiredScope.toFixed(1)}:1 minimum).
+                  Lower under control, apply at least {scenario.minimumSetLoadSteps} progressive astern load steps over {scenario.minimumSetDistance.toFixed(1)}m, and use at least {targetRode.toFixed(1)}m ({requiredScope.toFixed(1)}:1 at high tide).
                 </p>
               </div>
               <div className="rounded-lg border border-border p-3">
@@ -484,7 +504,7 @@ const AnchorMinigame = () => {
                   Controls
                 </div>
                 <p className="text-xs text-muted-foreground mt-1">
-                  ← / → move boat • ↓ pay out • ↑ heave in • Enter check. The anchor stops moving with you once it hits bottom.
+                  ← / → move boat • ↓ pay out • ↑ heave in • Apply setting load progressively • Enter starts/checks a 5-second fixed-position observation.
                 </p>
               </div>
               <div className="rounded-lg border border-border p-3">
@@ -505,6 +525,7 @@ const AnchorMinigame = () => {
             <p><strong className="text-foreground">Rode:</strong> {scenario.rode}</p>
             <p><strong className="text-foreground">Anchor/vessel:</strong> {scenario.anchorAndVessel}</p>
             <p><strong className="text-foreground">Seabed/local guidance:</strong> {scenario.seabed}</p>
+            <p><strong className="text-foreground">Modeled room:</strong> {scenario.availableSwingRadius.toFixed(1)}m available radius from the anchor, including {scenario.vesselExtent.toFixed(1)}m vessel extent. Current plan uses {plannedSwingRadius.toFixed(1)}m.</p>
             <p><strong className="text-foreground">Basis:</strong> {scenario.basis.join("; ")}. These sources support the factors and checks; the numeric exercise bounds are conservative training fixtures, not universal recommendations.</p>
           </CardContent>
         </Card>

@@ -23,7 +23,7 @@ describe("AnchorMinigame", () => {
     expect(await screen.findByText("Route: /anchorwork?topic=procedure&from=practice")).toBeTruthy();
   });
 
-  it("prioritises procedure remediation for mixed failures and labels scope-only remediation", async () => {
+  it("prioritises procedure remediation while scope and setting checks are incomplete", async () => {
     const user = userEvent.setup();
     render(<MemoryRouter><AnchorMinigame /></MemoryRouter>);
     await user.click(screen.getByRole("button", { name: "Enter (check)" }));
@@ -32,7 +32,7 @@ describe("AnchorMinigame", () => {
     for (let index = 0; index < 10; index += 1) await user.click(screen.getByRole("button", { name: "↓ Down (pay out)" }));
     for (let index = 0; index < 5; index += 1) await user.click(screen.getByRole("button", { name: "← Left" }));
     await user.click(screen.getByRole("button", { name: "Enter (check)" }));
-    expect(screen.getByRole("button", { name: "Review scope lesson" })).toBeTruthy();
+    expect(screen.getByRole("button", { name: "Review procedure lesson" })).toBeTruthy();
   });
 
   it.each([375, 768, 1280])("supports pointer controls in a %ipx viewport", async (width) => {
@@ -55,6 +55,7 @@ describe("AnchorMinigame", () => {
   });
 
   it("supports keyboard placement, checking, and reset without writing browser storage", () => {
+    const now = vi.spyOn(Date, "now").mockReturnValue(1_000);
     const localSetItem = vi.spyOn(window.localStorage, "setItem");
     const sessionSetItem = vi.spyOn(window.sessionStorage, "setItem");
     const indexedDbOpen = vi.spyOn(window.indexedDB, "open");
@@ -62,8 +63,10 @@ describe("AnchorMinigame", () => {
 
     for (let index = 0; index < 32; index += 1) fireEvent.keyDown(window, { key: "ArrowDown" });
     for (let index = 0; index < 10; index += 1) fireEvent.keyDown(window, { key: "ArrowLeft" });
+    for (let index = 0; index < 3; index += 1) fireEvent.click(screen.getByRole("button", { name: "Apply setting load" }));
     fireEvent.keyDown(window, { key: "Enter" });
     fireEvent.click(screen.getByRole("button", { name: "Close" }));
+    now.mockReturnValue(6_000);
     fireEvent.keyDown(window, { key: "Enter" });
 
     expect(screen.getByText("Modeled checks passed")).toBeTruthy();
@@ -77,6 +80,7 @@ describe("AnchorMinigame", () => {
     expect(localSetItem).not.toHaveBeenCalled();
     expect(sessionSetItem).not.toHaveBeenCalled();
     expect(indexedDbOpen).not.toHaveBeenCalled();
+    now.mockRestore();
   });
 
   it("lets a focused control handle Enter without also running the global placement check", async () => {

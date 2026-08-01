@@ -78,7 +78,7 @@ const anchorworkQuestions: readonly Question[] = [
     ],
     correctAnswer: 0,
     explanation:
-      "First try paying out more cable to increase scope. If still dragging, start the engine, weigh anchor, and re-anchor in a better position.",
+      "Pay out more suitable cable only where safe swinging room permits, then verify holding again. If room is insufficient or dragging continues, start the engine as appropriate, recover the anchor, and reset elsewhere.",
   },
   {
     id: "a9",
