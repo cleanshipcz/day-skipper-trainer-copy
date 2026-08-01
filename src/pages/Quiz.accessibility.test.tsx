@@ -67,6 +67,15 @@ describe("Quiz accessible interaction and reflow", () => {
     await user.click(screen.getByRole("button", { name: "Next Question" }));
     const secondHeading = await screen.findByRole("heading", { level: 3, name: firstPrefix === "First" ? "Second question?" : /First deliberately/ });
     await waitFor(() => expect(document.activeElement).toBe(secondHeading));
+
+    await user.click(screen.getByRole("button", { name: "Previous" }));
+    const previousHeading = await screen.findByRole("heading", { level: 3, name: firstHeading.textContent ?? "" });
+    await waitFor(() => expect(document.activeElement).toBe(previousHeading));
+
+    await user.click(screen.getByRole("radio", { name: new RegExp(`${firstPrefix} correct`, "i") }));
+    await user.click(screen.getByRole("button", { name: "Submit Answer" }));
+    await user.click(screen.getByRole("button", { name: "Next Question" }));
+    await screen.findByRole("heading", { level: 3, name: firstPrefix === "First" ? "Second question?" : /First deliberately/ });
     const secondPrefix = firstPrefix === "First" ? "Second" : "First";
     await user.click(screen.getByRole("radio", { name: new RegExp(`${secondPrefix} correct`, "i") }));
     await user.click(screen.getByRole("button", { name: "Submit Answer" }));
@@ -74,6 +83,10 @@ describe("Quiz accessible interaction and reflow", () => {
 
     const completion = await screen.findByRole("heading", { name: "Quiz Complete!" });
     await waitFor(() => expect(document.activeElement).toBe(completion));
+
+    await user.click(screen.getByRole("button", { name: "Retry Quiz" }));
+    const restartedHeading = await screen.findByRole("heading", { level: 3 });
+    await waitFor(() => expect(document.activeElement).toBe(restartedHeading));
   });
 
   it("includes narrow reflow, long-content wrapping, and reduced-motion safeguards", async () => {

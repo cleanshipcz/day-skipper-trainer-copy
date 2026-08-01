@@ -316,6 +316,7 @@ const Quiz = () => {
 
   const handlePrevious = async () => {
     if (currentQuestion > 0) {
+      focusQuestionAfterAdvanceRef.current = true;
       const newQuestion = currentQuestion - 1;
       setCurrentQuestion(newQuestion);
       setShowExplanation(false);
@@ -405,6 +406,7 @@ const Quiz = () => {
     if (user && !workflow?.scoreSaved) {
       removeStored(localStorage, quizAttemptKey(user.id, topicKey));
     }
+    focusQuestionAfterAdvanceRef.current = true;
     setCurrentQuestion(0);
     setAnswers(createEmptyQuizAnswers(questions.length));
     setShowExplanation(false);
