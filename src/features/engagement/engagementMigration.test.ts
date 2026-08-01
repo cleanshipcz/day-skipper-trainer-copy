@@ -37,12 +37,15 @@ describe("engagement migration", () => {
   });
 
   test("should keep the issued-attempt catalogue aligned with client quiz totals", async () => {
-    const issuedAttemptCatalogue = `${issued}\n${expandedNauticalTerms}`;
-    Object.entries(await loadAllQuizTopics()).forEach(([topic, questions]) => {
-      expect(issuedAttemptCatalogue).toContain(`when '${topic}' then ${questions.length}`);
-    });
-    expect(expandedNauticalTerms).toContain("when 'nautical-terms-quiz' then 32");
-    expect(expandedNauticalTerms).not.toContain("when 'nautical-terms-quiz' then 20");
+    const clientCatalogue = Object.fromEntries(
+      Object.entries(await loadAllQuizTopics()).map(([topic, questions]) => [topic, questions.length]),
+    );
+    const caseEntries = [...expandedNauticalTerms.matchAll(/when '([^']+)' then (\d+)/g)]
+      .map(([, topic, count]) => [topic, Number(count)] as const);
+
+    expect(caseEntries).toHaveLength(Object.keys(clientCatalogue).length);
+    expect(new Set(caseEntries.map(([topic]) => topic)).size).toBe(caseEntries.length);
+    expect(Object.fromEntries(caseEntries)).toEqual(clientCatalogue);
     expect(expandedNauticalTerms).toContain("and expected_total=expected");
   });
 
