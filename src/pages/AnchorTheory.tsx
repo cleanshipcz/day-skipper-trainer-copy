@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -7,26 +7,85 @@ import { useNavigate } from "react-router-dom";
 import { toast } from "sonner";
 
 import { topics, Topic } from "@/data/anchorTopics";
+import { TOPIC_IDS } from "@/constants/topicRegistry";
+import { useProgress, type ProgressSaveResult } from "@/hooks/useProgress";
+import { useAuth } from "@/contexts/AuthHooks";
+import { ANCHOR_PROGRESS_VERSION, parseAnchorProgress } from "@/features/progress/anchorProgress";
 
-const AnchorTheory = () => {
+const POINTS_PER_TOPIC = 20;
+
+const AnchorTheorySession = () => {
   const navigate = useNavigate();
+  const { loadProgressDetailed, saveProgressDetailed } = useProgress();
   const [topicList, setTopicList] = useState<Topic[]>(topics);
-  const [selectedTopic, setSelectedTopic] = useState<Topic | null>(topics[0]);
-  const [score, setScore] = useState(0);
+  const [selectedTopicId, setSelectedTopicId] = useState<string | null>(topics[0]?.id ?? null);
+  const [tipChecks, setTipChecks] = useState<number[]>([]);
+  const [persistenceStatus, setPersistenceStatus] = useState<"loading" | "ready" | "saving" | "saved" | "anonymous" | "failed">("loading");
+  const [pendingCompletedIds, setPendingCompletedIds] = useState<string[] | null>(null);
+  const [loadRevision, setLoadRevision] = useState(0);
+
+  const selectedTopic = useMemo(
+    () => topicList.find((topic) => topic.id === selectedTopicId) ?? null,
+    [selectedTopicId, topicList],
+  );
+
+  useEffect(() => {
+    let cancelled = false;
+    setPendingCompletedIds(null);
+    setPersistenceStatus("loading");
+    void loadProgressDetailed(TOPIC_IDS.ANCHORWORK).then((result) => {
+      if (cancelled) return;
+      if (result.status === "remote") {
+        const completedIds = parseAnchorProgress(result.record.answers_history, topics);
+        if (!completedIds) {
+          setPersistenceStatus("failed");
+          return;
+        }
+        const completed = new Set(completedIds);
+        setTopicList(topics.map((topic) => ({ ...topic, completed: completed.has(topic.id) })));
+        setPersistenceStatus("ready");
+        return;
+      }
+      setPersistenceStatus(result.status === "anonymous" ? "anonymous" : result.status === "failed" ? "failed" : "ready");
+    }).catch(() => { if (!cancelled) setPersistenceStatus("failed"); });
+    return () => { cancelled = true; };
+  }, [loadProgressDetailed, loadRevision]);
+
+  const persistCompletedIds = async (completedIds: string[]) => {
+    setPersistenceStatus("saving");
+    setPendingCompletedIds(completedIds);
+    const completed = completedIds.length === topics.length;
+    const score = Math.round((completedIds.length / topics.length) * 100);
+    let result: ProgressSaveResult;
+    try {
+      result = await saveProgressDetailed(TOPIC_IDS.ANCHORWORK, completed, score, completed ? topics.length * POINTS_PER_TOPIC : 0, {
+        version: ANCHOR_PROGRESS_VERSION,
+        completedTopicIds: completedIds,
+      });
+    } catch {
+      result = "failed";
+    }
+    if (result === "failed") {
+      setPersistenceStatus("failed");
+      return;
+    }
+    setPendingCompletedIds(null);
+    setPersistenceStatus(result === "anonymous" ? "anonymous" : "saved");
+  };
 
   const handleTopicComplete = (topicId: string) => {
-    const updatedTopics = topicList.map((t) => (t.id === topicId && !t.completed ? { ...t, completed: true } : t));
-
     const topic = topicList.find((t) => t.id === topicId);
-    if (topic && !topic.completed) {
-      setScore(score + 20);
-      toast.success("+20 points! Topic completed!");
-    }
-
+    if (!topic || topic.completed || tipChecks.length !== topic.tips.length || persistenceStatus === "loading" || persistenceStatus === "saving" || persistenceStatus === "failed") return;
+    const updatedTopics = topicList.map((t) => (t.id === topicId ? { ...t, completed: true } : t));
+    const completedIds = updatedTopics.filter((item) => item.completed).map((item) => item.id);
     setTopicList(updatedTopics);
+    setTipChecks([]);
+    toast.success("Topic study check completed.");
+    void persistCompletedIds(completedIds);
   };
 
   const completedCount = topicList.filter((t) => t.completed).length;
+  const score = completedCount * POINTS_PER_TOPIC;
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-background via-ocean-light/10 to-background">
@@ -56,6 +115,27 @@ const AnchorTheory = () => {
       </header>
 
       <main className="container mx-auto px-4 py-8">
+        <p className="mb-2 text-sm text-muted-foreground">
+          Completion criteria: read each topic and confirm every key tip before marking it complete. Each completed topic is worth 20 points.
+        </p>
+        <div className="mb-4 text-sm" aria-live="polite">
+          {persistenceStatus === "loading" && "Loading saved anchorwork progress…"}
+          {persistenceStatus === "saving" && "Saving anchorwork progress…"}
+          {persistenceStatus === "saved" && "Anchorwork progress saved."}
+          {persistenceStatus === "anonymous" && "Progress is available for this visit. Sign in to save it across devices."}
+          {persistenceStatus === "failed" && (
+            <span className="inline-flex items-center gap-3" role="alert">
+              {pendingCompletedIds ? "Progress could not be saved." : "Saved progress could not be loaded. Completion is paused to protect your existing progress."}
+              <Button
+                size="sm"
+                variant="outline"
+                onClick={() => pendingCompletedIds ? void persistCompletedIds(pendingCompletedIds) : setLoadRevision((revision) => revision + 1)}
+              >
+                {pendingCompletedIds ? "Retry save" : "Retry load"}
+              </Button>
+            </span>
+          )}
+        </div>
         <div className="grid lg:grid-cols-4 gap-6">
           {/* Topics Sidebar */}
           <Card className="lg:col-span-1">
@@ -66,7 +146,11 @@ const AnchorTheory = () => {
               {topicList.map((topic) => (
                 <button
                   key={topic.id}
-                  onClick={() => setSelectedTopic(topic)}
+                  onClick={() => {
+                    setSelectedTopicId(topic.id);
+                    setTipChecks([]);
+                  }}
+                  disabled={persistenceStatus === "loading" || persistenceStatus === "saving" || persistenceStatus === "failed"}
                   className={`w-full p-3 rounded-lg border-2 text-left transition-all ${
                     selectedTopic?.id === topic.id
                       ? "border-secondary bg-secondary/10"
@@ -124,9 +208,31 @@ const AnchorTheory = () => {
                     </div>
 
                     {!selectedTopic.completed && (
-                      <Button className="w-full bg-primary" onClick={() => handleTopicComplete(selectedTopic.id)}>
-                        Mark as Complete
-                      </Button>
+                      <form onSubmit={(event) => { event.preventDefault(); handleTopicComplete(selectedTopic.id); }} className="space-y-4">
+                        <fieldset disabled={persistenceStatus === "saving"}>
+                          <legend className="font-semibold">Study check</legend>
+                          <p className="mb-3 text-sm text-muted-foreground">Confirm each key tip after reviewing it:</p>
+                          <div className="space-y-2">
+                            {selectedTopic.tips.map((tip, index) => (
+                              <label key={tip} className="flex items-start gap-2 text-sm">
+                                <input
+                                  type="checkbox"
+                                  checked={tipChecks.includes(index)}
+                                  onChange={(event) => setTipChecks((current) => event.target.checked ? [...current, index] : current.filter((item) => item !== index))}
+                                />
+                                <span>{tip}</span>
+                              </label>
+                            ))}
+                          </div>
+                        </fieldset>
+                        <Button
+                          type="submit"
+                          className="w-full bg-primary"
+                          disabled={tipChecks.length !== selectedTopic.tips.length || persistenceStatus === "saving"}
+                        >
+                          Complete study check
+                        </Button>
+                      </form>
                     )}
                   </CardContent>
                 </Card>
@@ -244,6 +350,11 @@ const AnchorTheory = () => {
       </main>
     </div>
   );
+};
+
+const AnchorTheory = () => {
+  const { user } = useAuth();
+  return <AnchorTheorySession key={user?.id ?? "anonymous"} />;
 };
 
 export default AnchorTheory;
