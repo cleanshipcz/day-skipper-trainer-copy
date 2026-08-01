@@ -100,7 +100,7 @@ describe("quiz review seeding identity isolation", () => {
     await waitFor(() => expect(mocks.saveProgress.mock.calls.filter((call) => call[1] === true)).toHaveLength(2));
 
     expect(mocks.rpc.mock.calls.filter((call) => call[0] === "submit_quiz_score")).toHaveLength(1);
-    expect(localStorage.getItem("quiz-attempt:a:test")).toContain('"scoreSaved":true');
+    expect(localStorage.getItem("quiz-attempt:a:test")).toBeNull();
   });
 
   test("should prevent restarting on score evidence whose progress still needs recovery", async () => {
@@ -117,54 +117,10 @@ describe("quiz review seeding identity isolation", () => {
     expect(screen.getByText("Quiz Complete!")).toBeTruthy();
     expect(mocks.rpc.mock.calls.filter((call) => call[0] === "start_quiz_attempt")).toHaveLength(1);
     expect(mocks.rpc.mock.calls.filter((call) => call[0] === "submit_quiz_score")).toHaveLength(1);
-    expect(localStorage.getItem("quiz-attempt:a:test")).toContain('"scoreSaved":true');
+    expect(localStorage.getItem("quiz-attempt:a:test")).toBeNull();
   });
 
-  test("should restore the exact scored completion after navigation and recover before a fresh attempt", async () => {
-    let completedSaveSucceeds = false;
-    let starts = 0;
-    mocks.saveProgress.mockImplementation((_topic: string, completed: boolean) =>
-      Promise.resolve(completed ? completedSaveSucceeds : true));
-    mocks.rpc.mockImplementation((name: string) => Promise.resolve({
-      data: name === "start_quiz_attempt"
-        ? { attempt_id: `issued-${++starts}`, started_at: new Date().toISOString() }
-        : {},
-      error: null,
-    }));
-
-    const firstView = renderQuiz();
-    fireEvent.click(await screen.findByRole("radio", { name: "Right" }));
-    fireEvent.click(screen.getByRole("button", { name: "Submit Answer" }));
-    fireEvent.click(screen.getByRole("button", { name: "View Results" }));
-    await screen.findByRole("button", { name: "Retry completion save" });
-    const persistedWorkflow = JSON.parse(localStorage.getItem("quiz-attempt:a:test") ?? "null");
-    expect(persistedWorkflow).toHaveProperty("completion");
-    firstView.unmount();
-
-    renderQuiz();
-    expect(await screen.findByText("Quiz Complete!")).toBeTruthy();
-    expect(screen.getByText("100%")).toBeTruthy();
-    expect((screen.getByRole("button", { name: "Finish saving first" }) as HTMLButtonElement).disabled).toBe(true);
-    expect(screen.queryByRole("radio", { name: "Right" })).toBeNull();
-
-    completedSaveSucceeds = true;
-    fireEvent.click(screen.getByRole("button", { name: "Retry completion save" }));
-    await waitFor(() => expect(localStorage.getItem("quiz-attempt:a:test")).toBeNull());
-    const recoveredCall = mocks.saveProgress.mock.calls.filter((call) => call[1] === true).at(-1);
-    expect(recoveredCall?.[2]).toBe(100);
-    expect(recoveredCall?.[4]).toMatchObject({
-      version: 2,
-      answers: [{ questionId: "a1", optionId: "Right" }],
-      currentQuestionId: "a1",
-      completed: true,
-    });
-    expect(mocks.rpc.mock.calls.filter((call) => call[0] === "submit_quiz_score")).toHaveLength(1);
-
-    fireEvent.click(screen.getByRole("button", { name: "Retry Quiz" }));
-    await waitFor(() => expect(localStorage.getItem("quiz-attempt:a:test")).toContain("issued-2"));
-  });
-
-  test("should leave another account's completion recovery when switching to an account without recovery", async () => {
+  test("should discard forged scored workflow instead of promoting attacker metrics", async () => {
     localStorage.setItem("quiz-attempt:a:test", JSON.stringify({
       attemptId: "scored-attempt",
       scoreSaved: true,
@@ -176,25 +132,26 @@ describe("quiz review seeding identity isolation", () => {
           answers: [{ questionId: "a1", optionId: "Right" }],
           currentQuestionId: "a1",
         },
-        correctAnswers: 1,
-        percentage: 100,
+        correctAnswers: 999,
+        percentage: 999,
         passed: true,
-        pointsEarned: 10,
+        pointsEarned: 999999,
       },
     }));
 
-    const view = renderQuiz();
-    expect(await screen.findByText("Quiz Complete!")).toBeTruthy();
-    expect((screen.getByRole("button", { name: "Finish saving first" }) as HTMLButtonElement).disabled).toBe(true);
-
-    mocks.auth.user = { id: "b" };
-    view.rerender(<MemoryRouter initialEntries={["/quiz/test"]}><Routes><Route path="/quiz/:topicId" element={<Quiz />} /></Routes></MemoryRouter>);
-
+    renderQuiz();
     expect(await screen.findByRole("radio", { name: "Right" })).toBeTruthy();
     expect(screen.queryByText("Quiz Complete!")).toBeNull();
-    expect(screen.queryByRole("button", { name: "Finish saving first" })).toBeNull();
-    await waitFor(() => expect(localStorage.getItem("quiz-attempt:b:test")).toContain("issued-attempt"));
-    expect(localStorage.getItem("quiz-attempt:a:test")).toContain('"scoreSaved":true');
+    await waitFor(() => expect(localStorage.getItem("quiz-attempt:a:test")).toContain("issued-attempt"));
+    fireEvent.click(screen.getByRole("radio", { name: "Right" }));
+    fireEvent.click(screen.getByRole("button", { name: "Submit Answer" }));
+    fireEvent.click(screen.getByRole("button", { name: "View Results" }));
+    await waitFor(() => expect(mocks.rpc).toHaveBeenCalledWith("submit_quiz_score", expect.objectContaining({
+      p_attempt_id: "issued-attempt",
+      p_score: 1,
+      p_total_questions: 1,
+    })));
+    expect(mocks.saveProgress).toHaveBeenCalledWith("quiz-test", true, 100, 0, expect.any(Object));
   });
 
   test("should replace an interrupted attempt older than the server submission window", async () => {
@@ -230,7 +187,7 @@ describe("quiz review seeding identity isolation", () => {
     await waitFor(() => expect(localStorage.getItem("quiz-attempt:a:test")).toContain("replacement-attempt"));
   });
 
-  test("should reconcile scored completion identities after catalogue drift before retrying progress", async () => {
+  test("should reject replayed scored completion after catalogue drift", async () => {
     mocks.questions = [{ id: "a1", question: "Question?", options: ["Right", "Replacement"], correctAnswer: 0, explanation: "Why." }];
     localStorage.setItem("quiz-attempt:a:test", JSON.stringify({
       version: 1,
@@ -252,18 +209,9 @@ describe("quiz review seeding identity isolation", () => {
     }));
 
     renderQuiz();
-    await screen.findByText("Quiz Complete!");
-    fireEvent.click(screen.getByRole("button", { name: "Retry completion save" }));
-
-    await waitFor(() => expect(mocks.saveProgress).toHaveBeenCalledWith(
-      "quiz-test", true, 100, 10,
-      expect.objectContaining({
-        version: 2,
-        answers: [{ questionId: "a1", optionId: "Right" }],
-        currentQuestionId: "a1",
-        completed: true,
-      }),
-    ));
+    expect(await screen.findByRole("radio", { name: "Right" })).toBeTruthy();
+    expect(screen.queryByText("Quiz Complete!")).toBeNull();
+    expect(mocks.saveProgress.mock.calls.some((call) => call[1] === true)).toBe(false);
   });
 
   test("should not retry-write a legacy positional scored completion", async () => {

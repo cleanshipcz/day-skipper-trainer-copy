@@ -62,21 +62,13 @@ const readQuizWorkflow = (owner: string | undefined, topic: string): QuizWorkflo
       removeStored(localStorage, key);
       return null;
     }
-    const completion = parsed.completion
-      && parsed.completion.session?.version === 2
-      && typeof parsed.completion.correctAnswers === "number"
-      && typeof parsed.completion.percentage === "number"
-      && typeof parsed.completion.passed === "boolean"
-      && typeof parsed.completion.pointsEarned === "number"
-      ? parsed.completion as QuizWorkflow["completion"]
-      : undefined;
-    if (scoreSaved && !completion) {
-      // Positional v1 completion evidence cannot be attributed safely after
-      // catalogue drift. Start a distinct attempt instead of retry-writing it.
+    if (scoreSaved) {
+      // localStorage is attacker-controlled and cannot prove that the score RPC
+      // succeeded. Never let it skip authoritative submission or promote data.
       removeStored(localStorage, key);
       return null;
     }
-    return { attemptId: parsed.attemptId, scoreSaved, startedAt, completion };
+    return { attemptId: parsed.attemptId, scoreSaved: false, startedAt };
   } catch { return null; }
 };
 
@@ -135,12 +127,14 @@ const Quiz = () => {
   const completionHeadingRef = useRef<HTMLHeadingElement>(null);
   const focusQuestionAfterAdvanceRef = useRef(false);
   const suppressNextProgressLoadRef = useRef(false);
+  const verifiedScoreAttemptRef = useRef<string | null>(null);
   const seedOwnerRef = useRef(user?.id ?? null);
   const seedGenerationRef = useRef(0);
   const currentSeedOwner = user?.id ?? null;
   if (seedOwnerRef.current !== currentSeedOwner) {
     seedOwnerRef.current = currentSeedOwner;
     seedGenerationRef.current += 1;
+    verifiedScoreAttemptRef.current = null;
   }
 
   const seedReviews = useCallback(async (owner: string, generation: number) => {
@@ -163,29 +157,6 @@ const Quiz = () => {
     if (!sourceQuestions) return;
     const initQuiz = async () => {
       const recovery = readQuizWorkflow(user?.id, topicKey);
-      if (recovery?.scoreSaved && recovery.completion) {
-        const recoveredSession = parseSavedQuizSession(recovery.completion.session, questions);
-        if (recoveredSession) {
-          setAnswers(recoveredSession.answers);
-          setCurrentQuestion(recoveredSession.currentQuestion);
-          setWorkflow({
-            ...recovery,
-            completion: {
-              ...recovery.completion,
-              session: buildQuizSessionProgress(recoveredSession.answers, recoveredSession.currentQuestion, questions),
-            },
-          });
-          setIsComplete(true);
-          setCompletionSaveError(true);
-          return;
-        }
-        // The score was already accepted, so never discard or reinterpret an
-        // unreconcilable recovery record. Keep retry disabled until the saved
-        // completion can be understood by this catalogue.
-        setIsComplete(true);
-        setCompletionSaveError(true);
-        return;
-      }
       setIsComplete(false);
       setCompletionSaveError(false);
       if (suppressNextProgressLoadRef.current) {
@@ -363,25 +334,20 @@ const Quiz = () => {
       toast.error("Quiz attempt is still starting. Retry saving.");
       return;
     }
-    if (activeWorkflow.scoreSaved && activeWorkflow.completion
-      && !parseSavedQuizSession(activeWorkflow.completion.session, questions)) {
-      setCompletionSaveError(true);
-      toast.error("Saved completion does not match this quiz version.");
-      return;
-    }
     setCompletionSaveError(false);
 
     const calculatedCompletion = quizCompletionOutcome(correctAnswers, questions.length);
-    const completion = activeWorkflow.completion ?? {
+    const completion = {
       session: buildQuizSessionProgress([...answers], currentQuestion, questions),
       correctAnswers,
       ...calculatedCompletion,
     };
     const { percentage, passed, pointsEarned } = completion;
+    const verificationKey = `${owner}:${topicKey}:${activeWorkflow.attemptId}`;
 
     try {
       // Save quiz score
-      if (!activeWorkflow.scoreSaved) {
+      if (verifiedScoreAttemptRef.current !== verificationKey) {
         const { error: scoreError } = await supabase.rpc("submit_quiz_score", {
           p_attempt_id: activeWorkflow.attemptId,
           p_topic_id: topicKey,
@@ -390,8 +356,9 @@ const Quiz = () => {
         });
         if (scoreError) throw scoreError;
         if (seedOwnerRef.current !== owner || seedGenerationRef.current !== generation) return;
+        verifiedScoreAttemptRef.current = verificationKey;
         const scoreSavedWorkflow = { ...activeWorkflow, scoreSaved: true, completion };
-        writeStored(localStorage, quizAttemptKey(owner, topicKey), { ...scoreSavedWorkflow, version: 1 });
+        removeStored(localStorage, quizAttemptKey(owner, topicKey));
         setWorkflow(scoreSavedWorkflow);
       }
 
@@ -444,6 +411,7 @@ const Quiz = () => {
     setIsComplete(false);
     setSeed((n) => n + 1);
     setWorkflow(null);
+    verifiedScoreAttemptRef.current = null;
     setCompletionSaveError(false);
     suppressNextProgressLoadRef.current = true;
     setAttemptCycle((value) => value + 1);
