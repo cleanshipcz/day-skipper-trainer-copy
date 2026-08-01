@@ -12,7 +12,7 @@ export const knots: Knot[] = [
   {
     id: "bowline",
     name: "Bowline",
-    uses: "Creates a fixed loop at a rope's end. It can secure a mooring line to a ring or post, but cyclic loading or shaking while slack can loosen or capsize it; do not use it where the line must be released under load.",
+    uses: "Creates a fixed loop at a rope's end. It can secure a mooring line to a ring or post, but cyclic loading or shaking while slack can work it loose; do not use it where the line must be released under load.",
     difficulty: "Medium",
     tutorialUrl: "https://www.animatedknots.com/bowline-knot",
     steps: [
@@ -28,7 +28,7 @@ export const knots: Knot[] = [
   {
     id: "clove-hitch",
     name: "Clove Hitch",
-    uses: "A quick, adjustable temporary attachment, such as for a fender. Do not rely on it alone for mooring or critical loads: it can slip, bind, or capsize when the load changes direction or repeatedly slackens and snatches.",
+    uses: "A quick, adjustable temporary attachment, such as for a fender. Do not rely on it alone for mooring or critical loads: it can slip under changing loads and bind after heavy loading.",
     difficulty: "Easy",
     tutorialUrl: "https://www.animatedknots.com/clove-hitch-knot-rope-end",
     steps: [

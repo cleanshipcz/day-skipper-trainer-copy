@@ -15,8 +15,9 @@ be appropriate to those factors and any applicable onboard standard.
   Clifford W. Ashley, *The Ashley Book of Knots* (ABOK #1010).
   <https://www.animatedknots.com/bowline-knot>
 - **Animated Knots by Grog — Clove Hitch:** limits it to temporary uses, warns
-  that it can slip or bind when used alone, and recommends securing a fender's
-  hitch with half hitches or selecting another mooring hitch (ABOK #1245).
+  that it can slip under strain or bind after heavy loading when used alone,
+  and recommends securing a fender's hitch with half hitches or selecting
+  another mooring hitch (ABOK #1245).
   <https://www.animatedknots.com/clove-hitch-knot-rope-end>
 - **Animated Knots by Grog — Square/Reef Knot:** identifies it as a binding
   knot, documents spilling/capsizing when misused as a bend, and says never to
@@ -50,7 +51,10 @@ be appropriate to those factors and any applicable onboard standard.
 ## Editorial decisions protected by tests
 
 The content tests require every knot to include dressing/setting, inspection,
-and tail guidance. They additionally preserve the Reef Knot prohibition,
-Clove Hitch changing-load warning, Bowline cyclic-load qualification, and the
-Rolling Hitch's load axis, gripping-turn placement, tucked second turn,
-finishing half hitch, and material/load-direction limitations.
+and tail guidance. Exact approved safety sentences additionally preserve the
+Reef Knot prohibition, Clove Hitch changing-load warning, Bowline cyclic-load
+qualification, and the Rolling Hitch's load axis, gripping-turn placement,
+tucked second turn, finishing half hitch, and material/load-direction
+limitations. Exact assertions deliberately bind each knot, operating condition,
+warning or prohibition, and failure mode together so reversed advice cannot
+pass as a bag of matching keywords.
