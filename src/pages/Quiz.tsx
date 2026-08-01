@@ -186,7 +186,7 @@ const Quiz = () => {
               ? JSON.parse(savedData.answers_history)
               : savedData.answers_history;
 
-          const saved = parseSavedQuizSession(savedRaw, questions.length, Boolean(savedData.completed));
+          const saved = parseSavedQuizSession(savedRaw, questions, Boolean(savedData.completed));
           if (saved) {
             setAnswers(saved.answers);
             setCurrentQuestion(saved.currentQuestion);
@@ -197,7 +197,7 @@ const Quiz = () => {
                 savedData.completed ?? false,
                 savedData.score ?? 0,
                 0,
-                buildQuizSessionProgress(saved.answers, saved.currentQuestion)
+                buildQuizSessionProgress(saved.answers, saved.currentQuestion, questions)
               );
               if (seedOwnerRef.current !== owner || seedGenerationRef.current !== generation) return;
               await resetProgress(topicKey);
@@ -212,7 +212,7 @@ const Quiz = () => {
       setAnswers(createEmptyQuizAnswers(questions.length));
     };
     initQuiz();
-  }, [sourceQuestions, questions.length, topicKey, user?.id, loadProgress, saveProgress, resetProgress, seedReviews]);
+  }, [sourceQuestions, questions, topicKey, user?.id, loadProgress, saveProgress, resetProgress, seedReviews]);
 
   useEffect(() => {
     const owner = user?.id;
@@ -248,7 +248,7 @@ const Quiz = () => {
       isAuthenticated: Boolean(user),
       topicKey,
       saveProgress,
-      progress: buildQuizSessionProgress(nextAnswers, nextQuestion),
+      progress: buildQuizSessionProgress(nextAnswers, nextQuestion, questions),
     });
   };
 
@@ -370,7 +370,7 @@ const Quiz = () => {
         percentage,
         pointsEarned,
         {
-          ...buildQuizSessionProgress([...completion.answers], completion.currentQuestion),
+          ...buildQuizSessionProgress([...completion.answers], completion.currentQuestion, questions),
           completed: true,
         }
       );

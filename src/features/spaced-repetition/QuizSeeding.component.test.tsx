@@ -151,8 +151,9 @@ describe("quiz review seeding identity isolation", () => {
     const recoveredCall = mocks.saveProgress.mock.calls.filter((call) => call[1] === true).at(-1);
     expect(recoveredCall?.[2]).toBe(100);
     expect(recoveredCall?.[4]).toMatchObject({
-      answers: persistedWorkflow.completion.answers,
-      currentQuestion: persistedWorkflow.completion.currentQuestion,
+      version: 2,
+      answers: [{ questionId: "a1", optionId: "Right" }],
+      currentQuestionId: "a1",
       completed: true,
     });
     expect(mocks.rpc.mock.calls.filter((call) => call[0] === "submit_quiz_score")).toHaveLength(1);
