@@ -15,6 +15,10 @@ const anchorworkCatalogueSql = readFileSync(
   resolve(process.cwd(), "supabase/migrations/20260801183000_register_anchorwork_progress.sql"),
   "utf8",
 ).toLowerCase();
+const atomicAnchorworkSql = readFileSync(
+  resolve(process.cwd(), "supabase/migrations/20260801190000_atomic_anchorwork_progress.sql"),
+  "utf8",
+).toLowerCase();
 
 describe("atomic progress migration", () => {
   it("derives identity from auth.uid and accepts no user-id argument", () => {
@@ -61,6 +65,26 @@ describe("atomic progress migration", () => {
     expect(anchorworkCatalogueSql).toContain("'anchorwork', 'ropework', 'pilotage-plan'");
     expect(anchorworkCatalogueSql).toContain("when 'anchorwork' then 100");
     expect(anchorworkCatalogueSql).toContain("anchorwork catalogue marker was not found");
+  });
+
+  it("merges stale Anchorwork snapshots monotonically under a user-scoped lock", () => {
+    expect(atomicAnchorworkSql).toContain("pg_advisory_xact_lock");
+    expect(atomicAnchorworkSql).toContain("v_existing_ids || p_completed_topic_ids");
+    expect(atomicAnchorworkSql).toContain("greatest(coalesce(public.user_progress.score, 0), excluded.score)");
+    expect(atomicAnchorworkSql).toContain("on conflict (user_id, topic_id) do nothing");
+  });
+
+  it("derives Anchorwork completion from the exact server catalogue", () => {
+    expect(atomicAnchorworkSql).toContain("invalid anchorwork topic ids");
+    expect(atomicAnchorworkSql).toContain("submitted.id <> all(v_catalogue)");
+    expect(atomicAnchorworkSql).toContain("v_is_complete := cardinality(v_merged_ids) = cardinality(v_catalogue)");
+    expect(atomicAnchorworkSql).not.toContain("p_completed boolean");
+    expect(atomicAnchorworkSql).toContain("gamification");
+  });
+
+  it("removes Anchorwork from the forgeable generic completion RPC", () => {
+    expect(atomicAnchorworkSql).toContain("generic progress anchorwork catalogue marker was not found");
+    expect(atomicAnchorworkSql).toContain("position($$when 'anchorwork' then 100$$ in updated_definition) > 0");
   });
 
   it("supports direct completion without a forgeable client engagement ceremony", () => {

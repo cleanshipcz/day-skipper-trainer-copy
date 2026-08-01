@@ -1,4 +1,5 @@
 type AnchorTopicIdentity = { readonly id: string };
+type AnchorTopicCatalogueItem = AnchorTopicIdentity & { readonly tips: readonly string[] };
 
 export const ANCHOR_PROGRESS_VERSION = 1;
 
@@ -22,4 +23,15 @@ export const parseAnchorProgress = (
   const validIds = new Set(ids);
   if (payload.completedTopicIds.some((id) => typeof id !== "string" || !validIds.has(id))) return null;
   return [...new Set(payload.completedTopicIds)];
+};
+
+export const isValidAnchorCatalogue = (catalogue: readonly AnchorTopicCatalogueItem[]): boolean => {
+  if (catalogue.length === 0) return false;
+  const ids = catalogue.map((topic) => topic.id);
+  return ids.every((id) => typeof id === "string" && id.trim().length > 0)
+    && new Set(ids).size === ids.length
+    && catalogue.every((topic) =>
+      Array.isArray(topic.tips)
+      && topic.tips.length > 0
+      && topic.tips.every((tip) => typeof tip === "string" && tip.trim().length > 0));
 };

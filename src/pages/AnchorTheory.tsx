@@ -10,15 +10,16 @@ import { topics, Topic } from "@/data/anchorTopics";
 import { TOPIC_IDS } from "@/constants/topicRegistry";
 import { useProgress, type ProgressSaveResult } from "@/hooks/useProgress";
 import { useAuth } from "@/contexts/AuthHooks";
-import { ANCHOR_PROGRESS_VERSION, parseAnchorProgress } from "@/features/progress/anchorProgress";
+import { ANCHOR_PROGRESS_VERSION, isValidAnchorCatalogue, parseAnchorProgress } from "@/features/progress/anchorProgress";
 
 const POINTS_PER_TOPIC = 20;
+const ANCHOR_CATALOGUE_VALID = isValidAnchorCatalogue(topics);
 
 const AnchorTheorySession = () => {
   const navigate = useNavigate();
   const { loadProgressDetailed, saveProgressDetailed } = useProgress();
-  const [topicList, setTopicList] = useState<Topic[]>(topics);
-  const [selectedTopicId, setSelectedTopicId] = useState<string | null>(topics[0]?.id ?? null);
+  const [topicList, setTopicList] = useState<Topic[]>(ANCHOR_CATALOGUE_VALID ? topics : []);
+  const [selectedTopicId, setSelectedTopicId] = useState<string | null>(ANCHOR_CATALOGUE_VALID ? topics[0].id : null);
   const [tipChecks, setTipChecks] = useState<number[]>([]);
   const [persistenceStatus, setPersistenceStatus] = useState<"loading" | "ready" | "saving" | "saved" | "anonymous" | "failed">("loading");
   const [pendingCompletedIds, setPendingCompletedIds] = useState<string[] | null>(null);
@@ -32,6 +33,10 @@ const AnchorTheorySession = () => {
   useEffect(() => {
     let cancelled = false;
     setPendingCompletedIds(null);
+    if (!ANCHOR_CATALOGUE_VALID) {
+      setPersistenceStatus("failed");
+      return () => { cancelled = true; };
+    }
     setPersistenceStatus("loading");
     void loadProgressDetailed(TOPIC_IDS.ANCHORWORK).then((result) => {
       if (cancelled) return;
@@ -123,7 +128,10 @@ const AnchorTheorySession = () => {
           {persistenceStatus === "saving" && "Saving anchorwork progress…"}
           {persistenceStatus === "saved" && "Anchorwork progress saved."}
           {persistenceStatus === "anonymous" && "Progress is available for this visit. Sign in to save it across devices."}
-          {persistenceStatus === "failed" && (
+          {!ANCHOR_CATALOGUE_VALID && (
+            <span role="alert">Anchorwork lessons are unavailable because the lesson catalogue is invalid.</span>
+          )}
+          {ANCHOR_CATALOGUE_VALID && persistenceStatus === "failed" && (
             <span className="inline-flex items-center gap-3" role="alert">
               {pendingCompletedIds ? "Progress could not be saved." : "Saved progress could not be loaded. Completion is paused to protect your existing progress."}
               <Button
@@ -323,7 +331,7 @@ const AnchorTheorySession = () => {
           </div>
         </div>
 
-        {completedCount === topicList.length && (
+        {ANCHOR_CATALOGUE_VALID && topicList.length > 0 && completedCount === topicList.length && (
           <Card className="mt-6 border-2 border-accent bg-accent/5">
             <CardContent className="pt-6">
               <div className="flex flex-col md:flex-row items-center justify-between gap-4">

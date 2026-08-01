@@ -23,7 +23,7 @@ vi.mock("@/hooks/useProgress", () => ({
 vi.mock("sonner", () => ({ toast: { success: vi.fn() } }));
 
 import AnchorTheory from "./AnchorTheory";
-import { parseAnchorProgress } from "@/features/progress/anchorProgress";
+import { isValidAnchorCatalogue, parseAnchorProgress } from "@/features/progress/anchorProgress";
 
 const renderPage = () => render(<MemoryRouter><AnchorTheory /></MemoryRouter>);
 
@@ -110,5 +110,12 @@ describe("parseAnchorProgress", () => {
     expect(parseAnchorProgress({ version: 1, completedTopicIds: [] }, [])).toBeNull();
     const duplicate = [topics[0], { ...topics[1], id: topics[0].id }] as Topic[];
     expect(parseAnchorProgress({ version: 1, completedTopicIds: [] }, duplicate)).toBeNull();
+  });
+
+  it("rejects catalogues with no usable study tips", () => {
+    expect(isValidAnchorCatalogue([])).toBe(false);
+    expect(isValidAnchorCatalogue([{ ...topics[0], tips: [] }])).toBe(false);
+    expect(isValidAnchorCatalogue([{ ...topics[0], tips: ["  "] }])).toBe(false);
+    expect(isValidAnchorCatalogue(topics)).toBe(true);
   });
 });
