@@ -1,4 +1,4 @@
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -12,8 +12,13 @@ const RopeworkTheory = () => {
   const [selectedKnot, setSelectedKnot] = useState<Knot | null>(null);
   const [knotList, setKnotList] = useState<Knot[]>(knots);
   const [score, setScore] = useState(0);
+  const [announcement, setAnnouncement] = useState("");
+  const knotButtonRefs = useRef<Record<string, HTMLButtonElement | null>>({});
+  const detailsHeadingRef = useRef<HTMLHeadingElement>(null);
 
   const handleKnotClick = (knot: Knot) => {
+    const wasDiscovered = knot.discovered;
+
     if (!knot.discovered) {
       setKnotList((prevKnots) =>
         prevKnots.map((currentKnot) =>
@@ -23,8 +28,14 @@ const RopeworkTheory = () => {
       setScore((prevScore) => prevScore + 15);
     }
 
-    setSelectedKnot((prevSelectedKnot) =>
-      prevSelectedKnot?.id === knot.id ? { ...prevSelectedKnot, discovered: true } : knot,
+    setSelectedKnot({ ...knot, discovered: true });
+    const nextDiscoveredCount = discoveredCount + (wasDiscovered ? 0 : 1);
+    setAnnouncement(
+      nextDiscoveredCount === knotList.length
+        ? `${knot.name} learned. All ${knotList.length} knots learned. The ropework quiz is ready.`
+        : wasDiscovered
+          ? `${knot.name} was already learned.`
+          : `${knot.name} learned. ${nextDiscoveredCount} of ${knotList.length} knots learned.`,
     );
   };
 
@@ -33,13 +44,17 @@ const RopeworkTheory = () => {
     [knotList],
   );
 
+  useEffect(() => {
+    if (selectedKnot) detailsHeadingRef.current?.focus();
+  }, [selectedKnot]);
+
   return (
     <div className="min-h-screen bg-gradient-to-br from-background via-ocean-light/10 to-background">
       <header className="border-b border-border bg-card/50 backdrop-blur-sm sticky top-0 z-10">
         <div className="container mx-auto px-4 py-4">
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-3">
-              <Button variant="ghost" size="icon" onClick={() => navigate("/")}>
+              <Button variant="ghost" size="icon" aria-label="Back to Home" onClick={() => navigate("/")}>
                 <ArrowLeft className="w-5 h-5" />
               </Button>
               <div>
@@ -48,11 +63,11 @@ const RopeworkTheory = () => {
               </div>
             </div>
             <div className="flex items-center gap-4">
-              <div className="flex items-center gap-2">
+              <div className="flex items-center gap-2" aria-label={`Score: ${score} points`}>
                 <Trophy className="w-5 h-5 text-accent" />
                 <span className="font-bold text-lg">{score}</span>
               </div>
-              <Badge variant="secondary">
+              <Badge variant="secondary" aria-label={`${discoveredCount} of ${knotList.length} knots learned`}>
                 {discoveredCount}/{knotList.length} learned
               </Badge>
             </div>
@@ -61,41 +76,56 @@ const RopeworkTheory = () => {
       </header>
 
       <main className="container mx-auto px-4 py-8">
+        <p className="sr-only" role="status" aria-live="polite" aria-atomic="true">
+          {announcement}
+        </p>
         <div className="grid lg:grid-cols-3 gap-6">
           {/* Knots Grid */}
           <div className="lg:col-span-2 grid md:grid-cols-2 gap-4">
             {knotList.map((knot) => (
               <Card
                 key={knot.id}
-                className={`cursor-pointer transition-all hover:scale-105 ${
+                className={`transition-all hover:scale-105 ${
                   selectedKnot?.id === knot.id ? "ring-2 ring-secondary" : ""
                 } ${knot.discovered ? "border-success/50" : ""}`}
-                onClick={() => handleKnotClick(knot)}
               >
-                <CardHeader>
-                  <div className="flex items-start justify-between">
-                    <CardTitle className="text-lg">{knot.name}</CardTitle>
-                    <Badge
-                      variant={
-                        knot.difficulty === "Easy"
-                          ? "default"
-                          : knot.difficulty === "Medium"
-                          ? "secondary"
-                          : "destructive"
-                      }
-                    >
-                      {knot.difficulty}
-                    </Badge>
-                  </div>
-                </CardHeader>
-                <CardContent>
-                  <p className="text-sm text-muted-foreground mb-3">{knot.uses}</p>
-                  {knot.discovered && (
-                    <Badge variant="default" className="bg-success">
-                      ✓ Learned
-                    </Badge>
-                  )}
-                </CardContent>
+                <button
+                  ref={(element) => { knotButtonRefs.current[knot.id] = element; }}
+                  type="button"
+                  aria-pressed={selectedKnot?.id === knot.id}
+                  aria-labelledby={`${knot.id}-name`}
+                  aria-describedby={`${knot.id}-uses ${knot.id}-state`}
+                  className="w-full rounded-lg text-left focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
+                  onClick={() => handleKnotClick(knot)}
+                >
+                  <CardHeader>
+                    <div className="flex items-start justify-between">
+                      <CardTitle id={`${knot.id}-name`} className="text-lg">{knot.name}</CardTitle>
+                      <Badge
+                        variant={
+                          knot.difficulty === "Easy"
+                            ? "default"
+                            : knot.difficulty === "Medium"
+                            ? "secondary"
+                            : "destructive"
+                        }
+                      >
+                        {knot.difficulty}
+                      </Badge>
+                    </div>
+                  </CardHeader>
+                  <CardContent>
+                    <p id={`${knot.id}-uses`} className="text-sm text-muted-foreground mb-3">{knot.uses}</p>
+                    <span id={`${knot.id}-state`} className="sr-only">
+                      {knot.discovered ? "Learned" : "Not learned"}
+                    </span>
+                    {knot.discovered && (
+                      <Badge variant="default" className="bg-success">
+                        ✓ Learned
+                      </Badge>
+                    )}
+                  </CardContent>
+                </button>
               </Card>
             ))}
           </div>
@@ -103,7 +133,9 @@ const RopeworkTheory = () => {
           {/* Details Panel */}
           <Card className="lg:col-span-1 sticky top-24 h-fit">
             <CardHeader>
-              <CardTitle>{selectedKnot ? selectedKnot.name : "Select a Knot"}</CardTitle>
+              <CardTitle ref={detailsHeadingRef} tabIndex={selectedKnot ? -1 : undefined}>
+                {selectedKnot ? `${selectedKnot.name} details` : "Select a Knot"}
+              </CardTitle>
             </CardHeader>
             <CardContent>
               {selectedKnot ? (
@@ -133,10 +165,17 @@ const RopeworkTheory = () => {
                     Watch Tutorial
                     <ExternalLink className="w-4 h-4 ml-2" />
                   </Button>
+                  <Button
+                    variant="outline"
+                    className="w-full"
+                    onClick={() => knotButtonRefs.current[selectedKnot.id]?.focus()}
+                  >
+                    Back to {selectedKnot.name} in knot list
+                  </Button>
                 </div>
               ) : (
                 <p className="text-center text-muted-foreground py-8">
-                  Click on a knot to see details and video tutorial
+                  Select a knot to see details and a video tutorial
                 </p>
               )}
             </CardContent>
@@ -144,11 +183,11 @@ const RopeworkTheory = () => {
         </div>
 
         {discoveredCount === knotList.length && (
-          <Card className="mt-6 border-2 border-accent bg-accent/5">
+          <Card className="mt-6 border-2 border-accent bg-accent/5" role="region" aria-labelledby="ropework-completion-heading">
             <CardContent className="pt-6">
               <div className="flex items-center justify-between">
                 <div>
-                  <h3 className="text-xl font-bold mb-2">🎉 All knots learned! Ready for the quiz?</h3>
+                  <h3 id="ropework-completion-heading" className="text-xl font-bold mb-2">🎉 All knots learned! Ready for the quiz?</h3>
                   <p className="text-muted-foreground">Test your ropework knowledge</p>
                 </div>
                 <Button
