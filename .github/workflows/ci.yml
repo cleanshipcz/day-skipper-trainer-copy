@@ -97,6 +97,13 @@ jobs:
           CHROMIUM_NO_SANDBOX: "1"
         run: npm run test:sail-controls-browser
 
+      - name: Ropework accessibility browser characterization
+        # Match the scoped sandbox opt-out above: this test uses an isolated
+        # profile and a loopback-only Vite preview.
+        env:
+          CHROMIUM_NO_SANDBOX: "1"
+        run: npm run test:ropework-accessibility-browser
+
       - name: Build budget
         run: npm run test:build-budget
 
