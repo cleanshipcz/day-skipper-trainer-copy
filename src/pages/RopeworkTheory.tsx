@@ -85,7 +85,7 @@ const RopeworkTheory = () => {
             {knotList.map((knot) => (
               <Card
                 key={knot.id}
-                className={`transition-all hover:scale-105 ${
+                className={`relative transition-all hover:scale-105 ${
                   selectedKnot?.id === knot.id ? "ring-2 ring-secondary" : ""
                 } ${knot.discovered ? "border-success/50" : ""}`}
               >
@@ -95,37 +95,36 @@ const RopeworkTheory = () => {
                   aria-pressed={selectedKnot?.id === knot.id}
                   aria-labelledby={`${knot.id}-name`}
                   aria-describedby={`${knot.id}-uses ${knot.id}-state`}
-                  className="w-full rounded-lg text-left focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
+                  className="absolute inset-0 z-10 rounded-lg focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
                   onClick={() => handleKnotClick(knot)}
-                >
-                  <CardHeader>
-                    <div className="flex items-start justify-between">
-                      <CardTitle id={`${knot.id}-name`} className="text-lg">{knot.name}</CardTitle>
-                      <Badge
-                        variant={
-                          knot.difficulty === "Easy"
-                            ? "default"
-                            : knot.difficulty === "Medium"
-                            ? "secondary"
-                            : "destructive"
-                        }
-                      >
-                        {knot.difficulty}
-                      </Badge>
-                    </div>
-                  </CardHeader>
-                  <CardContent>
-                    <p id={`${knot.id}-uses`} className="text-sm text-muted-foreground mb-3">{knot.uses}</p>
-                    <span id={`${knot.id}-state`} className="sr-only">
-                      {knot.discovered ? "Learned" : "Not learned"}
-                    </span>
-                    {knot.discovered && (
-                      <Badge variant="default" className="bg-success">
-                        ✓ Learned
-                      </Badge>
-                    )}
-                  </CardContent>
-                </button>
+                />
+                <CardHeader>
+                  <div className="flex items-start justify-between">
+                    <CardTitle id={`${knot.id}-name`} className="text-lg">{knot.name}</CardTitle>
+                    <Badge
+                      variant={
+                        knot.difficulty === "Easy"
+                          ? "default"
+                          : knot.difficulty === "Medium"
+                          ? "secondary"
+                          : "destructive"
+                      }
+                    >
+                      {knot.difficulty}
+                    </Badge>
+                  </div>
+                </CardHeader>
+                <CardContent>
+                  <p id={`${knot.id}-uses`} className="text-sm text-muted-foreground mb-3">{knot.uses}</p>
+                  <span id={`${knot.id}-state`} className="sr-only">
+                    {knot.discovered ? "Learned" : "Not learned"}
+                  </span>
+                  {knot.discovered && (
+                    <Badge variant="default" className="bg-success">
+                      ✓ Learned
+                    </Badge>
+                  )}
+                </CardContent>
               </Card>
             ))}
           </div>

@@ -27,6 +27,8 @@ describe("RopeworkTheory accessible knot discovery", () => {
 
     const controls = knots.map((knot) => screen.getByRole("button", { name: knot.name }));
     expect(controls).toHaveLength(knots.length);
+    expect(screen.getByRole("heading", { name: knots[0].name })).toBeTruthy();
+    expect(controls[0].querySelector("h3, p, div")).toBeNull();
     expect(controls[0].getAttribute("aria-pressed")).toBe("false");
     expect(controls[0].getAttribute("aria-describedby")).toContain(`${knots[0].id}-state`);
     expect(screen.getByText("Not learned", { selector: `#${knots[0].id}-state` })).toBeTruthy();
