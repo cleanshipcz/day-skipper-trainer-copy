@@ -916,7 +916,7 @@ const SailControls = () => {
                     </p>
                     <div
                       data-schematic-scroll
-                      className="mx-auto w-full max-w-4xl overflow-x-auto overscroll-x-contain rounded-md touch-pan-x"
+                      className="mx-auto w-full max-w-4xl overflow-x-auto overscroll-x-contain rounded-md"
                     >
                       <SchematicDiagram
                         highlightId={highlightedId}
