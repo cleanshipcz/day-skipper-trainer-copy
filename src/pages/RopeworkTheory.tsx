@@ -8,6 +8,7 @@ import { useNavigate } from "react-router-dom";
 import { knots, Knot } from "@/data/ropeworkKnots";
 import { TOPIC_IDS } from "@/constants/topicRegistry";
 import { useProgress, type ProgressSaveResult } from "@/hooks/useProgress";
+import { useAuth } from "@/contexts/AuthHooks";
 
 const POINTS_PER_KNOT = 15;
 const ROPEWORK_PROGRESS_VERSION = 1;
@@ -29,7 +30,7 @@ const parseRopeworkProgress = (value: unknown): string[] | null => {
   return [...new Set(payload.learnedKnotIds)];
 };
 
-const RopeworkTheory = () => {
+const RopeworkSession = () => {
   const navigate = useNavigate();
   const { loadProgressDetailed, saveProgressDetailed } = useProgress();
   const [selectedKnot, setSelectedKnot] = useState<Knot | null>(null);
@@ -294,6 +295,11 @@ const RopeworkTheory = () => {
       </main>
     </div>
   );
+};
+
+const RopeworkTheory = () => {
+  const { user } = useAuth();
+  return <RopeworkSession key={user?.id ?? "anonymous"} />;
 };
 
 export default RopeworkTheory;

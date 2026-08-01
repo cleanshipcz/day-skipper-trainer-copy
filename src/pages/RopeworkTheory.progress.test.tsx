@@ -4,10 +4,11 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
 import { MemoryRouter } from "react-router-dom";
 import { knots } from "@/data/ropeworkKnots";
 
-const mocks = vi.hoisted(() => ({ load: vi.fn(), save: vi.fn() }));
+const mocks = vi.hoisted(() => ({ load: vi.fn(), save: vi.fn(), user: { id: "user-a" } as { id: string } | null }));
 vi.mock("@/hooks/useProgress", () => ({
   useProgress: () => ({ loadProgressDetailed: mocks.load, saveProgressDetailed: mocks.save }),
 }));
+vi.mock("@/contexts/AuthHooks", () => ({ useAuth: () => ({ user: mocks.user }) }));
 
 import RopeworkTheory from "./RopeworkTheory";
 
@@ -19,8 +20,58 @@ const record = (answers_history: unknown, completed = false, score = 0) => ({
 
 describe("RopeworkTheory durable progress", () => {
   beforeEach(() => {
+    mocks.user = { id: "user-a" };
     mocks.load.mockReset().mockResolvedValue({ status: "missing", record: null });
     mocks.save.mockReset().mockResolvedValue("remote");
+  });
+
+  it.each([
+    { status: "missing", record: null },
+    { status: "remote", record: record({ version: 1, learnedKnotIds: ["retired-knot"] }, true, 100) },
+  ])("clears the previous owner before hydrating and saving for a new identity %#", async (newOwnerLoad) => {
+    mocks.load
+      .mockResolvedValueOnce({
+        status: "remote",
+        record: record({ version: 1, learnedKnotIds: [knots[0].id, knots[1].id] }, false, 29),
+      })
+      .mockResolvedValueOnce(newOwnerLoad);
+    const user = userEvent.setup();
+    const view = renderPage();
+    await screen.findByLabelText("Score: 30 points");
+    await user.click(screen.getByRole("button", { name: knots[0].name }));
+    expect(screen.getByRole("heading", { name: `${knots[0].name} details` })).toBeTruthy();
+
+    mocks.user = { id: "user-b" };
+    view.rerender(<MemoryRouter><RopeworkTheory /></MemoryRouter>);
+    expect(screen.getByLabelText("Score: 0 points")).toBeTruthy();
+    expect(screen.queryByRole("heading", { name: `${knots[0].name} details` })).toBeNull();
+    const thirdKnot = screen.getByRole("button", { name: knots[2].name }) as HTMLButtonElement;
+    expect(thirdKnot.disabled).toBe(true);
+    await waitFor(() => expect(thirdKnot.disabled).toBe(false));
+
+    await user.click(thirdKnot);
+    await waitFor(() => expect(mocks.save).toHaveBeenCalledTimes(1));
+    expect(mocks.save).toHaveBeenLastCalledWith("ropework", false, Math.round(100 / knots.length), 0, {
+      version: 1,
+      learnedKnotIds: [knots[2].id],
+    });
+  });
+
+  it("clears authenticated state when transitioning to anonymous use", async () => {
+    mocks.load
+      .mockResolvedValueOnce({
+        status: "remote",
+        record: record({ version: 1, learnedKnotIds: [knots[0].id] }, false, 14),
+      })
+      .mockResolvedValueOnce({ status: "anonymous", record: null });
+    const view = renderPage();
+    await screen.findByLabelText("Score: 15 points");
+
+    mocks.user = null;
+    view.rerender(<MemoryRouter><RopeworkTheory /></MemoryRouter>);
+    expect(screen.getByLabelText("Score: 0 points")).toBeTruthy();
+    expect(screen.getByText("Not learned", { selector: `#${knots[0].id}-state` })).toBeTruthy();
+    await screen.findByText(/Sign in to save/);
   });
 
   it("waits for hydration and restores learned identities without overwriting them", async () => {

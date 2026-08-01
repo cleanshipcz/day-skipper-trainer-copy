@@ -15,6 +15,7 @@ vi.mock("@/hooks/useProgress", () => ({
     saveProgressDetailed: progressMocks.save,
   }),
 }));
+vi.mock("@/contexts/AuthHooks", () => ({ useAuth: () => ({ user: null }) }));
 import RopeworkTheory from "./RopeworkTheory";
 
 const LocationProbe = () => {
