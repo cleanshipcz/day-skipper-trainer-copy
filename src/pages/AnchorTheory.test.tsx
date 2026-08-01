@@ -87,4 +87,34 @@ describe("AnchorTheory durable completion", () => {
     await completeVisibleStudyCheck();
     expect(mocks.saveProgressDetailed).toHaveBeenCalledTimes(1);
   });
+
+  it("names navigation, score and progress and exposes topic state with a keyboard-operable tab pattern", async () => {
+    renderPage();
+
+    expect(await screen.findByRole("button", { name: "Back to home" })).toBeTruthy();
+    expect(screen.getByLabelText("Score: 0 points")).toBeTruthy();
+    const progress = screen.getByRole("progressbar", { name: "Topic completion progress" });
+    expect(progress.getAttribute("aria-valuetext")).toBe("0 of 5 topics completed");
+
+    const tabs = screen.getAllByRole("tab");
+    expect(tabs[0].getAttribute("aria-selected")).toBe("true");
+    expect(tabs[0].getAttribute("tabindex")).toBe("0");
+    expect(tabs[1].getAttribute("tabindex")).toBe("-1");
+    fireEvent.keyDown(tabs[0], { key: "ArrowDown" });
+
+    const selectedTab = await screen.findByRole("tab", { name: /prepare the operation, not completed/i });
+    expect(selectedTab.getAttribute("aria-selected")).toBe("true");
+    expect(screen.getByRole("tabpanel").getAttribute("aria-labelledby")).toBe("anchor-topic-tab-scope");
+    await waitFor(() => expect(document.activeElement).toBe(selectedTab));
+  });
+
+  it("announces completion and save outcomes, manages focus, and hides decorative imagery", async () => {
+    renderPage();
+    await completeVisibleStudyCheck();
+
+    await waitFor(() => expect(screen.getByRole("status").textContent).toBe("Anchorwork progress saved."));
+    expect(document.activeElement?.textContent).toContain("Plan and Select");
+    expect(screen.getByRole("tab", { name: "Plan and Select, completed" })).toBeTruthy();
+    expect(document.querySelectorAll("svg:not([aria-hidden='true']):not([role='img'])")).toHaveLength(0);
+  });
 });
