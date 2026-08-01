@@ -707,7 +707,9 @@ const SailControls = () => {
               <div>
                 <h1 className="text-xl font-bold">Sail Controls & Rig Adjustments</h1>
                 <p className="text-sm text-muted-foreground">
-                  {mode === "learn" ? "Learn lines, deck hardware and rig adjustments" : "Identify each sail control"}
+                  {mode === "learn"
+                    ? "Learn lines, deck hardware and rig adjustments"
+                    : "Match each purpose to the correct sail control or rig adjustment"}
                 </p>
               </div>
             </div>
@@ -906,28 +908,7 @@ const SailControls = () => {
           /* QUIZ MODE */
           <div className="space-y-6">
             {activePart ? (
-              <div className="grid lg:grid-cols-2 gap-6">
-                {/* Large Diagram on left */}
-                <Card className="overflow-hidden">
-                  <CardContent className="p-4">
-                    <div className="max-w-2xl mx-auto">
-                      <SchematicDiagram
-                        highlightId={hoveredPart?.id}
-                        onHover={(id) => {
-                          if (id) {
-                            const control = controlsById[id];
-                            if (control) setHoveredPart(control);
-                          } else {
-                            setHoveredPart(null);
-                          }
-                        }}
-                      />
-                    </div>
-                  </CardContent>
-                </Card>
-
-                {/* Questions on right */}
-                <div className="space-y-4">
+              <div className="max-w-2xl mx-auto space-y-4">
                   <Card className="border-2 border-primary">
                     <CardHeader>
                       <CardTitle
@@ -941,7 +922,9 @@ const SailControls = () => {
                     </CardHeader>
                     <CardContent className="space-y-4">
                       <div className="text-center p-4 bg-muted rounded-lg">
-                        <p className="text-lg font-medium mb-2">What control line does this describe?</p>
+                        <p className="text-lg font-medium mb-2">
+                          Which sail control or rig adjustment has this purpose?
+                        </p>
                         <p className="text-muted-foreground italic">"{activePart.purpose}"</p>
                       </div>
 
@@ -994,7 +977,6 @@ const SailControls = () => {
                       </CardContent>
                     </Card>
                   )}
-                </div>
               </div>
             ) : (
               /* Quiz Complete */
