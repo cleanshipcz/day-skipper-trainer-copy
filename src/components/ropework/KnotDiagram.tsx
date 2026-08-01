@@ -1,6 +1,7 @@
 import type { Knot, KnotId } from "@/data/ropeworkKnots";
 
 type Point = [number, number];
+type Endpoint = { role: "standing-a" | "working-a" | "standing-b" | "working-b"; point: Point; side: "left" | "right" | "top" | "bottom" };
 type Diagram = {
   ropes: string[];
   bridges: { rope: number; path: string }[];
@@ -8,6 +9,7 @@ type Diagram = {
   load: [number, number, number, number];
   standingPart: Point;
   workingEnd: Point;
+  endpoints?: Endpoint[];
 };
 
 // Each physical rope is one continuous path. Short bridge paths redraw the
@@ -23,8 +25,12 @@ const knotDiagramSpecs: Record<KnotId, Diagram> = {
     bridges: [{ rope: 0, path: "M76 72 C84 72 92 72 100 72 C116 72 130 70 140 64" }], object: "post", load: [42, 32, 42, 7], standingPart: [42, 17], workingEnd: [158, 154],
   },
   "reef-knot": {
-    ropes: ["M10 64 C47 64 61 76 84 98 C105 117 130 117 190 117", "M10 117 C52 117 63 105 84 83 C105 62 128 64 190 64"],
-    bridges: [{ rope: 1, path: "M73 94 C78 89 81 86 86 81 C94 73 103 68 114 66" }, { rope: 0, path: "M111 113 C125 118 144 117 158 117" }], load: [35, 64, 5, 64], standingPart: [14, 64], workingEnd: [186, 117],
+    ropes: ["M10 61 C50 61 61 77 84 98 C101 114 71 119 10 119", "M190 61 C150 61 139 77 116 98 C99 114 129 119 190 119"],
+    bridges: [{ rope: 1, path: "M116 98 C106 107 102 111 108 114" }, { rope: 0, path: "M74 89 C79 94 82 97 86 101" }], load: [34, 61, 5, 61], standingPart: [14, 61], workingEnd: [14, 119],
+    endpoints: [
+      { role: "standing-a", point: [10, 61], side: "left" }, { role: "working-a", point: [10, 119], side: "left" },
+      { role: "standing-b", point: [190, 61], side: "right" }, { role: "working-b", point: [190, 119], side: "right" },
+    ],
   },
   "figure-eight": {
     ropes: ["M100 9 L100 43 C100 62 57 65 52 97 C45 138 148 143 149 99 C150 68 77 57 73 86 C70 107 93 119 102 128 L102 160"],
@@ -35,8 +41,12 @@ const knotDiagramSpecs: Record<KnotId, Diagram> = {
     bridges: [{ rope: 0, path: "M97 92 C99 108 118 115 136 111" }, { rope: 0, path: "M137 77 C128 85 132 101 145 106" }], object: "ring", load: [167, 48, 195, 48], standingPart: [186, 48], workingEnd: [164, 156],
   },
   "sheet-bend": {
-    ropes: ["M15 38 C79 38 86 142 15 142", "M111 159 C111 129 151 124 151 83 C151 49 106 42 87 70 C70 96 88 117 132 105"],
-    bridges: [{ rope: 1, path: "M87 70 C77 85 78 98 89 108" }], load: [37, 38, 9, 38], standingPart: [19, 38], workingEnd: [128, 105],
+    ropes: ["M14 40 C80 40 86 141 14 141", "M174 158 C174 126 153 119 153 83 C153 48 107 44 87 70 C69 94 67 116 24 121"],
+    bridges: [{ rope: 1, path: "M87 70 C76 84 72 97 65 106" }], load: [38, 40, 8, 40], standingPart: [18, 40], workingEnd: [24, 121],
+    endpoints: [
+      { role: "standing-a", point: [14, 40], side: "left" }, { role: "working-a", point: [14, 141], side: "left" },
+      { role: "standing-b", point: [174, 158], side: "right" }, { role: "working-b", point: [24, 121], side: "left" },
+    ],
   },
   "rolling-hitch": {
     ropes: ["M7 91 L193 91", "M35 25 C58 25 67 43 67 68 C67 112 89 137 112 137 C139 137 147 112 136 96 C126 81 99 82 91 96 C80 115 99 128 121 121 C143 114 147 83 130 70 C112 56 91 65 91 83 C91 99 112 108 139 108 C158 108 166 126 166 158"],
@@ -57,6 +67,7 @@ export function KnotDiagram({ knot }: { knot: Knot }) {
         {diagram.bridges.map((bridge, index) => <g key={bridge.path} data-crossing-bridge={index + 1}><path d={bridge.path} fill="none" className="stroke-background" strokeWidth="15" strokeLinecap="round" /><path d={bridge.path} fill="none" className={ropeClass(bridge.rope)} strokeWidth="9" strokeLinecap="round" /></g>)}
         <line x1={diagram.load[0]} y1={diagram.load[1]} x2={diagram.load[2]} y2={diagram.load[3]} className="stroke-destructive" strokeWidth="3" markerEnd={`url(#${knot.id}-arrow)`} />
         <circle cx={diagram.standingPart[0]} cy={diagram.standingPart[1]} r="3" className="fill-destructive" /><circle cx={diagram.workingEnd[0]} cy={diagram.workingEnd[1]} r="3" className="fill-foreground" />
+        {diagram.endpoints?.map((endpoint) => <g key={endpoint.role} data-endpoint-role={endpoint.role} data-endpoint-side={endpoint.side} data-x={endpoint.point[0]} data-y={endpoint.point[1]}><circle cx={endpoint.point[0]} cy={endpoint.point[1]} r="4" className={endpoint.role.startsWith("standing") ? "fill-destructive" : "fill-foreground"} /></g>)}
         <text x="5" y="172" className="fill-foreground text-[9px]">● working end</text><text x="78" y="172" className="fill-destructive text-[9px]">● standing part / load</text>
       </svg>
       <figcaption id={`${knot.id}-diagram-caption`} className="mt-2 text-sm text-muted-foreground">{knot.visualDescription}</figcaption>

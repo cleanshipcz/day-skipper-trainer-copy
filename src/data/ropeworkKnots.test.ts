@@ -45,6 +45,11 @@ describe("ropework knot safety guidance", () => {
     expect(knot("reef-knot").steps).toContain(
       "Use only as a binding knot; choose a suitable bend, such as a correctly tied Sheet Bend, for joining ropes under load",
     );
+    expect(knot("reef-knot").visualDescription).toContain("each working end lies beside its own standing part on the same side");
+    expect(knot("reef-knot").steps).toContain(
+      "Dress the knot flat so each working end (tail) lies beside its own standing part on the same side, with the two rope pairs leaving opposite sides",
+    );
+    expect(knot("reef-knot").steps.join(" ")).not.toMatch(/standing parts leave together|tails leave together/i);
   });
 
   it("qualifies the Clove Hitch for changing and directional loads", () => {

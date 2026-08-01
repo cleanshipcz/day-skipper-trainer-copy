@@ -120,6 +120,12 @@ try {
     if (diagram.ropes !== ropeCount || diagram.bridges < 1 || !diagram.name.includes("final-form diagram") || !diagram.labels.includes("working end") || !diagram.labels.includes("standing part / load")) {
       throw new Error(`${knotId} topology/accessibility metadata failed: ${JSON.stringify(diagram)}`);
     }
+    if (knotId === "sheet-bend" || knotId === "reef-knot") {
+      const endpoints = await evaluate(`Object.fromEntries([...document.querySelectorAll('figure[data-knot-diagram="${knotId}"] [data-endpoint-role]')].map((node) => [node.dataset.endpointRole, { side: node.dataset.endpointSide, x: Number(node.dataset.x), y: Number(node.dataset.y) }]))`);
+      if (Object.keys(endpoints).length !== 4 || Object.values(endpoints).some(({ x, y }) => !Number.isFinite(x) || !Number.isFinite(y))) throw new Error(`${knotId} endpoint roles missing: ${JSON.stringify(endpoints)}`);
+      if (knotId === "sheet-bend" && (endpoints["working-a"].side !== "left" || endpoints["working-b"].side !== "left" || endpoints["working-a"].x >= 100 || endpoints["working-b"].x >= 100)) throw new Error(`Sheet Bend tails are not together on the left: ${JSON.stringify(endpoints)}`);
+      if (knotId === "reef-knot" && (endpoints["standing-a"].side !== endpoints["working-a"].side || endpoints["standing-b"].side !== endpoints["working-b"].side || endpoints["standing-a"].side === endpoints["standing-b"].side)) throw new Error(`Reef Knot endpoint pairs contradict caption: ${JSON.stringify(endpoints)}`);
+    }
     await waitFor(() => evaluate("!document.querySelector('button[aria-pressed]').disabled"), `${knotId} save`);
   }
   await send("Page.navigate", { url: `http://127.0.0.1:${port}/ropework` });

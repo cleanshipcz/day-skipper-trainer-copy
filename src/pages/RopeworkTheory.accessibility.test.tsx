@@ -135,6 +135,19 @@ describe("RopeworkTheory accessible knot discovery", () => {
       expect(image!.querySelectorAll("[data-crossing-bridge]")).toHaveLength(Number(figure?.getAttribute("data-bridge-count")));
       expect(image!.textContent).toContain("working end");
       expect(image!.textContent).toContain("standing part / load");
+      if (knot.id === "reef-knot" || knot.id === "sheet-bend") {
+        const roles = [...image!.querySelectorAll("[data-endpoint-role]")];
+        expect(roles.map((node) => node.getAttribute("data-endpoint-role"))).toEqual(["standing-a", "working-a", "standing-b", "working-b"]);
+        expect(roles.every((node) => Number.isFinite(Number(node.getAttribute("data-x"))) && Number.isFinite(Number(node.getAttribute("data-y"))))).toBe(true);
+      }
+      if (knot.id === "sheet-bend") {
+        const workingSides = [...image!.querySelectorAll('[data-endpoint-role^="working-"]')].map((node) => node.getAttribute("data-endpoint-side"));
+        expect(workingSides).toEqual(["left", "left"]);
+      }
+      if (knot.id === "reef-knot") {
+        const endpointSides = Object.fromEntries([...image!.querySelectorAll("[data-endpoint-role]")].map((node) => [node.getAttribute("data-endpoint-role"), node.getAttribute("data-endpoint-side")]));
+        expect(endpointSides).toEqual({ "standing-a": "left", "working-a": "left", "standing-b": "right", "working-b": "right" });
+      }
       expect(screen.getByText(knot.visualDescription)).toBeTruthy();
     }
   });

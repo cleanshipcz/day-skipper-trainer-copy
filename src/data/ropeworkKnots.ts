@@ -55,11 +55,11 @@ export const knots: Knot[] = [
     difficulty: "Easy",
     tutorialUrl: "https://www.animatedknots.com/square-knot",
     tutorialTitle: "Animated Knots: Square (Reef) Knot",
-    visualDescription: "Final binding form: the two standing parts load away from each other left and right; both working ends return beside their own standing parts. Dress the two interlocking half-knots flat and symmetrical.",
+    visualDescription: "Final binding form: each working end lies beside its own standing part on the same side of the knot, with the two rope pairs leaving opposite sides. Load the standing parts away from each other; dress the two interlocking half-knots flat and symmetrical.",
     steps: [
       "Cross the left working end over the right and tuck it under to make the first half knot",
       "Reverse the crossing: take the end now on the right over the end now on the left and tuck it under",
-      "Dress the knot flat so both standing parts leave together on one side and both generous tails leave together on the other",
+      "Dress the knot flat so each working end (tail) lies beside its own standing part on the same side, with the two rope pairs leaving opposite sides",
       "Set by pulling both standing parts and inspect that it is a symmetrical reef knot, not a granny knot",
       "Use only as a binding knot; choose a suitable bend, such as a correctly tied Sheet Bend, for joining ropes under load",
     ],
