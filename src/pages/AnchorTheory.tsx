@@ -6,7 +6,7 @@ import { ArrowLeft, Anchor, CheckCircle2, Trophy } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { toast } from "sonner";
 
-import { topics, Topic } from "@/data/anchorTopics";
+import { anchorSources, topics, Topic } from "@/data/anchorTopics";
 import { TOPIC_IDS } from "@/constants/topicRegistry";
 import { useProgress, type ProgressSaveResult } from "@/hooks/useProgress";
 import { useAuth } from "@/contexts/AuthHooks";
@@ -213,6 +213,22 @@ const AnchorTheorySession = () => {
                           </li>
                         ))}
                       </ul>
+                    </div>
+
+                    <div className="text-sm text-muted-foreground">
+                      <h3 className="font-semibold mb-2 text-foreground">Authoritative review basis</h3>
+                      <ul className="list-disc pl-5 space-y-1">
+                        {anchorSources
+                          .filter((source) => selectedTopic.sourceIds.includes(source.id))
+                          .map((source) => (
+                            <li key={source.id}>
+                              <a className="underline underline-offset-2" href={source.url} target="_blank" rel="noreferrer">
+                                {source.title}
+                              </a>
+                            </li>
+                          ))}
+                      </ul>
+                      <p className="mt-2">For a particular vessel, its manuals and equipment-maker instructions control.</p>
                     </div>
 
                     {!selectedTopic.completed && (
