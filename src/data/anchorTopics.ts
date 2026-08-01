@@ -66,7 +66,7 @@ export const topics: Topic[] = [
     content:
       "Brief the helm and foredeck crew, agree clear signals and an abort plan, and prepare the correctly secured rode before entering the anchorage. Scope is only one input: determine it from the maximum bow-roller-to-seabed distance and adapt it to the rode, anchor, vessel, seabed, available room, forecast conditions and manufacturer guidance rather than relying on one universal ratio.",
     tips: [
-      "Confirm the rode and its attachment are serviceable, and know how the bitter end can be released in an emergency",
+      "Confirm the rode is serviceable, securely attached and ready for use; follow the vessel and equipment instructions for emergency release",
       "Keep people out of the bight, pinch points and snap-back zones; never stand astride or over a moving rode",
       "Keep hands, feet, clothing and loose gear clear of windlass, chain, rope and gypsy",
     ],
@@ -80,8 +80,8 @@ export const topics: Topic[] = [
       "Approach at controlled speed while accounting for the dominant wind or current. When stopped over the chosen position, lower—not throw—the anchor under control; move astern slowly while paying out rode so it does not pile on the anchor. Snub on a suitable strong point and increase setting load progressively within the vessel's and equipment's limits. A windlass handles rode; unless its maker expressly approves the load, do not use it as the permanent anchoring strong point.",
     tips: [
       "Use agreed helm–foredeck communication and stop immediately if a person, rode or equipment is at risk",
-      "Verify holding independently using at least two suitable cues: fixed transits or bearings, position trend or alarm, depth, and feel/load on the rode",
-      "A single GPS fix, alarm or burst of reverse does not prove holding; investigate movement and reset or relocate if in doubt",
+      "Use two fixed shore points as a transit to check holding, and keep checking position, depth and rode load for change",
+      "If the transit or other observations show dragging, pay out more suitable rode where room permits, or recover and reset elsewhere",
     ],
     sourceIds: ["rnli-sar", "mca-coswp", "mca-mgn592"],
     completed: false,
@@ -90,9 +90,9 @@ export const topics: Topic[] = [
     id: "swinging-room",
     title: "Maintain an Anchor Watch",
     content:
-      "Anchoring is not finished when the engine stops. Maintain a watch appropriate to the circumstances: monitor position and depth trends, fixed marks where available, weather, tide/current, traffic, rode condition and clearance through the vessel's possible swing. An electronic anchor alarm is a useful aid, not a substitute for lookout and repeated checks.",
+      "Anchoring is not finished when the engine stops. Maintain a watch appropriate to the circumstances: monitor position and depth trends, fixed marks where available, weather, tide/current, traffic, rode condition and clearance through the vessel's possible swing. No single observation replaces lookout and repeated checks.",
     tips: [
-      "Set alarm limits from the anchor position, expected swing and positioning uncertainty, then test the alarm",
+      "Keep repeating position and transit checks; no single observation replaces a continuing watch",
       "Apply COLREG lookout and risk-of-collision duties; at anchor display the Rule 30 lights and day shape applicable to the vessel and circumstances",
       "Local harbour, environmental and anchoring rules may add restrictions or signals; check them before arrival and during the stay",
     ],
@@ -107,7 +107,7 @@ export const topics: Topic[] = [
     tips: [
       "Confirm the anchor is aweigh and clear before manoeuvring away; check for damage, chafe or contamination",
       "Clean and stow the rode under control, then mechanically secure the anchor and windlass controls for sea",
-      "If safe recovery is not possible, mark or buoy only where lawful and safe, record the position, and seek local or professional help",
+      "If safe recovery is not possible, stop the attempt and seek local or professional help rather than improvising under load",
     ],
     sourceIds: ["mca-coswp"],
     completed: false,
@@ -121,40 +121,33 @@ export interface AnchorClaimReview {
 
 // Every learner-facing safety statement is an exact key in this register. A
 // content change therefore requires an explicit, reviewable source decision.
-export const anchorClaimReviews: readonly AnchorClaimReview[] = topics.flatMap((topic) => {
-  const contentBasis: Record<string, AnchorClaimReview["basis"]> = {
-    types: [
-      { sourceId: "rnli-sar", locator: "Unit 9, p. 67: pre-anchoring factors and swinging circle" },
-      { sourceId: "rnli-afloat", locator: "Stay put / Using an anchor in an emergency: suitable anchor, chain and line" },
-      { sourceId: "mca-mgn592", locator: "MGN 592 (M+F) Amendment 2, §§1.2, 2.3–2.4: yachts, equipment design limits and foreseeable loads" },
-      { sourceId: "rya-environment", locator: "How do I anchor with care?: sensitive and protected seabed habitats" },
-    ],
-    scope: [
-      { sourceId: "rnli-sar", locator: "Unit 9, p. 67: wind, tide, depth, hazards, seabed and cable considerations" },
-      { sourceId: "mca-coswp", locator: "COSWP 2024 ch. 26, §§26.2.1–26.2.3 and 26.3: planning, communication and anchoring machinery hazards" },
-    ],
-    procedure: [
-      { sourceId: "rnli-sar", locator: "Unit 9, p. 67: deploying, digging in, transit holding check and reset response" },
-      { sourceId: "mca-mgn592", locator: "MGN 592 Amendment 2, §§2.1–2.4: windlass design limits and safe layout" },
-      { sourceId: "mca-coswp", locator: "COSWP 2024 ch. 26, §§26.3–26.4: controlled anchoring operations" },
-    ],
-    "swinging-room": [
-      { sourceId: "rnli-sar", locator: "Unit 9, p. 67: changing wind/tide, safe swinging circle and transit checks" },
-      { sourceId: "colregs", locator: "International Rules 5, 7 and 30: lookout, collision-risk assessment, anchor lights/shapes and exceptions" },
-    ],
-    weighing: [
-      { sourceId: "mca-coswp", locator: "COSWP 2024 ch. 26, §§26.2–26.4: communication, loaded cable, machinery, heaving and securing precautions" },
-    ],
-  };
-  const tipBasis: Record<string, AnchorClaimReview["basis"][]> = {
-    types: [contentBasis.types, contentBasis.types, contentBasis.types],
-    scope: [contentBasis.scope, contentBasis.scope, contentBasis.scope],
-    procedure: [contentBasis.procedure, contentBasis.procedure, contentBasis.procedure],
-    "swinging-room": [contentBasis["swinging-room"], contentBasis["swinging-room"], contentBasis["swinging-room"]],
-    weighing: [contentBasis.weighing, contentBasis.weighing, contentBasis.weighing],
-  };
-  return [
-    { text: topic.content, basis: contentBasis[topic.id] },
-    ...topic.tips.map((text, index) => ({ text, basis: tipBasis[topic.id][index] })),
-  ];
-});
+const statement = (topicIndex: number, tipIndex?: number) =>
+  tipIndex === undefined ? topics[topicIndex].content : topics[topicIndex].tips[tipIndex];
+const basis = (sourceId: AnchorSource["id"], locator: string) => ({ sourceId, locator });
+
+export const anchorClaimReviews: readonly AnchorClaimReview[] = [
+  { text: statement(0), basis: [basis("rnli-sar", "Unit 9, p. 67, ‘Factors to consider prior to anchoring’: wind, depth/tide, hazards and seabed"), basis("rnli-afloat", "‘Stay put’ > ‘Using an anchor in an emergency’: anchor suitable for the vessel and sufficient chain/line"), basis("rya-environment", "‘How do I anchor with care?’: protected and sensitive seabed habitats"), basis("mca-mgn592", "§§1.2 and 2.3–2.4: application to yachts, design limitations and foreseeable equipment loads")] },
+  { text: statement(0, 0), basis: [basis("rnli-afloat", "‘Stay put’ > ‘Using an anchor in an emergency’: suitability to vessel and area of activity"), basis("mca-mgn592", "§§2.3–2.4: anchoring-equipment design limitations and operational loads")] },
+  { text: statement(0, 1), basis: [basis("rnli-sar", "Unit 9, p. 67: wind and tide can change; establish a safe swinging circle before anchoring")] },
+  { text: statement(0, 2), basis: [basis("rya-environment", "‘How do I anchor with care?’: protected habitats and location-specific anchoring impacts")] },
+
+  { text: statement(1), basis: [basis("mca-coswp", "2024 ch. 26, ‘Anchoring and weighing anchor’: competent person, bridge communication and equipment preparation"), basis("rnli-sar", "Unit 9, p. 67: depth/tidal rise, hazards, seabed and rode-length factors")] },
+  { text: statement(1, 0), basis: [basis("rnli-afloat", "‘Stay put’ > ‘Using an anchor in an emergency’: suitable anchor, enough chain/line and practice before emergency use"), basis("mca-coswp", "2024 ch. 26, ‘Anchoring and weighing anchor’: check brake and clear securing devices before use")] },
+  { text: statement(1, 1), basis: [basis("mca-mgn592", "§2.1: installation must avoid stationing anyone in a rope bight and account for failure consequences"), basis("mca-coswp", "2024 ch. 26, ‘Anchoring and weighing anchor’: stand safely from windlass/capstan and account for snap-back")] },
+  { text: statement(1, 2), basis: [basis("mca-coswp", "2024 ch. 26, ‘Anchoring and weighing anchor’: safe distance from windlass/capstan and protective clothing against cable debris")] },
+
+  { text: statement(2), basis: [basis("rnli-sar", "Unit 9, p. 67, ‘How an anchor works’: deployment and vessel pull dig the anchor into the seabed"), basis("mca-mgn592", "§§2.1–2.4: windlass layout, walking-out speed and design-load limitations"), basis("mca-coswp", "2024 ch. 26, ‘Anchoring and weighing anchor’: controlled walking out and brake use")] },
+  { text: statement(2, 0), basis: [basis("mca-coswp", "2024 ch. 26, ‘Anchoring and weighing anchor’: responsible person and suitable bridge–anchoring-party communication")] },
+  { text: statement(2, 1), basis: [basis("rnli-sar", "Unit 9, p. 67: use two fixed points as a transit to check holding; account for depth and changing wind/tide")] },
+  { text: statement(2, 2), basis: [basis("rnli-sar", "Unit 9, p. 67: transit movement indicates not holding; if dragging, use more cable or reset elsewhere")] },
+
+  { text: statement(3), basis: [basis("rnli-sar", "Unit 9, p. 67: wind/tide affect anchored position and can change; transit checks holding and swinging room prevents collision"), basis("colregs", "International Rules 5 and 7: continuing lookout and all available means for collision-risk assessment")] },
+  { text: statement(3, 0), basis: [basis("rnli-sar", "Unit 9, p. 67: transit observation detects loss of holding and wind/tide can change position"), basis("colregs", "International Rule 5: proper lookout by sight, hearing and all available means")] },
+  { text: statement(3, 1), basis: [basis("colregs", "International Rules 5, 7 and 30: lookout, collision-risk assessment, and circumstance/size-dependent anchor lights and shapes")] },
+  { text: statement(3, 2), basis: [basis("rya-environment", "‘Anchoring and mooring’: Marine Conservation Zones/Marine Protected Areas and current location guidance")] },
+
+  { text: statement(4), basis: [basis("mca-coswp", "2024 ch. 26, ‘Anchoring and weighing anchor’: bridge communication, safe distance, snap-back and controlled windlass operation")] },
+  { text: statement(4, 0), basis: [basis("mca-coswp", "2024 ch. 26, ‘Anchoring and weighing anchor’: report when anchor is home and apply securing devices") ] },
+  { text: statement(4, 1), basis: [basis("mca-coswp", "2024 ch. 26, ‘Anchoring and weighing anchor’: apply anchor securing devices after weighing and keep cable machinery controlled")] },
+  { text: statement(4, 2), basis: [basis("mca-coswp", "2024 ch. 26, general safe-system principle and ‘Anchoring and weighing anchor’: stop unsafe machinery handling and maintain communication")] },
+];
