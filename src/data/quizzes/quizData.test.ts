@@ -114,6 +114,34 @@ describe("Quiz data files", () => {
   );
 });
 
+describe("Ropework taught-to-assessed coverage", () => {
+  it("documents meaningful assessment coverage for every knot taught at /ropework", async () => {
+    const [{ knots }, { default: questions, ropeworkAssessmentCoverage }] = await Promise.all([
+      import("../ropeworkKnots"),
+      import("./ropework"),
+    ]);
+    const questionIds = new Set(questions.map((question) => question.id));
+
+    expect(Object.keys(ropeworkAssessmentCoverage).sort()).toEqual(
+      knots.map((knot) => knot.id).sort(),
+    );
+    for (const knot of knots) {
+      const assessedBy = ropeworkAssessmentCoverage[knot.id];
+      expect(assessedBy.length, `${knot.name} has no assessment coverage`).toBeGreaterThan(0);
+      for (const questionId of assessedBy) {
+        expect(questionIds.has(questionId), `${knot.name} references missing question ${questionId}`).toBe(true);
+      }
+    }
+  });
+
+  it("does not assess concepts outside the seven self-contained knot lessons", async () => {
+    const { default: questions, ropeworkAssessmentCoverage } = await import("./ropework");
+    const cataloguedIds = new Set(Object.values(ropeworkAssessmentCoverage).flat());
+
+    expect([...cataloguedIds].sort()).toEqual(questions.map((question) => question.id).sort());
+  });
+});
+
 describe("Quiz data registry", () => {
   it("should asynchronously load every known topic", async () => {
     // given
