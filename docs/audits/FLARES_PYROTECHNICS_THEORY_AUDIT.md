@@ -128,13 +128,21 @@ need to read the actual onboard instructions explicit.
 
 - Eight scenarios are Fisher-Yates shuffled once per mount. All five named
   answers appear for every scenario with day/night and burn-time clues.
-- Check Answer is disabled until a selection. Submission records exactly one
-  attempt, disables all options, outlines the correct option, marks a selected
-  wrong option, shows an inline explanation, and also creates a toast.
+- Check Answer is disabled until a selection. A normal submission disables all
+  options, outlines the correct option, marks a selected wrong option, shows an
+  inline explanation, and also creates a toast. However, `handleSubmit` does
+  not guard `prev.answered`: same-turn/programmatic duplicate activation can
+  process the same scenario more than once, repeat its toast, and increment
+  `correctCount`/`totalAnswered` repeatedly. The final denominator can therefore
+  exceed the eight scenarios and the persisted score can be corrupted.
 - Next Scenario advances; after the eighth answer, a score and Restart Drill
   button appear. Reset/restart reshuffles and erases the local attempt.
 - `onComplete` fires once per finished run through a ref and can fire again
-  after reset. There is no empty-data recovery beyond returning `null`.
+  after reset. With an empty scenario bank, `isComplete` is evaluated before
+  the missing-current-scenario branch: the component renders a misleading
+  Drill Complete 0/0 card and calls `onComplete({0, 0})`. The parent callback's
+  `totalAnswered === 0` guard prevents persistence, but the learner still sees
+  a false completion instead of an unavailable/error state.
 - Explanations state the intended answer but do not explain why the selected
   distractor is unsuitable, cite the operative rule, or route a misconception
   back to a specific theory section.
