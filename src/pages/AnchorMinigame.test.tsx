@@ -19,8 +19,20 @@ describe("AnchorMinigame", () => {
     const Probe = () => { const location = useLocation(); return <p>Route: {location.pathname}{location.search}</p>; };
     render(<MemoryRouter initialEntries={["/anchor-minigame?returnTopic=swinging-room"]}><Routes><Route path="/anchor-minigame" element={<AnchorMinigame />} /><Route path="*" element={<Probe />} /></Routes></MemoryRouter>);
     await user.click(screen.getByRole("button", { name: "Enter (check)" }));
-    await user.click(screen.getByRole("button", { name: "Review scope lesson" }));
+    await user.click(screen.getByRole("button", { name: "Review procedure lesson" }));
     expect(await screen.findByText("Route: /anchorwork?topic=procedure&from=practice")).toBeTruthy();
+  });
+
+  it("prioritises procedure remediation for mixed failures and labels scope-only remediation", async () => {
+    const user = userEvent.setup();
+    render(<MemoryRouter><AnchorMinigame /></MemoryRouter>);
+    await user.click(screen.getByRole("button", { name: "Enter (check)" }));
+    expect(screen.getByRole("button", { name: "Review procedure lesson" })).toBeTruthy();
+    await user.click(screen.getByRole("button", { name: "Close" }));
+    for (let index = 0; index < 7; index += 1) await user.click(screen.getByRole("button", { name: "↓ Down (pay out)" }));
+    for (let index = 0; index < 2; index += 1) await user.click(screen.getByRole("button", { name: "← Left" }));
+    await user.click(screen.getByRole("button", { name: "Enter (check)" }));
+    expect(screen.getByRole("button", { name: "Review scope lesson" })).toBeTruthy();
   });
 
   it.each([375, 768, 1280])("supports pointer controls in a %ipx viewport", async (width) => {

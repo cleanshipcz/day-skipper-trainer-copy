@@ -42,7 +42,11 @@ export const AnchorResultOverlay = ({ result, onContinue, onReset, onRemediate }
         Try again here
       </Button>
       <Button variant="outline" onClick={onRemediate}>
-        {result.type === "success" ? "Return to theory" : "Review scope lesson"}
+        {result.type === "success"
+          ? "Return to theory"
+          : result.issues?.includes("procedure")
+            ? "Review procedure lesson"
+            : "Review scope lesson"}
       </Button>
     </div>
   </div>
