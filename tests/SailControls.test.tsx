@@ -43,7 +43,12 @@ describe("SailControls schematic geometry", () => {
     expect(screen.getByText(/Arrangements vary/)).toBeTruthy();
     expect(screen.getByText(/ties only gather loose sail.*must not carry sail load/i)).toBeTruthy();
     fireEvent.click(screen.getByRole("button", { name: "Show Mainsheet Traveller details from control list" }));
-    expect(screen.getByText(/Leeward commonly opens the leech.*depowers/i)).toBeTruthy();
+    expect(screen.getByText(/Leeward lets the boom and sail plan move off centre.*largely retaining mainsheet-set leech tension/i)).toBeTruthy();
+    expect(screen.queryByText(/traveller.*opens the leech/i)).toBeNull();
+    fireEvent.click(screen.getByRole("button", { name: "Show Boom Vang details from control list" }));
+    expect(screen.getByText(/On this diagram, an adjustable tackle/)).toBeTruthy();
+    fireEvent.click(screen.getByRole("button", { name: "Show Topping Lift details from control list" }));
+    expect(screen.getByText(/On this diagram, an adjustable line/)).toBeTruthy();
     fireEvent.click(screen.getByRole("button", { name: "Show Jib Sheet details from control list" }));
     expect(screen.getByText(/over-trimming.*stall airflow/i)).toBeTruthy();
     fireEvent.click(screen.getByRole("button", { name: "Show Jib Fairlead details from control list" }));
