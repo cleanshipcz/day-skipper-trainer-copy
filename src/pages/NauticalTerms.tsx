@@ -1,4 +1,4 @@
-import { useState, useMemo, useCallback, useEffect } from "react";
+import { useState, useMemo, useCallback, useEffect, useRef } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -518,6 +518,8 @@ const NauticalTerms = () => {
   const [selectedPart, setSelectedPart] = useState<BoatPart | null>(null);
   const [score, setScore] = useState(0);
   const [wrongAnswer, setWrongAnswer] = useState<string | null>(null);
+  const answerHeadingRef = useRef<HTMLHeadingElement>(null);
+  const originatingMarkerIdRef = useRef<string | null>(null);
 
   // Generate 4 options for the active part (including the correct answer)
   const options = useMemo(() => {
@@ -535,16 +537,27 @@ const NauticalTerms = () => {
       if (progress.state === "correct") {
         return;
       }
+      originatingMarkerIdRef.current = part.id;
       setActivePart(part);
       setWrongAnswer(null);
-      if (progress.state === "hidden") {
-        setPartProgress((prev) => ({
-          ...prev,
-          [part.id]: { ...prev[part.id], state: "guessing" },
-        }));
-      }
+      setPartProgress((prev) => {
+        let next = prev;
+        if (activePart && activePart.id !== part.id && prev[activePart.id].state === "guessing") {
+          next = {
+            ...next,
+            [activePart.id]: { ...prev[activePart.id], state: "hidden" },
+          };
+        }
+        if (prev[part.id].state === "hidden") {
+          next = {
+            ...next,
+            [part.id]: { ...prev[part.id], state: "guessing" },
+          };
+        }
+        return next;
+      });
     },
-    [partProgress]
+    [activePart, partProgress]
   );
 
   const handleOptionSelect = useCallback(
@@ -582,9 +595,29 @@ const NauticalTerms = () => {
   );
 
   const handleCloseOptions = useCallback(() => {
+    if (activePart) {
+      setPartProgress((prev) =>
+        prev[activePart.id].state === "guessing"
+          ? { ...prev, [activePart.id]: { ...prev[activePart.id], state: "hidden" } }
+          : prev
+      );
+    }
     setActivePart(null);
     setWrongAnswer(null);
-  }, []);
+  }, [activePart]);
+
+  useEffect(() => {
+    if (activePart) {
+      answerHeadingRef.current?.focus();
+      return;
+    }
+
+    const markerId = originatingMarkerIdRef.current;
+    if (markerId) {
+      document.querySelector<SVGGElement>(`[data-marker-id="${markerId}"]`)?.focus();
+      originatingMarkerIdRef.current = null;
+    }
+  }, [activePart]);
 
   const resetGame = useCallback(() => {
     const initial: Record<string, PartProgress> = {};
@@ -593,6 +626,7 @@ const NauticalTerms = () => {
     });
     setPartProgress(initial);
     setScore(0);
+    originatingMarkerIdRef.current = null;
     setActivePart(null);
     setSelectedPart(null);
     setWrongAnswer(null);
@@ -661,7 +695,13 @@ const NauticalTerms = () => {
     const progress = partProgress[part.id];
     const color = getMarkerColor(part);
     const markerNumber = partMarkerNumbers.get(part.id);
-    const markerState = progress.state === "hidden" ? "undiscovered" : progress.state;
+    const markerState = isActive
+      ? progress.state === "wrong"
+        ? "wrong, selected for another guess"
+        : "guessing"
+      : progress.state === "hidden"
+        ? "undiscovered"
+        : progress.state;
     const handleMarkerKeyDown = (event: KeyboardEvent<SVGGElement>) => {
       if (event.key === "Enter" || event.key === " ") {
         event.preventDefault();
@@ -677,6 +717,7 @@ const NauticalTerms = () => {
         aria-label={`Marker ${markerNumber}, ${markerState}. Activate to identify this boat part.`}
         aria-describedby="boat-parts-instructions"
         data-marker-state={markerState}
+        data-marker-id={part.id}
         style={{ cursor: "pointer" }}
         onClick={() => handlePartClick(part)}
         onKeyDown={handleMarkerKeyDown}
@@ -849,7 +890,9 @@ const NauticalTerms = () => {
             <Card className="lg:col-span-3 border-2 border-primary">
               <CardContent className="pt-6">
                 <div className="flex items-center justify-between mb-4">
-                  <h3 className="font-semibold text-lg">What is this part?</h3>
+                  <h3 ref={answerHeadingRef} tabIndex={-1} className="font-semibold text-lg focus:outline-none">
+                    What is this part?
+                  </h3>
                   <Button variant="ghost" size="icon" aria-label="Close answer choices" onClick={handleCloseOptions}>
                     <X className="w-5 h-5" />
                   </Button>

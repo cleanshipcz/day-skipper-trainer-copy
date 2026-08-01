@@ -77,7 +77,7 @@ describe("NauticalTerms progress writes", () => {
     );
   });
 
-  it("operates a marker with the keyboard and exposes guessing state", async () => {
+  it("moves focus into the answer panel and restores it on close", async () => {
     const user = userEvent.setup();
     render(
       <TestRouter>
@@ -89,8 +89,46 @@ describe("NauticalTerms progress writes", () => {
     marker.focus();
     await user.keyboard("{Enter}");
 
-    expect(screen.getByRole("button", { name: /marker 1, guessing/i })).toBe(document.activeElement);
-    expect(screen.getByRole("button", { name: /close answer choices/i })).toBeTruthy();
+    expect(screen.getByRole("heading", { name: /what is this part/i })).toBe(document.activeElement);
+    expect(screen.getByRole("button", { name: /marker 1, guessing/i }).getAttribute("data-marker-state")).toBe(
+      "guessing"
+    );
+
+    await user.click(screen.getByRole("button", { name: /close answer choices/i }));
+    expect(marker).toBe(document.activeElement);
+    expect(screen.getByRole("button", { name: /marker 1, undiscovered/i })).toBeTruthy();
+  });
+
+  it("supports Space and exposes wrong and correct outcomes with progress updates", async () => {
+    const user = userEvent.setup();
+    render(
+      <TestRouter>
+        <NauticalTerms />
+      </TestRouter>
+    );
+
+    const marker = screen.getByRole("button", { name: /marker 1, undiscovered/i });
+    marker.focus();
+    await user.keyboard(" ");
+    expect(screen.getByRole("heading", { name: /what is this part/i })).toBe(document.activeElement);
+
+    const answerButtons = screen.getAllByRole("button").filter((button) =>
+      ["Bow", "Stern", "Hull", "Deck", "Mast", "Boom", "Mainsail", "Jib", "Forestay", "Backstay", "Rudder", "Tiller", "Keel", "Cockpit", "Telltales"].includes(
+        button.textContent ?? ""
+      )
+    );
+    const wrongAnswer = answerButtons.find((button) => button.textContent !== "Bow");
+    expect(wrongAnswer).toBeTruthy();
+    await user.click(wrongAnswer!);
+
+    expect(screen.getByRole("button", { name: /marker 1, wrong, selected for another guess/i })).toBeTruthy();
+    await user.click(screen.getByRole("button", { name: "Bow" }));
+
+    expect(screen.getByRole("button", { name: /marker 1, correct/i })).toBe(document.activeElement);
+    const progress = screen.getByRole("progressbar", { name: /boat parts identified/i });
+    expect(progress.getAttribute("aria-valuenow")).toBe("1");
+    expect(progress.getAttribute("aria-valuemax")).toBe("20");
+    expect(progress.getAttribute("aria-valuetext")).toBe("1 of 20 boat parts identified");
   });
 
   it("preserves mobile scale for 44px touch targets without covering the diagram", () => {
