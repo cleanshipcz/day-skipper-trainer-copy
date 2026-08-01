@@ -9,6 +9,11 @@ export interface Knot {
   tutorialTitle: string;
   visualDescription: string;
   steps: string[];
+  practice: {
+    question: string;
+    options: string[];
+    correctOption: number;
+  };
   discovered: boolean;
 }
 
@@ -29,6 +34,7 @@ export const knots: Knot[] = [
       "Dress the collar and loop neatly, then set the knot by pulling the standing part against the loop",
       "Inspect the path and leave a generous tail appropriate to the rope; use an approved backup where cyclic loading could shake the bowline loose",
     ],
+    practice: { question: "Which job is a Bowline suited to?", options: ["Creating a fixed loop at the end of a rope", "Joining two loaded ropes of unequal size", "Making a quick stopper knot"], correctOption: 0 },
     discovered: false,
   },
   {
@@ -46,6 +52,7 @@ export const knots: Knot[] = [
       "Dress the crossing turns snugly together and set by pulling both ends",
       "Inspect before use; for a fender, secure the tail with additional half hitches around the standing part, and choose a more secure hitch for changing or critical loads",
     ],
+    practice: { question: "Which is an appropriate use of a Clove Hitch?", options: ["A sole attachment for a critical mooring load", "A quick, adjustable temporary fender attachment", "A permanent bend between two ropes"], correctOption: 1 },
     discovered: false,
   },
   {
@@ -63,6 +70,7 @@ export const knots: Knot[] = [
       "Set by pulling both standing parts and inspect that it is a symmetrical reef knot, not a granny knot",
       "Use only as a binding knot; choose a suitable bend, such as a correctly tied Sheet Bend, for joining ropes under load",
     ],
+    practice: { question: "Which job is appropriate for a Reef Knot?", options: ["Joining two load-bearing ropes", "Making a fixed rescue loop", "Binding reef points or securing a bundle"], correctOption: 2 },
     discovered: false,
   },
   {
@@ -80,6 +88,7 @@ export const knots: Knot[] = [
       "Dress the figure-eight shape, pull it snug, and leave a generous tail",
       "Inspect it before use; choose a larger or more secure stopper for a large opening or slippery rope",
     ],
+    practice: { question: "What is the Figure Eight used for here?", options: ["Preventing a rope from running through a block", "Attaching a fender to a rail", "Taking strain around a post"], correctOption: 0 },
     discovered: false,
   },
   {
@@ -97,6 +106,7 @@ export const knots: Knot[] = [
       "Make a second half hitch around the standing part in the same direction as the first",
       "Dress and set both hitches against the round turn, then inspect the knot and tail before loading",
     ],
+    practice: { question: "Why use a Round Turn and Two Half Hitches?", options: ["To bind two reef points", "To secure to a post or ring while controlling strain", "To make a stopper for a block"], correctOption: 1 },
     discovered: false,
   },
   {
@@ -115,6 +125,7 @@ export const knots: Knot[] = [
       "Dress the knot so both tails lie on the same side; set by pulling both standing parts and inspect the tails",
       "Use a Double Sheet Bend and longer tails when the ropes differ greatly in size or the material is slippery",
     ],
+    practice: { question: "Which job is a Sheet Bend suited to?", options: ["Joining two ropes, especially of unequal size", "Making an adjustable temporary attachment to a rail", "Stopping a rope at a block"], correctOption: 0 },
     discovered: false,
   },
   {
@@ -133,6 +144,7 @@ export const knots: Knot[] = [
       "Dress the two gripping turns tightly together toward the pull, snug the final half hitch, and set the hitch before applying load",
       "Inspect the direction and tail, then test progressively: it must grip only along the main rope toward the doubled turns; do not use it on slippery rope or for a sideways pull",
     ],
+    practice: { question: "When is a Rolling Hitch useful?", options: ["Binding a sail bundle", "Taking a pull along another rope in one direction", "Making a fixed loop at a rope end"], correctOption: 1 },
     discovered: false,
   },
 ];

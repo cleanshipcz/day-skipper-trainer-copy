@@ -32,6 +32,12 @@ const renderPage = () => render(
   </MemoryRouter>,
 );
 
+const passKnot = async (user: ReturnType<typeof userEvent.setup>, knot: (typeof knots)[number]) => {
+  await user.click(screen.getByRole("button", { name: knot.name }));
+  await user.click(screen.getByRole("radio", { name: knot.practice.options[knot.practice.correctOption] }));
+  await user.click(screen.getByRole("button", { name: "Check answer" }));
+};
+
 describe("RopeworkTheory accessible knot discovery", () => {
   it("provides one named native control per knot and exposes selection and learning", async () => {
     const user = userEvent.setup();
@@ -50,10 +56,14 @@ describe("RopeworkTheory accessible knot discovery", () => {
     await user.keyboard("{Enter}");
 
     expect(controls[0].getAttribute("aria-pressed")).toBe("true");
-    expect(screen.getByText("Learned", { selector: `#${knots[0].id}-state` })).toBeTruthy();
+    expect(screen.getByText("Not learned", { selector: `#${knots[0].id}-state` })).toBeTruthy();
     const detailsHeading = screen.getByRole("heading", { name: `${knots[0].name} details` });
     await waitFor(() => expect(document.activeElement).toBe(detailsHeading));
-    expect(screen.getByRole("status").textContent).toContain(`${knots[0].name} learned`);
+    expect(screen.getByRole("status").textContent).toContain("practice check");
+    await user.click(screen.getByRole("radio", { name: knots[0].practice.options[knots[0].practice.correctOption] }));
+    await user.click(screen.getByRole("button", { name: "Check answer" }));
+    expect(screen.getByText("Learned", { selector: `#${knots[0].id}-state` })).toBeTruthy();
+    expect(screen.getByRole("status").textContent).toContain("practice passed");
 
     await user.click(screen.getByRole("button", { name: `Back to ${knots[0].name} in knot list` }));
     expect(document.activeElement).toBe(controls[0]);
@@ -82,7 +92,7 @@ describe("RopeworkTheory accessible knot discovery", () => {
     await screen.findByText(/Sign in to save/);
 
     for (const knot of knots) {
-      await user.click(screen.getByRole("button", { name: knot.name }));
+      await passKnot(user, knot);
     }
 
     const completion = screen.getByRole("region", { name: /all knots learned/i });
