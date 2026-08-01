@@ -47,7 +47,9 @@ try {
 
   const args = ["--headless=new", "--disable-gpu", "--disable-dev-shm-usage", "--disable-service-worker", "--remote-debugging-port=0", `--user-data-dir=${profile}`, "about:blank"];
   if (process.env.CHROMIUM_NO_SANDBOX === "1") args.unshift("--no-sandbox");
-  const browser = spawn(chromium, args, { stdio: "ignore" });
+  const browser = spawn(chromium, args, { stdio: ["ignore", "pipe", "pipe"] });
+  browser.stdout.pipe(process.stdout);
+  browser.stderr.pipe(process.stderr);
   children.push(browser);
   const debuggingPort = await waitFor(() => {
     const path = join(profile, "DevToolsActivePort");
