@@ -75,6 +75,19 @@ describe("Quiz accessible interaction and reflow", () => {
     expect(screen.queryByRole("button", { name: "Nautical Terms" })).toBeNull();
   });
 
+  it("returns completed quizzes to the exact registered parent path", async () => {
+    const user = userEvent.setup();
+    mocks.loadQuizTopic.mockResolvedValueOnce([questions[0]]);
+    renderQuiz("/quiz/ropework");
+
+    await user.click(await screen.findByRole("radio", { name: /First correct answer/i }));
+    await user.click(screen.getByRole("button", { name: "Submit Answer" }));
+    await user.click(screen.getByRole("button", { name: "View Results" }));
+    await user.click(await screen.findByRole("button", { name: "Return to Ropework & Knots" }));
+
+    expect(await screen.findByText("Current path: /ropework")).toBeTruthy();
+  });
+
   it("labels navigation and numeric progress and exposes one radio selection", async () => {
     const user = userEvent.setup();
     renderQuiz();

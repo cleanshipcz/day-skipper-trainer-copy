@@ -410,13 +410,30 @@ describe("quiz parent destinations", () => {
     expect(resolveQuizParentDestination("")).toEqual({ route: "/", label: "Home" });
   });
 
-  it("returns a registered non-quiz owner for every registered quiz route", () => {
-    const quizTopicIds = new Set(topicRegistry.flatMap(({ quizRoute }) => quizRoute ? [quizRoute.replace("/quiz/", "")] : []));
+  it("maps every registered quiz ID to its explicit owning parent route", () => {
+    const expectedRoutes: Record<string, string> = {
+      "nautical-terms-quiz": "/nautical-terms",
+      victualling: "/victualling",
+      engine: "/engine",
+      rig: "/rig",
+      ropework: "/ropework",
+      anchorwork: "/anchorwork",
+      safety: "/safety",
+      "safety-mob-quiz": "/safety/mob",
+      "safety-fire-quiz": "/safety/fire",
+      "safety-life-raft-quiz": "/safety/life-raft",
+      "safety-flares-quiz": "/safety/flares",
+      colregs: "/rules-of-the-road",
+      "lights-signals": "/rules/lights",
+      pilotage: "/pilotage",
+      weather: "/weather",
+      "passage-planning": "/passage-planning",
+    };
+    const registeredQuizIds = new Set(topicRegistry.flatMap(({ quizRoute }) => quizRoute ? [quizRoute.replace("/quiz/", "")] : []));
 
-    for (const quizTopicId of quizTopicIds) {
-      const destination = resolveQuizParentDestination(quizTopicId);
-      expect(destination.route.startsWith("/quiz/")).toBe(false);
-      expect(topicRegistry.some(({ route, label }) => route === destination.route && label === destination.label)).toBe(true);
+    expect(new Set(Object.keys(expectedRoutes))).toEqual(registeredQuizIds);
+    for (const [quizTopicId, expectedRoute] of Object.entries(expectedRoutes)) {
+      expect(resolveQuizParentDestination(quizTopicId).route).toBe(expectedRoute);
     }
   });
 });
