@@ -304,12 +304,38 @@ describe("SailControls schematic geometry", () => {
 
     expect(container.querySelector("[data-schematic-scroll]")?.classList.contains("overflow-x-auto")).toBe(true);
     expect(schematic?.classList.contains("min-w-[600px]")).toBe(true);
+    expect(schematic?.classList.contains("md:min-w-0")).toBe(true);
+    expect(schematic?.getAttribute("aria-describedby")).toBe("sail-controls-diagram-help");
     expect(touchTargets).toHaveLength(12);
     touchTargets.forEach((target) => {
       expect(Number(target.getAttribute("width"))).toBeGreaterThanOrEqual(44);
       expect(Number(target.getAttribute("height"))).toBeGreaterThanOrEqual(44);
       expect(target.getAttribute("fill")).toBe("transparent");
     });
+  });
+
+  it.each([375, 768, 1280])("keeps the %ipx schematic in a bounded responsive scroller", (width) => {
+    Object.defineProperty(window, "innerWidth", { configurable: true, value: width });
+    const { container } = render(<TestRouter><SailControls /></TestRouter>);
+
+    const scroller = container.querySelector("[data-schematic-scroll]");
+    const svg = scroller?.querySelector("svg");
+    expect(scroller?.className).toContain("w-full");
+    expect(scroller?.className).toContain("overflow-x-auto");
+    expect(scroller?.className).toContain("overscroll-x-contain");
+    expect(svg?.getAttribute("viewBox")).toBe("0 0 600 700");
+    expect(svg?.querySelectorAll("text").length).toBeGreaterThanOrEqual(16);
+  });
+
+  it("places selected details after the diagram instead of over it", () => {
+    const { container } = render(<TestRouter><SailControls /></TestRouter>);
+    fireEvent.click(screen.getByRole("button", { name: "Show Main Halyard details from diagram" }));
+
+    const scroller = container.querySelector("[data-schematic-scroll]");
+    const details = container.querySelector("[data-control-details]");
+    expect(details).not.toBeNull();
+    expect(details?.className).not.toContain("absolute");
+    expect(scroller?.compareDocumentPosition(details!) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
   });
 
   it("keeps touch, click, and highlight behavior on the relocated sheet and fairlead", () => {

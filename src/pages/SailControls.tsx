@@ -249,7 +249,12 @@ const SchematicDiagram = ({
   onHover?: (id: string | null) => void;
   onClick?: (id: string) => void;
 }) => (
-  <svg viewBox="0 0 600 700" className="h-auto w-full min-w-[600px]" aria-label="Sail controls diagram">
+  <svg
+    viewBox="0 0 600 700"
+    className="h-auto w-full min-w-[600px] max-w-none md:min-w-0"
+    aria-label="Sail controls diagram"
+    aria-describedby="sail-controls-diagram-help"
+  >
     <defs>
       <linearGradient id="sailGradient2" x1="0%" y1="0%" x2="100%" y2="0%">
         <stop offset="0%" stopColor="#fef3c7" />
@@ -906,7 +911,13 @@ const SailControls = () => {
                 <CardContent className="p-4 md:p-6">
                   <div className="relative">
                     {/* The main large diagram */}
-                    <div data-schematic-scroll className="mx-auto max-w-4xl overflow-x-auto">
+                    <p id="sail-controls-diagram-help" className="mb-2 text-center text-xs text-muted-foreground md:hidden">
+                      Swipe horizontally to explore the full diagram. Tap a labelled control for details.
+                    </p>
+                    <div
+                      data-schematic-scroll
+                      className="mx-auto w-full max-w-4xl overflow-x-auto overscroll-x-contain rounded-md touch-pan-x"
+                    >
                       <SchematicDiagram
                         highlightId={highlightedId}
                         onHover={(id) => {
@@ -927,9 +938,9 @@ const SailControls = () => {
                       />
                     </div>
 
-                    {/* Floating Active Card - appears when control is CLICKED (selectedPart) */}
+                    {/* Details follow the diagram so they never cover the selected control. */}
                     {selectedPart && (
-                      <div className="absolute top-4 right-4 w-80 z-20 animate-in fade-in slide-in-from-right-4 duration-200">
+                      <div data-control-details className="mx-auto mt-4 w-full max-w-2xl animate-in fade-in duration-200">
                         <Card className="shadow-xl border-2" style={{ borderColor: selectedPart.color }}>
                           <CardHeader className="pb-2">
                             <div className="flex items-start justify-between">
@@ -980,7 +991,7 @@ const SailControls = () => {
 
                     {/* Hint when no card is selected */}
                     {!selectedPart && (
-                      <div className="absolute top-4 right-4 z-10">
+                      <div className="mx-auto mt-4 w-fit max-w-full">
                         <Card className="bg-muted/80 backdrop-blur-sm shadow-md border-dashed">
                           <CardContent className="py-3 px-4 flex items-center gap-2">
                             <HelpCircle className="w-5 h-5 text-muted-foreground" />
