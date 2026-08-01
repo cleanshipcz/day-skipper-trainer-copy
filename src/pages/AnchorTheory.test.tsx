@@ -1,4 +1,4 @@
-import { fireEvent, render, screen, waitFor } from "@testing-library/react";
+import { act, fireEvent, render, screen, waitFor } from "@testing-library/react";
 import { MemoryRouter } from "react-router-dom";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
@@ -30,6 +30,9 @@ const completeVisibleStudyCheck = async () => {
   checkboxes.forEach((checkbox) => fireEvent.click(checkbox));
   fireEvent.click(screen.getByRole("button", { name: "Complete study check" }));
 };
+
+const emittedAnnouncements = () => [...screen.getByTestId("anchorwork-announcements").children]
+  .map((element) => element.textContent);
 
 describe("AnchorTheory durable completion", () => {
   beforeEach(() => {
@@ -117,25 +120,53 @@ describe("AnchorTheory durable completion", () => {
     renderPage();
     await completeVisibleStudyCheck();
 
-    await waitFor(() => expect(screen.getByRole("status").textContent).toBe("Plan and Select completed. 1 of 5 topics completed. Anchorwork progress saved."));
+    await waitFor(() => expect(emittedAnnouncements()).toEqual([
+      "Plan and Select completed. 1 of 5 topics completed.",
+      "Saving anchorwork progress.",
+      "Anchorwork progress saved.",
+    ]));
     expect(document.activeElement?.textContent).toContain("Plan and Select");
     expect(screen.getByRole("tab", { name: "Plan and Select, completed" })).toBeTruthy();
     expect(document.querySelectorAll("svg:not([aria-hidden='true']):not([role='img'])")).toHaveLength(0);
   });
 
-  it("keeps completion detail observable while saving and combines it with the final outcome", async () => {
+  it("emits completion and pending save status exactly once before a controlled save resolves", async () => {
     let resolveSave!: (result: "remote") => void;
     mocks.saveProgressDetailed.mockReturnValue(new Promise((resolve) => { resolveSave = resolve; }));
     renderPage();
     await completeVisibleStudyCheck();
 
     expect(screen.getAllByRole("status")).toHaveLength(1);
-    expect(screen.getByRole("status").textContent).toBe("Plan and Select completed. 1 of 5 topics completed. Saving progress.");
+    expect(emittedAnnouncements()).toEqual([
+      "Plan and Select completed. 1 of 5 topics completed.",
+      "Saving anchorwork progress.",
+    ]);
 
-    resolveSave("remote");
-    await waitFor(() => expect(screen.getByRole("status").textContent).toBe(
-      "Plan and Select completed. 1 of 5 topics completed. Anchorwork progress saved.",
-    ));
+    await act(async () => resolveSave("remote"));
+    expect(emittedAnnouncements()).toEqual([
+      "Plan and Select completed. 1 of 5 topics completed.",
+      "Saving anchorwork progress.",
+      "Anchorwork progress saved.",
+    ]);
+    expect(screen.getAllByRole("status")).toHaveLength(1);
+  });
+
+  it.each([
+    ["remote", "Anchorwork progress saved."],
+    ["queued", "Anchorwork progress saved offline and queued to sync."],
+    ["anonymous", "Completion recorded for this visit. Sign in to save it across devices."],
+    ["failed", "Anchorwork progress could not be saved. Use Retry save to try again."],
+  ] as const)("emits the completion, save status, and %s outcome once each", async (result, outcome) => {
+    mocks.saveProgressDetailed.mockResolvedValue(result);
+    renderPage();
+    await completeVisibleStudyCheck();
+
+    await waitFor(() => expect(emittedAnnouncements()).toEqual([
+      "Plan and Select completed. 1 of 5 topics completed.",
+      "Saving anchorwork progress.",
+      outcome,
+    ]));
+    expect(new Set(emittedAnnouncements()).size).toBe(3);
     expect(screen.getAllByRole("status")).toHaveLength(1);
   });
 });

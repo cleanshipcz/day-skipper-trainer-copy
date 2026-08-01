@@ -26,13 +26,17 @@ const AnchorTheorySession = () => {
   const [pendingCompletedIds, setPendingCompletedIds] = useState<string[] | null>(null);
   const [pendingCompletionTitle, setPendingCompletionTitle] = useState<string | null>(null);
   const [loadRevision, setLoadRevision] = useState(0);
-  const [announcement, setAnnouncement] = useState("");
+  const [announcements, setAnnouncements] = useState<string[]>([]);
   const topicHeadingRef = useRef<HTMLHeadingElement>(null);
 
   const selectedTopic = useMemo(
     () => topicList.find((topic) => topic.id === selectedTopicId) ?? null,
     [selectedTopicId, topicList],
   );
+
+  const announce = (message: string) => {
+    setAnnouncements((current) => [...current, message]);
+  };
 
   useEffect(() => {
     let cancelled = false;
@@ -77,26 +81,23 @@ const AnchorTheorySession = () => {
     }
     if (result === "failed") {
       setPersistenceStatus("failed");
-      setAnnouncement(`${completedTopicTitle ? `${completedTopicTitle} completed. ${completedIds.length} of ${topics.length} topics completed. ` : ""}Anchorwork progress could not be saved. Use Retry save to try again.`);
+      announce("Anchorwork progress could not be saved. Use Retry save to try again.");
       return;
     }
     setPendingCompletedIds(null);
     setPendingCompletionTitle(null);
     setPersistenceStatus(result === "anonymous" ? "anonymous" : "saved");
-    const completionSummary = completedTopicTitle
-      ? `${completedTopicTitle} completed. ${completedIds.length} of ${topics.length} topics completed. `
-      : "";
-    setAnnouncement(`${completionSummary}${result === "anonymous"
+    announce(result === "anonymous"
       ? "Completion recorded for this visit. Sign in to save it across devices."
       : result === "queued"
         ? "Anchorwork progress saved offline and queued to sync."
-        : "Anchorwork progress saved."}`);
+        : "Anchorwork progress saved.");
   };
 
   const selectTopic = (topic: Topic) => {
     setSelectedTopicId(topic.id);
     setTipChecks([]);
-    setAnnouncement(`${topic.title} selected${topic.completed ? ", completed" : ""}.`);
+    announce(`${topic.title} selected${topic.completed ? ", completed" : ""}.`);
     requestAnimationFrame(() => topicHeadingRef.current?.focus());
   };
 
@@ -114,7 +115,8 @@ const AnchorTheorySession = () => {
     const completedIds = updatedTopics.filter((item) => item.completed).map((item) => item.id);
     setTopicList(updatedTopics);
     setTipChecks([]);
-    setAnnouncement(`${topic.title} completed. ${completedIds.length} of ${topics.length} topics completed. Saving progress.`);
+    announce(`${topic.title} completed. ${completedIds.length} of ${topics.length} topics completed.`);
+    announce("Saving anchorwork progress.");
     toast.success("Topic study check completed.");
     void persistCompletedIds(completedIds, topic.title);
     requestAnimationFrame(() => topicHeadingRef.current?.focus());
@@ -175,7 +177,9 @@ const AnchorTheorySession = () => {
             </span>
           )}
         </div>
-        <p className="sr-only" role="status" aria-live="polite" aria-atomic="true">{announcement}</p>
+        <div className="sr-only" role="status" aria-live="polite" aria-relevant="additions" data-testid="anchorwork-announcements">
+          {announcements.map((message, index) => <p key={`${index}-${message}`}>{message}</p>)}
+        </div>
         <div className="grid lg:grid-cols-4 gap-6">
           {/* Topics Sidebar */}
           <Card className="lg:col-span-1">
