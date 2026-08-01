@@ -49,6 +49,7 @@ npm run guard:boat-parts-assets
 npm run setup:anchor-browser
 npm run test:anchor-browser
 npm run test:sail-controls-browser
+npm run test:ropework-accessibility-browser
 npm run test:build-budget
 npm run test:quiz-chunks
 npm run guard:migrations
