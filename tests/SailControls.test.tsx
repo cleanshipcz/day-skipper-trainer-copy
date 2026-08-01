@@ -96,4 +96,50 @@ describe("SailControls schematic geometry", () => {
     fireEvent.click(fairleadTarget!);
     expect(screen.getByText("Sets the angle of pull on the jib sheet")).toBeTruthy();
   });
+
+  it("exposes distinct keyboard controls for the diagram and control list", () => {
+    render(
+      <TestRouter>
+        <SailControls />
+      </TestRouter>
+    );
+
+    const diagramControls = screen.getAllByRole("button", { name: /details from diagram/i });
+    const listControls = screen.getAllByRole("button", { name: /details from control list/i });
+    expect(diagramControls).toHaveLength(12);
+    expect(listControls).toHaveLength(12);
+
+    const mainHalyard = screen.getByRole("button", { name: "Show Main Halyard details from diagram" });
+    fireEvent.focus(mainHalyard);
+    fireEvent.keyDown(mainHalyard, { key: "Enter" });
+    expect(screen.getByText("Raises and lowers the mainsail")).toBeTruthy();
+    expect(screen.getByRole("button", { name: "Close Main Halyard details" })).toBeTruthy();
+
+    fireEvent.click(screen.getByRole("button", { name: "Close Main Halyard details" }));
+    const jibHalyard = screen.getByRole("button", { name: "Show Jib Halyard details from control list" });
+    fireEvent.keyDown(jibHalyard, { key: " " });
+    expect(screen.getByText("Raises and lowers the headsail (jib/genoa)")).toBeTruthy();
+  });
+
+  it("provides named navigation and programmatic quiz progress and feedback", () => {
+    render(
+      <TestRouter>
+        <SailControls />
+      </TestRouter>
+    );
+
+    expect(screen.getByRole("button", { name: "Back to nautical terms" })).toBeTruthy();
+    fireEvent.click(screen.getByRole("button", { name: "Start Quiz" }));
+
+    const progress = screen.getByRole("progressbar", { name: "Quiz progress" });
+    expect(progress.getAttribute("aria-valuenow")).toBe("0");
+    expect(progress.getAttribute("aria-valuetext")).toBe("0 of 12 questions completed");
+    expect(screen.getByRole("status").textContent).toContain("Question 1 of 12");
+
+    const answers = screen.getAllByRole("button").filter((button) =>
+      ["Main Halyard", "Jib Halyard", "Mainsheet", "Jib Sheet", "Boom Vang", "Outhaul", "Cunningham", "Topping Lift", "Reefing Lines", "Mainsheet Traveller", "Jib Fairlead", "Backstay Adjuster"].includes(button.textContent ?? "")
+    );
+    fireEvent.click(answers[0]);
+    expect(screen.getByRole("status").textContent).toMatch(/Correct|Incorrect/);
+  });
 });
