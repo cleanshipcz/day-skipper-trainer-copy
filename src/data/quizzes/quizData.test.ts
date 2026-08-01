@@ -21,7 +21,7 @@ const ALL_TOPIC_FILES = [
 ] as const;
 
 const EXPECTED_QUESTION_COUNTS: Record<string, number> = {
-  "nautical-terms-quiz": 20,
+  "nautical-terms-quiz": 32,
   ropework: 12,
   anchorwork: 12,
   victualling: 12,

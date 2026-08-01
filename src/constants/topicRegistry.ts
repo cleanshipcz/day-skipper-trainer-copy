@@ -17,7 +17,7 @@ export const topicRegistry: readonly TopicEntry[] = [
   { id: "nautical-terms", label: "Nautical Terms & Boat Parts", parentId: null, route: "/nautical-terms", quizRoute: "/quiz/nautical-terms-quiz", submoduleIds: ["nautical-terms-boat-parts", "nautical-terms-sail-controls", "nautical-terms-quiz"], syllabusArea: 1 },
   { id: "nautical-terms-boat-parts", label: "Boat Parts", parentId: "nautical-terms", route: "/nautical-terms/boat-parts", quizRoute: null, submoduleIds: [], syllabusArea: 1 },
   { id: "nautical-terms-sail-controls", label: "Sail Controls", parentId: "nautical-terms", route: "/nautical-terms/sail-controls", quizRoute: null, submoduleIds: [], syllabusArea: 1 },
-  { id: "nautical-terms-quiz", label: "Nautical Terms Quiz", parentId: "nautical-terms", route: "/quiz/nautical-terms-quiz", quizRoute: "/quiz/nautical-terms-quiz", submoduleIds: [], syllabusArea: 1 },
+  { id: "nautical-terms-quiz", label: "Full Nautical Terms Quiz", parentId: "nautical-terms", route: "/quiz/nautical-terms-quiz", quizRoute: "/quiz/nautical-terms-quiz", submoduleIds: [], syllabusArea: 1 },
   { id: "victualling", label: "Victualling (Provisioning)", parentId: null, route: "/victualling", quizRoute: "/quiz/victualling", submoduleIds: [], syllabusArea: 1 },
   { id: "engine", label: "Engine Checks & Maintenance", parentId: null, route: "/engine", quizRoute: "/quiz/engine", submoduleIds: [], syllabusArea: 1 },
   { id: "rig", label: "Rig Checks & Preparation", parentId: null, route: "/rig", quizRoute: "/quiz/rig", submoduleIds: [], syllabusArea: 1 },

@@ -18,7 +18,7 @@ export interface QuizTopic {
 }
 
 const definitions: Record<QuizTopicId, { meta: TopicMeta; importer: QuizImporter }> = {
-  "nautical-terms-quiz": { meta: { title: "Nautical Terms Quiz", subtitle: "Boat parts, orientation, and rig vocabulary" }, importer: () => import("./nauticalTerms") },
+  "nautical-terms-quiz": { meta: { title: "Full Nautical Terms Quiz", subtitle: "32 questions covering Boat Parts and Sail Controls" }, importer: () => import("./nauticalTerms") },
   ropework: { meta: { title: "Ropework Quiz", subtitle: "Knot purpose, use cases, and safety checks" }, importer: () => import("./ropework") },
   anchorwork: { meta: { title: "Anchorwork Quiz", subtitle: "Scope, holding checks, and ground tackle basics" }, importer: () => import("./anchorwork") },
   victualling: { meta: { title: "Victualling Quiz", subtitle: "Provisioning, storage, and passage planning" }, importer: () => import("./victualling") },
