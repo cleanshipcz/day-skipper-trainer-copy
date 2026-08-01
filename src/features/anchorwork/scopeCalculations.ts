@@ -33,7 +33,11 @@ export const maximumVerticalDistance = (inputs: ScopeInputs) => {
   return distance;
 };
 
-export const scopeRatio = (inputs: ScopeInputs) => inputs.rodeLengthMetres / maximumVerticalDistance(inputs);
+export const scopeRatio = (inputs: ScopeInputs) => {
+  const ratio = inputs.rodeLengthMetres / maximumVerticalDistance(inputs);
+  if (!Number.isFinite(ratio) || ratio <= 0) throw new RangeError("Scope ratio cannot be represented as a positive finite number");
+  return ratio;
+};
 
 // Planning approximation only: treats the rode as a straight, unstretched line
 // and the anchor as fixed. Real catenary, yaw and movement require extra margin.
@@ -42,7 +46,13 @@ export const approximateSwingRadius = ({ rodeLengthMetres, maximumVerticalDistan
   requireFinitePositive("Maximum vertical distance", maximumVerticalDistanceMetres);
   requireFiniteNonnegative("Bow-to-furthest-point distance", bowToFurthestPointMetres);
   if (rodeLengthMetres < maximumVerticalDistanceMetres) throw new RangeError("Rode cannot be shorter than the vertical distance");
-  return Math.sqrt(rodeLengthMetres ** 2 - maximumVerticalDistanceMetres ** 2) + bowToFurthestPointMetres;
+  const verticalFraction = maximumVerticalDistanceMetres / rodeLengthMetres;
+  const horizontalReach = rodeLengthMetres * Math.sqrt((1 - verticalFraction) * (1 + verticalFraction));
+  const radius = horizontalReach + bowToFurthestPointMetres;
+  if (!Number.isFinite(horizontalReach) || horizontalReach < 0 || !Number.isFinite(radius) || radius < 0) {
+    throw new RangeError("Swing radius cannot be represented as a finite nonnegative number");
+  }
+  return radius;
 };
 
 export const scopeWorkedExample = {

@@ -69,4 +69,37 @@ describe("reviewed anchorwork calculation fixtures", () => {
   ])("rejects invalid swing input combination", (override) => {
     expect(() => approximateSwingRadius({ ...swingWorkedExample.assumptions, ...override })).toThrow(RangeError);
   });
+
+  it("keeps a representable swing radius finite at Number.MAX_VALUE scale", () => {
+    const radius = approximateSwingRadius({
+      rodeLengthMetres: Number.MAX_VALUE,
+      maximumVerticalDistanceMetres: Number.MAX_VALUE / 2,
+      bowToFurthestPointMetres: 0,
+    });
+    expect(Number.isFinite(radius)).toBe(true);
+    expect(radius / Number.MAX_VALUE).toBeCloseTo(Math.sqrt(0.75), 12);
+  });
+
+  it("fails closed when finite swing components overflow the result", () => {
+    expect(() => approximateSwingRadius({
+      rodeLengthMetres: Number.MAX_VALUE,
+      maximumVerticalDistanceMetres: 1,
+      bowToFurthestPointMetres: Number.MAX_VALUE,
+    })).toThrow(RangeError);
+  });
+
+  it("fails closed when an extreme finite scope ratio overflows or underflows", () => {
+    expect(() => scopeRatio({
+      rodeLengthMetres: Number.MAX_VALUE,
+      currentDepthMetres: Number.MIN_VALUE,
+      tideRiseMetres: 0,
+      bowRollerHeightMetres: 0,
+    })).toThrow(RangeError);
+    expect(() => scopeRatio({
+      rodeLengthMetres: Number.MIN_VALUE,
+      currentDepthMetres: Number.MAX_VALUE,
+      tideRiseMetres: 0,
+      bowRollerHeightMetres: 0,
+    })).toThrow(RangeError);
+  });
 });
