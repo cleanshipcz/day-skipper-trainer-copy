@@ -124,10 +124,10 @@ const sideViewParts: BoatPart[] = [
     name: "Jib",
     description:
       "A triangular sail set forward of the mast. It helps balance the boat and adds power, especially when sailing upwind.",
-    partX: 360,
-    partY: 130,
-    labelX: 430,
-    labelY: 150,
+    partX: 385,
+    partY: 145,
+    labelX: 425,
+    labelY: 120,
     view: "side",
   },
   {
@@ -135,10 +135,10 @@ const sideViewParts: BoatPart[] = [
     name: "Forestay",
     description:
       "A wire running from the mast top to the bow. It supports the mast from the front and the jib is often attached to it.",
-    partX: 420,
-    partY: 140,
-    labelX: 480,
-    labelY: 115,
+    partX: 505,
+    partY: 200,
+    labelX: 550,
+    labelY: 155,
     view: "side",
   },
   {
@@ -420,8 +420,8 @@ const SideViewBoat = () => (
     {/* Backstay - wire from mast top to stern */}
     <line x1="270" y1="35" x2="95" y2="215" stroke="#64748b" strokeWidth="2" />
 
-    {/* Forestay - wire from mast top to bow (separate from jib!) */}
-    <line x1="270" y1="35" x2="520" y2="210" stroke="#64748b" strokeWidth="2" />
+    {/* Forestay remains exposed between the jib tack and bow so it can be identified independently. */}
+    <line data-geometry="forestay" x1="270" y1="35" x2="520" y2="210" stroke="#64748b" strokeWidth="2" />
 
     {/* Mainsail - smaller, doesn't cover backstay */}
     <path d="M268,45 L268,157 L175,157 Z" fill="url(#sailGradient)" stroke="#1e3a5f" strokeWidth="2" />
@@ -430,11 +430,18 @@ const SideViewBoat = () => (
     <line x1="268" y1="100" x2="205" y2="110" stroke="#d4d4d8" strokeWidth="1" />
     <line x1="268" y1="130" x2="190" y2="138" stroke="#d4d4d8" strokeWidth="1" />
 
-    {/* Jib - positioned FORWARD of forestay, clearly a sail shape */}
-    <path d="M267,45 L267,155 L420,155 Z" fill="#fef9c3" stroke="#1e3a5f" strokeWidth="2" opacity="0.95" />
+    {/* Jib: its luff follows the forestay, with the clew aft and the tack near the bow. */}
+    <path
+      data-geometry="jib"
+      d="M278,46 L490,190 L355,176 Z"
+      fill="#fef9c3"
+      stroke="#1e3a5f"
+      strokeWidth="2"
+      opacity="0.95"
+    />
     {/* Jib telltales */}
-    <line x1="320" y1="95" x2="335" y2="98" stroke="#ef4444" strokeWidth="2" />
-    <line x1="340" y1="115" x2="355" y2="118" stroke="#ef4444" strokeWidth="2" />
+    <line x1="350" y1="105" x2="365" y2="108" stroke="#ef4444" strokeWidth="2" />
+    <line x1="385" y1="132" x2="400" y2="135" stroke="#ef4444" strokeWidth="2" />
 
     {/* Tiller - clearly extending from rudder into cockpit */}
     <line x1="80" y1="220" x2="175" y2="200" stroke="#92400e" strokeWidth="6" strokeLinecap="round" />

@@ -224,14 +224,21 @@ const SchematicDiagram = ({
       MAINSAIL
     </text>
 
-    {/* Jib */}
-    <path d="M296,75 L296,430 L480,430 Z" fill="#fef9c3" stroke="#1e3a5f" strokeWidth="2" opacity="0.85" />
-    <text x="370" y="300" fontSize="14" fill="#1e3a5f" opacity="0.6">
+    {/* Jib: luff follows the forestay; tack is forward and clew is aft. */}
+    <path
+      data-geometry="jib"
+      d="M306,78 L500,540 L410,440 Z"
+      fill="#fef9c3"
+      stroke="#1e3a5f"
+      strokeWidth="2"
+      opacity="0.85"
+    />
+    <text x="390" y="330" fontSize="14" fill="#1e3a5f" opacity="0.6">
       JIB
     </text>
 
     {/* Forestay */}
-    <line x1="300" y1="60" x2="520" y2="560" stroke="#94a3b8" strokeWidth="3" />
+    <line data-geometry="forestay" x1="300" y1="60" x2="520" y2="560" stroke="#94a3b8" strokeWidth="3" />
 
     {/* Backstay */}
     <line x1="300" y1="60" x2="110" y2="640" stroke="#94a3b8" strokeWidth="3" />
@@ -258,6 +265,7 @@ const SchematicDiagram = ({
 
     {/* Jib Halyard */}
     <g
+      data-control-id="jib-halyard"
       style={{ cursor: "pointer" }}
       opacity={highlightId === "jib-halyard" || !highlightId ? 1 : 0.4}
       filter={highlightId === "jib-halyard" ? "url(#glow)" : undefined}
@@ -265,8 +273,9 @@ const SchematicDiagram = ({
       onMouseLeave={() => onHover?.(null)}
       onClick={() => onClick?.("jib-halyard")}
     >
-      <line x1="296" y1="75" x2="288" y2="55" stroke="#06b6d4" strokeWidth="4" />
+      <line x1="306" y1="78" x2="288" y2="55" stroke="#06b6d4" strokeWidth="4" />
       <line x1="288" y1="55" x2="288" y2="520" stroke="#06b6d4" strokeWidth="3" strokeDasharray="6,3" />
+      <circle cx="306" cy="78" r="8" fill="#06b6d4" stroke="white" strokeWidth="2" />
       <rect x="180" y="100" width="85" height="22" rx="4" fill="#06b6d4" />
       <text x="222" y="116" textAnchor="middle" fontSize="11" fill="white" fontWeight="bold">
         Jib Halyard
@@ -293,6 +302,7 @@ const SchematicDiagram = ({
 
     {/* Jib Sheet */}
     <g
+      data-control-id="jib-sheet"
       style={{ cursor: "pointer" }}
       opacity={highlightId === "jib-sheet" || !highlightId ? 1 : 0.4}
       filter={highlightId === "jib-sheet" ? "url(#glow)" : undefined}
@@ -300,8 +310,8 @@ const SchematicDiagram = ({
       onMouseLeave={() => onHover?.(null)}
       onClick={() => onClick?.("jib-sheet")}
     >
-      <line x1="478" y1="430" x2="500" y2="550" stroke="#f59e0b" strokeWidth="4" />
-      <circle cx="478" cy="430" r="8" fill="#f59e0b" stroke="white" strokeWidth="2" />
+      <polyline points="410,440 490,520 500,550" fill="none" stroke="#f59e0b" strokeWidth="4" />
+      <circle cx="410" cy="440" r="8" fill="#f59e0b" stroke="white" strokeWidth="2" />
       <rect x="485" y="470" width="70" height="22" rx="4" fill="#f59e0b" />
       <text x="520" y="486" textAnchor="middle" fontSize="11" fill="white" fontWeight="bold">
         Jib Sheet
