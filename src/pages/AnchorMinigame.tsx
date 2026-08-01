@@ -19,7 +19,6 @@ import { AnchorResultOverlay, type AnchorResult } from "@/pages/anchor-minigame/
 import { calculateSceneGeometry } from "@/pages/anchor-minigame/geometry";
 import {
   BOAT_LENGTH,
-  CONDITION_SCOPE,
   RODE_STEP,
   changeRode as transitionRode,
   checkPlacement as evaluatePlacement,
@@ -27,6 +26,7 @@ import {
   getTargetRode,
   getTotalDepth,
   moveBoat as transitionBoat,
+  recordHoldingCheck,
   type AnchorScenario,
 } from "@/pages/anchor-minigame/state";
 import { anchorPracticeSkills, anchorTheoryRoute } from "@/features/anchorwork/learningPath";
@@ -36,29 +36,65 @@ const scenarioPool: Omit<AnchorScenario, "id">[] = [
     title: "Sheltered cove",
     condition: "mild",
     depth: 5.5,
+    tideRise: 1.4,
     bowHeight: 1.1,
-    note: "Light breeze, soft mud bottom",
+    note: "Light breeze and weak current; firm mud with clear swinging room",
+    rode: "10 m chain plus nylon rode",
+    anchorAndVessel: "Manufacturer-approved bower anchor for this training yacht",
+    seabed: "Firm mud; local guidance permits anchoring",
+    minimumRode: 32,
+    maximumRode: 42,
+    minimumSetDistance: 3,
+    guidance: "Use 32–42 m for this fixture, set progressively astern, then verify holding.",
+    basis: ["RNLI SAR Unit 9, p. 67", "MCA MGN 592 §§2.3–2.4"],
   },
   {
     title: "Harbour afternoon",
     condition: "moderate",
     depth: 7.5,
+    tideRise: 1.8,
     bowHeight: 1.2,
     note: "Wind across the bows with ferry wash",
+    rode: "All-chain rode",
+    anchorAndVessel: "Manufacturer-approved bower anchor for this training yacht",
+    seabed: "Good-holding sand; anchoring permitted by local guidance",
+    minimumRode: 48,
+    maximumRode: 58,
+    minimumSetDistance: 4,
+    guidance: "Use 48–58 m for the forecast load and available room; verify the set after ferry wash.",
+    basis: ["RNLI SAR Unit 9, p. 67", "MCA MGN 592 §§2.3–2.4"],
   },
   {
     title: "Open roadstead",
     condition: "strong",
     depth: 9.5,
+    tideRise: 2.2,
     bowHeight: 1.3,
     note: "Gusty cross-wind with chop",
+    rode: "All-chain rode",
+    anchorAndVessel: "Heavy-weather anchor approved for this training yacht",
+    seabed: "Firm sand; no protected habitat in the exercise fixture",
+    minimumRode: 78,
+    maximumRode: 88,
+    minimumSetDistance: 5,
+    guidance: "Use 78–88 m for this exposed fixture and confirm holding under progressive load.",
+    basis: ["RNLI SAR Unit 9, p. 67", "MCA MGN 592 §§2.3–2.4", "RYA anchoring and mooring guidance"],
   },
   {
     title: "Tidal river bend",
     condition: "moderate",
     depth: 6.2,
+    tideRise: 2.6,
     bowHeight: 1.0,
-    note: "Weak holding, slight current",
+    note: "Reversing current; soft mud and restricted swinging room",
+    rode: "8 m chain plus nylon rode",
+    anchorAndVessel: "Manufacturer-approved bower anchor for this training yacht",
+    seabed: "Soft mud; local guidance permits anchoring",
+    minimumRode: 46,
+    maximumRode: 52,
+    minimumSetDistance: 4,
+    guidance: "Use 46–52 m; the upper bound preserves clearance when the current reverses.",
+    basis: ["RNLI SAR Unit 9, p. 67", "MCA MGN 592 §§2.3–2.4"],
   },
 ];
 
@@ -81,8 +117,8 @@ const AnchorMinigame = () => {
   const [resultOverlay, setResultOverlay] = useState<AnchorResult | null>(null);
 
   const totalDepth = useMemo(() => getTotalDepth(scenario), [scenario]);
-  const requiredScope = CONDITION_SCOPE[scenario.condition];
   const targetRode = getTargetRode(scenario);
+  const requiredScope = targetRode / totalDepth;
   const bowTipX = game.boatX + BOAT_LENGTH;
   const scope = game.rode > 0 ? game.rode / totalDepth : 0;
   const anchorAheadBy = game.anchorOnBottom && game.anchorX !== null ? game.anchorX - bowTipX : 0;
@@ -127,14 +163,18 @@ const AnchorMinigame = () => {
   const checkPlacement = useCallback(() => {
     setAttempts((value) => value + 1);
     const result = evaluatePlacement(game, scenario);
+    if (result.type === "failure" && result.issues.length === 1 && result.issues[0] === "verification") {
+      setGame(recordHoldingCheck(game));
+      setLastStatus("Holding check recorded. Re-check without moving or changing rode to confirm the modeled position remains unchanged.");
+    }
     if (result.type === "success") {
-      toast.success("Anchor set", {
-        description: `${result.message} Well ahead of the bow.`,
+      toast.success("Modeled placement passed", {
+        description: result.message,
       });
       setLastStatus(result.status);
       setResultOverlay(result);
     } else {
-      toast.error("Not secure yet", { description: result.message });
+      toast.error("Checks not passed", { description: result.message });
       setLastStatus(result.status);
       setResultOverlay(result);
     }
@@ -241,6 +281,10 @@ const AnchorMinigame = () => {
               <div className="flex items-center justify-between">
                 <span className="text-sm text-muted-foreground">Bow roller above water</span>
                 <span className="font-semibold">{scenario.bowHeight.toFixed(1)} m</span>
+              </div>
+              <div className="flex items-center justify-between">
+                <span className="text-sm text-muted-foreground">Further rise of tide</span>
+                <span className="font-semibold">{scenario.tideRise.toFixed(1)} m</span>
               </div>
               <div className="flex items-center justify-between border-t border-border pt-3">
                 <span className="text-sm text-muted-foreground">Total depth from bow</span>
@@ -431,7 +475,7 @@ const AnchorMinigame = () => {
                   Win condition
                 </div>
                 <p className="text-xs text-muted-foreground mt-1">
-                  Anchor on seabed, ahead of the bow, and scope at least {requiredScope}:1 ({targetRode.toFixed(1)}m).
+                  Lower under control, set at least {scenario.minimumSetDistance.toFixed(1)}m astern, then use {targetRode.toFixed(1)}–{scenario.maximumRode.toFixed(1)}m for this fixture ({requiredScope.toFixed(1)}:1 minimum).
                 </p>
               </div>
               <div className="rounded-lg border border-border p-3">
@@ -449,10 +493,19 @@ const AnchorMinigame = () => {
                   Tip
                 </div>
                 <p className="text-xs text-muted-foreground mt-1">
-                  Let the boat drift astern after the anchor touches down. Extra scope is needed in stronger wind.
+                  {scenario.guidance} Unmodeled: actual holding, equipment condition, yaw, traffic and later weather/tide changes.
                 </p>
               </div>
             </div>
+          </CardContent>
+        </Card>
+        <Card>
+          <CardHeader><CardTitle>Scenario assumptions and reviewed basis</CardTitle></CardHeader>
+          <CardContent className="space-y-2 text-sm text-muted-foreground">
+            <p><strong className="text-foreground">Rode:</strong> {scenario.rode}</p>
+            <p><strong className="text-foreground">Anchor/vessel:</strong> {scenario.anchorAndVessel}</p>
+            <p><strong className="text-foreground">Seabed/local guidance:</strong> {scenario.seabed}</p>
+            <p><strong className="text-foreground">Basis:</strong> {scenario.basis.join("; ")}. These sources support the factors and checks; the numeric exercise bounds are conservative training fixtures, not universal recommendations.</p>
           </CardContent>
         </Card>
         <Card>

@@ -4,7 +4,7 @@ import { Button } from "@/components/ui/button";
 export interface AnchorResult {
   type: "success" | "failure";
   message: string;
-  issues?: readonly ("procedure" | "scope")[];
+  issues?: readonly ("procedure" | "scope" | "verification")[];
 }
 
 export interface AnchorResultOverlayProps {
@@ -28,7 +28,7 @@ export const AnchorResultOverlay = ({ result, onContinue, onReset, onRemediate }
       }`}
     >
       {result.type === "success" ? <Trophy className="w-6 h-6" /> : <Target className="w-6 h-6" />}
-      {result.type === "success" ? "Anchor secure" : "Not secure"}
+      {result.type === "success" ? "Modeled checks passed" : "Checks not passed"}
     </div>
     <p className="text-sm text-muted-foreground text-center px-6">{result.message}</p>
     <div className="flex gap-2 flex-wrap justify-center">

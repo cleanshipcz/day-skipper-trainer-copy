@@ -17,7 +17,16 @@ const scenario: AnchorScenario = {
   condition: "mild",
   depth: 5.5,
   bowHeight: 1.1,
+  tideRise: 1.4,
   note: "Test",
+  rode: "chain and nylon",
+  anchorAndVessel: "matched",
+  seabed: "firm mud",
+  minimumRode: 32,
+  maximumRode: 42,
+  minimumSetDistance: 3,
+  guidance: "fixture guidance",
+  basis: ["RNLI SAR Unit 9, p. 67"],
 };
 
 describe("anchor minigame transitions", () => {
@@ -28,6 +37,7 @@ describe("anchor minigame transitions", () => {
       rode: 0,
       anchorOnBottom: false,
       anchorX: null,
+      holdingCheckRecorded: false,
     });
   });
 
@@ -76,6 +86,7 @@ describe("anchor minigame transitions", () => {
       rode: target,
       anchorOnBottom: true,
       anchorX: 20,
+      holdingCheckRecorded: true,
     }, scenario).message).toContain("under/behind");
     expect(checkPlacement({
       ...createInitialState(),
@@ -83,11 +94,23 @@ describe("anchor minigame transitions", () => {
       rode: target,
       anchorOnBottom: true,
       anchorX: 24,
+      holdingCheckRecorded: true,
     }, scenario)).toEqual({
       type: "success",
-      message: `Scope 4.0x with ${target.toFixed(1)}m out.`,
-      status: "Secure: anchor is ahead with enough scope.",
+      message: `Modeled checks passed at 4.0:1 with ${target.toFixed(1)}m out. Continue real holding and anchor-watch checks.`,
+      status: "Placement accepted: controlled set, scenario guidance and room checks passed.",
       issues: [],
+    });
+  });
+
+  it("requires a holding check and rejects rode beyond the scenario's safe room", () => {
+    const placed = {
+      ...createInitialState(), boatX: 10, rode: 40, anchorOnBottom: true, anchorX: 24,
+    };
+    expect(checkPlacement(placed, scenario).issues).toEqual(["verification"]);
+    expect(checkPlacement({ ...placed, rode: 43, holdingCheckRecorded: true }, scenario)).toMatchObject({
+      type: "failure",
+      issues: ["scope"],
     });
   });
 });

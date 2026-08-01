@@ -3,10 +3,10 @@ import type { Question } from "./types";
 const anchorworkQuestions: readonly Question[] = [
   {
     id: "a1",
-    question: "What is the minimum anchor scope in calm conditions?",
-    options: ["2:1", "3:1", "4:1", "7:1"],
-    correctAnswer: 2,
-    explanation: "Minimum scope of 4:1 in calm conditions, increasing to 7:1 in rough weather for proper holding.",
+    question: "How should you choose rode length for an anchoring plan?",
+    options: ["Always use 4:1", "Always use 7:1", "Use depth alone", "Consider rode, anchor/vessel, seabed, conditions, tide, room and current manufacturer/local guidance"],
+    correctAnswer: 3,
+    explanation: "Scope is one input, not a universal verdict. Use the full bow-to-seabed depth and adapt rode to the equipment, vessel, seabed, forecast load, available room, and current manufacturer or local guidance.",
   },
   {
     id: "a2",
@@ -36,10 +36,10 @@ const anchorworkQuestions: readonly Question[] = [
   },
   {
     id: "a5",
-    question: "Which anchor type is best for sandy seabeds?",
-    options: ["Fisherman", "Danforth", "Bruce", "Mushroom"],
-    correctAnswer: 1,
-    explanation: "Danforth anchors have excellent holding power in sand due to their large flat flukes.",
+    question: "What establishes whether an anchor is suitable for a sandy anchorage?",
+    options: ["Its familiar type name alone", "Its colour", "Suitability for the vessel, anchor design/size, seabed and expected load under manufacturer guidance", "The shortest available rode"],
+    correctAnswer: 2,
+    explanation: "No type label guarantees suitability. Check the particular anchor and rode against the vessel, seabed, expected load, and manufacturer guidance.",
   },
   {
     id: "a6",
@@ -82,11 +82,11 @@ const anchorworkQuestions: readonly Question[] = [
   },
   {
     id: "a9",
-    question: "What is the recommended scope in heavy weather or strong tidal conditions?",
-    options: ["3:1", "4:1", "5:1", "7:1 or more"],
-    correctAnswer: 3,
+    question: "Why can paying out more rode be unsafe even when it increases scope?",
+    options: ["It always weakens the anchor", "It can make the vessel's possible swing exceed safe room", "It reduces tidal range", "It changes the seabed"],
+    correctAnswer: 1,
     explanation:
-      "In heavy weather or strong tidal conditions, a scope of at least 7:1 is recommended for reliable holding.",
+      "More rode increases possible swing. Do not exceed safe room; recover and reset elsewhere if suitable rode cannot be used without losing clearance.",
   },
   {
     id: "a10",

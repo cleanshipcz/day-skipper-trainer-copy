@@ -29,8 +29,8 @@ describe("AnchorMinigame", () => {
     await user.click(screen.getByRole("button", { name: "Enter (check)" }));
     expect(screen.getByRole("button", { name: "Review procedure lesson" })).toBeTruthy();
     await user.click(screen.getByRole("button", { name: "Close" }));
-    for (let index = 0; index < 7; index += 1) await user.click(screen.getByRole("button", { name: "↓ Down (pay out)" }));
-    for (let index = 0; index < 2; index += 1) await user.click(screen.getByRole("button", { name: "← Left" }));
+    for (let index = 0; index < 10; index += 1) await user.click(screen.getByRole("button", { name: "↓ Down (pay out)" }));
+    for (let index = 0; index < 5; index += 1) await user.click(screen.getByRole("button", { name: "← Left" }));
     await user.click(screen.getByRole("button", { name: "Enter (check)" }));
     expect(screen.getByRole("button", { name: "Review scope lesson" })).toBeTruthy();
   });
@@ -45,18 +45,29 @@ describe("AnchorMinigame", () => {
     expect(container.querySelector('svg[aria-label="Anchoring side profile"]')?.getAttribute("viewBox")).toBe("0 0 760 360");
   });
 
+  it("shows the scenario factors, reviewed basis, and limits of the model", () => {
+    render(<MemoryRouter><AnchorMinigame /></MemoryRouter>);
+
+    expect(screen.getByText("10 m chain plus nylon rode")).toBeTruthy();
+    expect(screen.getByText(/RNLI SAR Unit 9, p\. 67; MCA MGN 592/)).toBeTruthy();
+    expect(screen.getByText(/numeric exercise bounds are conservative training fixtures, not universal recommendations/)).toBeTruthy();
+    expect(screen.getByText(/Unmodeled: actual holding, equipment condition, yaw, traffic and later weather\/tide changes/)).toBeTruthy();
+  });
+
   it("supports keyboard placement, checking, and reset without writing browser storage", () => {
     const localSetItem = vi.spyOn(window.localStorage, "setItem");
     const sessionSetItem = vi.spyOn(window.sessionStorage, "setItem");
     const indexedDbOpen = vi.spyOn(window.indexedDB, "open");
     render(<MemoryRouter><AnchorMinigame /></MemoryRouter>);
 
-    for (let index = 0; index < 27; index += 1) fireEvent.keyDown(window, { key: "ArrowDown" });
+    for (let index = 0; index < 32; index += 1) fireEvent.keyDown(window, { key: "ArrowDown" });
     for (let index = 0; index < 10; index += 1) fireEvent.keyDown(window, { key: "ArrowLeft" });
     fireEvent.keyDown(window, { key: "Enter" });
+    fireEvent.click(screen.getByRole("button", { name: "Close" }));
+    fireEvent.keyDown(window, { key: "Enter" });
 
-    expect(screen.getByText("Anchor secure")).toBeTruthy();
-    expect(screen.getByText("Attempted 1 time")).toBeTruthy();
+    expect(screen.getByText("Modeled checks passed")).toBeTruthy();
+    expect(screen.getByText("Attempted 2 times")).toBeTruthy();
     fireEvent.click(screen.getByRole("button", { name: "Try again here" }));
     expect(screen.getByText("0.0 m")).toBeTruthy();
     expect(screen.getByText("Anchor not set")).toBeTruthy();
