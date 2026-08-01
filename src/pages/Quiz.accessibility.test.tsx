@@ -16,12 +16,13 @@ vi.mock("@/contexts/AuthHooks", () => ({ useAuth: () => ({ user: mocks.user }) }
 vi.mock("@/hooks/useProgress", () => ({ useProgress: () => mocks }));
 vi.mock("@/integrations/supabase/client", () => ({ supabase: { rpc: mocks.rpc } }));
 vi.mock("@/data/quizzes", () => ({
-  isQuizTopicId: (topic: string) => ["test", "nautical-terms-quiz", "ropework", "lights-signals"].includes(topic),
+  isQuizTopicId: (topic: string) => ["test", "anchorwork", "nautical-terms-quiz", "ropework", "lights-signals"].includes(topic),
   topicMeta: {
     test: { title: "A very long localized quiz title that must reflow", subtitle: "Long localized supporting text" },
     "nautical-terms-quiz": { title: "Full Nautical Terms Quiz", subtitle: "Terms" },
     ropework: { title: "Ropework Quiz", subtitle: "Knots" },
     "lights-signals": { title: "Lights & Signals Mastery", subtitle: "Signals" },
+    anchorwork: { title: "Anchorwork Quiz", subtitle: "Anchoring" },
   },
   loadQuizTopic: mocks.loadQuizTopic,
 }));
@@ -68,6 +69,18 @@ describe("Quiz accessible interaction and reflow", () => {
     renderQuiz(path);
     await user.click(await screen.findByRole("button", { name: backName }));
     expect(await screen.findByText(`Current path: ${expectedPath}`)).toBeTruthy();
+  });
+
+  it("routes a missed anchorwork quiz skill to its rendered theory remediation", async () => {
+    const user = userEvent.setup();
+    mocks.loadQuizTopic.mockResolvedValue([{ ...questions[0], id: "a2" }]);
+    const SearchProbe = () => { const location = useLocation(); return <p>Route: {location.pathname}{location.search}</p>; };
+    render(<MemoryRouter initialEntries={["/quiz/anchorwork?returnTopic=types"]}><Routes><Route path="/quiz/:topicId" element={<Quiz />} /><Route path="*" element={<SearchProbe />} /></Routes></MemoryRouter>);
+    await user.click(await screen.findByRole("radio", { name: "First wrong" }));
+    await user.click(screen.getByRole("button", { name: "Submit Answer" }));
+    await user.click(await screen.findByRole("button", { name: "View Results" }));
+    await user.click(await screen.findByRole("button", { name: "Review missed anchorwork skill" }));
+    expect(await screen.findByText("Route: /anchorwork?topic=procedure&from=quiz")).toBeTruthy();
   });
 
   it("uses the same safe fallback in the unavailable state", async () => {

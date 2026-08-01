@@ -22,6 +22,7 @@ const AnchorTheorySession = () => {
   const [searchParams] = useSearchParams();
   const { loadProgressDetailed, saveProgressDetailed } = useProgress();
   const [topicList, setTopicList] = useState<Topic[]>(ANCHOR_CATALOGUE_VALID ? topics : []);
+  const [readinessTopicIds, setReadinessTopicIds] = useState<string[]>([]);
   const requestedTopic = searchParams.get("topic");
   const initialTopic = topics.some(({ id }) => id === requestedTopic) ? requestedTopic : topics[0]?.id;
   const [selectedTopicId, setSelectedTopicId] = useState<string | null>(ANCHOR_CATALOGUE_VALID ? initialTopic : null);
@@ -45,6 +46,7 @@ const AnchorTheorySession = () => {
   useEffect(() => {
     let cancelled = false;
     setPendingCompletedIds(null);
+    setReadinessTopicIds([]);
     if (!ANCHOR_CATALOGUE_VALID) {
       setPersistenceStatus("failed");
       return () => { cancelled = true; };
@@ -59,6 +61,7 @@ const AnchorTheorySession = () => {
           return;
         }
         const completed = new Set(completedIds);
+        setReadinessTopicIds(completedIds);
         setTopicList(topics.map((topic) => ({ ...topic, completed: completed.has(topic.id) })));
         setPersistenceStatus("ready");
         return;
@@ -91,6 +94,7 @@ const AnchorTheorySession = () => {
     setPendingCompletedIds(null);
     setPendingCompletionTitle(null);
     setPersistenceStatus(result === "anonymous" ? "anonymous" : "saved");
+    setReadinessTopicIds(completedIds);
     announce(result === "anonymous"
       ? "Completion recorded for this visit. Sign in to save it across devices."
       : result === "queued"
@@ -128,8 +132,8 @@ const AnchorTheorySession = () => {
 
   const completedCount = topicList.filter((t) => t.completed).length;
   const score = completedCount * POINTS_PER_TOPIC;
-  const quizReady = completedCount === topicList.length && topicList.length > 0;
-  const practiceReady = anchorPracticePrerequisites.every((id) => topicList.some((topic) => topic.id === id && topic.completed));
+  const quizReady = readinessTopicIds.length === topicList.length && topicList.length > 0;
+  const practiceReady = anchorPracticePrerequisites.every((id) => readinessTopicIds.includes(id));
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-background via-ocean-light/10 to-background">
@@ -367,7 +371,8 @@ const AnchorTheorySession = () => {
               <div className="flex flex-col md:flex-row items-center justify-between gap-4">
                 <div>
                   <h3 className="text-xl font-bold mb-2">{quizReady ? <><span aria-hidden="true">🎉 </span>Quiz ready</> : "Build quiz readiness"}</h3>
-                  <p className="text-muted-foreground">The quiz unlocks after all five durable study checks are saved—not from merely opening lessons.</p>
+                  <p className="text-muted-foreground">The quiz unlocks after all five study checks are confirmed saved or queued—not from merely opening lessons.</p>
+                  {persistenceStatus === "anonymous" && <p className="text-sm text-muted-foreground">Anonymous readiness lasts for this session only; sign in to keep it across devices.</p>}
                 </div>
                 <div className="flex gap-3">
                   <Button size="lg" variant="outline" disabled={!practiceReady} onClick={() => navigate(`/anchor-minigame?returnTopic=${selectedTopicId ?? "scope"}`)}>

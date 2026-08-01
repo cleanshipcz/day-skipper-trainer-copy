@@ -138,6 +138,7 @@ export interface PlacementResult {
   type: "success" | "failure";
   message: string;
   status: string;
+  issues: readonly ("procedure" | "scope")[];
 }
 
 export const checkPlacement = (state: AnchorGameState, scenario: AnchorScenario): PlacementResult => {
@@ -157,11 +158,16 @@ export const checkPlacement = (state: AnchorGameState, scenario: AnchorScenario)
       type: "success",
       message: `Scope ${(state.rode / totalDepth).toFixed(1)}x with ${state.rode.toFixed(1)}m out.`,
       status: "Secure: anchor is ahead with enough scope.",
+      issues: [],
     };
   }
   return {
     type: "failure",
     message: issues.join(" • "),
     status: "Adjust and try again — keep anchor ahead with enough chain.",
+    issues: [
+      ...(!state.anchorOnBottom || state.anchorX === null || (state.anchorX - bowTipX <= 0.5) ? ["procedure" as const] : []),
+      ...(state.rode < targetRode ? ["scope" as const] : []),
+    ],
   };
 };

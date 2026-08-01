@@ -87,6 +87,7 @@ describe("anchor minigame transitions", () => {
       type: "success",
       message: `Scope 4.0x with ${target.toFixed(1)}m out.`,
       status: "Secure: anchor is ahead with enough scope.",
+      issues: [],
     });
   });
 });

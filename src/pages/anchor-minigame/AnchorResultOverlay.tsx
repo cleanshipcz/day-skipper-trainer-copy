@@ -4,6 +4,7 @@ import { Button } from "@/components/ui/button";
 export interface AnchorResult {
   type: "success" | "failure";
   message: string;
+  issues?: readonly ("procedure" | "scope")[];
 }
 
 export interface AnchorResultOverlayProps {

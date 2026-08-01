@@ -417,7 +417,9 @@ const AnchorMinigame = () => {
                     setResultOverlay(null);
                   }}
                   onReset={resetPosition}
-                  onRemediate={() => navigate(anchorTheoryRoute(resultOverlay.type === "success" ? returnTopic : "scope", "practice"))}
+                  onRemediate={() => navigate(anchorTheoryRoute(resultOverlay.type === "success"
+                    ? returnTopic
+                    : resultOverlay.issues?.includes("procedure") ? "procedure" : "scope", "practice"))}
                 />
               )}
             </div>
