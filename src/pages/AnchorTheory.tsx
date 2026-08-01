@@ -215,6 +215,17 @@ const AnchorTheorySession = () => {
                       </ul>
                     </div>
 
+                    {selectedTopic.calculationGuide && (
+                      <div className="space-y-4" aria-label="Scope and swinging-room calculations">
+                        {selectedTopic.calculationGuide.map((section) => (
+                          <section key={section.title} className="rounded-lg border p-4">
+                            <h3 className="font-semibold mb-2">{section.title}</h3>
+                            <p className="text-sm text-muted-foreground leading-relaxed">{section.body}</p>
+                          </section>
+                        ))}
+                      </div>
+                    )}
+
                     <div className="text-sm text-muted-foreground">
                       <h3 className="font-semibold mb-2 text-foreground">Authoritative review basis</h3>
                       <ul className="list-disc pl-5 space-y-1">

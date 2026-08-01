@@ -11,6 +11,7 @@ export interface Topic {
   tips: string[];
   sourceIds: AnchorSource["id"][];
   completed: boolean;
+  calculationGuide?: readonly { title: string; body: string }[];
 }
 
 export const anchorSources: readonly AnchorSource[] = [
@@ -64,7 +65,7 @@ export const topics: Topic[] = [
     id: "scope",
     title: "Prepare the Operation",
     content:
-      "Brief the helm and foredeck crew, agree clear signals and an abort plan, and prepare the correctly secured rode before entering the anchorage. Scope is only one input: determine it from the maximum bow-roller-to-seabed distance and adapt it to the rode, anchor, vessel, seabed, available room, forecast conditions and manufacturer guidance rather than relying on one universal ratio.",
+      "Brief the helm and foredeck crew, agree clear signals and an abort plan, and prepare the correctly secured rode before entering the anchorage. Scope means rode length divided by the maximum vertical distance from the bow roller or chock to the seabed, including the expected rise of tide. It is only one input: adapt the plan to the rode, anchor, vessel, seabed, available room, forecast conditions and manufacturer or local guidance rather than relying on one universal ratio.",
     tips: [
       "Confirm the rode is serviceable, securely attached and ready for use; follow the vessel and equipment instructions for emergency release",
       "Keep people out of the bight, pinch points and snap-back zones; never stand astride or over a moving rode",
@@ -72,6 +73,24 @@ export const topics: Topic[] = [
     ],
     sourceIds: ["rnli-sar", "rnli-afloat", "mca-coswp", "mca-mgn592"],
     completed: false,
+    calculationGuide: [
+      {
+        title: "Worked scope example (metres)",
+        body: "Assume 4 m depth now, 2 m further rise of tide, a bow roller 1 m above the water, and 35 m of rode. Maximum bow-roller-to-seabed distance = 4 m + 2 m + 1 m = 7 m. Scope = 35 m ÷ 7 m = 5, conventionally written 5:1.",
+      },
+      {
+        title: "Worked plan-view swinging-room example (metres)",
+        body: "Using the same 35 m rode and 7 m maximum vertical distance, and assuming 10 m from the bow roller to the vessel's furthest point: horizontal rode reach ≈ √(35² − 7²) = √1,176 = 34.29 m; approximate swing radius = 34.29 m + 10 m = 44.29 m from the anchor.",
+      },
+      {
+        title: "Approximation and limits",
+        body: "These simplified formulas are planning approximations, not instructions to use 5:1 or a guarantee of holding or clearance. They treat the rode as a straight, unstretched line and the anchor as fixed. Actual catenary, yaw, waves, current, wind shifts, tide, stretch and dragging change the geometry; depth or tide uncertainty should increase the assumed vertical distance and clearance margin.",
+      },
+      {
+        title: "Apply the result",
+        body: "More rode increases scope and possible swing; greater depth or tide rise reduces scope for the same rode. Rode material and arrangement, seabed and anchor compatibility, forecast conditions, vessel and equipment guidance, hazards and available escape room all affect the decision. Neighbours may use different rode lengths, attachment points and responses to wind or current, so differently scoped vessels may not swing together: compare possible swing areas and keep monitoring rather than assuming equal circles.",
+      },
+    ],
   },
   {
     id: "procedure",
@@ -123,6 +142,7 @@ export interface AnchorClaimReview {
 // content change therefore requires an explicit, reviewable source decision.
 const statement = (topicIndex: number, tipIndex?: number) =>
   tipIndex === undefined ? topics[topicIndex].content : topics[topicIndex].tips[tipIndex];
+const calculationStatement = (sectionIndex: number) => topics[1].calculationGuide![sectionIndex].body;
 const basis = (sourceId: AnchorSource["id"], locator: string) => ({ sourceId, locator });
 
 export const anchorClaimReviews: readonly AnchorClaimReview[] = [
@@ -135,6 +155,10 @@ export const anchorClaimReviews: readonly AnchorClaimReview[] = [
   { text: statement(1, 0), basis: [basis("rnli-afloat", "‘Stay put’ > ‘Using an anchor in an emergency’: suitable anchor, enough chain/line and practice before emergency use"), basis("mca-coswp", "2024 ch. 26, ‘Anchoring and weighing anchor’: check brake and clear securing devices before use")] },
   { text: statement(1, 1), basis: [basis("mca-mgn592", "§2.1: installation must avoid stationing anyone in a rope bight and account for failure consequences"), basis("mca-coswp", "2024 ch. 26, ‘Anchoring and weighing anchor’: stand safely from windlass/capstan and account for snap-back")] },
   { text: statement(1, 2), basis: [basis("mca-coswp", "2024 ch. 26, ‘Anchoring and weighing anchor’: safe distance from windlass/capstan and protective clothing against cable debris")] },
+  { text: calculationStatement(0), basis: [basis("rnli-sar", "Unit 9, p. 67: depth of water, predicted tidal rise and amount of cable are factors to establish before anchoring")] },
+  { text: calculationStatement(1), basis: [basis("rnli-sar", "Unit 9, p. 67: establish a safe swinging circle from the anchor position and allow for vessel length")] },
+  { text: calculationStatement(2), basis: [basis("rnli-sar", "Unit 9, p. 67: wind and tide can change and scope depends on depth, tidal rise and cable; the diagrammed calculation is explicitly simplified") ] },
+  { text: calculationStatement(3), basis: [basis("rnli-sar", "Unit 9, p. 67: seabed, weather, wind/tide changes, hazards, depth, cable length and safe swinging circle must all be considered"), basis("mca-mgn592", "§§2.3–2.4: equipment must suit foreseeable loads and its design limitations must be understood") ] },
 
   { text: statement(2), basis: [basis("rnli-sar", "Unit 9, p. 67, ‘How an anchor works’: deployment and vessel pull dig the anchor into the seabed"), basis("mca-mgn592", "§§2.1–2.4: windlass layout, walking-out speed and design-load limitations"), basis("mca-coswp", "2024 ch. 26, ‘Anchoring and weighing anchor’: controlled walking out and brake use")] },
   { text: statement(2, 0), basis: [basis("mca-coswp", "2024 ch. 26, ‘Anchoring and weighing anchor’: responsible person and suitable bridge–anchoring-party communication")] },
