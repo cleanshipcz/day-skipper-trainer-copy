@@ -6,6 +6,10 @@ import { loadAllQuizTopics } from "@/data/quizzes";
 const sql = readFileSync("supabase/migrations/20260730110000_engagement.sql", "utf8");
 const hardened = readFileSync("supabase/migrations/20260730111000_harden_engagement_evidence.sql", "utf8");
 const issued = readFileSync("supabase/migrations/20260730112000_issued_quiz_attempts.sql", "utf8");
+const expandedNauticalTerms = readFileSync(
+  "supabase/migrations/20260801081500_expand_nautical_terms_quiz_attempts.sql",
+  "utf8",
+);
 
 describe("engagement migration", () => {
   test("should keep badges immutable and mutation RPC-only", () => {
@@ -33,9 +37,13 @@ describe("engagement migration", () => {
   });
 
   test("should keep the issued-attempt catalogue aligned with client quiz totals", async () => {
+    const issuedAttemptCatalogue = `${issued}\n${expandedNauticalTerms}`;
     Object.entries(await loadAllQuizTopics()).forEach(([topic, questions]) => {
-      expect(issued).toContain(`when '${topic}' then ${questions.length}`);
+      expect(issuedAttemptCatalogue).toContain(`when '${topic}' then ${questions.length}`);
     });
+    expect(expandedNauticalTerms).toContain("when 'nautical-terms-quiz' then 32");
+    expect(expandedNauticalTerms).not.toContain("when 'nautical-terms-quiz' then 20");
+    expect(expandedNauticalTerms).toContain("and expected_total=expected");
   });
 
   test("should use authenticated server-owned activity dates and idempotent awards", () => {
