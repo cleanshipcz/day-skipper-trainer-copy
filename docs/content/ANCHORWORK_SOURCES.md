@@ -7,9 +7,11 @@ authoritative for operating limits and procedures.
 
 ## Claim-level basis
 
-- **Planning, selection and watch:** RYA *Safety Boat Handbook* anchoring
-  guidance supports planning for conditions and bottom, controlled lowering,
-  setting, checking position and maintaining a watch. The catalogue qualifies
+- **Planning, selection and watch:** RNLI *Maritime Search and Rescue Manual*
+  (2019), Unit 9, p. 67 identifies wind, tide, depth, hazards, seabed, swinging
+  room, deployment, transit checks and resetting after a drag. RNLI's public
+  **Get ready to go afloat** page additionally requires an anchor suitable for
+  the vessel and enough chain and line for the activity. The catalogue qualifies
   these principles by anchor design/size, vessel displacement and windage,
   rode, seabed, forecast load and maker instructions; it gives no universal
   type or scope rule.
@@ -32,6 +34,9 @@ authoritative for operating limits and procedures.
 
 ## Sources
 
-- RYA, [*The RYA Safety Boat Handbook*](https://www.rya.org.uk/shop/p/the-rya-safety-boat-handbook).
+- RNLI, [*Maritime Search and Rescue Manual* (2019)](https://rnli.org/-/media/rnli/downloads/tp-int-05_maritime_sar_manual_2019.pdf), Unit 9, p. 67.
+- RNLI, [*Get ready to go afloat*](https://rnli.org/water-safety/choose-your-activity/yacht-sailing-and-motorboating/how-to-stay-safe-when-you-go-afloat), “Stay put”.
+- RYA, [*Anchoring and mooring*](https://www.rya.org.uk/environment-and-sustainability/anchoring-and-mooring/), “How do I anchor with care?”.
 - Maritime and Coastguard Agency, [*Code of Safe Working Practices for Merchant Seafarers (2024)*](https://www.gov.uk/government/publications/code-of-safe-working-practices-for-merchant-seafarers-coswp-2024), chapter 26.
+- Maritime and Coastguard Agency, [*MGN 592 (M+F) Amendment 2*](https://www.gov.uk/government/publications/mgn-592-mf-anchoring-mooring-towing-or-hauling-equipment), §§1.2 and 2.1–2.4.
 - US Coast Guard Navigation Center, [*Navigation Rules and Regulations Handbook*](https://www.navcen.uscg.gov/navigation-rules-amalgamated), International Rules 5, 7 and 30.

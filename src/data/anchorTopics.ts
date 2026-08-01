@@ -1,5 +1,5 @@
 export interface AnchorSource {
-  id: "rya" | "mca" | "colregs";
+  id: "rnli-sar" | "rnli-afloat" | "mca-coswp" | "mca-mgn592" | "colregs" | "rya-environment";
   title: string;
   url: string;
 }
@@ -15,14 +15,29 @@ export interface Topic {
 
 export const anchorSources: readonly AnchorSource[] = [
   {
-    id: "rya",
-    title: "RYA: The RYA Safety Boat Handbook — anchoring guidance",
-    url: "https://www.rya.org.uk/shop/p/the-rya-safety-boat-handbook",
+    id: "rnli-sar",
+    title: "RNLI Maritime Search and Rescue Manual, Unit 9: Anchoring (p. 67)",
+    url: "https://rnli.org/-/media/rnli/downloads/tp-int-05_maritime_sar_manual_2019.pdf",
   },
   {
-    id: "mca",
+    id: "rnli-afloat",
+    title: "RNLI: Get ready to go afloat — Using an anchor in an emergency",
+    url: "https://rnli.org/water-safety/choose-your-activity/yacht-sailing-and-motorboating/how-to-stay-safe-when-you-go-afloat",
+  },
+  {
+    id: "mca-coswp",
     title: "MCA Code of Safe Working Practices, chapter 26: anchoring operations",
     url: "https://www.gov.uk/government/publications/code-of-safe-working-practices-for-merchant-seafarers-coswp-2024",
+  },
+  {
+    id: "mca-mgn592",
+    title: "MCA MGN 592 (M+F) Amendment 2: anchoring equipment on all vessels",
+    url: "https://www.gov.uk/government/publications/mgn-592-mf-anchoring-mooring-towing-or-hauling-equipment",
+  },
+  {
+    id: "rya-environment",
+    title: "RYA: Anchoring and mooring — protected seabed habitats",
+    url: "https://www.rya.org.uk/environment-and-sustainability/anchoring-and-mooring/",
   },
   {
     id: "colregs",
@@ -42,7 +57,7 @@ export const topics: Topic[] = [
       "Allow for changing wind, current, waves, tide, nearby vessels and their different swing",
       "Obtain permission or local advice where required; charted and local restrictions take priority",
     ],
-    sourceIds: ["rya"],
+    sourceIds: ["rnli-sar", "rnli-afloat", "mca-mgn592", "rya-environment"],
     completed: false,
   },
   {
@@ -55,7 +70,7 @@ export const topics: Topic[] = [
       "Keep people out of the bight, pinch points and snap-back zones; never stand astride or over a moving rode",
       "Keep hands, feet, clothing and loose gear clear of windlass, chain, rope and gypsy",
     ],
-    sourceIds: ["rya", "mca"],
+    sourceIds: ["rnli-sar", "mca-coswp"],
     completed: false,
   },
   {
@@ -68,7 +83,7 @@ export const topics: Topic[] = [
       "Verify holding independently using at least two suitable cues: fixed transits or bearings, position trend or alarm, depth, and feel/load on the rode",
       "A single GPS fix, alarm or burst of reverse does not prove holding; investigate movement and reset or relocate if in doubt",
     ],
-    sourceIds: ["rya", "mca"],
+    sourceIds: ["rnli-sar", "mca-coswp", "mca-mgn592"],
     completed: false,
   },
   {
@@ -81,7 +96,7 @@ export const topics: Topic[] = [
       "Apply COLREG lookout and risk-of-collision duties; at anchor display the Rule 30 lights and day shape applicable to the vessel and circumstances",
       "Local harbour, environmental and anchoring rules may add restrictions or signals; check them before arrival and during the stay",
     ],
-    sourceIds: ["colregs", "rya"],
+    sourceIds: ["colregs", "rnli-sar"],
     completed: false,
   },
   {
@@ -94,7 +109,52 @@ export const topics: Topic[] = [
       "Clean and stow the rode under control, then mechanically secure the anchor and windlass controls for sea",
       "If safe recovery is not possible, mark or buoy only where lawful and safe, record the position, and seek local or professional help",
     ],
-    sourceIds: ["mca", "rya"],
+    sourceIds: ["mca-coswp"],
     completed: false,
   },
 ];
+
+export interface AnchorClaimReview {
+  text: string;
+  basis: { sourceId: AnchorSource["id"]; locator: string }[];
+}
+
+// Every learner-facing safety statement is an exact key in this register. A
+// content change therefore requires an explicit, reviewable source decision.
+export const anchorClaimReviews: readonly AnchorClaimReview[] = topics.flatMap((topic) => {
+  const contentBasis: Record<string, AnchorClaimReview["basis"]> = {
+    types: [
+      { sourceId: "rnli-sar", locator: "Unit 9, p. 67: pre-anchoring factors and swinging circle" },
+      { sourceId: "rnli-afloat", locator: "Stay put / Using an anchor in an emergency: suitable anchor, chain and line" },
+      { sourceId: "mca-mgn592", locator: "MGN 592 (M+F) Amendment 2, §§1.2, 2.3–2.4: yachts, equipment design limits and foreseeable loads" },
+      { sourceId: "rya-environment", locator: "How do I anchor with care?: sensitive and protected seabed habitats" },
+    ],
+    scope: [
+      { sourceId: "rnli-sar", locator: "Unit 9, p. 67: wind, tide, depth, hazards, seabed and cable considerations" },
+      { sourceId: "mca-coswp", locator: "COSWP 2024 ch. 26, §§26.2.1–26.2.3 and 26.3: planning, communication and anchoring machinery hazards" },
+    ],
+    procedure: [
+      { sourceId: "rnli-sar", locator: "Unit 9, p. 67: deploying, digging in, transit holding check and reset response" },
+      { sourceId: "mca-mgn592", locator: "MGN 592 Amendment 2, §§2.1–2.4: windlass design limits and safe layout" },
+      { sourceId: "mca-coswp", locator: "COSWP 2024 ch. 26, §§26.3–26.4: controlled anchoring operations" },
+    ],
+    "swinging-room": [
+      { sourceId: "rnli-sar", locator: "Unit 9, p. 67: changing wind/tide, safe swinging circle and transit checks" },
+      { sourceId: "colregs", locator: "International Rules 5, 7 and 30: lookout, collision-risk assessment, anchor lights/shapes and exceptions" },
+    ],
+    weighing: [
+      { sourceId: "mca-coswp", locator: "COSWP 2024 ch. 26, §§26.2–26.4: communication, loaded cable, machinery, heaving and securing precautions" },
+    ],
+  };
+  const tipBasis: Record<string, AnchorClaimReview["basis"][]> = {
+    types: [contentBasis.types, contentBasis.types, contentBasis.types],
+    scope: [contentBasis.scope, contentBasis.scope, contentBasis.scope],
+    procedure: [contentBasis.procedure, contentBasis.procedure, contentBasis.procedure],
+    "swinging-room": [contentBasis["swinging-room"], contentBasis["swinging-room"], contentBasis["swinging-room"]],
+    weighing: [contentBasis.weighing, contentBasis.weighing, contentBasis.weighing],
+  };
+  return [
+    { text: topic.content, basis: contentBasis[topic.id] },
+    ...topic.tips.map((text, index) => ({ text, basis: tipBasis[topic.id][index] })),
+  ];
+});

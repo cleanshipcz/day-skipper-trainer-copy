@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { anchorSources, topics } from "./anchorTopics";
+import { anchorClaimReviews, anchorSources, topics } from "./anchorTopics";
 
 describe("reviewed Anchorwork guidance", () => {
   it("keeps the five durable progress IDs and gives every claim a review basis", () => {
@@ -9,6 +9,21 @@ describe("reviewed Anchorwork guidance", () => {
       expect(topic.sourceIds.length).toBeGreaterThan(0);
       expect(topic.sourceIds.every((id) => knownSources.has(id))).toBe(true);
       expect(topic.tips).toHaveLength(3);
+    }
+  });
+
+  it("requires an exact, located basis for every learner-facing safety statement", () => {
+    const displayedStatements = topics.flatMap((topic) => [topic.content, ...topic.tips]).sort();
+    const reviewedStatements = anchorClaimReviews.map(({ text }) => text).sort();
+    expect(reviewedStatements).toEqual(displayedStatements);
+    expect(new Set(reviewedStatements).size).toBe(reviewedStatements.length);
+    const knownSources = new Set(anchorSources.map(({ id }) => id));
+    for (const claim of anchorClaimReviews) {
+      expect(claim.basis.length).toBeGreaterThan(0);
+      for (const reference of claim.basis) {
+        expect(knownSources.has(reference.sourceId)).toBe(true);
+        expect(reference.locator.length).toBeGreaterThan(12);
+      }
     }
   });
 
