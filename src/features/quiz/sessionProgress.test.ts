@@ -14,7 +14,7 @@ describe("quiz session progress helpers", () => {
 
   it("persists stable question and option identities", () => {
     expect(buildQuizSessionProgress([1, 2], 1, catalogue)).toMatchObject({
-      version: 2,
+      version: 3,
       answers: [{ questionId: "q1", optionId: "Right" }, { questionId: "q2", optionId: "Maybe" }],
       currentQuestionId: "q2",
     });
@@ -24,6 +24,16 @@ describe("quiz session progress helpers", () => {
     const saved = buildQuizSessionProgress([1, 2], 1, catalogue);
     const reordered = [question("q2", ["Maybe", "No", "Yes"]), question("q1", ["Right", "Wrong"])] as const;
     expect(parseSavedQuizSession(saved, reordered)).toEqual({ answers: [0, 0], currentQuestion: 0 });
+  });
+
+  it("restores version 2 current answers as tentative rather than assessed", () => {
+    const saved = { ...buildQuizSessionProgress([1, 2], 1, catalogue), version: 2 };
+
+    expect(parseSavedQuizSession(saved, catalogue)).toEqual({
+      answers: [1, null],
+      currentQuestion: 1,
+      tentativeAnswer: 2,
+    });
   });
 
   it("recovers safely when questions are added or removed", () => {

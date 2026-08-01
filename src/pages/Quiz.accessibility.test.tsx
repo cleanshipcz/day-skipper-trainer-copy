@@ -8,11 +8,13 @@ const mocks = vi.hoisted(() => ({
   saveProgress: vi.fn(),
   resetProgress: vi.fn(),
   loadQuizTopic: vi.fn(),
+  rpc: vi.fn(),
+  user: null as { id: string } | null,
 }));
 
-vi.mock("@/contexts/AuthHooks", () => ({ useAuth: () => ({ user: null }) }));
+vi.mock("@/contexts/AuthHooks", () => ({ useAuth: () => ({ user: mocks.user }) }));
 vi.mock("@/hooks/useProgress", () => ({ useProgress: () => mocks }));
-vi.mock("@/integrations/supabase/client", () => ({ supabase: { rpc: vi.fn() } }));
+vi.mock("@/integrations/supabase/client", () => ({ supabase: { rpc: mocks.rpc } }));
 vi.mock("@/data/quizzes", () => ({
   isQuizTopicId: (topic: string) => ["test", "nautical-terms-quiz", "ropework", "lights-signals"].includes(topic),
   topicMeta: {
@@ -52,6 +54,8 @@ describe("Quiz accessible interaction and reflow", () => {
     mocks.saveProgress.mockReset().mockResolvedValue(true);
     mocks.resetProgress.mockReset().mockResolvedValue(true);
     mocks.loadQuizTopic.mockReset().mockResolvedValue(questions);
+    mocks.rpc.mockReset().mockResolvedValue({ data: null, error: null });
+    mocks.user = null;
   });
 
   it.each([
@@ -105,6 +109,34 @@ describe("Quiz accessible interaction and reflow", () => {
     expect((radios[1] as HTMLInputElement).checked).toBe(false);
   });
 
+  it("keeps tentative choices out of score and persistence until submission", async () => {
+    mocks.user = { id: "quiz-user" };
+    const user = userEvent.setup();
+    renderQuiz();
+
+    const score = await screen.findByText("Score: 0/2");
+    const correct = screen.getByRole("radio", { name: /correct/i });
+    const wrong = screen.getByRole("radio", { name: /wrong/i });
+
+    await user.click(wrong);
+    expect(score.textContent).toBe("Score: 0/2");
+    expect(screen.queryByRole("status")).toBeNull();
+    expect(mocks.saveProgress).not.toHaveBeenCalled();
+
+    await user.click(correct);
+    await user.click(wrong);
+    expect(score.textContent).toBe("Score: 0/2");
+    expect(screen.queryByRole("status")).toBeNull();
+    expect(mocks.saveProgress).not.toHaveBeenCalled();
+
+    await user.click(correct);
+    await user.click(screen.getByRole("button", { name: "Submit Answer" }));
+
+    await waitFor(() => expect(score.textContent).toBe("Score: 1/2"));
+    expect(screen.getByRole("status").textContent).toContain("Correct");
+    await waitFor(() => expect(mocks.saveProgress).toHaveBeenCalledTimes(1));
+  });
+
   it("announces feedback once and focuses each advanced question and completion", async () => {
     const user = userEvent.setup();
     renderQuiz("/quiz/ropework");
@@ -123,8 +155,6 @@ describe("Quiz accessible interaction and reflow", () => {
     const previousHeading = await screen.findByRole("heading", { level: 3, name: firstHeading.textContent ?? "" });
     await waitFor(() => expect(document.activeElement).toBe(previousHeading));
 
-    await user.click(screen.getByRole("radio", { name: new RegExp(`${firstPrefix} correct`, "i") }));
-    await user.click(screen.getByRole("button", { name: "Submit Answer" }));
     await user.click(screen.getByRole("button", { name: "Next Question" }));
     await screen.findByRole("heading", { level: 3, name: firstPrefix === "First" ? "Second question?" : /First deliberately/ });
     const secondPrefix = firstPrefix === "First" ? "Second" : "First";

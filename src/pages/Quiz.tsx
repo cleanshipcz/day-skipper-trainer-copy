@@ -118,7 +118,7 @@ const Quiz = () => {
   const [workflow, setWorkflow] = useState<QuizWorkflow | null>(() => readQuizWorkflow(user?.id, topicKey));
   const [currentQuestion, setCurrentQuestion] = useState(0);
   const [answers, setAnswers] = useState<(number | null)[]>([]);
-  const [showExplanation, setShowExplanation] = useState(false);
+  const [tentativeAnswer, setTentativeAnswer] = useState<number | null>(null);
   const [isComplete, setIsComplete] = useState(false);
   const [seedStatus, setSeedStatus] = useState<"idle" | "saving" | "saved" | "failed">("idle");
   const [completionSaveError, setCompletionSaveError] = useState(() => Boolean(workflow?.scoreSaved && workflow.completion));
@@ -159,6 +159,7 @@ const Quiz = () => {
       const recovery = readQuizWorkflow(user?.id, topicKey);
       setIsComplete(false);
       setCompletionSaveError(false);
+      setTentativeAnswer(null);
       if (suppressNextProgressLoadRef.current) {
         suppressNextProgressLoadRef.current = false;
         setAnswers(createEmptyQuizAnswers(questions.length));
@@ -188,6 +189,7 @@ const Quiz = () => {
           if (saved) {
             setAnswers(saved.answers);
             setCurrentQuestion(saved.currentQuestion);
+            setTentativeAnswer(saved.tentativeAnswer ?? null);
 
             if (resolution.shouldMigrateFromLegacy) {
               await saveProgress(
@@ -227,7 +229,9 @@ const Quiz = () => {
     })();
   }, [user?.id, topicKey, attemptCycle]);
 
-  const selectedAnswer = answers[currentQuestion] ?? null;
+  const assessedAnswer = answers[currentQuestion] ?? null;
+  const showExplanation = assessedAnswer !== null;
+  const selectedAnswer = assessedAnswer ?? tentativeAnswer;
   const correctAnswers = countCorrectAnswers(answers, questions);
 
   useEffect(() => {
@@ -283,26 +287,25 @@ const Quiz = () => {
   const question = questions[currentQuestion];
   const progress = questionProgressPercent(currentQuestion, questions.length);
 
-  const handleAnswerSelect = async (answerIndex: number) => {
+  const handleAnswerSelect = (answerIndex: number) => {
     if (showExplanation) return;
-    const newAnswers = [...answers];
-    newAnswers[currentQuestion] = answerIndex;
-    setAnswers(newAnswers);
-
-    await persistSession(newAnswers, currentQuestion);
+    setTentativeAnswer(answerIndex);
   };
 
-  const handleSubmit = () => {
-    if (selectedAnswer === null) return;
-
-    setShowExplanation(true);
+  const handleSubmit = async () => {
+    if (tentativeAnswer === null || assessedAnswer !== null) return;
+    const nextAnswers = [...answers];
+    nextAnswers[currentQuestion] = tentativeAnswer;
+    setAnswers(nextAnswers);
+    setTentativeAnswer(null);
+    await persistSession(nextAnswers, currentQuestion);
   };
 
   const handleNext = async () => {
     focusQuestionAfterAdvanceRef.current = currentQuestion < questions.length - 1;
     const newQuestion = currentQuestion < questions.length - 1 ? currentQuestion + 1 : currentQuestion;
     setCurrentQuestion(newQuestion);
-    setShowExplanation(false);
+    setTentativeAnswer(null);
 
     await persistSession(answers, newQuestion);
 
@@ -316,7 +319,7 @@ const Quiz = () => {
       focusQuestionAfterAdvanceRef.current = true;
       const newQuestion = currentQuestion - 1;
       setCurrentQuestion(newQuestion);
-      setShowExplanation(false);
+      setTentativeAnswer(null);
 
       await persistSession(answers, newQuestion);
     }
@@ -407,7 +410,7 @@ const Quiz = () => {
     focusQuestionAfterAdvanceRef.current = true;
     setCurrentQuestion(0);
     setAnswers(createEmptyQuizAnswers(questions.length));
-    setShowExplanation(false);
+    setTentativeAnswer(null);
     setIsComplete(false);
     setSeed((n) => n + 1);
     setWorkflow(null);
@@ -565,7 +568,7 @@ const Quiz = () => {
                       value={index}
                       checked={isSelected}
                       disabled={showExplanation}
-                      onChange={() => void handleAnswerSelect(index)}
+                      onChange={() => handleAnswerSelect(index)}
                       className="sr-only"
                     />
                     <div className="flex min-w-0 items-start justify-between gap-3">
@@ -601,7 +604,7 @@ const Quiz = () => {
               {!showExplanation ? (
                 <Button
                   className="flex-1 bg-secondary text-secondary-foreground hover:bg-secondary/90"
-                  onClick={handleSubmit}
+                  onClick={() => void handleSubmit()}
                   disabled={selectedAnswer === null}
                 >
                   Submit Answer
