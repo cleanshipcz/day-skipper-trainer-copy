@@ -1,6 +1,9 @@
 import { render, screen, within } from "@testing-library/react";
 import { describe, expect, it } from "vitest";
 import { AnchorGeometryVisuals } from "./AnchorGeometryVisuals";
+import { scopeWorkedExample, swingWorkedExample } from "@/features/anchorwork/scopeCalculations";
+
+const numberAttribute = (element: Element, name: string) => Number(element.getAttribute(name));
 
 describe("AnchorGeometryVisuals", () => {
   it("provides useful accessible names, descriptions, and equivalent worked values", () => {
@@ -30,8 +33,32 @@ describe("AnchorGeometryVisuals", () => {
       expect(svg.querySelectorAll(".text-\\[14px\\]").length).toBeGreaterThan(0);
     }
     expect(screen.getByLabelText("Scrollable side-view diagram").classList.contains("overflow-x-auto")).toBe(true);
+    expect(screen.getByLabelText("Scrollable plan-view diagram").classList.contains("overflow-x-auto")).toBe(true);
     expect(svgs[0].querySelector('[stroke-dasharray="10 6"]')).toBeTruthy();
     expect(svgs[1].querySelector("pattern")).toBeTruthy();
     expect(svgs[1].querySelectorAll("[stroke-dasharray]").length).toBeGreaterThanOrEqual(3);
+  });
+
+  it("keeps both diagrams' drawn coordinates reconciled with the reviewed fixtures", () => {
+    render(<AnchorGeometryVisuals />);
+
+    const rode = screen.getByTestId("scope-rode");
+    const scale = numberAttribute(rode, "data-scale-pixels-per-metre");
+    const dx = numberAttribute(rode, "x2") - numberAttribute(rode, "x1");
+    const dy = numberAttribute(rode, "y2") - numberAttribute(rode, "y1");
+    expect(Math.hypot(dx, dy) / scale).toBeCloseTo(scopeWorkedExample.assumptions.rodeLengthMetres, 1);
+
+    const vertical = screen.getByTestId("maximum-vertical-distance");
+    const drawnVerticalMetres = Math.abs(numberAttribute(vertical, "y2") - numberAttribute(vertical, "y1")) / scale;
+    expect(drawnVerticalMetres).toBeCloseTo(scopeWorkedExample.maximumVerticalDistanceMetres, 6);
+    expect(scopeWorkedExample.assumptions.rodeLengthMetres / drawnVerticalMetres).toBeCloseTo(scopeWorkedExample.ratio, 6);
+
+    const horizontal = screen.getByTestId("horizontal-rode-reach");
+    const drawnHorizontalMetres = Math.abs(numberAttribute(horizontal, "x2") - numberAttribute(horizontal, "x1")) / scale;
+    expect(drawnHorizontalMetres).toBeCloseTo(swingWorkedExample.horizontalRodeReachMetres, 1);
+
+    const swing = screen.getByTestId("swing-radius");
+    const planScale = numberAttribute(swing, "data-scale-pixels-per-metre");
+    expect(numberAttribute(swing, "r") / planScale).toBeCloseTo(swingWorkedExample.approximateSwingRadiusMetres, 1);
   });
 });
