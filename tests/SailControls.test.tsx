@@ -20,10 +20,10 @@ const answerForCurrentQuestion = () => {
   const clue = screen.getByText(/What control line does this describe/).nextElementSibling?.textContent ?? "";
   const answers: [string, string][] = [
     ["Raises and lowers the mainsail", "Main Halyard"], ["Raises and lowers the headsail", "Jib Halyard"],
-    ["angle of the mainsail", "Mainsheet"], ["angle of the jib", "Jib Sheet"], ["boom from rising", "Boom Vang"],
+    ["mainsail angle", "Mainsheet"], ["angle of the jib", "Jib Sheet"], ["boom from rising", "Boom Vang"],
     ["lower mainsail", "Outhaul"], ["Moves draft forward", "Cunningham"], ["Supports the boom", "Topping Lift"],
-    ["Reduces mainsail area", "Reefing Lines"], ["boom angle independently", "Mainsheet Traveller"],
-    ["angle of pull", "Jib Fairlead"], ["Bends mast", "Backstay Adjuster"],
+    ["Reduces mainsail area", "Reefing Lines"], ["mainsheet attachment point", "Mainsheet Traveller"],
+    ["angle of pull", "Jib Fairlead"], ["Adjusts rig load", "Backstay Adjuster"],
   ];
   const answer = answers.find(([purpose]) => clue.includes(purpose))?.[1];
   expect(answer).toBeTruthy();
@@ -31,6 +31,25 @@ const answerForCurrentQuestion = () => {
 };
 
 describe("SailControls schematic geometry", () => {
+  it("preserves safety-critical taxonomy and trim guidance", () => {
+    render(<TestRouter><SailControls /></TestRouter>);
+
+    expect(screen.getAllByText("Deck hardware")).toHaveLength(2);
+    expect(screen.getAllByText("Standing-rigging adjustment")).toHaveLength(1);
+
+    fireEvent.click(screen.getByRole("button", { name: "Show Cunningham details from control list" }));
+    expect(screen.getByText(/Unlike a conventional mainsail downhaul/)).toBeTruthy();
+    fireEvent.click(screen.getByRole("button", { name: "Show Reefing Lines details from control list" }));
+    expect(screen.getByText(/Arrangements vary/)).toBeTruthy();
+    expect(screen.getByText(/ties only gather loose sail.*must not carry sail load/i)).toBeTruthy();
+    fireEvent.click(screen.getByRole("button", { name: "Show Mainsheet Traveller details from control list" }));
+    expect(screen.getByText(/Leeward commonly opens the leech.*depowers/i)).toBeTruthy();
+    fireEvent.click(screen.getByRole("button", { name: "Show Jib Sheet details from control list" }));
+    expect(screen.getByText(/over-trimming.*stall airflow/i)).toBeTruthy();
+    fireEvent.click(screen.getByRole("button", { name: "Show Jib Fairlead details from control list" }));
+    expect(screen.getByText(/Forward.*leech.*aft.*opens the leech/i)).toBeTruthy();
+  });
+
   it("aligns the jib luff, halyard, and aft-running sheet/fairlead route with the forestay", () => {
     const { container } = render(
       <TestRouter>
@@ -165,16 +184,16 @@ describe("SailControls schematic geometry", () => {
     const answersByPurpose = new Map([
       ["Raises and lowers the mainsail", "Main Halyard"],
       ["Raises and lowers the headsail (jib/genoa)", "Jib Halyard"],
-      ["Controls the angle of the mainsail to the wind", "Mainsheet"],
+      ["Controls mainsail angle and, especially upwind, leech tension and twist", "Mainsheet"],
       ["Controls the angle of the jib/genoa", "Jib Sheet"],
       ["Prevents boom from rising, controls sail twist", "Boom Vang"],
       ["Flattens or adds fullness to lower mainsail", "Outhaul"],
       ["Moves draft forward, tensions luff", "Cunningham"],
       ["Supports the boom when mainsail is down", "Topping Lift"],
       ["Reduces mainsail area for heavy weather", "Reefing Lines"],
-      ["Adjusts boom angle independently of sheet tension", "Mainsheet Traveller"],
+      ["Positions the mainsheet attachment point across the boat", "Mainsheet Traveller"],
       ["Sets the angle of pull on the jib sheet", "Jib Fairlead"],
-      ["Bends mast to flatten mainsail, tightens forestay", "Backstay Adjuster"],
+      ["Adjusts rig load, mast bend and forestay sag where the rig permits", "Backstay Adjuster"],
     ]);
 
     render(
