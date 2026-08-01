@@ -94,7 +94,7 @@ avoiding ignition sources after a suspected gas leak. They still need review
 against the six parent audits and vessel/manufacturer instructions before being
 treated as a scored comprehensive standard.
 
-Three entries require definite correction:
+Three groups of findings require definite correction:
 
 1. **`safety-raft3` has no universally correct option.** It says a liferaft
    “must” be serviced every three years and relegates annual service to some
