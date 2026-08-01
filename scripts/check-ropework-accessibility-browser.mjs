@@ -112,6 +112,19 @@ try {
     throw new Error(`Initial ropework semantics missing: ${JSON.stringify(semantics)}`);
   }
 
+  const expectedRopes = { "bowline": 1, "clove-hitch": 1, "reef-knot": 2, "figure-eight": 1, "round-turn": 1, "sheet-bend": 2, "rolling-hitch": 2 };
+  for (const [knotId, ropeCount] of Object.entries(expectedRopes)) {
+    await evaluate(`document.querySelector('button[aria-labelledby="${knotId}-name"]').click()`);
+    await waitFor(() => evaluate(`document.querySelector('figure[data-knot-diagram="${knotId}"]') !== null`), `${knotId} diagram`);
+    const diagram = await evaluate(`(() => { const figure = document.querySelector('figure[data-knot-diagram="${knotId}"]'); const svg = figure.querySelector('svg'); return { ropes: svg.querySelectorAll('[data-rope-path=continuous]').length, bridges: svg.querySelectorAll('[data-crossing-bridge]').length, name: svg.getAttribute('aria-label'), labels: svg.textContent }; })()`);
+    if (diagram.ropes !== ropeCount || diagram.bridges < 1 || !diagram.name.includes("final-form diagram") || !diagram.labels.includes("working end") || !diagram.labels.includes("standing part / load")) {
+      throw new Error(`${knotId} topology/accessibility metadata failed: ${JSON.stringify(diagram)}`);
+    }
+    await waitFor(() => evaluate("!document.querySelector('button[aria-pressed]').disabled"), `${knotId} save`);
+  }
+  await send("Page.navigate", { url: `http://127.0.0.1:${port}/ropework` });
+  await waitFor(() => evaluate("document.querySelectorAll('button[aria-pressed]').length === 7"), "reset knot cards");
+
   await key("Tab");
   await key("Tab");
   const firstFocus = await evaluate(`(() => {
@@ -172,7 +185,7 @@ try {
 
   await send("Browser.close");
   socket.close();
-  console.log("Ropework browser accessibility passed: native card semantics, visible keyboard focus, Enter/Space activation, focus restoration, announcements, and completion CTA order.");
+  console.log("Ropework browser accessibility passed: all seven diagram topologies, 375/768/1280 layouts, native semantics, keyboard focus, Enter/Space activation, announcements, and completion CTA order.");
 } finally {
   for (const child of children.reverse()) {
     if (child.exitCode === null) child.kill("SIGTERM");
