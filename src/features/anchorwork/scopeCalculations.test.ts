@@ -22,4 +22,51 @@ describe("reviewed anchorwork calculation fixtures", () => {
   it("rejects impossible straight-line geometry", () => {
     expect(() => approximateSwingRadius({ rodeLengthMetres: 6, maximumVerticalDistanceMetres: 7, bowToFurthestPointMetres: 10 })).toThrow(RangeError);
   });
+
+  it("deliberately allows rode equal to vertical distance", () => {
+    expect(approximateSwingRadius({ rodeLengthMetres: 7, maximumVerticalDistanceMetres: 7, bowToFurthestPointMetres: 10 })).toBe(10);
+  });
+
+  it.each([0, -1, Number.NaN, Number.POSITIVE_INFINITY, Number.NEGATIVE_INFINITY])(
+    "rejects invalid rode length %s",
+    (rodeLengthMetres) => {
+      const inputs = { ...scopeWorkedExample.assumptions, rodeLengthMetres };
+      expect(() => maximumVerticalDistance(inputs)).toThrow(RangeError);
+      expect(() => scopeRatio(inputs)).toThrow(RangeError);
+    },
+  );
+
+  it.each([
+    { currentDepthMetres: -1 },
+    { tideRiseMetres: -1 },
+    { bowRollerHeightMetres: -1 },
+    { currentDepthMetres: Number.NaN },
+    { tideRiseMetres: Number.POSITIVE_INFINITY },
+    { bowRollerHeightMetres: Number.NEGATIVE_INFINITY },
+  ])("rejects invalid scope component combination $currentDepthMetres/$tideRiseMetres/$bowRollerHeightMetres", (override) => {
+    const inputs = { ...scopeWorkedExample.assumptions, ...override };
+    expect(() => maximumVerticalDistance(inputs)).toThrow(RangeError);
+    expect(() => scopeRatio(inputs)).toThrow(RangeError);
+  });
+
+  it("rejects an all-zero vertical-distance combination", () => {
+    const inputs = { rodeLengthMetres: 35, currentDepthMetres: 0, tideRiseMetres: 0, bowRollerHeightMetres: 0 };
+    expect(() => maximumVerticalDistance(inputs)).toThrow(RangeError);
+    expect(() => scopeRatio(inputs)).toThrow(RangeError);
+  });
+
+  it.each([
+    { rodeLengthMetres: 0 },
+    { rodeLengthMetres: Number.NaN },
+    { rodeLengthMetres: Number.POSITIVE_INFINITY },
+    { maximumVerticalDistanceMetres: 0 },
+    { maximumVerticalDistanceMetres: -1 },
+    { maximumVerticalDistanceMetres: Number.NaN },
+    { maximumVerticalDistanceMetres: Number.POSITIVE_INFINITY },
+    { bowToFurthestPointMetres: -1 },
+    { bowToFurthestPointMetres: Number.NaN },
+    { bowToFurthestPointMetres: Number.POSITIVE_INFINITY },
+  ])("rejects invalid swing input combination", (override) => {
+    expect(() => approximateSwingRadius({ ...swingWorkedExample.assumptions, ...override })).toThrow(RangeError);
+  });
 });
