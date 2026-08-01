@@ -34,8 +34,8 @@ const renderPage = () => render(
 
 const passKnot = async (user: ReturnType<typeof userEvent.setup>, knot: (typeof knots)[number]) => {
   await user.click(screen.getByRole("button", { name: knot.name }));
-  await user.click(screen.getByRole("radio", { name: knot.practice.options[knot.practice.correctOption] }));
-  await user.click(screen.getByRole("button", { name: "Check answer" }));
+  for (const acknowledgement of knot.practice.acknowledgements) await user.click(screen.getByRole("checkbox", { name: acknowledgement }));
+  await user.click(screen.getByRole("button", { name: "Submit practical check" }));
 };
 
 describe("RopeworkTheory accessible knot discovery", () => {
@@ -57,16 +57,13 @@ describe("RopeworkTheory accessible knot discovery", () => {
 
     expect(controls[0].getAttribute("aria-pressed")).toBe("true");
     expect(screen.getByText("Not learned", { selector: `#${knots[0].id}-state` })).toBeTruthy();
-    expect(screen.getByRole("group", { name: `Practice check: ${knots[0].practice.question}` })).toBeTruthy();
-    expect(screen.queryByText(/correct answer/i)).toBeNull();
-    for (const radio of screen.getAllByRole("radio")) {
-      expect(radio.getAttributeNames().some((name) => /correct|answer|score/i.test(name))).toBe(false);
-    }
+    expect(screen.getByRole("group", { name: knots[0].practice.prompt })).toBeTruthy();
+    expect(screen.getAllByRole("checkbox")).toHaveLength(knots[0].practice.acknowledgements.length);
     const detailsHeading = screen.getByRole("heading", { name: `${knots[0].name} details` });
     await waitFor(() => expect(document.activeElement).toBe(detailsHeading));
     expect(screen.getByRole("status").textContent).toContain("practice check");
-    await user.click(screen.getByRole("radio", { name: knots[0].practice.options[knots[0].practice.correctOption] }));
-    await user.click(screen.getByRole("button", { name: "Check answer" }));
+    for (const acknowledgement of knots[0].practice.acknowledgements) await user.click(screen.getByRole("checkbox", { name: acknowledgement }));
+    await user.click(screen.getByRole("button", { name: "Submit practical check" }));
     expect(screen.getByText("Learned", { selector: `#${knots[0].id}-state` })).toBeTruthy();
     expect(screen.getByRole("status").textContent).toContain("practice passed");
 

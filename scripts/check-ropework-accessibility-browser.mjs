@@ -157,34 +157,32 @@ try {
     }
   }
   await send("Emulation.clearDeviceMetricsOverride");
-  const bowlineGroup = await evaluate(`(() => { const fieldset = document.querySelector('fieldset'); return { name: fieldset.querySelector('legend').textContent.trim(), radios: fieldset.querySelectorAll('input[type=radio]').length, checked: fieldset.querySelectorAll('input:checked').length }; })()`);
-  if (!bowlineGroup.name.startsWith("Practice check: A dinghy painter") || bowlineGroup.radios !== 3 || bowlineGroup.checked !== 0) throw new Error(`Practice group semantics leak or naming failed: ${JSON.stringify(bowlineGroup)}`);
+  const bowlineGroup = await evaluate(`(() => { const fieldset = document.querySelector('fieldset'); return { name: fieldset.querySelector('legend').textContent.trim(), checks: fieldset.querySelectorAll('input[type=checkbox]').length, checked: fieldset.querySelectorAll('input:checked').length }; })()`);
+  if (bowlineGroup.name !== "Bowline practical check" || bowlineGroup.checks !== 3 || bowlineGroup.checked !== 0) throw new Error(`Practical group semantics failed: ${JSON.stringify(bowlineGroup)}`);
 
-  // From the programmatically focused heading, Tab reaches the first radio.
+  // From the programmatically focused heading, Tab reaches the first acknowledgement.
   await key("Tab");
-  if (!await evaluate("document.activeElement.type === 'radio'")) throw new Error("Practice radios are not next in keyboard order.");
-  await key("ArrowDown");
+  if (!await evaluate("document.activeElement.type === 'checkbox'")) throw new Error("Practice acknowledgements are not next in keyboard order.");
+  await key(" ");
+  const incomplete = await evaluate(`({ score: document.querySelector('[aria-label^="Score:"]').getAttribute('aria-label'), learned: document.getElementById('bowline-state').textContent.trim(), disabled: document.querySelector('button[type=submit]').disabled, checked: document.querySelectorAll('input:checked').length })`);
+  if (incomplete.score !== "Score: 0 points" || incomplete.learned !== "Not learned" || !incomplete.disabled || incomplete.checked !== 1) throw new Error(`Incomplete acknowledgement path failed: ${JSON.stringify(incomplete)}`);
   await key("Tab");
-  if (!await evaluate("document.activeElement.textContent.trim() === 'Check answer'")) throw new Error("Submit is not after the radio group.");
-  await key("Enter");
-  const wrong = await evaluate(`({ alert: document.querySelector('[role=alert]')?.textContent.trim(), score: document.querySelector('[aria-label^="Score:"]').getAttribute('aria-label'), learned: document.getElementById('bowline-state').textContent.trim(), disabled: document.querySelector('button[type=submit]').disabled })`);
-  if (!wrong.alert?.startsWith("Not quite") || wrong.score !== "Score: 0 points" || wrong.learned !== "Not learned" || wrong.disabled) throw new Error(`Wrong-answer retry path failed: ${JSON.stringify(wrong)}`);
-
-  await evaluate("document.querySelector('input[type=radio]').focus()");
   await key(" ");
   await key("Tab");
+  await key(" ");
+  await key("Tab");
+  if (!await evaluate("document.activeElement.textContent.trim() === 'Submit practical check'")) throw new Error("Submit is not after the acknowledgement group.");
   await key("Enter");
   await waitFor(() => evaluate("document.getElementById('bowline-state').textContent.trim() === 'Learned'"), "Bowline practice pass");
 
-  const correctOptions = [1, 2, 0, 1, 0, 1];
   const knotIds = Object.keys(expectedRopes).slice(1);
   for (let index = 0; index < knotIds.length; index += 1) {
     const knotId = knotIds[index];
     await evaluate(`document.querySelector('button[aria-labelledby="${knotId}-name"]').focus()`);
     await key(index % 2 === 0 ? " " : "Enter");
     await waitFor(() => evaluate(`document.activeElement.textContent.trim().endsWith('details')`), `${knotId} details focus`);
-    await evaluate(`document.querySelectorAll('input[type=radio]')[${correctOptions[index]}].focus()`);
-    await key(" ");
+    await evaluate("document.querySelector('input[type=checkbox]').focus()");
+    await key(" "); await key("Tab"); await key(" "); await key("Tab"); await key(" ");
     await key("Tab");
     await key("Enter");
     await waitFor(() => evaluate(`document.getElementById('${knotId}-state').textContent.trim() === 'Learned'`), `${knotId} practice pass`);
@@ -205,7 +203,7 @@ try {
 
   await send("Browser.close");
   socket.close();
-  console.log("Ropework browser accessibility passed: all seven diagram topologies, responsive layouts, named practice groups, keyboard wrong/retry/pass flows, announcements, and completion CTA order.");
+  console.log("Ropework browser accessibility passed: all seven diagram topologies, responsive layouts, named practical groups, keyboard incomplete/pass flows, announcements, and completion CTA order.");
 } finally {
   for (const child of children.reverse()) {
     if (child.exitCode === null) child.kill("SIGTERM");
