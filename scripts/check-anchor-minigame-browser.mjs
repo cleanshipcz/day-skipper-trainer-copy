@@ -176,10 +176,12 @@ try {
       await delay(75);
     }
   };
+  const blurFocus = () => evaluate("document.activeElement?.blur()");
   const key = async (keyName, times = 1) => {
+    const virtualKeyCode = { Enter: 13, ArrowLeft: 37, ArrowUp: 38, ArrowRight: 39, ArrowDown: 40 }[keyName];
     for (let index = 0; index < times; index += 1) {
-      await send("Input.dispatchKeyEvent", { type: "keyDown", key: keyName });
-      await send("Input.dispatchKeyEvent", { type: "keyUp", key: keyName });
+      await send("Input.dispatchKeyEvent", { type: "keyDown", key: keyName, code: keyName, windowsVirtualKeyCode: virtualKeyCode });
+      await send("Input.dispatchKeyEvent", { type: "keyUp", key: keyName, code: keyName, windowsVirtualKeyCode: virtualKeyCode });
       await delay(75);
     }
   };
@@ -207,7 +209,7 @@ try {
     const layout = await evaluate(`(() => {
       const svg = document.querySelector('svg[aria-label="Anchoring side profile"]');
       const controls = [...document.querySelectorAll("button")].filter((button) =>
-        ["← Left", "→ Right", "↓ Down (pay out)", "↑ Up (heave)", "Enter (check)"].includes(button.textContent.trim()));
+        ["← Left", "→ Right", "↓ Down (pay out)", "↑ Up (heave)", "Apply setting load", "Enter (check)"].includes(button.textContent.trim()));
       return {
         viewport: document.documentElement.clientWidth,
         scrollWidth: document.documentElement.scrollWidth,
@@ -218,26 +220,52 @@ try {
     if (layout.viewport > width || layout.viewport < width - 20 || layout.scrollWidth > layout.viewport || !layout.svg || layout.svg.width > layout.viewport) {
       throw new Error(`${width}px layout overflows: ${JSON.stringify(layout)}`);
     }
-    if (layout.controls.length !== 5 || layout.controls.some(({ left, right, width: controlWidth }) =>
+    if (layout.controls.length !== 6 || layout.controls.some(({ left, right, width: controlWidth }) =>
       left < 0 || right > layout.viewport || controlWidth < 44)) {
       throw new Error(`${width}px controls are clipped or undersized: ${JSON.stringify(layout.controls)}`);
     }
 
-    await clickButton("↓ Down (pay out)", 80);
-    await clickButton("← Left", 12);
+    const scenarioTitle = await evaluate(`document.querySelector("main h3")?.textContent?.trim()`);
+    const workflow = {
+      "Sheltered cove": { rode: 32, astern: 5, settingLoads: 3 },
+      "Harbour afternoon": { rode: 48, astern: 6, settingLoads: 4 },
+      "Open roadstead": { rode: 78, astern: 7, settingLoads: 5 },
+      "Tidal river bend": { rode: 46, astern: 6, settingLoads: 4 },
+    }[scenarioTitle];
+    if (!workflow) throw new Error(`${width}px unknown scenario fixture: ${scenarioTitle}`);
+
+    await clickButton("↓ Down (pay out)", workflow.rode);
+    await clickButton("← Left", workflow.astern);
+    await clickButton("Apply setting load", workflow.settingLoads);
+    await clickButton("Enter (check)");
+    await waitForText("holding observation");
+    await clickButton("Close");
+    await delay(5_100);
     await clickButton("Enter (check)");
     try {
-      await waitForText("Anchor secure");
+      await waitForText("Modeled checks passed");
     } catch (error) {
       throw new Error(`${width}px pointer path failed: ${await evaluate("document.body.innerText")}`);
     }
     await clickButton("Try again here");
     await waitForText("Anchor not set");
 
-    await key("ArrowDown", 80);
-    await key("ArrowLeft", 12);
+    await blurFocus();
+    await key("ArrowDown", workflow.rode);
+    await key("ArrowLeft", workflow.astern);
+    await clickButton("Apply setting load", workflow.settingLoads);
+    await blurFocus();
     await key("Enter");
-    await waitForText("Anchor secure");
+    await waitForText("holding observation");
+    await clickButton("Close");
+    await delay(5_100);
+    await blurFocus();
+    await key("Enter");
+    try {
+      await waitForText("Modeled checks passed");
+    } catch (error) {
+      throw new Error(`${width}px keyboard path failed: ${await evaluate("document.body.innerText")}`);
+    }
 
     const after = await snapshotStorage();
     if (JSON.stringify(after) !== JSON.stringify(baseline)) {
