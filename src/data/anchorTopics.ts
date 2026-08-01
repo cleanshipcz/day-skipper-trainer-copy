@@ -51,11 +51,11 @@ export const topics: Topic[] = [
     id: "types",
     title: "Plan and Select",
     content:
-      "Plan before committing: check the chart and current local information for anchoring prohibitions, restricted or protected areas, cables and pipelines, depth and tidal range, weather, traffic, escape routes, and room to swing. Select an anchor and rode for the particular anchor design and size, vessel displacement and windage, seabed, expected load and manufacturer guidance; no anchor type or size is best for every boat or bottom.",
+      "Plan before committing: assess depth and tidal range, weather, seabed, hazards, traffic, escape routes and room to swing, and use current location guidance to avoid protected or sensitive seabed habitats. Select an anchor and rode for the particular anchor design and size, vessel displacement and windage, seabed, expected load and manufacturer guidance; no anchor type or size is best for every boat or bottom.",
     tips: [
       "Use the vessel and anchor manufacturers' instructions; familiar type labels do not establish suitability",
       "Allow for changing wind, current, waves, tide, nearby vessels and their different swing",
-      "Obtain permission or local advice where required; charted and local restrictions take priority",
+      "Use current location guidance to avoid anchoring in protected or sensitive seabed habitats",
     ],
     sourceIds: ["rnli-sar", "rnli-afloat", "mca-mgn592", "rya-environment"],
     completed: false,
@@ -70,7 +70,7 @@ export const topics: Topic[] = [
       "Keep people out of the bight, pinch points and snap-back zones; never stand astride or over a moving rode",
       "Keep hands, feet, clothing and loose gear clear of windlass, chain, rope and gypsy",
     ],
-    sourceIds: ["rnli-sar", "mca-coswp"],
+    sourceIds: ["rnli-sar", "rnli-afloat", "mca-coswp", "mca-mgn592"],
     completed: false,
   },
   {
@@ -94,9 +94,9 @@ export const topics: Topic[] = [
     tips: [
       "Keep repeating position and transit checks; no single observation replaces a continuing watch",
       "Apply COLREG lookout and risk-of-collision duties; at anchor display the Rule 30 lights and day shape applicable to the vessel and circumstances",
-      "Local harbour, environmental and anchoring rules may add restrictions or signals; check them before arrival and during the stay",
+      "If changing anchoring position, recheck current location guidance and avoid protected or sensitive seabed habitats",
     ],
-    sourceIds: ["colregs", "rnli-sar"],
+    sourceIds: ["colregs", "rnli-sar", "rya-environment"],
     completed: false,
   },
   {
@@ -126,10 +126,10 @@ const statement = (topicIndex: number, tipIndex?: number) =>
 const basis = (sourceId: AnchorSource["id"], locator: string) => ({ sourceId, locator });
 
 export const anchorClaimReviews: readonly AnchorClaimReview[] = [
-  { text: statement(0), basis: [basis("rnli-sar", "Unit 9, p. 67, ‘Factors to consider prior to anchoring’: wind, depth/tide, hazards and seabed"), basis("rnli-afloat", "‘Stay put’ > ‘Using an anchor in an emergency’: anchor suitable for the vessel and sufficient chain/line"), basis("rya-environment", "‘How do I anchor with care?’: protected and sensitive seabed habitats"), basis("mca-mgn592", "§§1.2 and 2.3–2.4: application to yachts, design limitations and foreseeable equipment loads")] },
+  { text: statement(0), basis: [basis("rnli-sar", "Unit 9, p. 67, ‘Factors to consider prior to anchoring’: wind, depth/tide, hazards, seabed and safe swinging circle"), basis("rnli-afloat", "‘Stay put’ > ‘Using an anchor in an emergency’: anchor suitable for the vessel and sufficient chain/line"), basis("rya-environment", "‘How do I anchor with care?’: use current location guidance and avoid protected or sensitive seabed habitats"), basis("mca-mgn592", "§§1.2 and 2.3–2.4: application to yachts, design limitations and foreseeable equipment loads")] },
   { text: statement(0, 0), basis: [basis("rnli-afloat", "‘Stay put’ > ‘Using an anchor in an emergency’: suitability to vessel and area of activity"), basis("mca-mgn592", "§§2.3–2.4: anchoring-equipment design limitations and operational loads")] },
   { text: statement(0, 1), basis: [basis("rnli-sar", "Unit 9, p. 67: wind and tide can change; establish a safe swinging circle before anchoring")] },
-  { text: statement(0, 2), basis: [basis("rya-environment", "‘How do I anchor with care?’: protected habitats and location-specific anchoring impacts")] },
+  { text: statement(0, 2), basis: [basis("rya-environment", "‘How do I anchor with care?’: use current location guidance and avoid protected or sensitive seabed habitats")] },
 
   { text: statement(1), basis: [basis("mca-coswp", "2024 ch. 26, ‘Anchoring and weighing anchor’: competent person, bridge communication and equipment preparation"), basis("rnli-sar", "Unit 9, p. 67: depth/tidal rise, hazards, seabed and rode-length factors")] },
   { text: statement(1, 0), basis: [basis("rnli-afloat", "‘Stay put’ > ‘Using an anchor in an emergency’: suitable anchor, enough chain/line and practice before emergency use"), basis("mca-coswp", "2024 ch. 26, ‘Anchoring and weighing anchor’: check brake and clear securing devices before use")] },
@@ -144,7 +144,7 @@ export const anchorClaimReviews: readonly AnchorClaimReview[] = [
   { text: statement(3), basis: [basis("rnli-sar", "Unit 9, p. 67: wind/tide affect anchored position and can change; transit checks holding and swinging room prevents collision"), basis("colregs", "International Rules 5 and 7: continuing lookout and all available means for collision-risk assessment")] },
   { text: statement(3, 0), basis: [basis("rnli-sar", "Unit 9, p. 67: transit observation detects loss of holding and wind/tide can change position"), basis("colregs", "International Rule 5: proper lookout by sight, hearing and all available means")] },
   { text: statement(3, 1), basis: [basis("colregs", "International Rules 5, 7 and 30: lookout, collision-risk assessment, and circumstance/size-dependent anchor lights and shapes")] },
-  { text: statement(3, 2), basis: [basis("rya-environment", "‘Anchoring and mooring’: Marine Conservation Zones/Marine Protected Areas and current location guidance")] },
+  { text: statement(3, 2), basis: [basis("rya-environment", "‘How do I anchor with care?’: consult current location guidance and avoid protected or sensitive seabed habitats")] },
 
   { text: statement(4), basis: [basis("mca-coswp", "2024 ch. 26, ‘Anchoring and weighing anchor’: bridge communication, safe distance, snap-back and controlled windlass operation")] },
   { text: statement(4, 0), basis: [basis("mca-coswp", "2024 ch. 26, ‘Anchoring and weighing anchor’: report when anchor is home and apply securing devices") ] },

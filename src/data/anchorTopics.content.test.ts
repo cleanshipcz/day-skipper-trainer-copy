@@ -25,13 +25,19 @@ describe("reviewed Anchorwork guidance", () => {
         expect(reference.locator.length).toBeGreaterThan(12);
       }
     }
+    for (const topic of topics) {
+      const displayedSources = new Set(topic.sourceIds);
+      for (const claim of anchorClaimReviews.filter(({ text }) => [topic.content, ...topic.tips].includes(text))) {
+        expect(claim.basis.every(({ sourceId }) => displayedSources.has(sourceId))).toBe(true);
+      }
+    }
   });
 
   it("preserves the exact safety-critical qualifications", () => {
     const copy = topics.flatMap((topic) => [topic.content, ...topic.tips]).join(" ");
     for (const phrase of [
       "no anchor type or size is best for every boat or bottom",
-      "charted and local restrictions take priority",
+      "Use current location guidance to avoid anchoring in protected or sensitive seabed habitats",
       "rather than relying on one universal ratio",
       "never stand astride or over a moving rode",
       "do not use it as the permanent anchoring strong point",
