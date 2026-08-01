@@ -533,6 +533,20 @@ const SailControls = () => {
   const [quizAnnouncement, setQuizAnnouncement] = useState("");
   const questionHeadingRef = useRef<HTMLHeadingElement>(null);
   const completionHeadingRef = useRef<HTMLHeadingElement>(null);
+  const transitionTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const quizGenerationRef = useRef(0);
+  const answerLockedRef = useRef(false);
+
+  const invalidatePendingTransition = useCallback(() => {
+    quizGenerationRef.current += 1;
+    answerLockedRef.current = false;
+    if (transitionTimeoutRef.current !== null) {
+      clearTimeout(transitionTimeoutRef.current);
+      transitionTimeoutRef.current = null;
+    }
+  }, []);
+
+  useEffect(() => invalidatePendingTransition, [invalidatePendingTransition]);
 
   useEffect(() => {
     if (mode !== "quiz") return;
@@ -547,6 +561,7 @@ const SailControls = () => {
   const highlightedId = hoveredPart?.id || selectedPart?.id;
 
   const startQuiz = useCallback(() => {
+    invalidatePendingTransition();
     const shuffled = shuffleArray([...sailControls]);
     setQuizQueue(shuffled);
     setCurrentQuizIndex(0);
@@ -560,7 +575,7 @@ const SailControls = () => {
     setPartProgress(initial);
     setScore(0);
     setQuizAnnouncement(`Quiz started. Question 1 of ${sailControls.length}.`);
-  }, []);
+  }, [invalidatePendingTransition]);
 
   const options = useMemo(() => {
     if (!activePart) return [];
@@ -574,6 +589,8 @@ const SailControls = () => {
       if (!activePart) return;
 
       if (selectedOption.id === activePart.id) {
+        if (answerLockedRef.current) return;
+        answerLockedRef.current = true;
         const attempts = partProgress[activePart.id].attempts;
         const points = attempts === 0 ? POINTS_FIRST_TRY : POINTS_SECOND_TRY;
         setScore((prev) => prev + points);
@@ -589,9 +606,13 @@ const SailControls = () => {
         );
         setWrongAnswer(null);
 
-        setTimeout(() => {
+        const generation = quizGenerationRef.current;
+        transitionTimeoutRef.current = setTimeout(() => {
+          transitionTimeoutRef.current = null;
+          if (generation !== quizGenerationRef.current) return;
           if (currentQuizIndex < quizQueue.length - 1) {
             const nextIndex = currentQuizIndex + 1;
+            answerLockedRef.current = false;
             setCurrentQuizIndex(nextIndex);
             setActivePart(quizQueue[nextIndex]);
             setSelectedPart(null);
@@ -623,6 +644,7 @@ const SailControls = () => {
   );
 
   const resetQuiz = useCallback(() => {
+    invalidatePendingTransition();
     const initial: Record<string, PartProgress> = {};
     sailControls.forEach((part) => {
       initial[part.id] = { state: "hidden", attempts: 0 };
@@ -635,7 +657,7 @@ const SailControls = () => {
     setMode("learn");
     setQuizAnnouncement("");
     toast.success("Reset! Ready to learn.");
-  }, []);
+  }, [invalidatePendingTransition]);
 
   const controlsById = useMemo(() => {
     const controlsMap: Record<string, SailControl> = {};
@@ -659,7 +681,15 @@ const SailControls = () => {
         <div className="container mx-auto px-4 py-4">
           <div className="flex items-center justify-between flex-wrap gap-2">
             <div className="flex items-center gap-3">
-              <Button variant="ghost" size="icon" aria-label="Back to nautical terms" onClick={() => navigate("/nautical-terms")}>
+              <Button
+                variant="ghost"
+                size="icon"
+                aria-label="Back to nautical terms"
+                onClick={() => {
+                  invalidatePendingTransition();
+                  navigate("/nautical-terms");
+                }}
+              >
                 <ArrowLeft className="w-5 h-5" />
               </Button>
               <div>
@@ -968,7 +998,13 @@ const SailControls = () => {
                       You identified {correctCount} out of {sailControls.length} sail controls.
                     </p>
                     <div className="flex gap-3 justify-center pt-4">
-                      <Button variant="outline" onClick={() => setMode("learn")}>
+                      <Button
+                        variant="outline"
+                        onClick={() => {
+                          invalidatePendingTransition();
+                          setMode("learn");
+                        }}
+                      >
                         Review Controls
                       </Button>
                       <Button onClick={startQuiz}>Try Again</Button>
