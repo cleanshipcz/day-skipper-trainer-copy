@@ -10,9 +10,10 @@ export interface AnchorResultOverlayProps {
   result: AnchorResult;
   onContinue: () => void;
   onReset: () => void;
+  onRemediate: () => void;
 }
 
-export const AnchorResultOverlay = ({ result, onContinue, onReset }: AnchorResultOverlayProps) => (
+export const AnchorResultOverlay = ({ result, onContinue, onReset, onRemediate }: AnchorResultOverlayProps) => (
   <div
     className={`absolute inset-0 flex flex-col items-center justify-center gap-4 backdrop-blur-sm border-2 shadow-lg ${
       result.type === "success"
@@ -38,6 +39,9 @@ export const AnchorResultOverlay = ({ result, onContinue, onReset }: AnchorResul
       </Button>
       <Button variant="outline" onClick={onReset}>
         Try again here
+      </Button>
+      <Button variant="outline" onClick={onRemediate}>
+        {result.type === "success" ? "Return to theory" : "Review scope lesson"}
       </Button>
     </div>
   </div>

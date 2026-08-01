@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, useSearchParams } from "react-router-dom";
 import { toast } from "sonner";
 import {
   Anchor as AnchorIcon,
@@ -29,6 +29,7 @@ import {
   moveBoat as transitionBoat,
   type AnchorScenario,
 } from "@/pages/anchor-minigame/state";
+import { anchorPracticeSkills, anchorTheoryRoute } from "@/features/anchorwork/learningPath";
 
 const scenarioPool: Omit<AnchorScenario, "id">[] = [
   {
@@ -71,6 +72,8 @@ const pickScenario = () => {
 
 const AnchorMinigame = () => {
   const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
+  const returnTopic = searchParams.get("returnTopic") || "scope";
   const [scenario, setScenario] = useState<AnchorScenario>(() => pickScenario());
   const [game, setGame] = useState(createInitialState);
   const [attempts, setAttempts] = useState(0);
@@ -186,7 +189,7 @@ const AnchorMinigame = () => {
       <header className="border-b border-border/80 bg-card/70 backdrop-blur-sm sticky top-0 z-10">
         <div className="container mx-auto px-4 py-4 flex flex-col items-start justify-between gap-4 sm:flex-row sm:items-center">
           <div className="flex min-w-0 items-center gap-3">
-            <Button variant="ghost" size="icon" onClick={() => navigate("/anchorwork")}>
+            <Button variant="ghost" size="icon" aria-label="Return to anchorwork theory" onClick={() => navigate(anchorTheoryRoute(returnTopic, "practice"))}>
               <ArrowLeft className="w-5 h-5" />
             </Button>
             <div>
@@ -414,6 +417,7 @@ const AnchorMinigame = () => {
                     setResultOverlay(null);
                   }}
                   onReset={resetPosition}
+                  onRemediate={() => navigate(anchorTheoryRoute(resultOverlay.type === "success" ? returnTopic : "scope", "practice"))}
                 />
               )}
             </div>
@@ -448,6 +452,10 @@ const AnchorMinigame = () => {
               </div>
             </div>
           </CardContent>
+        </Card>
+        <Card>
+          <CardHeader><CardTitle>Skills assessed</CardTitle></CardHeader>
+          <CardContent><ul className="list-disc pl-5 text-sm text-muted-foreground">{anchorPracticeSkills.map((skill) => <li key={skill}>{skill}</li>)}</ul></CardContent>
         </Card>
       </main>
     </div>

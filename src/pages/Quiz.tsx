@@ -4,7 +4,7 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Progress } from "@/components/ui/progress";
 import { ArrowLeft, CheckCircle2, XCircle, Trophy, RotateCcw, ChevronLeft } from "lucide-react";
-import { useNavigate, useParams } from "react-router-dom";
+import { useNavigate, useParams, useSearchParams } from "react-router-dom";
 import { toast } from "sonner";
 import { useAuth } from "@/contexts/AuthHooks";
 import { supabase } from "@/integrations/supabase/client";
@@ -28,6 +28,7 @@ import { seedQuizQuestions } from "@/features/spaced-repetition/reviewService";
 import { syncEngagementEvent } from "@/features/engagement/engagementService";
 import { ownerStorageKey, readStored, removeStored, writeStored } from "@/features/persistence/browserStorage";
 import { resolveQuizParentDestination } from "@/constants/topicRegistry";
+import { anchorQuizRemediationTopic, anchorTheoryRoute } from "@/features/anchorwork/learningPath";
 
 const quizAttemptKey = (owner: string, topic: string) => ownerStorageKey("quiz-attempt", owner, topic);
 interface QuizWorkflow {
@@ -74,6 +75,7 @@ const readQuizWorkflow = (owner: string | undefined, topic: string): QuizWorkflo
 
 const Quiz = () => {
   const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
   const { topicId } = useParams<{ topicId: string }>();
   // If topicId is nautical-terms (legacy) or undefined, use the new specific ID
   const topicKey = !topicId || topicId === "nautical-terms" ? "nautical-terms-quiz" : topicId;
@@ -114,6 +116,7 @@ const Quiz = () => {
     subtitle: "Answer the questions to test yourself",
   };
   const quizParent = resolveQuizParentDestination(topicKey);
+  const anchorReturnTopic = searchParams.get("returnTopic") || "scope";
 
   const [workflow, setWorkflow] = useState<QuizWorkflow | null>(() => readQuizWorkflow(user?.id, topicKey));
   const [currentQuestion, setCurrentQuestion] = useState(0);
@@ -467,9 +470,11 @@ const Quiz = () => {
             )}
 
             <div className="flex flex-col gap-3 sm:flex-row">
-              <Button variant="outline" className="flex-1" onClick={() => navigate(quizParent.route)}>
+              <Button variant="outline" className="flex-1" onClick={() => navigate(topicKey === "anchorwork"
+                ? anchorTheoryRoute(passed ? anchorReturnTopic : anchorQuizRemediationTopic(questions.map(({ id }) => id), answers, questions.map(({ correctAnswer }) => correctAnswer)), "quiz")
+                : quizParent.route)}>
                 <ArrowLeft className="w-4 h-4 mr-2" />
-                Return to {quizParent.label}
+                {topicKey === "anchorwork" && !passed ? "Review missed anchorwork skill" : `Return to ${quizParent.label}`}
               </Button>
               <Button
                 className="flex-1 bg-secondary text-secondary-foreground"
