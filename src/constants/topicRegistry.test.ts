@@ -6,6 +6,7 @@ import {
   getTopicsBySyllabusArea,
   getRootTopics,
   getImplementedSyllabusAreas,
+  resolveQuizParentDestination,
   TOTAL_SYLLABUS_AREAS,
   TOPIC_IDS,
 } from "./topicRegistry";
@@ -392,5 +393,20 @@ describe("TOPIC_IDS", () => {
     for (const id of registryIds) {
       expect(constantValues.has(id)).toBe(true);
     }
+  });
+});
+
+describe("quiz parent destinations", () => {
+  it("returns the registered owning module for direct, nested, and legacy quiz topics", () => {
+    expect(resolveQuizParentDestination("nautical-terms-quiz")).toEqual({ route: "/nautical-terms", label: "Nautical Terms & Boat Parts" });
+    expect(resolveQuizParentDestination("lights-signals")).toEqual({ route: "/rules/lights", label: "Lights & Signals Theory" });
+    expect(resolveQuizParentDestination("colregs")).toEqual({ route: "/rules-of-the-road", label: "Rules of the Road" });
+    expect(resolveQuizParentDestination("ropework")).toEqual({ route: "/ropework", label: "Ropework & Knots" });
+  });
+
+  it("falls back safely for standalone, unknown, and malformed deep links", () => {
+    expect(resolveQuizParentDestination("standalone-topic")).toEqual({ route: "/", label: "Home" });
+    expect(resolveQuizParentDestination("../nautical-terms")).toEqual({ route: "/", label: "Home" });
+    expect(resolveQuizParentDestination("")).toEqual({ route: "/", label: "Home" });
   });
 });

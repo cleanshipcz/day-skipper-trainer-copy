@@ -27,6 +27,7 @@ import { isQuizTopicId, loadQuizTopic, topicMeta, type Question } from "@/data/q
 import { seedQuizQuestions } from "@/features/spaced-repetition/reviewService";
 import { syncEngagementEvent } from "@/features/engagement/engagementService";
 import { ownerStorageKey, readStored, removeStored, writeStored } from "@/features/persistence/browserStorage";
+import { resolveQuizParentDestination } from "@/constants/topicRegistry";
 
 const quizAttemptKey = (owner: string, topic: string) => ownerStorageKey("quiz-attempt", owner, topic);
 interface QuizWorkflow {
@@ -116,6 +117,7 @@ const Quiz = () => {
     title: "Topic Quiz",
     subtitle: "Answer the questions to test yourself",
   };
+  const quizParent = resolveQuizParentDestination(topicKey);
 
   const [workflow, setWorkflow] = useState<QuizWorkflow | null>(() => readQuizWorkflow(user?.id, topicKey));
   const [currentQuestion, setCurrentQuestion] = useState(() => workflow?.completion?.currentQuestion ?? 0);
@@ -267,12 +269,9 @@ const Quiz = () => {
             </p>
           </CardHeader>
           <CardContent className="flex gap-3 flex-col sm:flex-row">
-            <Button variant="outline" className="flex-1" onClick={() => navigate("/")}>
+            <Button variant="outline" className="flex-1" onClick={() => navigate(quizParent.route)}>
               <ArrowLeft className="w-4 h-4 mr-2" />
-              Home
-            </Button>
-            <Button className="flex-1" onClick={() => navigate("/nautical-terms")}>
-              Nautical Terms
+              Back to {quizParent.label}
             </Button>
             {catalogueError && <Button className="flex-1" onClick={() => setLoadGeneration((value) => value + 1)}>
               Retry loading
@@ -456,9 +455,9 @@ const Quiz = () => {
             )}
 
             <div className="flex flex-col gap-3 sm:flex-row">
-              <Button variant="outline" className="flex-1" onClick={() => navigate("/")}>
+              <Button variant="outline" className="flex-1" onClick={() => navigate(quizParent.route)}>
                 <ArrowLeft className="w-4 h-4 mr-2" />
-                Home
+                Return to {quizParent.label}
               </Button>
               <Button
                 className="flex-1 bg-secondary text-secondary-foreground"
@@ -491,7 +490,7 @@ const Quiz = () => {
         <div className="container mx-auto px-3 py-4 sm:px-4">
           <div className="flex flex-wrap items-start justify-between gap-3">
             <div className="flex min-w-0 flex-1 items-start gap-2 sm:gap-3">
-              <Button variant="ghost" size="icon" aria-label={`Back to home from ${meta.title}`} className="shrink-0" onClick={() => navigate("/")}>
+              <Button variant="ghost" size="icon" aria-label={`Back to ${quizParent.label} from ${meta.title}`} className="shrink-0" onClick={() => navigate(quizParent.route)}>
                 <ArrowLeft className="w-5 h-5" aria-hidden="true" />
               </Button>
               <div className="min-w-0">

@@ -67,6 +67,21 @@ export const getTopicById = (id: string): TopicEntry | undefined => topicByIdMap
 export const getTopicsByParent = (parentId: string): readonly TopicEntry[] => topicRegistry.filter((entry) => entry.parentId === parentId);
 export const getTopicsBySyllabusArea = (area: number): readonly TopicEntry[] => topicRegistry.filter((entry) => entry.syllabusArea === area);
 export const getRootTopics = (): readonly TopicEntry[] => topicRegistry.filter((entry) => entry.parentId === null);
+export interface QuizParentDestination {
+  readonly route: string;
+  readonly label: string;
+}
+
+/** Resolve a quiz URL back to the registered module that owns it. */
+export const resolveQuizParentDestination = (quizTopicId: string): QuizParentDestination => {
+  const quizRoute = `/quiz/${quizTopicId}`;
+  const owner = topicRegistry.find((entry) => entry.quizRoute === quizRoute && entry.route !== quizRoute)
+    ?? topicRegistry.find((entry) => entry.quizRoute === quizRoute);
+  if (!owner) return { route: "/", label: "Home" };
+  if (owner.route !== quizRoute) return { route: owner.route, label: owner.label };
+  const parent = owner.parentId ? getTopicById(owner.parentId) : undefined;
+  return parent ? { route: parent.route, label: parent.label } : { route: "/", label: "Home" };
+};
 export const getImplementedSyllabusAreas = (): readonly number[] => {
   const areas = new Set(topicRegistry.map((entry) => entry.syllabusArea));
   return [...areas].sort((a, b) => a - b);
