@@ -1,4 +1,4 @@
-import { useState, useMemo, useCallback } from "react";
+import { useState, useMemo, useCallback, useEffect, useRef } from "react";
 import type { KeyboardEvent as ReactKeyboardEvent } from "react";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -531,6 +531,17 @@ const SailControls = () => {
   const [quizQueue, setQuizQueue] = useState<SailControl[]>([]);
   const [currentQuizIndex, setCurrentQuizIndex] = useState(0);
   const [quizAnnouncement, setQuizAnnouncement] = useState("");
+  const questionHeadingRef = useRef<HTMLHeadingElement>(null);
+  const completionHeadingRef = useRef<HTMLHeadingElement>(null);
+
+  useEffect(() => {
+    if (mode !== "quiz") return;
+    if (activePart) {
+      questionHeadingRef.current?.focus();
+    } else if (quizQueue.length > 0) {
+      completionHeadingRef.current?.focus();
+    }
+  }, [mode, activePart, currentQuizIndex, quizQueue.length]);
 
   // The highlighted part is either hovered or selected (hovered takes visual priority for diagram)
   const highlightedId = hoveredPart?.id || selectedPart?.id;
@@ -570,8 +581,12 @@ const SailControls = () => {
           ...prev,
           [activePart.id]: { state: "correct", attempts: attempts + 1 },
         }));
-        toast.success(`+${points} points! Correct: ${activePart.name}`);
-        setQuizAnnouncement(`Correct. ${points} points. Question ${currentQuizIndex + 1} of ${quizQueue.length} complete.`);
+        const isLastQuestion = currentQuizIndex === quizQueue.length - 1;
+        setQuizAnnouncement(
+          isLastQuestion
+            ? `Correct. ${points} points. Quiz complete. Final score: ${score + points} points.`
+            : `Correct. ${points} points. Next: question ${currentQuizIndex + 2} of ${quizQueue.length}.`
+        );
         setWrongAnswer(null);
 
         setTimeout(() => {
@@ -580,13 +595,8 @@ const SailControls = () => {
             setCurrentQuizIndex(nextIndex);
             setActivePart(quizQueue[nextIndex]);
             setSelectedPart(null);
-            setQuizAnnouncement(`Question ${nextIndex + 1} of ${quizQueue.length}.`);
           } else {
             setActivePart(null);
-            toast.success("Quiz Complete! 🎉", {
-              description: `Final score: ${score + points} points`,
-            });
-            setQuizAnnouncement(`Quiz complete. Final score: ${score + points} points.`);
 
             if (user) {
               const finalScore = score + points;
@@ -606,7 +616,6 @@ const SailControls = () => {
             attempts: prev[activePart.id].attempts + 1,
           },
         }));
-        toast.error("Wrong! Try again");
         setQuizAnnouncement(`Incorrect. ${selectedOption.name} is not the answer. Try again.`);
       }
     },
@@ -877,7 +886,12 @@ const SailControls = () => {
                 <div className="space-y-4">
                   <Card className="border-2 border-primary">
                     <CardHeader>
-                      <CardTitle className="text-center" id="sail-controls-question">
+                      <CardTitle
+                        ref={questionHeadingRef}
+                        className="text-center focus:outline-none"
+                        id="sail-controls-question"
+                        tabIndex={-1}
+                      >
                         Question {currentQuizIndex + 1} of {quizQueue.length}
                       </CardTitle>
                     </CardHeader>
@@ -944,7 +958,9 @@ const SailControls = () => {
                 <Card className="border-2 border-green-500">
                   <CardContent className="pt-6 text-center space-y-4">
                     <Trophy className="w-16 h-16 mx-auto text-yellow-500" />
-                    <h2 className="text-2xl font-bold" tabIndex={-1}>Quiz Complete!</h2>
+                    <h2 ref={completionHeadingRef} className="text-2xl font-bold focus:outline-none" tabIndex={-1}>
+                      Quiz Complete!
+                    </h2>
                     <p className="text-xl">
                       Final Score: <span className="text-green-600 font-bold">{score}</span> points
                     </p>
