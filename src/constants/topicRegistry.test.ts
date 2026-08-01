@@ -13,6 +13,7 @@ import {
 import { appRoutes } from "@/app/routes";
 import { topicIds, topicMeta } from "@/data/quizzes";
 import { DURABLE_PROGRESS_IDS } from "./durableProgressIds";
+import type { TopicEntry } from "./topicRegistry";
 
 // ── Helpers ──────────────────────────────────────────────────────────────
 
@@ -434,6 +435,47 @@ describe("quiz parent destinations", () => {
     expect(new Set(Object.keys(expectedRoutes))).toEqual(registeredQuizIds);
     for (const [quizTopicId, expectedRoute] of Object.entries(expectedRoutes)) {
       expect(resolveQuizParentDestination(quizTopicId).route).toBe(expectedRoute);
+    }
+  });
+
+  it("resolves a quiz-only registry leaf through its registered parent", () => {
+    const mutableRegistry = topicRegistry as TopicEntry[];
+    const quizOnlyLeaf: TopicEntry = {
+      id: "synthetic-quiz-leaf",
+      label: "Synthetic Quiz",
+      parentId: "safety",
+      route: "/quiz/synthetic-quiz-leaf",
+      quizRoute: "/quiz/synthetic-quiz-leaf",
+      submoduleIds: [],
+      syllabusArea: 4,
+    };
+    mutableRegistry.push(quizOnlyLeaf);
+    try {
+      expect(resolveQuizParentDestination("synthetic-quiz-leaf")).toEqual({ route: "/safety", label: "Safety Procedures" });
+    } finally {
+      mutableRegistry.pop();
+    }
+  });
+
+  it.each([
+    [null, "a quiz-only leaf without a parent"],
+    ["missing-parent", "a quiz-only leaf whose parent is absent"],
+  ])("falls back for %s", (parentId) => {
+    const mutableRegistry = topicRegistry as TopicEntry[];
+    const quizOnlyLeaf: TopicEntry = {
+      id: "synthetic-orphan-quiz",
+      label: "Synthetic Orphan Quiz",
+      parentId,
+      route: "/quiz/synthetic-orphan-quiz",
+      quizRoute: "/quiz/synthetic-orphan-quiz",
+      submoduleIds: [],
+      syllabusArea: 13,
+    };
+    mutableRegistry.push(quizOnlyLeaf);
+    try {
+      expect(resolveQuizParentDestination("synthetic-orphan-quiz")).toEqual({ route: "/", label: "Home" });
+    } finally {
+      mutableRegistry.pop();
     }
   });
 });
