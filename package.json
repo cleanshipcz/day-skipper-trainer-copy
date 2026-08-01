@@ -20,6 +20,7 @@
     "setup:anchor-browser": "node scripts/install-anchor-browser.mjs",
     "test:anchor-browser": "node scripts/check-anchor-minigame-browser.mjs",
     "test:sail-controls-browser": "node scripts/check-sail-controls-browser.mjs",
+    "test:quiz-accessibility-browser": "node scripts/check-quiz-accessibility-browser.mjs",
     "guard:migrations": "node scripts/check-migrations.mjs",
     "supabase:start": "supabase start",
     "supabase:stop": "supabase stop",
