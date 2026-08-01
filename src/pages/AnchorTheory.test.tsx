@@ -137,6 +137,9 @@ describe("AnchorTheory durable completion", () => {
     await completeVisibleStudyCheck();
 
     expect(screen.getAllByRole("status")).toHaveLength(1);
+    const liveLog = screen.getByTestId("anchorwork-announcements");
+    expect(liveLog.getAttribute("aria-atomic")).toBe("false");
+    expect(liveLog.getAttribute("aria-relevant")).toBe("additions");
     expect(emittedAnnouncements()).toEqual([
       "Plan and Select completed. 1 of 5 topics completed.",
       "Saving anchorwork progress.",

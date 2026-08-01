@@ -177,7 +177,7 @@ const AnchorTheorySession = () => {
             </span>
           )}
         </div>
-        <div className="sr-only" role="status" aria-live="polite" aria-relevant="additions" data-testid="anchorwork-announcements">
+        <div className="sr-only" role="status" aria-live="polite" aria-atomic="false" aria-relevant="additions" data-testid="anchorwork-announcements">
           {announcements.map((message, index) => <p key={`${index}-${message}`}>{message}</p>)}
         </div>
         <div className="grid lg:grid-cols-4 gap-6">
