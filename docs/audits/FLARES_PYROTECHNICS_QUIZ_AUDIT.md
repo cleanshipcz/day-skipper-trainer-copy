@@ -14,7 +14,9 @@
 **The shared workflow is functional, but this bank is not a safe or defensible
 flare assessment.** All ten records load, have unique IDs and four options, and
 seeded shuffling retains the intended-answer mapping. Percentage scoring and
-authenticated save recovery are mechanically coherent. Content is the blocker:
+authenticated **completion-save** recovery are mechanically coherent; attempt
+start and in-progress saves still have the recovery defects owned by #209 and
+#313. Content is the blocker:
 the quiz teaches obsolete Coastguard disposal, a universal 15-degree rocket
 angle, a universal three-year life, and a false night-only red-hand-flare role.
 Two rescue scenarios are under-specified, no item visually identifies a flare,
@@ -162,10 +164,14 @@ momentary reveal rather than useful corrective teaching.
 - The live Score badge changes immediately on selection, before Submit, while
   options remain editable. A learner can cycle options until the score rises
   and discover every answer. Shared #157 owns this correctness oracle.
-- Submit locks the current selection and reveals correct/incorrect styling,
-  toast and explanation. Next persists the next position; final Next displays
-  results. Retry clears answers, changes the shuffle seed and starts a new
-  authenticated attempt.
+- Submit locks the current selection only in the current rendered view and
+  reveals correct/incorrect styling, toast and explanation. Next clears
+  `showExplanation`; Previous is then available on the next question and can
+  return to the submitted item with its answers editable. This transient lock,
+  combined with the live score oracle, permits post-submission answer editing;
+  shared #157 owns both behaviors. Next persists the next position; final Next
+  displays results. Retry clears answers, changes the shuffle seed and starts a
+  new authenticated attempt.
 - A passing result says “You've mastered this topic!” without critical-item
   gating. With four substantively defective items, the current pass result is
   not valid mastery evidence even when the arithmetic is correct.
@@ -185,14 +191,16 @@ with shared shell owners rather than fork the shell for this topic.
   versioned stable persistence and migration; #350 must supply the corrected
   bank/content version and invalidation policy.
 - A server attempt is started by RPC and recovered briefly from owner-scoped
-  local storage. Attempt-start failure has no direct recovery surface; #209
-  owns it.
+  local storage. This is not complete attempt recovery: attempt-start failure
+  has no direct status/retry surface and can leave completion waiting for a
+  workflow that never appeared. #209 owns it.
 - Score submission, final progress, engagement and review seeding have separate
   recovery behavior. Final save failure is shown with retry; a submitted score
   workflow prevents starting another retry until completion saving finishes.
 - In-progress `persistSession` awaits the shared call, but save false/rejection
-  is not surfaced next to an answer. Shared #313 owns truthful in-progress save
-  states and retry.
+  is not surfaced next to an answer and there is no explicit retry/recovery for
+  that failed checkpoint. Shared #313 owns truthful in-progress save states and
+  recovery.
 - Anonymous attempts exist only in memory and disappear on reload/navigation;
   #194 owns the privacy-safe anonymous policy or explicit warning.
 - Rejected imports show Quiz unavailable and Retry loading; empty/unknown banks
