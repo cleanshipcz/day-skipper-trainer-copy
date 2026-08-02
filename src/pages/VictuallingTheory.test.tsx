@@ -158,4 +158,46 @@ describe("VictuallingTheory durable checklist", () => {
     expect(screen.getByText(/Never improvise adapters/)).toBeTruthy();
     expect(screen.getByText(/Do not light a flame or operate electrical switches/)).toBeTruthy();
   });
+
+  it("exposes named score, count, back action and valid semantic progress", async () => {
+    renderPage();
+    expect(await screen.findByRole("button", { name: "Back to home" })).toBeTruthy();
+    expect(screen.getByLabelText("Planning score: 0 points")).toBeTruthy();
+    expect(screen.getByLabelText(`0 of ${checklistData.length} Victualling items checked`)).toBeTruthy();
+    const progress = screen.getByRole("progressbar", { name: "Victualling checklist progress" });
+    expect(progress.getAttribute("aria-valuemin")).toBe("0");
+    expect(progress.getAttribute("aria-valuemax")).toBe("100");
+    expect(progress.getAttribute("aria-valuenow")).toBe("0");
+  });
+
+  it("announces one concise item/score/completion update and preserves checkbox focus", async () => {
+    const user = userEvent.setup();
+    const finalItem = checklistData.at(-1)!;
+    mocks.load.mockResolvedValue({ status: "remote", record: record({
+      version: 1,
+      checkedItemIds: checklistData.slice(0, -1).map(({ id }) => id),
+      revision: 3,
+    }) });
+    renderPage();
+    const finalCheckbox = await screen.findByRole("checkbox", { name: finalItem.item });
+    await waitFor(() => expect((finalCheckbox as HTMLButtonElement).disabled).toBe(false));
+    await user.click(finalCheckbox);
+    await screen.findByRole("button", { name: "Take Quiz" });
+
+    expect(document.activeElement).toBe(finalCheckbox);
+    expect(finalCheckbox.getAttribute("aria-checked")).toBe("true");
+    expect(screen.getAllByText("Checked")).toHaveLength(checklistData.length);
+    const announcement = screen.getByTestId("victualling-progress-announcement");
+    expect(announcement.textContent).toBe(`${finalItem.item} checked. ${checklistData.length} of ${checklistData.length} items; planning score ${checklistData.length * 5} points. Victualling checklist complete; Take Quiz is now available.`);
+  });
+
+  it("uses narrow reflow, long-text wrapping, touch targets and non-colour checked text", async () => {
+    mocks.load.mockResolvedValue({ status: "remote", record: record({ version: 1, checkedItemIds: [checklistData[0].id], revision: 1 }) });
+    renderPage();
+    const checkbox = await screen.findByRole("checkbox", { name: checklistData[0].item });
+    expect(checkbox.className).toContain("size-11");
+    expect(screen.getByText("Checked")).toBeTruthy();
+    expect(screen.getByText(checklistData[0].quantity).className).toContain("break-words");
+    expect(screen.getByRole("banner").innerHTML).toContain("flex-wrap");
+  });
 });
