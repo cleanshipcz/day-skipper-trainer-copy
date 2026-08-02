@@ -24,12 +24,13 @@ describe("AnchorMinigame", () => {
     surface.focus();
     fireEvent.keyDown(surface, { key: "ArrowLeft" });
     expect(screen.getByRole("status").textContent).toBe("Drifting back from the anchor");
+    expect(screen.getByRole("button", { name: "Back to anchorwork theory" })).toBeTruthy();
     fireEvent.keyDown(surface, { key: "Enter" });
     expect(screen.getByText("Attempted 1 time")).toBeTruthy();
-    expect(screen.getByRole("button", { name: "Back to anchorwork theory" })).toBeTruthy();
   });
 
   it("manages result-dialog focus, pauses gameplay, handles Escape, and restores focus", async () => {
+    const user = userEvent.setup();
     render(<MemoryRouter><AnchorMinigame /></MemoryRouter>);
     const surface = screen.getByRole("application", { name: /Anchor manipulation surface/ });
     surface.focus();
@@ -37,12 +38,28 @@ describe("AnchorMinigame", () => {
 
     const dialog = screen.getByRole("dialog", { name: "Checks not passed" });
     expect(dialog.getAttribute("aria-modal")).toBe("true");
-    expect(document.activeElement).toBe(screen.getByRole("button", { name: "Close" }));
+    const primaryClose = screen.getAllByRole("button", { name: "Close" })[0];
+    const iconClose = screen.getAllByRole("button", { name: "Close" })[1];
+    const remediation = screen.getByRole("button", { name: "Review procedure lesson" });
+    expect(document.activeElement).toBe(primaryClose);
+    await user.tab();
+    expect(document.activeElement).toBe(iconClose);
+    await user.tab();
+    expect(document.activeElement).toBe(remediation);
+    await user.tab({ shift: true });
+    expect(document.activeElement).toBe(iconClose);
     expect(surface.getAttribute("aria-disabled")).toBe("true");
+    const back = screen.getByRole("button", { name: "Back to anchorwork theory", hidden: true });
+    expect(back.disabled).toBe(true);
+    expect(back.closest("[aria-hidden='true']")).toBeTruthy();
+    const hiddenPayOut = screen.getByRole("button", { name: "↓ Down (pay out)", hidden: true });
+    expect(hiddenPayOut.disabled).toBe(true);
+    hiddenPayOut.click();
     fireEvent.keyDown(surface, { key: "ArrowDown" });
     expect(screen.getByTestId("scene-labels").textContent).toContain("Rode paid out: 0.0 m");
 
-    fireEvent.keyDown(dialog, { key: "Escape" });
+    back.focus();
+    fireEvent.keyDown(document, { key: "Escape" });
     await waitFor(() => expect(document.activeElement).toBe(surface));
     expect(screen.queryByRole("dialog")).toBeNull();
     expect(surface.hasAttribute("aria-disabled")).toBe(false);
@@ -62,7 +79,7 @@ describe("AnchorMinigame", () => {
     render(<MemoryRouter><AnchorMinigame /></MemoryRouter>);
     await user.click(screen.getByRole("button", { name: "Enter (check)" }));
     expect(screen.getByRole("button", { name: "Review procedure lesson" })).toBeTruthy();
-    await user.click(screen.getByRole("button", { name: "Close" }));
+    await user.click(screen.getAllByRole("button", { name: "Close" })[0]);
     for (let index = 0; index < 10; index += 1) await user.click(screen.getByRole("button", { name: "↓ Down (pay out)" }));
     for (let index = 0; index < 5; index += 1) await user.click(screen.getByRole("button", { name: "← Left" }));
     await user.click(screen.getByRole("button", { name: "Enter (check)" }));
@@ -160,7 +177,7 @@ describe("AnchorMinigame", () => {
     for (let index = 0; index < 10; index += 1) fireEvent.keyDown(surface, { key: "ArrowLeft" });
     for (let index = 0; index < 3; index += 1) fireEvent.click(screen.getByRole("button", { name: "Apply setting load" }));
     fireEvent.keyDown(surface, { key: "Enter" });
-    fireEvent.click(screen.getByRole("button", { name: "Close" }));
+    fireEvent.click(screen.getAllByRole("button", { name: "Close" })[0]);
     now.mockReturnValue(6_000);
     fireEvent.click(screen.getByRole("button", { name: "Apply wind/tide change" }));
     surface.focus();
@@ -183,7 +200,7 @@ describe("AnchorMinigame", () => {
     for (let index = 0; index < 10; index += 1) fireEvent.keyDown(surface, { key: "ArrowLeft" });
     for (let index = 0; index < 3; index += 1) fireEvent.click(screen.getByRole("button", { name: "Apply setting load" }));
     fireEvent.keyDown(surface, { key: "Enter" });
-    fireEvent.click(screen.getByRole("button", { name: "Close" }));
+    fireEvent.click(screen.getAllByRole("button", { name: "Close" })[0]);
     now.mockReturnValue(6_000);
     fireEvent.click(screen.getByRole("button", { name: "Apply wind/tide change" }));
     fireEvent.click(screen.getByRole("button", { name: "Run anchor watch" }));
@@ -213,7 +230,7 @@ describe("AnchorMinigame", () => {
     for (let index = 0; index < 10; index += 1) fireEvent.keyDown(surface, { key: "ArrowLeft" });
     for (let index = 0; index < 3; index += 1) fireEvent.click(screen.getByRole("button", { name: "Apply setting load" }));
     fireEvent.keyDown(surface, { key: "Enter" });
-    fireEvent.click(screen.getByRole("button", { name: "Close" }));
+    fireEvent.click(screen.getAllByRole("button", { name: "Close" })[0]);
     now.mockReturnValue(6_000);
     fireEvent.click(screen.getByRole("button", { name: "Apply wind/tide change" }));
     fireEvent.click(screen.getByRole("button", { name: "Run anchor watch" }));
@@ -235,6 +252,7 @@ describe("AnchorMinigame", () => {
     await user.keyboard("{Enter}");
 
     expect(screen.getByText("Attempted 1 time")).toBeTruthy();
+    await user.click(screen.getAllByRole("button", { name: "Close" })[0]);
 
     const payOutButton = screen.getByRole("button", { name: "↓ Down (pay out)" });
     payOutButton.focus();

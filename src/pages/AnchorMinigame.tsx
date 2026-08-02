@@ -314,7 +314,7 @@ const AnchorMinigame = () => {
       <header className="border-b border-border/80 bg-card/70 backdrop-blur-sm sticky top-0 z-10">
         <div className="container mx-auto px-4 py-4 flex flex-col items-start justify-between gap-4 sm:flex-row sm:items-center">
           <div className="flex min-w-0 items-center gap-3">
-            <Button variant="ghost" size="icon" aria-label="Back to anchorwork theory" onClick={() => navigate(anchorTheoryRoute(returnTopic, "practice"))}>
+            <Button disabled={resultOverlay !== null} variant="ghost" size="icon" aria-label="Back to anchorwork theory" onClick={() => navigate(anchorTheoryRoute(returnTopic, "practice"))}>
               <ArrowLeft className="w-5 h-5" />
             </Button>
             <div>
@@ -329,7 +329,7 @@ const AnchorMinigame = () => {
               Attempted {attempts} time{attempts === 1 ? "" : "s"}
             </Badge>
             <Badge variant="outline" className="text-sm">Family {sequenceIndex % scenarioPool.length + 1}/{scenarioPool.length} • Cycle {scenario.cycle}</Badge>
-            <Button variant="outline" onClick={rollScenario}>
+            <Button disabled={resultOverlay !== null} variant="outline" onClick={rollScenario}>
               <RefreshCcw className="w-4 h-4 mr-2" />
               New setup
             </Button>
@@ -451,6 +451,7 @@ const AnchorMinigame = () => {
               onWatch={watchAnchor}
               onRecover={recover}
               rodeStep={RODE_STEP}
+              disabled={resultOverlay !== null}
             />
           </CardHeader>
 
