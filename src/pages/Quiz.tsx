@@ -32,8 +32,9 @@ import { anchorQuizRemediationTopic, anchorTheoryRoute } from "@/features/anchor
 
 const quizAttemptKey = (owner: string, topic: string) => ownerStorageKey("quiz-attempt", owner, topic);
 interface QuizWorkflow {
-  readonly version?: 1;
+  readonly version: 2;
   readonly attemptId: string;
+  readonly expectedTotal: number;
   readonly scoreSaved: boolean;
   readonly startedAt?: string;
   readonly completion?: {
@@ -45,17 +46,21 @@ interface QuizWorkflow {
   };
 }
 const QUIZ_ATTEMPT_MAX_AGE_MS = 2 * 60 * 60 * 1000;
-const readQuizWorkflow = (owner: string | undefined, topic: string): QuizWorkflow | null => {
+const readQuizWorkflow = (owner: string | undefined, topic: string, expectedTotal: number): QuizWorkflow | null => {
   if (!owner) return null;
   const key = quizAttemptKey(owner, topic);
   const parsed = readStored(localStorage, key, {
     decode: (value) => {
       const candidate = value && typeof value === "object" ? value as Partial<QuizWorkflow> : null;
-      return candidate && (candidate.version === undefined || candidate.version === 1) ? candidate : null;
+      return candidate && (candidate.version === 1 || candidate.version === 2 || candidate.version === undefined) ? candidate : null;
     },
   });
   try {
     if (!parsed || typeof parsed.attemptId !== "string") return null;
+    if (parsed.version !== 2 || parsed.expectedTotal !== expectedTotal) {
+      removeStored(localStorage, key);
+      return null;
+    }
     const scoreSaved = parsed.scoreSaved === true;
     const startedAt = typeof parsed.startedAt === "string" ? parsed.startedAt : undefined;
     const startedAtMs = startedAt ? Date.parse(startedAt) : Number.NaN;
@@ -69,7 +74,7 @@ const readQuizWorkflow = (owner: string | undefined, topic: string): QuizWorkflo
       removeStored(localStorage, key);
       return null;
     }
-    return { attemptId: parsed.attemptId, scoreSaved: false, startedAt };
+    return { version: 2, attemptId: parsed.attemptId, expectedTotal, scoreSaved: false, startedAt };
   } catch { return null; }
 };
 
@@ -118,7 +123,7 @@ const Quiz = () => {
   const quizParent = resolveQuizParentDestination(topicKey);
   const anchorReturnTopic = searchParams.get("returnTopic") || "scope";
 
-  const [workflow, setWorkflow] = useState<QuizWorkflow | null>(() => readQuizWorkflow(user?.id, topicKey));
+  const [workflow, setWorkflow] = useState<QuizWorkflow | null>(null);
   const [currentQuestion, setCurrentQuestion] = useState(0);
   const [answers, setAnswers] = useState<(number | null)[]>([]);
   const [tentativeAnswer, setTentativeAnswer] = useState<number | null>(null);
@@ -160,7 +165,6 @@ const Quiz = () => {
   useEffect(() => {
     if (!sourceQuestions) return;
     const initQuiz = async () => {
-      const recovery = readQuizWorkflow(user?.id, topicKey);
       setIsComplete(false);
       setCompletionSaveError(false);
       setTentativeAnswer(null);
@@ -219,19 +223,20 @@ const Quiz = () => {
   }, [sourceQuestions, questions, topicKey, user?.id, loadProgress, saveProgress, resetProgress, seedReviews]);
 
   useEffect(() => {
+    if (!sourceQuestions) return;
     const owner = user?.id;
     const generation = seedGenerationRef.current;
-    const existing = readQuizWorkflow(owner, topicKey);
+    const existing = readQuizWorkflow(owner, topicKey, questions.length);
     setWorkflow(existing);
     if (!owner || existing) return;
     void (async () => {
       const { data, error } = await supabase.rpc("start_quiz_attempt", { p_topic_id: topicKey });
       if (error || !data || seedOwnerRef.current !== owner || seedGenerationRef.current !== generation) return;
-      const created = { attemptId: data.attempt_id, scoreSaved: false, startedAt: data.started_at };
-      writeStored(localStorage, quizAttemptKey(owner, topicKey), { ...created, version: 1 });
+      const created: QuizWorkflow = { version: 2, attemptId: data.attempt_id, expectedTotal: questions.length, scoreSaved: false, startedAt: data.started_at };
+      writeStored(localStorage, quizAttemptKey(owner, topicKey), created);
       setWorkflow(created);
     })();
-  }, [user?.id, topicKey, attemptCycle]);
+  }, [user?.id, topicKey, attemptCycle, sourceQuestions, questions.length]);
 
   const assessedAnswer = answers[currentQuestion] ?? null;
   const showExplanation = assessedAnswer !== null;
