@@ -19,9 +19,12 @@ import { canonicalQuizProgressKey, resolveQuizProgressForLoad, type QuizProgress
 import { createSeededRng, shuffleWithRng } from "@/features/quiz/randomization";
 import {
   buildQuizSessionProgress,
+  clearAnonymousQuizSession,
   createEmptyQuizAnswers,
   parseSavedQuizSession,
   persistQuizSessionProgress,
+  restoreAnonymousQuizSession,
+  saveAnonymousQuizSession,
 } from "@/features/quiz/sessionProgress";
 import { isQuizTopicId, loadQuizTopic, topicMeta, type Question } from "@/data/quizzes";
 import { seedQuizQuestions } from "@/features/spaced-repetition/reviewService";
@@ -90,6 +93,7 @@ const Quiz = () => {
   const [seed, setSeed] = useState(0);
   const [sourceQuestions, setSourceQuestions] = useState<readonly Question[] | null>(null);
   const [catalogueError, setCatalogueError] = useState(false);
+  const [anonymousStorageNotice, setAnonymousStorageNotice] = useState<string | null>(null);
   const [loadGeneration, setLoadGeneration] = useState(0);
   useEffect(() => {
     let active = true;
@@ -177,6 +181,25 @@ const Quiz = () => {
       }
       const owner = seedOwnerRef.current;
       const generation = seedGenerationRef.current;
+      if (!owner) {
+        const restored = restoreAnonymousQuizSession(globalThis.sessionStorage, topicKey, questions);
+        if (restored.session) {
+          setAnswers(restored.session.answers);
+          setCurrentQuestion(restored.session.currentQuestion);
+          setTentativeAnswer(restored.session.tentativeAnswer ?? null);
+          setAnonymousStorageNotice("Practice attempt resumed for this browser session.");
+        } else {
+          setAnswers(createEmptyQuizAnswers(questions.length));
+          setCurrentQuestion(0);
+          setAnonymousStorageNotice(restored.status === "missing" ? null
+            : "The previous practice attempt was expired or incompatible and could not be resumed.");
+        }
+        return;
+      }
+      // Anonymous practice is session-scoped and is never promoted into an
+      // authenticated attempt or score on sign-in.
+      clearAnonymousQuizSession(globalThis.sessionStorage, topicKey);
+      setAnonymousStorageNotice(null);
       const canonicalKey = canonicalQuizProgressKey(topicKey);
       const canonicalRecord: QuizProgressRow | null = await loadProgress(canonicalKey);
       if (seedOwnerRef.current !== owner || seedGenerationRef.current !== generation) return;
@@ -256,11 +279,19 @@ const Quiz = () => {
   }, [currentQuestion, isComplete]);
 
   const persistSession = async (nextAnswers: Array<number | null>, nextQuestion: number) => {
+    const progress = buildQuizSessionProgress(nextAnswers, nextQuestion, questions);
+    if (!user) {
+      const result = saveAnonymousQuizSession(globalThis.sessionStorage, topicKey, progress);
+      setAnonymousStorageNotice(result.ok
+        ? "Anonymous progress is kept in this browser session for up to 30 minutes."
+        : "This browser blocked practice resume storage. You can continue, but progress will be lost on reload.");
+      return;
+    }
     await persistQuizSessionProgress({
-      isAuthenticated: Boolean(user),
+      isAuthenticated: true,
       topicKey,
       saveProgress,
-      progress: buildQuizSessionProgress(nextAnswers, nextQuestion, questions),
+      progress,
     });
   };
 
@@ -345,7 +376,10 @@ const Quiz = () => {
   const handleComplete = async () => {
     setIsComplete(true);
 
-    if (!user) return;
+    if (!user) {
+      clearAnonymousQuizSession(globalThis.sessionStorage, topicKey);
+      return;
+    }
     const owner = user.id;
     const generation = seedGenerationRef.current;
     const activeWorkflow = workflow;
@@ -421,6 +455,7 @@ const Quiz = () => {
   };
 
   const handleRestart = () => {
+    clearAnonymousQuizSession(globalThis.sessionStorage, topicKey);
     if (user && !workflow?.scoreSaved) {
       removeStored(localStorage, quizAttemptKey(user.id, topicKey));
     }
@@ -549,6 +584,9 @@ const Quiz = () => {
       </header>
 
       <main className="container mx-auto max-w-3xl px-3 py-5 sm:px-4 sm:py-8">
+        {anonymousStorageNotice && <p role="status" className="mb-3 text-sm text-muted-foreground">
+          {anonymousStorageNotice}
+        </p>}
         <Card className="border-2">
           <CardHeader>
             {question.image && (
