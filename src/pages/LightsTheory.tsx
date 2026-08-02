@@ -207,7 +207,7 @@ const LightsTheory = () => {
                 </CardContent>
               </Card>
 
-              <Card id="rule-30" tabIndex={-1} className="scroll-mt-28 focus:outline-none">
+              <Card>
                 <CardHeader>
                   <CardTitle>Anchored & Aground (Rule 30)</CardTitle>
                 </CardHeader>
@@ -241,7 +241,7 @@ const LightsTheory = () => {
             </div>
 
             <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-              <Card className="text-center p-4 flex flex-col items-center justify-center">
+              <Card id="rule-30" tabIndex={-1} className="text-center p-4 flex flex-col items-center justify-center scroll-mt-28 focus:outline-none">
                 <div className="w-8 h-8 rounded-full bg-black mb-2" />
                 <h3 className="font-bold">Ball</h3>
                 <p className="text-xs text-muted-foreground">At Anchor</p>

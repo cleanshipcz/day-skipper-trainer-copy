@@ -27,6 +27,17 @@ describe("LightsTheory remediation navigation", () => {
     expect(document.activeElement).toBe(target);
   });
 
+  it("mounts and focuses cr19's Rule 30 anchor-day-shape target", async () => {
+    render(<MemoryRouter initialEntries={["/rules/lights/theory?section=shapes#rule-30"]}><LightsTheory /></MemoryRouter>);
+    const heading = await screen.findByRole("heading", { name: "Ball" });
+    const target = heading.closest("div[id='rule-30']");
+    expect(target).not.toBeNull();
+    expect(screen.getByRole("tab", { name: "Shapes" }).getAttribute("data-state")).toBe("active");
+    expect(markSectionVisited).toHaveBeenCalledWith("shapes");
+    expect(scrollIntoView).toHaveBeenCalledWith({ block: "start" });
+    expect(document.activeElement).toBe(target);
+  });
+
   it("falls back to Lights for an unknown section", async () => {
     render(<MemoryRouter initialEntries={["/rules/lights/theory?section=unknown"]}><LightsTheory /></MemoryRouter>);
     expect((await screen.findByRole("tab", { name: "Lights" })).getAttribute("data-state")).toBe("active");
