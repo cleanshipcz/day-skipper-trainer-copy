@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import { maintenanceChecks } from "@/data/engineChecks";
-import { ANONYMOUS_ENGINE_CHECKLIST_MAX_AGE_MS, engineChecklistSaveState, mergeEngineChecklistIds, normalizeEngineCatalogue, parseEngineChecklistProgress, restoreAnonymousEngineChecklist, saveAnonymousEngineChecklist, shouldClearAnonymousAfterMigration } from "./engineChecklistProgress";
+import { ANONYMOUS_ENGINE_CHECKLIST_MAX_AGE_MS, clearAnonymousEngineChecklist, engineChecklistSaveState, isEngineChecklistConflict, mergeEngineChecklistIds, normalizeEngineCatalogue, parseEngineChecklistProgress, restoreAnonymousEngineChecklist, saveAnonymousEngineChecklist, shouldClearAnonymousAfterMigration } from "./engineChecklistProgress";
 
 describe("engine checklist progress", () => {
   const ids = new Set(maintenanceChecks.map(({ id }) => id));
@@ -44,5 +44,27 @@ describe("engine checklist progress", () => {
     expect(shouldClearAnonymousAfterMigration("remote", "new-owner", "new-owner")).toBe(true);
     expect(shouldClearAnonymousAfterMigration("queued", "new-owner", "new-owner")).toBe(false);
     expect(shouldClearAnonymousAfterMigration("failed", "new-owner", "new-owner")).toBe(false);
+  });
+  it("recognizes only the Engine CAS conflict diagnostic", () => {
+    expect(isEngineChecklistConflict({ code: "40001", message: "Engine checklist revision conflict" })).toBe(true);
+    expect(isEngineChecklistConflict({ code: "40001", message: "serialization failure" })).toBe(false);
+    expect(isEngineChecklistConflict({ code: "42501", message: "Engine checklist revision conflict" })).toBe(false);
+    expect(isEngineChecklistConflict(null)).toBe(false);
+  });
+  it("fails closed for malformed and unavailable anonymous storage", () => {
+    sessionStorage.setItem("engine-checklist-anonymous-v1", "{bad");
+    expect(restoreAnonymousEngineChecklist(sessionStorage, ids)).toBeNull();
+    expect(sessionStorage.getItem("engine-checklist-anonymous-v1")).toBeNull();
+    const denied = {
+      getItem: () => { throw new DOMException("denied"); },
+      removeItem: () => { throw new DOMException("denied"); },
+    } as unknown as Storage;
+    expect(restoreAnonymousEngineChecklist(denied, ids)).toBeNull();
+    expect(() => clearAnonymousEngineChecklist(denied)).not.toThrow();
+  });
+  it("removes incompatible anonymous snapshots", () => {
+    sessionStorage.setItem("engine-checklist-anonymous-v1", JSON.stringify({ expiresAt: Date.now() + 1000, version: 0 }));
+    expect(restoreAnonymousEngineChecklist(sessionStorage, ids)).toBeNull();
+    expect(sessionStorage.getItem("engine-checklist-anonymous-v1")).toBeNull();
   });
 });
