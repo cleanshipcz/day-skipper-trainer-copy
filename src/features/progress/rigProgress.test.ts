@@ -1,7 +1,7 @@
 import { describe, expect, it } from "vitest";
 import { isValidRigCatalogue, normalizeRigCatalogue, parseRigProgress, rigProgressPayload } from "./rigProgress";
 
-const item = { id: "shrouds", area: "Standing", item: "Shrouds", lookFor: "Damage", boundary: "Unload safely", checked: false };
+const item = { id: "shrouds", area: "Standing", item: "Shrouds", lookFor: "Damage", acceptableEvidence: "Compared with its identified specification", limitations: "Hidden structure remains unseen", boundary: "Unload safely", checked: false };
 
 describe("rig progress contract", () => {
   it("accepts only a complete unique usable catalogue", () => {

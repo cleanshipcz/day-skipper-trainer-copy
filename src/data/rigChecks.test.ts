@@ -3,7 +3,7 @@ import { rigChecks, rigGuidance, rigSources } from "./rigChecks";
 
 const allContent = () => [
   ...rigGuidance.flatMap(({ title, body }) => [title, body]),
-  ...rigChecks.flatMap(({ item, lookFor, boundary }) => [item, lookFor, boundary]),
+  ...rigChecks.flatMap(({ item, lookFor, acceptableEvidence, limitations, boundary }) => [item, lookFor, acceptableEvidence, limitations, boundary]),
 ].join(" ").toLowerCase();
 
 describe("rig safety guidance", () => {
@@ -28,6 +28,14 @@ describe("rig safety guidance", () => {
   it("states the principal hands-on safety boundaries", () => {
     const content = allContent();
     for (const phrase of ["sharp", "loaded lines store energy", "independent fall protection", "swing arc", "winches multiply force", "snap-back"]) expect(content).toContain(phrase);
+  });
+
+  it("gives every observation evidence, limits and a bounded action", () => {
+    for (const check of rigChecks) {
+      expect(check.acceptableEvidence.length).toBeGreaterThan(60);
+      expect(check.limitations.length).toBeGreaterThan(50);
+      expect(check.boundary).toMatch(/do not|no-sail|keep|secure|control|unload/i);
+    }
   });
 
   it("provides dated authoritative follow-up and labels the maker example", () => {
