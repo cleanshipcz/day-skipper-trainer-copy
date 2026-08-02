@@ -81,6 +81,7 @@ describe("offline progress queue", () => {
     expect(isRetryableProgressError({ status: 408 }, true)).toBe(true);
     expect(isRetryableProgressError({ status: 429 }, true)).toBe(true);
     expect(isRetryableProgressError({ code: "ETIMEDOUT" }, true)).toBe(true);
+    expect(isRetryableProgressError({ code: "40001", message: "serialization failure" }, true)).toBe(true);
     expect(isRetryableProgressError(new Error("Failed to fetch"), true)).toBe(true);
     expect(isRetryableProgressError({ status: 503, message: "unavailable" }, true)).toBe(true);
     expect(isRetryableProgressError({

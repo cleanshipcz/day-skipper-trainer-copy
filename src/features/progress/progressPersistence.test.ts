@@ -63,6 +63,18 @@ describe("saveProgressRecord", () => {
     expect(rpc).not.toHaveBeenCalled();
   });
 
+  it("rejects oversized and malformed checklist payloads before the RPC", async () => {
+    const { client, rpc } = buildSupabaseMock();
+    for (const checkedItemIds of [Array.from({ length: 19 }, (_, index) => `x${index}`), ["f1", 2]]) {
+      await expect(saveProgressRecord({
+        supabaseClient: client as never, userId: "user-1", topicId: "victualling-checklist",
+        completed: false, pointsEarned: 0,
+        answersHistory: { version: 1, checkedItemIds, revision: 0 },
+      })).rejects.toThrow("valid revisioned snapshot");
+    }
+    expect(rpc).not.toHaveBeenCalled();
+  });
+
   it("routes completed practice updates through the zero-reward mutable RPC", async () => {
     const { client, rpc } = buildSupabaseMock();
     const snapshot = { version: 1, completedFamilies: ["sheltered", "harbour", "exposed", "tidal"], attempts: 8, failedChecks: 3, scenarioSeed: 1, sequenceIndex: 5, scenarioIdentity: "anchor-1-2-2-harbour" };

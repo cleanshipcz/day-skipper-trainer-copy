@@ -40,6 +40,7 @@ export const saveProgressRecord = async ({
   if (topicId === VICTUALLING_CHECKLIST_PROGRESS_ID && (
     completed || pointsEarned !== 0 || victuallingPayload?.version !== VICTUALLING_PROGRESS_VERSION
     || !Array.isArray(victuallingPayload.checkedItemIds)
+    || victuallingPayload.checkedItemIds.length > 18
     || victuallingPayload.checkedItemIds.some((id) => typeof id !== "string")
     || !Number.isSafeInteger(victuallingPayload.revision) || (victuallingPayload.revision as number) < 0
   )) throw new Error("Victualling checklist progress requires a valid revisioned snapshot");

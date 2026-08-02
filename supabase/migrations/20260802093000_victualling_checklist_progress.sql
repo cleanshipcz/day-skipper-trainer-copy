@@ -20,11 +20,20 @@ begin
   if p_expected_revision is null or p_expected_revision < 0 then
     raise exception 'Invalid checklist revision' using errcode = '22023';
   end if;
-  if p_checked_item_ids is null or exists (
-    select 1 from unnest(p_checked_item_ids) id where id is null or btrim(id) = ''
+  if p_checked_item_ids is null or cardinality(p_checked_item_ids) > 18 or exists (
+    select 1 from unnest(p_checked_item_ids) id
+     where id is null
+        or length(id) = 0
+        or octet_length(id) > 16
+        or id <> all (array[
+          'f1', 'f2', 'f3', 'f4', 'f5',
+          's1', 's2', 's3', 's4',
+          'g1', 'g2', 'g3', 'g4', 'g5',
+          'p1', 'p2', 'p3', 'p4'
+        ]::text[])
   ) then raise exception 'Invalid checklist item IDs' using errcode = '22023'; end if;
 
-  select coalesce(array_agg(distinct btrim(id) order by btrim(id)), array[]::text[])
+  select coalesce(array_agg(distinct id order by id), array[]::text[])
     into normalized_ids from unnest(p_checked_item_ids) id;
   perform pg_advisory_xact_lock(hashtextextended(owner::text || ':victualling-checklist', 0));
 
@@ -38,18 +47,16 @@ begin
   end if;
   next_revision := current_revision + 1;
 
-  insert into public.user_progress(user_id, topic_id, completed, score, points_earned, answers_history)
+  insert into public.user_progress(user_id, topic_id, completed, score, last_accessed, answers_history)
   values (
-    owner, 'victualling-checklist', false, 0, 0,
+    owner, 'victualling-checklist', false, 0, now(),
     jsonb_build_object('version', 1, 'checkedItemIds', to_jsonb(normalized_ids), 'revision', next_revision)
   )
   on conflict (user_id, topic_id) do update set
     completed = false,
-    completed_at = null,
     score = 0,
-    points_earned = 0,
     answers_history = excluded.answers_history,
-    updated_at = now();
+    last_accessed = excluded.last_accessed;
 
   return query select false, false, 0;
 end;
