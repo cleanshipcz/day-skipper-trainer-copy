@@ -1,6 +1,5 @@
 import { useCallback, useRef } from "react";
 import { useAuth } from "@/contexts/AuthHooks";
-import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { deleteProgressRecord, saveProgressRecord } from "@/features/progress/progressPersistence";
 import type { Tables } from "@/integrations/supabase/types";
@@ -24,6 +23,7 @@ export const useProgress = () => {
       if (!user) return { status: "anonymous", record: null };
 
       try {
+        const { supabase } = await import("@/integrations/supabase/client");
         const { data, error } = await supabase
           .from("user_progress")
           .select("*")
@@ -61,6 +61,7 @@ export const useProgress = () => {
       if (ownerRef.current !== user.id) return "failed" as const;
 
       try {
+        const { supabase } = await import("@/integrations/supabase/client");
         const { pointsAwarded, completionAwarded, awardedPoints } = await saveProgressRecord({
           supabaseClient: supabase,
           userId: user.id,
@@ -127,6 +128,7 @@ export const useProgress = () => {
       if (!user) return;
 
       try {
+        const { supabase } = await import("@/integrations/supabase/client");
         await deleteProgressRecord({
           supabaseClient: supabase,
           userId: user.id,

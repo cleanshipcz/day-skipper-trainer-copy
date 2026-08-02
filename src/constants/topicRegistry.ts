@@ -95,7 +95,6 @@ export const TOPIC_IDS = {
   NAUTICAL_TERMS_QUIZ: "nautical-terms-quiz",
   ROPEWORK: "ropework",
   ANCHORWORK: "anchorwork",
-  ANCHORWORK_PRACTICE: "anchorwork-practice",
   VICTUALLING: "victualling",
   ENGINE: "engine",
   RIG: "rig",
