@@ -42,7 +42,7 @@ describe("AnchorMinigame", () => {
 
     await user.click(screen.getByRole("button", { name: "↓ Down (pay out)" }));
     expect(screen.getByText("1.0 m")).toBeTruthy();
-    expect(container.querySelector('svg[aria-label="Anchoring side profile"]')?.getAttribute("viewBox")).toBe("0 0 760 360");
+    expect(container.querySelector('svg[aria-label="Anchoring side profile"]')?.getAttribute("viewBox")).toBe("0 0 760 400");
   });
 
   it.each(["mouse", "touch"])("supports continuous %s manipulation on the active surface", (pointerType) => {

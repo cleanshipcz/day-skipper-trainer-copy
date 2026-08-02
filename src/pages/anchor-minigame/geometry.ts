@@ -14,6 +14,10 @@ export interface AnchorSceneGeometry {
   boatTopY: number;
   boatBottomY: number;
   anchorPoint: { x: number; y: number };
+  bowAttachment: { x: number; y: number };
+  horizontalDistance: number;
+  straightLineDistance: number;
+  slack: number;
   chainPath: string;
   boatPath: string;
   toX: (meters: number) => number;
@@ -24,11 +28,12 @@ export const calculateSceneGeometry = (
   scenario: AnchorScenario,
 ): AnchorSceneGeometry => {
   const viewWidth = 760;
-  const viewHeight = 360;
+  const viewHeight = 400;
   const horizontalMargin = 28;
   const xScale = (viewWidth - horizontalMargin * 2) / WORLD_LENGTH;
-  const yScale = (viewHeight - 140) / (scenario.depth + scenario.bowHeight + 1.5);
-  const surfaceY = 70;
+  const verticalDistance = scenario.depth + scenario.bowHeight;
+  const yScale = (viewHeight - 116) / (verticalDistance + 1.5);
+  const surfaceY = 82;
   const seabedY = surfaceY + scenario.depth * yScale;
   const boatTopY = surfaceY - 18;
   const boatBottomY = surfaceY + 10;
@@ -40,16 +45,15 @@ export const calculateSceneGeometry = (
   const toY = (meters: number) => surfaceY + meters * yScale;
   const attach = {
     x: toX(bowAttachX),
-    y: surfaceY - Math.min(scenario.bowHeight * yScale, 18),
+    y: surfaceY - scenario.bowHeight * yScale,
   };
   const anchorPoint = {
     x: toX(state.anchorOnBottom && state.anchorX !== null ? state.anchorX : bowAttachX),
     y: toY(anchorDepth),
   };
-  const slack = Math.max(
-    state.rode - Math.hypot((anchorPoint.x - attach.x) / xScale, (anchorPoint.y - attach.y) / yScale),
-    0,
-  );
+  const horizontalDistance = Math.abs((anchorPoint.x - attach.x) / xScale);
+  const straightLineDistance = Math.hypot(horizontalDistance, (anchorPoint.y - attach.y) / yScale);
+  const slack = Math.max(state.rode - straightLineDistance, 0);
   const direction = state.anchorX !== null ? Math.sign(state.anchorX - bowAttachX || 1) : 1;
   const saggyEnd =
     !state.anchorOnBottom || slack <= 0
@@ -75,6 +79,10 @@ export const calculateSceneGeometry = (
     boatTopY,
     boatBottomY,
     anchorPoint,
+    bowAttachment: attach,
+    horizontalDistance,
+    straightLineDistance,
+    slack,
     chainPath: commands.join(" "),
     boatPath: `
     M ${toX(state.boatX - 0.6)} ${boatTopY}
