@@ -72,6 +72,8 @@ describe("useProgress", () => {
     mocks.maybeSingle.mockResolvedValue({ data: null, error: null });
     mocks.loadProgressClient.mockReset().mockResolvedValue({
       tag: "mock-supabase",
+      auth: { getUser: vi.fn().mockResolvedValue({ data: { user: { id: "user-123" } }, error: null }) },
+      rpc: vi.fn().mockResolvedValue({ data: { current_streak: 1, bonus_points: 0, unlocked_badge_ids: [] }, error: null }),
       from: () => {
         const query = { select: () => query, eq: () => query, maybeSingle: mocks.maybeSingle };
         return query;
@@ -221,5 +223,17 @@ describe("useProgress", () => {
     expect(mocks.deleteProgressRecord).not.toHaveBeenCalled();
     expect(mocks.toastSuccess).not.toHaveBeenCalled();
     expect(mocks.toastError).not.toHaveBeenCalled();
+  });
+
+  it("drops an owner A load when its delayed query returns after switching to B", async () => {
+    let resolveQuery!: (value: { data: null; error: null }) => void;
+    mocks.maybeSingle.mockReturnValue(new Promise((resolve) => { resolveQuery = resolve; }));
+    const view = renderHook(() => useProgress());
+    const pending = view.result.current.loadProgressDetailed("topic-a");
+    mocks.mockUser = { id: "user-b" };
+    view.rerender();
+    resolveQuery({ data: null, error: null });
+
+    expect(await pending).toEqual({ status: "failed", record: null });
   });
 });

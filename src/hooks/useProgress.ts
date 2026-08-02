@@ -33,9 +33,11 @@ export const useProgress = () => {
           .eq("topic_id", topicId)
           .maybeSingle();
 
+        if (ownerRef.current !== user.id) return { status: "failed", record: null };
         if (error) throw error;
         return data ? { status: "remote", record: data } : { status: "missing", record: null };
       } catch (error) {
+        if (ownerRef.current !== user.id) return { status: "failed", record: null };
         console.error("Error loading progress:", error);
         return { status: "failed", record: null };
       }

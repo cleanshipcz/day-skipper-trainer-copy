@@ -7,6 +7,7 @@ export interface EngagementEvidence {
   readonly sourceId: string;
 }
 interface RpcClient {
+  auth: { getUser(): PromiseLike<{ data: { user: { id: string } | null }; error: unknown }> };
   rpc(name: "sync_engagement_event", args: { p_source_type: EngagementSource; p_source_id: string }): PromiseLike<{
     data: EngagementOutcome | null;
     error: unknown;
@@ -67,6 +68,10 @@ export const syncEngagementEvent = async (
   const before = new Map(readOutbox(owner).map((item) => [evidenceKey(item), item]));
   before.set(evidenceKey(evidence), evidence);
   writeOutbox(owner, [...before.values()]);
+  const authenticated = await client.auth.getUser();
+  if (authenticated.error || authenticated.data.user?.id !== owner) {
+    throw new Error("Engagement owner changed before sync");
+  }
   const { data, error } = await client.rpc("sync_engagement_event", {
     p_source_type: evidence.sourceType, p_source_id: evidence.sourceId,
   });
