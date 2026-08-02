@@ -35,18 +35,45 @@ declare
   v_is_complete boolean;
   v_existing_history jsonb := '{}'::jsonb;
   v_merged_families jsonb;
+  v_seed bigint;
+  v_index integer;
+  v_identity text;
+  v_identity_family text;
+  v_existing_seed bigint := -1;
+  v_existing_index integer := -1;
+  v_use_incoming_checkpoint boolean;
 begin
   if v_user_id is null then raise exception 'Authentication required' using errcode = '42501'; end if;
   if p_score < 0 or p_score > 100 then raise exception 'Score must be between 0 and 100' using errcode = '22023'; end if;
   if jsonb_typeof(p_answers_history) <> 'object'
+     or jsonb_typeof(p_answers_history->'version') <> 'number'
      or p_answers_history->>'version' <> '1'
      or jsonb_typeof(p_answers_history->'completedFamilies') <> 'array'
-     or p_answers_history->>'scenarioIdentity' is null
+     or jsonb_typeof(p_answers_history->'attempts') <> 'number'
+     or jsonb_typeof(p_answers_history->'failedChecks') <> 'number'
+     or jsonb_typeof(p_answers_history->'scenarioSeed') <> 'number'
+     or jsonb_typeof(p_answers_history->'sequenceIndex') <> 'number'
+     or coalesce(p_answers_history->>'scenarioIdentity', '') = ''
      or pg_column_size(p_answers_history) > 65536 then
     raise exception 'Invalid anchor practice progress' using errcode = '22023';
   end if;
   v_attempts := (p_answers_history->>'attempts')::integer;
   v_failures := (p_answers_history->>'failedChecks')::integer;
+  if (p_answers_history->>'scenarioSeed') !~ '^\d+$'
+     or (p_answers_history->>'scenarioSeed')::numeric > 4294967295
+     or (p_answers_history->>'sequenceIndex') !~ '^\d+$'
+     or (p_answers_history->>'sequenceIndex')::numeric > 2147483647 then
+    raise exception 'Invalid anchor practice checkpoint bounds' using errcode = '22023';
+  end if;
+  v_seed := (p_answers_history->>'scenarioSeed')::bigint;
+  v_index := (p_answers_history->>'sequenceIndex')::integer;
+  v_identity := p_answers_history->>'scenarioIdentity';
+  v_identity_family := substring(v_identity from '([a-z]+)$');
+  if v_identity_family is null
+     or v_identity_family <> all(array['sheltered', 'harbour', 'exposed', 'tidal'])
+     or v_identity <> format('anchor-%s-%s-%s-%s', v_seed, v_index / 4 + 1, v_index % 4 + 1, v_identity_family) then
+    raise exception 'Invalid anchor practice scenario identity' using errcode = '22023';
+  end if;
   select count(distinct family)::integer, count(*)::integer into v_family_count, v_submitted_family_count
   from jsonb_array_elements_text(p_answers_history->'completedFamilies') family
   where family = any(array['sheltered', 'harbour', 'exposed', 'tidal']);
@@ -78,6 +105,12 @@ begin
   v_attempts := greatest(v_attempts, case when (v_existing_history->>'attempts') ~ '^\d+$' then (v_existing_history->>'attempts')::integer else 0 end);
   v_failures := greatest(v_failures, case when (v_existing_history->>'failedChecks') ~ '^\d+$' then (v_existing_history->>'failedChecks')::integer else 0 end);
   v_attempts := greatest(v_attempts, v_failures);
+  if (v_existing_history->>'scenarioSeed') ~ '^\d+$' then v_existing_seed := (v_existing_history->>'scenarioSeed')::bigint; end if;
+  if (v_existing_history->>'sequenceIndex') ~ '^\d+$' then v_existing_index := (v_existing_history->>'sequenceIndex')::integer; end if;
+  v_use_incoming_checkpoint := v_index > v_existing_index or (v_index = v_existing_index and v_seed >= v_existing_seed);
+  if not v_use_incoming_checkpoint then
+    p_answers_history := jsonb_set(jsonb_set(jsonb_set(p_answers_history, '{scenarioSeed}', v_existing_history->'scenarioSeed'), '{sequenceIndex}', v_existing_history->'sequenceIndex'), '{scenarioIdentity}', v_existing_history->'scenarioIdentity');
+  end if;
   p_answers_history := jsonb_set(jsonb_set(jsonb_set(p_answers_history, '{completedFamilies}', v_merged_families), '{attempts}', to_jsonb(v_attempts)), '{failedChecks}', to_jsonb(v_failures));
 
   insert into public.user_progress(user_id, topic_id, completed, score, last_accessed, answers_history)

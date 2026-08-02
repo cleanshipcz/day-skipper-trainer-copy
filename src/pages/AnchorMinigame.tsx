@@ -187,7 +187,6 @@ const AnchorMinigameSession = ({ ownerId }: { ownerId: string | null }) => {
         const saved = parseAnchorMinigameProgress(result.record.answers_history);
         if (!saved) { setPersistenceStatus("failed"); return; }
         const restored = createScenario(scenarioPool, saved.scenarioSeed, saved.sequenceIndex);
-        if (restored.identity !== saved.scenarioIdentity) { setPersistenceStatus("failed"); return; }
         setCompletedFamilies(saved.completedFamilies); setAttempts(saved.attempts); setFailedChecks(saved.failedChecks);
         setSequenceIndex(saved.sequenceIndex); setScenario(restored);
         setPersistenceStatus("ready"); return;

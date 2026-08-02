@@ -87,6 +87,9 @@ describe("atomic progress migration", () => {
     expect(atomicAnchorPracticeSql).toContain("v_merged_families");
     expect(atomicAnchorPracticeSql).toContain("v_was_completed or v_family_count = 4");
     expect(atomicAnchorPracticeSql).toContain("greatest(v_attempts");
+    expect(atomicAnchorPracticeSql).toContain("invalid anchor practice checkpoint bounds");
+    expect(atomicAnchorPracticeSql).toContain("v_index > v_existing_index");
+    expect(atomicAnchorPracticeSql).toContain("v_seed >= v_existing_seed");
     expect(atomicAnchorPracticeSql).toContain("pg_advisory_xact_lock");
     expect(atomicAnchorPracticeSql).toContain("return query select false");
     expect(atomicAnchorPracticeSql).not.toContain("insert into public.progress_awards");
