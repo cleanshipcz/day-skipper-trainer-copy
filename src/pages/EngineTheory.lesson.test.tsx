@@ -1,4 +1,4 @@
-import { fireEvent, render, screen, within } from "@testing-library/react";
+import { fireEvent, render, screen, waitFor, within } from "@testing-library/react";
 import { MemoryRouter } from "react-router-dom";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import EngineTheory from "./EngineTheory";
@@ -49,6 +49,34 @@ describe("EngineTheory practical lesson", () => {
     expect(positions).toEqual([...positions].sort((a, b) => a - b));
   });
 
+  it("provides contextual navigation and concise zero-reward progress semantics", async () => {
+    render(<MemoryRouter><EngineTheory /></MemoryRouter>);
+    expect(await screen.findByRole("button", { name: "Back to Home from Engine Checks & Maintenance" })).toBeTruthy();
+    expect(screen.getByText("0 of 10 practice checks selected.")).toBeTruthy();
+    expect(screen.getByRole("progressbar").getAttribute("aria-valuetext")).toBe("0 of 10 practice checks selected; no points awarded");
+  });
+
+  it("announces one actionable load error and restores focus after recovery", async () => {
+    loadProgressDetailed.mockResolvedValueOnce({ status: "failed" }).mockResolvedValueOnce({ status: "anonymous" });
+    render(<MemoryRouter><EngineTheory /></MemoryRouter>);
+    const alert = await screen.findByRole("alert");
+    expect(alert.textContent).toMatch(/Saved progress could not be loaded.*Retry load/);
+    fireEvent.click(within(alert).getByRole("button", { name: "Retry load" }));
+    const firstCheck = await screen.findByRole("checkbox", { name: /Inspect oil, coolant and bilge/i });
+    await waitFor(() => expect(document.activeElement).toBe(firstCheck));
+    expect(screen.queryByRole("alert")).toBeNull();
+  });
+
+  it("focuses completion once all reversible checks are selected", async () => {
+    render(<MemoryRouter><EngineTheory /></MemoryRouter>);
+    await screen.findByText(/Checklist saved for this browser session/i);
+    for (const checkbox of screen.getAllByRole("checkbox")) fireEvent.click(checkbox);
+    const completion = await screen.findByRole("heading", { name: "Practice checklist complete" });
+    await waitFor(() => expect(document.activeElement).toBe(completion));
+    expect(screen.getByText("10 of 10 practice checks selected.")).toBeTruthy();
+    expect(screen.getByRole("button", { name: "Take Engine Quiz" })).toBeTruthy();
+  });
+
   it("supports keyboard-sized native choices and gives remediation without gating", async () => {
     render(<MemoryRouter><EngineTheory /></MemoryRouter>);
     const scenario = await screen.findByRole("group", { name: /discharge expected/i });
@@ -68,5 +96,9 @@ describe("EngineTheory practical lesson", () => {
     expect(container.querySelector("svg.w-full.min-w-0")).toBeTruthy();
     expect(container.querySelector(".sm\\:grid-cols-2")).toBeTruthy();
     expect(container.querySelector("label.min-h-11")).toBeTruthy();
+    expect(container.querySelector("main.min-w-0")).toBeTruthy();
+    expect(Array.from(container.querySelectorAll("*")).some((node) => node.classList.contains("[overflow-wrap:anywhere]"))).toBe(true);
+    expect(container.firstElementChild?.classList.contains("motion-reduce:scroll-auto")).toBe(true);
+    expect(screen.getAllByRole("checkbox")[0].className).toContain("size-11");
   });
 });
