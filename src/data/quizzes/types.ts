@@ -2,6 +2,7 @@
 export interface Question {
   readonly id: string;
   readonly question: string;
+  /** Root-relative application asset path (for example, `/images/colregs/vessel.png`). */
   readonly image?: string;
   readonly options: readonly string[];
   readonly correctAnswer: number;
