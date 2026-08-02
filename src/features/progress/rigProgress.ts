@@ -1,6 +1,6 @@
 import type { RigCheck } from "@/data/rigChecks";
 
-export const RIG_PROGRESS_ID = "rig";
+export const RIG_PROGRESS_ID = "rig-review";
 export const RIG_PROGRESS_VERSION = 1;
 export const RIG_CATALOGUE_ID = "rig-review-v1";
 export const RIG_ANONYMOUS_KEY = "rig-review-anonymous-v1";

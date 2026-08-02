@@ -63,6 +63,47 @@ describe("RigTheory honest durable outcomes", () => {
     expect(alert.textContent).toContain("latest outcome was not saved");
     fireEvent.click(within(alert).getByRole("button", { name: "Retry save" }));
     await waitFor(() => expect(screen.queryByRole("alert")).toBeNull());
-    expect(saveProgressDetailed).toHaveBeenLastCalledWith("rig", false, 0, 0, expect.objectContaining({ catalogueId: "rig-review-v1" }));
+    expect(saveProgressDetailed).toHaveBeenLastCalledWith("rig-review", false, 0, 0, expect.objectContaining({ catalogueId: "rig-review-v1" }));
+  });
+
+  it("never reads or changes a legacy completed rig row", async () => {
+    loadProgressDetailed.mockImplementation((topic: string) => {
+      if (topic === "rig") throw new Error("legacy row must remain untouched");
+      return Promise.resolve({ status: "missing" });
+    });
+    renderPage();
+    await screen.findByText("0 of 12 items reviewed; 0 unresolved.");
+    expect(loadProgressDetailed).toHaveBeenCalledWith("rig-review");
+    expect(loadProgressDetailed).not.toHaveBeenCalledWith("rig");
+  });
+
+  it("offers retry for transient load failure", async () => {
+    loadProgressDetailed.mockResolvedValueOnce({ status: "failed" }).mockResolvedValueOnce({ status: "anonymous" });
+    renderPage();
+    fireEvent.click(within(await screen.findByRole("alert")).getByRole("button", { name: "Retry load" }));
+    expect(await screen.findByText(/saved for this browser session/i)).toBeTruthy();
+  });
+
+  it("keeps malformed anonymous data until explicit safe clear", async () => {
+    sessionStorage.setItem("rig-review-anonymous-v1", "{bad");
+    renderPage();
+    const alert = await screen.findByRole("alert");
+    expect(alert.textContent).toContain("was not deleted");
+    expect(sessionStorage.getItem("rig-review-anonymous-v1")).toBe("{bad");
+    fireEvent.click(within(alert).getByRole("button", { name: "Clear local review" }));
+    expect(sessionStorage.getItem("rig-review-anonymous-v1")).toBeNull();
+    expect(await screen.findByText(/saved for this browser session/i)).toBeTruthy();
+  });
+
+  it("requires explicit reset for malformed remote data", async () => {
+    auth.user = { id: "rig-user" };
+    loadProgressDetailed.mockResolvedValue({ status: "remote", record: { answers_history: { version: 1, catalogueId: "stale", outcomes: {} } } });
+    saveProgressDetailed.mockResolvedValue("remote");
+    renderPage();
+    const alert = await screen.findByRole("alert");
+    expect(alert.textContent).toContain("it was not changed");
+    expect(saveProgressDetailed).not.toHaveBeenCalled();
+    fireEvent.click(within(alert).getByRole("button", { name: "Reset saved review" }));
+    await waitFor(() => expect(saveProgressDetailed).toHaveBeenCalledWith("rig-review", false, 0, 0, expect.objectContaining({ outcomes: {} })));
   });
 });
