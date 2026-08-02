@@ -423,14 +423,6 @@ export type Database = {
         Args: { p_increment: number; p_user_id: string }
         Returns: undefined
       }
-      record_learning_activity: {
-        Args: { p_activity_type: string }
-        Returns: {
-          bonus_points: number
-          current_streak: number
-          unlocked_badge_ids: string[]
-        }[]
-      }
       record_active_question_review_internal: {
         Args: {
           p_quality: number
@@ -456,6 +448,14 @@ export type Database = {
           isOneToOne: true
           isSetofReturn: false
         }
+      }
+      record_learning_activity: {
+        Args: { p_activity_type: string }
+        Returns: {
+          bonus_points: number
+          current_streak: number
+          unlocked_badge_ids: string[]
+        }[]
       }
       record_question_review: {
         Args: {
