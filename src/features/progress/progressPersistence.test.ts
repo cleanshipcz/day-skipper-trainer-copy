@@ -36,6 +36,19 @@ const buildSupabaseMock = () => {
 };
 
 describe("saveProgressRecord", () => {
+  it("routes zero-reward Engine catalogue snapshots to the checklist RPC", async () => {
+    const { client, rpc } = buildSupabaseMock();
+    await saveProgressRecord({ supabaseClient: client as never, userId: "user-1", topicId: "engine-checklist",
+      answersHistory: { version: 1, catalogueId: "engine-maintenance-v1", checkedItemIds: ["oil"], revision: 2 } });
+    expect(rpc).toHaveBeenCalledWith("save_engine_checklist_progress", { p_expected_revision: 2, p_checked_item_ids: ["oil"] });
+  });
+
+  it("rejects Engine checklist completion, rewards, and stale catalogue identities", async () => {
+    const { client, rpc } = buildSupabaseMock();
+    await expect(saveProgressRecord({ supabaseClient: client as never, userId: "user-1", topicId: "engine-checklist",
+      completed: true, pointsEarned: 10, answersHistory: { version: 1, catalogueId: "old", checkedItemIds: [], revision: 0 } })).rejects.toThrow("valid revisioned catalogue snapshot");
+    expect(rpc).not.toHaveBeenCalled();
+  });
   it("routes checklist snapshots away from completed legacy victualling rows", async () => {
     const { client, rpc } = buildSupabaseMock();
     await saveProgressRecord({

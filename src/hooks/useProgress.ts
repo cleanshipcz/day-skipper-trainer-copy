@@ -7,6 +7,7 @@ import { syncEngagementEvent } from "@/features/engagement/engagementService";
 import { isRetryableProgressError, queueProgress } from "@/features/offline/progressQueue";
 import { loadProgressClient } from "@/features/progress/progressClient";
 import { isVictuallingChecklistConflict, VICTUALLING_CHECKLIST_PROGRESS_ID } from "@/features/progress/victuallingProgress";
+import { ENGINE_CHECKLIST_PROGRESS_ID, isEngineChecklistConflict } from "@/features/progress/engineChecklistProgress";
 
 type UserProgressRow = Tables<"user_progress">;
 
@@ -106,6 +107,7 @@ export const useProgress = () => {
           topicId === VICTUALLING_CHECKLIST_PROGRESS_ID
           && isVictuallingChecklistConflict(error)
         ) return "conflict" as const;
+        if (topicId === ENGINE_CHECKLIST_PROGRESS_ID && isEngineChecklistConflict(error)) return "conflict" as const;
         if (!isRetryableProgressError(error)) {
           toast.error("Failed to save progress");
           return "failed" as const;

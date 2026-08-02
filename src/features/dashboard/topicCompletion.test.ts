@@ -2,6 +2,10 @@ import { describe, expect, it } from "vitest";
 import { deriveTopicCompletionState } from "./topicCompletion";
 
 describe("deriveTopicCompletionState", () => {
+  it("keeps reversible Engine practice separate from quiz completion", () => {
+    expect(deriveTopicCompletionState({ id: "engine" }, { "engine-checklist": { completed: true, score: 100 } })).toEqual({ isCompleted: false, score: 0 });
+    expect(deriveTopicCompletionState({ id: "engine" }, { "quiz-engine": { completed: true, score: 80 } })).toEqual({ isCompleted: true, score: 80 });
+  });
   it("keeps reversible Victualling planning separate from durable quiz completion", () => {
     expect(deriveTopicCompletionState({ id: "victualling" }, {
       "victualling-checklist": { completed: true, score: 100 },
