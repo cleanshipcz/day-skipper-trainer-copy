@@ -61,8 +61,8 @@ describe("COLREG Part C safety-critical content", () => {
   it("shows the 50 m trawler masthead ahead but not astern", () => {
     render(<PartCLights />);
     const plan = screen.getByText("Trawling and making way").closest("figure")!;
-    const ahead = within(plan).getByText("Ahead").nextElementSibling!;
-    const astern = within(plan).getByText("Astern").nextElementSibling!;
+    const ahead = within(plan).getByText("ahead").nextElementSibling!;
+    const astern = within(plan).getByText("astern").nextElementSibling!;
     expect(within(ahead as HTMLElement).getByText("50 m+ masthead light")).toBeTruthy();
     expect(within(astern as HTMLElement).queryByText("50 m+ masthead light")).toBeNull();
   });
