@@ -346,12 +346,15 @@ export type Database = {
       }
       review_question_catalog: {
         Row: {
+          active: boolean
           question_id: string
         }
         Insert: {
+          active?: boolean
           question_id: string
         }
         Update: {
+          active?: boolean
           question_id?: string
         }
         Relationships: []
