@@ -1,5 +1,7 @@
 import { describe, expect, it } from "vitest";
-import { anchorQuizRemediationTopic, anchorTheoryRoute } from "./learningPath";
+import questions, { anchorworkAssessmentCoverage, anchorworkOutcomeSources } from "@/data/quizzes/anchorwork";
+import { topics } from "@/data/anchorTopics";
+import { anchorQuizRemediationByQuestion, anchorQuizRemediationTopic, anchorTheoryRoute } from "./learningPath";
 
 describe("anchorwork guided learning path", () => {
   it("returns practice learners to the relevant theory topic", () => {
@@ -12,5 +14,17 @@ describe("anchorwork guided learning path", () => {
 
   it("uses safe scope remediation for an unknown assessment", () => {
     expect(anchorQuizRemediationTopic(["new-question"], [0], [1])).toBe("scope");
+  });
+
+  it("provides valid, outcome-aligned runtime remediation for every production question", () => {
+    const topicIds = new Set(topics.map(({ id }) => id));
+    expect(Object.keys(anchorQuizRemediationByQuestion).sort()).toEqual(questions.map(({ id }) => id).sort());
+
+    for (const question of questions) {
+      const remediation = anchorQuizRemediationTopic([question.id], [question.correctAnswer === 0 ? 1 : 0], [question.correctAnswer]);
+      const taughtSources = new Set(anchorworkAssessmentCoverage[question.id].flatMap((outcome) => anchorworkOutcomeSources[outcome]));
+      expect(topicIds.has(remediation), `${question.id} points outside Anchorwork theory`).toBe(true);
+      expect(taughtSources.has(remediation), `${question.id} remediation is unrelated to its assessed outcome`).toBe(true);
+    }
   });
 });
