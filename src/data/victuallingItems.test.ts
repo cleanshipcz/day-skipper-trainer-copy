@@ -7,7 +7,7 @@ describe("normalizeVictuallingCatalogue", () => {
   it("enforces category and item ordering independently of insertion order", () => {
     expect(normalizeVictuallingCatalogue([
       item("p", "Personal"), item("f-z", "Food", "Zulu"), item("x", "Extra"), item("f-a", "Food", "Alpha"), item("s", "Safety"),
-    ]).map(({ id }) => id)).toEqual(["f-a", "f-z", "s", "p", "x"]);
+    ]).map(({ id }) => id)).toEqual(["f-a", "f-z", "x", "p", "s"]);
   });
 
   it("excludes malformed entries and every ambiguous duplicate", () => {

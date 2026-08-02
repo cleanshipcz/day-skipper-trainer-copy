@@ -11,6 +11,7 @@ import { useAuth } from "@/contexts/AuthHooks";
 import { parseVictuallingProgress, VICTUALLING_CHECKLIST_PROGRESS_ID, VICTUALLING_PROGRESS_VERSION } from "@/features/progress/victuallingProgress";
 import { ProvisioningPlanner } from "@/components/victualling/ProvisioningPlanner";
 import { FoodWaterSafetyGuide } from "@/components/victualling/FoodWaterSafetyGuide";
+import { GalleySafetyGuide } from "@/components/victualling/GalleySafetyGuide";
 
 const POINTS_PER_CHECK = 5;
 type PersistenceStatus = "loading" | "ready" | "saving" | "saved" | "anonymous" | "conflict" | "failed";
@@ -104,7 +105,7 @@ const VictuallingTheory = () => {
       <div className="flex items-center gap-4"><div className="flex items-center gap-2" aria-label={`Planning score: ${planningScore} points`}><Trophy className="w-5 h-5 text-accent" /><span className="font-bold text-lg">{planningScore}</span></div><Badge variant="secondary">{count}/{total} items</Badge></div>
     </div></div></header>
     <main className="container mx-auto px-4 py-8 max-w-5xl">
-      <p className="mb-4 text-sm text-muted-foreground">Completion criteria: this reversible checklist records planning readiness only. Checking items earns no durable learning credit. Pass the Victualling Quiz to complete the learning topic.</p>
+      <p className="mb-4 text-sm text-muted-foreground">Scope: food, potable water, galley consumables and their safe stowage. This reversible checklist records only Victualling planning progress—not general vessel readiness. Checking items earns no durable learning credit. Pass the Victualling Quiz to complete this learning topic.</p>
       <div className="mb-4 text-sm" aria-live="polite">
         {status === "loading" && "Loading saved checklist…"}{status === "saving" && "Saving checklist…"}{status === "saved" && "Checklist saved."}{status === "anonymous" && "Checklist is available for this visit. Sign in to save it across devices."}
         {status === "conflict" && <span className="inline-flex items-center gap-3">This checklist changed elsewhere. Reload the latest version before editing.<Button size="sm" variant="outline" onClick={() => setLoadRevision((value) => value + 1)}>Reload checklist</Button></span>}
@@ -114,12 +115,13 @@ const VictuallingTheory = () => {
       <Card className="mb-6"><CardHeader><CardTitle className="flex items-center gap-2"><ShoppingCart className="w-5 h-5 text-primary" />Provisioning method</CardTitle></CardHeader><CardContent><p className="text-sm text-muted-foreground">Build an auditable plan: confirm dietary and medical needs; choose menus and portions; calculate passage-specific water and fuel; compare requirements with realistic usable capacity; then record stowage, spoilage, waste and alternatives. Recheck when crew, route or forecast changes.</p></CardContent></Card>
       <ProvisioningPlanner />
       <FoodWaterSafetyGuide />
+      <GalleySafetyGuide />
       {total === 0 && <Card><CardContent className="pt-6" role="status">No valid provisioning items are currently available.</CardContent></Card>}
       {[...grouped].map(([category, items]) => <Card key={category} className="mb-4"><CardHeader><CardTitle className="text-lg">{category}</CardTitle></CardHeader><CardContent><div className="space-y-3">{items.map((item) => {
         const checked = checkedIds.has(item.id);
         return <div key={item.id} className={`flex items-start gap-3 p-3 rounded-lg border-2 transition-all ${checked ? "border-success/30 bg-success/5" : "border-border hover:border-secondary/50"}`}><Checkbox id={`victualling-${item.id}`} aria-label={item.item} checked={checked} disabled={!interactive} onCheckedChange={(value) => toggle(item.id, value === true)} /><label htmlFor={`victualling-${item.id}`} className="flex-1 cursor-pointer flex flex-col items-start gap-2 sm:flex-row sm:items-center sm:justify-between"><span className={checked ? "line-through text-muted-foreground" : ""}>{item.item}</span><Badge variant="outline" className="max-w-full whitespace-normal text-left text-xs">{item.quantity}</Badge></label></div>;
       })}</div></CardContent></Card>)}
-      {total > 0 && count === total && <Card className="border-2 border-accent bg-accent/5" role="region" aria-label="Provisioning checklist ready"><CardContent className="pt-6"><div className="flex items-center justify-between"><div><h3 className="text-xl font-bold mb-2">Provisioning plan ready</h3><p className="text-muted-foreground">The quiz is the learning completion gate.</p></div><Button size="lg" onClick={() => navigate("/quiz/victualling")}>Take Quiz</Button></div></CardContent></Card>}
+      {total > 0 && count === total && <Card className="border-2 border-accent bg-accent/5" role="region" aria-label="Victualling checklist complete"><CardContent className="pt-6"><div className="flex items-center justify-between"><div><h3 className="text-xl font-bold mb-2">Victualling checklist complete</h3><p className="text-muted-foreground">This does not confirm the vessel is ready for sea. Complete the separate safety and pre-departure checks; the quiz is this topic's learning completion gate.</p></div><Button size="lg" onClick={() => navigate("/quiz/victualling")}>Take Quiz</Button></div></CardContent></Card>}
     </main>
   </div>;
 };

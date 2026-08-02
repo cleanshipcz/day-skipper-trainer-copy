@@ -63,8 +63,8 @@ describe("VictuallingTheory durable checklist", () => {
   it("shows planning readiness but never persists learning completion", async () => {
     mocks.load.mockResolvedValue({ status: "remote", record: record({ version: 1, checkedItemIds: checklistData.map(({ id }) => id), revision: 2 }) });
     renderPage();
-    expect(await screen.findByRole("region", { name: "Provisioning checklist ready" })).toBeTruthy();
-    expect(screen.getByText(/quiz is the learning completion gate/i)).toBeTruthy();
+    expect(await screen.findByRole("region", { name: "Victualling checklist complete" })).toBeTruthy();
+    expect(screen.getByText(/quiz is this topic's learning completion gate/i)).toBeTruthy();
     expect(mocks.save).not.toHaveBeenCalled();
   });
 
@@ -146,5 +146,16 @@ describe("VictuallingTheory durable checklist", () => {
     expect(screen.getByText(/Isolate suspect water/)).toBeTruthy();
     expect(screen.getByText(/Stow heavy items low/)).toBeTruthy();
     expect(screen.getByText(/rules that apply to the vessel, location and waste type/)).toBeTruthy();
+  });
+
+  it("keeps provisioning scope separate and provides accessible contextual safety links", async () => {
+    renderPage();
+    expect(await screen.findByText(/not general vessel readiness/)).toBeTruthy();
+    expect(screen.queryByRole("checkbox", { name: "First aid kit" })).toBeNull();
+    expect(screen.getByText(/Pyrotechnic carriage, type, service life and disposal/)).toBeTruthy();
+    expect(screen.getByRole("link", { name: /dedicated Gas Safety theory/ }).getAttribute("href")).toBe("/safety/gas?from=victualling");
+    expect(screen.getByRole("link", { name: /dedicated pre-departure checklist/ }).getAttribute("href")).toBe("/passage-planning/checklist?from=victualling");
+    expect(screen.getByText(/Never improvise adapters/)).toBeTruthy();
+    expect(screen.getByText(/Do not light a flame or operate electrical switches/)).toBeTruthy();
   });
 });

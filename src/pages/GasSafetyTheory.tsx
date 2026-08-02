@@ -1,4 +1,4 @@
-import { useNavigate } from "react-router-dom";
+import { useNavigate, useSearchParams } from "react-router-dom";
 import { useState, useCallback } from "react";
 import { Button } from "@/components/ui/button";
 import {
@@ -42,6 +42,9 @@ const TAB_CONFIG = [
 
 const GasSafetyTheory = () => {
   const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
+  const fromVictualling = searchParams.get("from") === "victualling";
+  const backDestination = fromVictualling ? "/victualling" : "/safety";
   const { saveProgress } = useProgress();
   const [theoryCompleted, setTheoryCompleted] = useState(false);
 
@@ -60,7 +63,7 @@ const GasSafetyTheory = () => {
               variant="ghost"
               size="icon"
               aria-label="back"
-              onClick={() => navigate("/safety")}
+              onClick={() => navigate(backDestination)}
             >
               <ArrowLeft className="w-5 h-5" />
             </Button>
@@ -76,6 +79,7 @@ const GasSafetyTheory = () => {
 
       {/* Main Content */}
       <main className="container mx-auto px-4 py-8 max-w-4xl">
+        <Card className="mb-6"><CardContent className="pt-6 text-sm text-muted-foreground">Apply the vessel's documented procedures, appliance and detector manufacturer instructions, competent inspection advice and applicable rules. Installation details and required checks vary; if the system is unfamiliar, damaged or suspect, isolate it and obtain competent help.</CardContent></Card>
         <Tabs defaultValue="lpg-properties" className="space-y-6">
           <TabsList className="grid w-full grid-cols-3 lg:grid-cols-6 h-auto">
             {TAB_CONFIG.map(({ topicId, icon: Icon, shortLabel }) => (
@@ -131,9 +135,9 @@ const GasSafetyTheory = () => {
             size="lg"
             variant="outline"
             className="w-full md:w-auto"
-            onClick={() => navigate("/safety")}
+            onClick={() => navigate(backDestination)}
           >
-            Back to Safety Menu
+            {fromVictualling ? "Back to Victualling" : "Back to Safety Menu"}
           </Button>
         </div>
       </main>

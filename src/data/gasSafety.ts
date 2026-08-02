@@ -24,10 +24,10 @@ export const gasSafetyTopics: readonly GasSafetyTopic[] = [
     id: "lpg-properties",
     title: "LPG Properties",
     content:
-      "Liquefied Petroleum Gas (LPG) — propane or butane — is the most common cooking and heating fuel aboard yachts. LPG is heavier than air, meaning any leak will sink to the lowest point of the vessel, typically the bilge. This makes it extremely dangerous because gas can accumulate undetected in enclosed spaces, creating an explosive atmosphere. LPG is colourless and has a distinctive odour added (mercaptan) to aid leak detection. The explosive range is between 2% and 10% concentration in air. Even a small spark from an electrical switch or engine starter can ignite accumulated gas.",
+      "Liquefied Petroleum Gas (LPG) installations may use propane, butane or another approved supply. LPG vapour is heavier than air, so a leak can collect low in the vessel and form a flammable atmosphere. LPG is colourless and is normally odorised to aid detection, but smell is not a substitute for approved detection and system checks. Fuel composition affects its flammable limits; even a small spark may ignite accumulated gas.",
     keyPoints: [
       "LPG (propane/butane) is heavier than air and sinks to the bilge",
-      "Explosive range is 2–10% concentration in air",
+      "A fuel-specific range of LPG mixtures in air is flammable",
       "Mercaptan odour is added to aid leak detection",
       "A small spark can ignite accumulated gas",
       "Gas accumulates in the lowest parts of the vessel",
@@ -37,20 +37,20 @@ export const gasSafetyTopics: readonly GasSafetyTopic[] = [
     id: "isolation-valves",
     title: "Isolation Valves",
     content:
-      "Every gas installation aboard must have an isolation valve at the cylinder and ideally a solenoid shut-off valve operable from the galley. The master isolation valve on the gas cylinder must be turned off when gas is not in use — this is the single most important gas safety habit. After turning off the cylinder valve, burn off residual gas in the supply line by leaving the burner on until the flame dies. Flexible hoses connecting the system must be marine-grade, in date, and inspected regularly for cracking or deterioration. All joints should be checked annually with a leak detection fluid (soapy water) — never use a naked flame to check for leaks.",
+      "Know the installation's designated isolation controls and follow the vessel shutdown procedure whenever gas is not in use. Some systems include a remote solenoid as well as cylinder isolation. Only use compatible approved components, and inspect or replace hoses, regulators and connections at the intervals specified by their manufacturer, the vessel procedure and applicable rules. Leak testing must use the approved method and competent help where required—never a naked flame.",
     keyPoints: [
       "Turn off the cylinder valve when gas is not in use",
-      "Burn off residual gas by leaving the burner on until the flame dies",
+      "Follow the vessel procedure for safely isolating the supply and residual gas",
       "A solenoid shut-off valve at the galley adds an extra layer of safety",
       "Use marine-grade hoses inspected regularly for cracking",
-      "Check joints with leak detection fluid — never a naked flame",
+      "Use the approved leak-test method—never a naked flame",
     ],
   },
   {
     id: "bilge-sniff-test",
     title: "Bilge Sniff Test",
     content:
-      "Before starting the engine or operating any electrical equipment after the boat has been closed up, perform a bilge sniff test. Open the bilge and smell for gas — LPG has a distinctive rotten-egg odour from the mercaptan additive. If you detect gas, do not operate any electrical switches (including bilge pumps), open all hatches and ventilate thoroughly, locate and fix the source of the leak, and ventilate the bilge with manual fanning if needed. The bilge sniff test should become a routine part of your pre-departure checks and should be performed every morning aboard and after any period when the vessel has been closed up.",
+      "Follow the vessel's checks before starting engines or operating electrical equipment after it has been closed up. If gas is detected or suspected, do not operate switches, engines or flames. Evacuate as needed, isolate the supply only if safe, ventilate naturally from outside, follow the emergency procedure, and have the cause made safe by a competent person before reuse. Do not rely on smell alone.",
     keyPoints: [
       "Sniff the bilge before starting the engine or using electrical equipment",
       "LPG smells of rotten eggs (mercaptan additive)",
@@ -63,7 +63,7 @@ export const gasSafetyTopics: readonly GasSafetyTopic[] = [
     id: "gas-locker-requirements",
     title: "Gas Locker Requirements",
     content:
-      "Gas cylinders must be stored in a purpose-built gas locker that is sealed from the interior of the vessel and has a drain at the bottom leading overboard, below the waterline. This ensures that any leaked gas drains safely overboard rather than into the bilge. The locker must be ventilated and self-draining. Cylinders should be stored upright and secured against movement. The locker lid must seal gas-tight against the interior of the vessel. Spare cylinders must also be stored in the gas locker, never below decks in an unventilated space. The gas locker should be regularly inspected for corrosion and drain blockages.",
+      "Store connected and spare cylinders only in the approved location provided by the vessel, secured in their designed orientation. A marine LPG locker is normally vapour-tight to the accommodation and drained overboard to open air from its low point; its design must follow the vessel specification and applicable standards. Keep drains and ventilation paths clear and inspect the locker, restraints and fittings as instructed. Never move a cylinder below decks or improvise storage to gain capacity.",
     keyPoints: [
       "Gas locker must be sealed from the vessel interior",
       "Must have an overboard drain at the bottom",
@@ -89,7 +89,7 @@ export const gasSafetyTopics: readonly GasSafetyTopic[] = [
     id: "detector-placement",
     title: "Detector Placement",
     content:
-      "Two types of gas detector are essential aboard: an LPG detector and a carbon monoxide (CO) detector. LPG detectors should be mounted low, near the bilge or at floor level, because LPG is heavier than air and sinks. Place LPG detectors near the cooker, in the bilge, and near the gas locker. CO detectors should be mounted at head height (breathing zone) in the saloon and any sleeping cabin, because CO mixes evenly with air. All detectors must be tested regularly and batteries replaced as recommended. Consider a hard-wired gas detection system with an automatic solenoid shut-off for the best protection. Detectors should carry a recognized marine standard (e.g., EN 50291 for CO detectors).",
+      "Use detectors specified for the vessel and installation. LPG and CO sensors have different placement constraints: mounting height, distance from appliances, airflow, sleeping areas and environmental protection must follow the detector manufacturer and vessel instructions rather than a generic position. Test, service and replace detectors and batteries on their specified schedule. A detector supports—rather than replaces—ventilation, isolation, inspection and correct operation.",
     keyPoints: [
       "LPG detectors: mount low (floor level / bilge) — gas sinks",
       "CO detectors: mount at head height (breathing zone) — gas mixes with air",
