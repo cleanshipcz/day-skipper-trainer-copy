@@ -223,7 +223,6 @@ const ORIGINAL_IDS: Record<string, readonly string[]> = {
   ropework: ["r1", "r2", "r3", "r4", "r5"],
   anchorwork: ["a1", "a2", "a3", "a4", "a5"],
   victualling: ["v1", "v2", "v3", "v4", "v5"],
-  engine: ["e1", "e2", "e3", "e4", "e5"],
   rig: ["rg1", "rg2", "rg3", "rg4", "rg5"],
   "safety-mob-quiz": ["mob1", "mob2", "mob3", "mob4", "mob5"],
 };
@@ -232,7 +231,6 @@ const EXPANDED_TOPICS = [
   { topicId: "ropework", fileName: "ropework" },
   { topicId: "anchorwork", fileName: "anchorwork" },
   { topicId: "victualling", fileName: "victualling" },
-  { topicId: "engine", fileName: "engine" },
   { topicId: "rig", fileName: "rig" },
   { topicId: "safety-mob-quiz", fileName: "safetyMob" },
 ] as const;

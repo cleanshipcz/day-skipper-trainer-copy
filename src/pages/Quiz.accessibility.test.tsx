@@ -16,13 +16,14 @@ vi.mock("@/contexts/AuthHooks", () => ({ useAuth: () => ({ user: mocks.user }) }
 vi.mock("@/hooks/useProgress", () => ({ useProgress: () => mocks }));
 vi.mock("@/integrations/supabase/client", () => ({ supabase: { rpc: mocks.rpc } }));
 vi.mock("@/data/quizzes", () => ({
-  isQuizTopicId: (topic: string) => ["test", "anchorwork", "nautical-terms-quiz", "ropework", "lights-signals"].includes(topic),
+  isQuizTopicId: (topic: string) => ["test", "anchorwork", "engine", "nautical-terms-quiz", "ropework", "lights-signals"].includes(topic),
   topicMeta: {
     test: { title: "A very long localized quiz title that must reflow", subtitle: "Long localized supporting text" },
     "nautical-terms-quiz": { title: "Full Nautical Terms Quiz", subtitle: "Terms" },
     ropework: { title: "Ropework Quiz", subtitle: "Knots" },
     "lights-signals": { title: "Lights & Signals Mastery", subtitle: "Signals" },
     anchorwork: { title: "Anchorwork Quiz", subtitle: "Anchoring" },
+    engine: { title: "Engine Checks Quiz", subtitle: "Engine safety" },
   },
   loadQuizTopic: mocks.loadQuizTopic,
 }));
@@ -64,6 +65,7 @@ describe("Quiz accessible interaction and reflow", () => {
     ["/quiz/nautical-terms", "Back to Nautical Terms & Boat Parts from Full Nautical Terms Quiz", "/nautical-terms"],
     ["/quiz/ropework", "Back to Ropework & Knots from Ropework Quiz", "/ropework"],
     ["/quiz/lights-signals", "Back to Lights & Signals Theory from Lights & Signals Mastery", "/rules/lights"],
+    ["/quiz/engine", "Back to Engine Checks & Maintenance from Engine Checks Quiz", "/engine"],
   ])("returns active and legacy quiz routes to their registered parent", async (path, backName, expectedPath) => {
     const user = userEvent.setup();
     renderQuiz(path);
@@ -81,6 +83,17 @@ describe("Quiz accessible interaction and reflow", () => {
     await user.click(await screen.findByRole("button", { name: "View Results" }));
     await user.click(await screen.findByRole("button", { name: "Review missed anchorwork skill" }));
     expect(await screen.findByText("Route: /anchorwork?topic=procedure&from=quiz")).toBeTruthy();
+  });
+
+  it("routes a missed Engine objective to its stable theory section", async () => {
+    const user = userEvent.setup();
+    mocks.loadQuizTopic.mockResolvedValue([{ ...questions[0], id: "e13" }]);
+    const HashProbe = () => { const location = useLocation(); return <p>Route: {location.pathname}{location.hash}</p>; };
+    render(<MemoryRouter initialEntries={["/quiz/engine"]}><Routes><Route path="/quiz/:topicId" element={<Quiz />} /><Route path="*" element={<HashProbe />} /></Routes></MemoryRouter>);
+    await user.click(await screen.findByRole("radio", { name: "First wrong" }));
+    await user.click(screen.getByRole("button", { name: "Submit Answer" }));
+    await user.click(await screen.findByRole("button", { name: "Review this objective in Engine theory" }));
+    expect(await screen.findByText("Route: /engine#engine-objectives")).toBeTruthy();
   });
 
   it("uses the same safe fallback in the unavailable state", async () => {

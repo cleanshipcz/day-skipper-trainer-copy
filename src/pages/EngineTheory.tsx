@@ -9,6 +9,7 @@ import { useNavigate } from "react-router-dom";
 import { maintenanceChecks } from "@/data/engineChecks";
 import { engineGuidance, engineSources } from "@/data/engineGuidance";
 import { inspectionExamples, lessonStages, practiceScenarios } from "@/data/engineLesson";
+import { engineObjectives } from "@/data/engineAssessment";
 import { useProgress, type ProgressSaveResult } from "@/hooks/useProgress";
 import { useAuth } from "@/contexts/AuthHooks";
 import { clearAnonymousEngineChecklist, ENGINE_CHECKLIST_CATALOGUE_ID, ENGINE_CHECKLIST_PROGRESS_ID, ENGINE_CHECKLIST_PROGRESS_VERSION, mergeEngineChecklistIds, normalizeEngineCatalogue, parseEngineChecklistProgress, restoreAnonymousEngineChecklist, saveAnonymousEngineChecklist, shouldClearAnonymousAfterMigration } from "@/features/progress/engineChecklistProgress";
@@ -128,6 +129,7 @@ const EngineTheory = () => {
           <p>By the end, you should be able to locate the fitted system from its manuals, make a safe operator observation, compare evidence with an installation-specific normal, record it, and decide when to stop, isolate or call a competent person.</p>
           <p><strong className="text-foreground">Representative installation only:</strong> the diagram and examples below help you ask better questions on the actual vessel. They are not a plumbing plan, universal layout, service instruction or substitute for identifying every fitted component in the current engine, gearbox/drive and vessel manuals.</p>
           <p>Before practical work, verify the real installation with the owner/skipper: manuals and service schedule; fuel and cooling routes; shut-offs and isolators; controls, alarms and normal readings; safe access; and the permitted operator-maintenance boundary.</p>
+          <div><h3 className="font-semibold text-foreground">Assessed objectives</h3><ol className="mt-2 grid gap-1 sm:grid-cols-2">{engineObjectives.map((objective, index) => <li key={objective.id}><a className="underline underline-offset-4" href={`#${objective.theoryAnchor}`}>{index + 1}. {objective.title}</a></li>)}</ol></div>
         </CardContent></Card>
       </section>
       <section aria-labelledby="engine-system-map" className="mb-6">
