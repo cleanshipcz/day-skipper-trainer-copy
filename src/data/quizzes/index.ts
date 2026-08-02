@@ -39,6 +39,7 @@ const definitions: Record<QuizTopicId, { meta: TopicMeta; importer: QuizImporter
 const cache = new Map<QuizTopicId, Promise<readonly Question[]>>();
 
 const normalizedOption = (value: string) => value.normalize("NFKC").trim().replace(/\s+/g, " ").toLocaleLowerCase("en");
+const localQuizImage = /^\/images\/(?:[A-Za-z0-9_-]+\/)*[A-Za-z0-9_-]+\.(?:png|jpe?g|webp|svg)$/i;
 
 const questionError = (topicId: string, index: number, candidate: unknown, detail: string) => {
   const id = candidate && typeof candidate === "object" && "id" in candidate && typeof candidate.id === "string"
@@ -88,11 +89,23 @@ export const validateQuizBank = (topicId: string, candidate: unknown): readonly 
     if (typeof question.explanation !== "string" || question.explanation.trim() === "") {
       throw questionError(topicId, index, value, "explanation must be a non-blank string.");
     }
-    if (question.image !== undefined && (typeof question.image !== "string" || !/^\/(?!\/)[^\s]+$/.test(question.image))) {
-      throw questionError(topicId, index, value, "image must be a non-blank root-relative application asset path.");
+    if (question.image !== undefined && (typeof question.image !== "string" || !localQuizImage.test(question.image))) {
+      throw questionError(topicId, index, value, "image must be a canonical local asset path under /images/.");
     }
   }
   return candidate as readonly Question[];
+};
+
+export const validateQuizCatalogueIds = (catalogue: Readonly<Record<string, readonly Question[]>>) => {
+  const ownerById = new Map<string, string>();
+  for (const [topicId, questions] of Object.entries(catalogue)) for (const question of questions) {
+    const firstOwner = ownerById.get(question.id);
+    if (firstOwner !== undefined) {
+      throw new Error(`Question ID "${question.id}" belongs to both quiz topics "${firstOwner}" and "${topicId}".`);
+    }
+    ownerById.set(question.id, topicId);
+  }
+  return catalogue;
 };
 
 export const isQuizTopicId = (value: string): value is QuizTopicId =>
@@ -127,12 +140,7 @@ export const loadAllQuizTopics = async (concurrency = 4): Promise<Readonly<Recor
       result[topicId] = await loadQuizTopic(topicId);
     }
   }));
-  const allIds = new Set<string>();
-  for (const topicId of topicIds) for (const question of result[topicId]) {
-    if (allIds.has(question.id)) throw new Error(`Question ID "${question.id}" is duplicated across quiz topics.`);
-    allIds.add(question.id);
-  }
-  return result;
+  return validateQuizCatalogueIds(result) as Readonly<Record<QuizTopicId, readonly Question[]>>;
 };
 
 export const quizCatalogue: Readonly<Record<QuizTopicId, QuizTopic>> = Object.fromEntries(

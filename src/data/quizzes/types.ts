@@ -2,7 +2,7 @@
 export interface Question {
   readonly id: string;
   readonly question: string;
-  /** Root-relative application asset path (for example, `/images/colregs/vessel.png`). */
+  /** Canonical `/images/` application asset path (PNG, JPEG, WebP, or SVG; no URL suffixes or traversal). */
   readonly image?: string;
   readonly options: readonly string[];
   readonly correctAnswer: number;
