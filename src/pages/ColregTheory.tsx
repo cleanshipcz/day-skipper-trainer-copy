@@ -81,6 +81,9 @@ export const RULE_18_DECISIONS = [
   "A WIG craft taking off, landing or flying near the surface keeps well clear and avoids impeding all other vessels; when operating on the surface it follows Part B as a power-driven vessel.",
 ];
 
+// Rule 18 sits in Part B, Section II; it applies only when vessels are in sight.
+export const RULE_18_SCOPE = "Vessels in sight of one another";
+
 const ColregTheory = () => {
   const navigate = useNavigate();
   const { canComplete, markCompleted, markSectionVisited } = useTheoryCompletionGate({ topicId: TOPIC_IDS.COLREGS_THEORY, requiredSectionIds: ["read-content"], pointsOnComplete: 10 });
@@ -91,7 +94,7 @@ const ColregTheory = () => {
 
   return <div className="min-h-screen bg-gradient-to-br from-background via-ocean-light/10 to-background pb-20">
     <header className="border-b border-border bg-card/50 backdrop-blur-sm sticky top-0 z-40"><div className="container mx-auto px-4 py-4 flex items-center gap-3">
-      <Button variant="ghost" size="icon" onClick={() => navigate("/rules-of-the-road")}><ArrowLeft className="w-5 h-5" /></Button>
+      <Button aria-label="Back to rules of the road" variant="ghost" size="icon" onClick={() => navigate("/rules-of-the-road")}><ArrowLeft className="w-5 h-5" /></Button>
       <div><h1 className="text-xl font-bold">Steering &amp; Sailing Rules</h1><p className="text-sm text-muted-foreground">COLREG Part B — Rules 4–19</p></div>
     </div></header>
     <main className="container mx-auto px-4 py-8 max-w-4xl space-y-8">
@@ -107,7 +110,7 @@ const ColregTheory = () => {
         {COLREG_RULES.map(({ rule, title, scope, points }) => <Card key={rule}><CardContent className="pt-6"><h3 className="font-bold text-lg">Rule {rule}: {title}</h3><p className="text-xs font-medium text-primary mb-3">{scope}</p><ul className="list-disc pl-5 space-y-2 text-sm text-muted-foreground">{points.map(point => <li key={point}>{point}</li>)}</ul></CardContent></Card>)}
       </div></section>
       <section className="space-y-3"><h2 className="text-2xl font-semibold flex gap-2"><AlertTriangle />Rule 18: responsibilities, not a ladder</h2>
-        <Card><CardContent className="pt-6"><p className="mb-3">Identify the encounter and special waterway duties first; then apply the relevant responsibility:</p><ol className="list-decimal pl-5 space-y-2 text-sm text-muted-foreground">{RULE_18_DECISIONS.map(x => <li key={x}>{x}</li>)}</ol></CardContent></Card>
+        <Card><CardContent className="pt-6"><p className="text-xs font-medium text-primary mb-3">{RULE_18_SCOPE}</p><p className="mb-3">Identify the encounter and special waterway duties first; then apply the relevant responsibility:</p><ol className="list-decimal pl-5 space-y-2 text-sm text-muted-foreground">{RULE_18_DECISIONS.map(x => <li key={x}>{x}</li>)}</ol></CardContent></Card>
       </section>
       <section className="space-y-3"><h2 className="text-2xl font-semibold">Rule 19: restricted visibility</h2><Card><CardContent className="pt-6 space-y-3 text-sm text-muted-foreground">
         <p>Rule 19 applies to vessels not in sight of one another when navigating in or near restricted visibility. Proceed at a safe speed adapted to the conditions; a power-driven vessel has engines ready for immediate manoeuvre. Apply Rules 5–10 with due regard to the restricted conditions.</p>

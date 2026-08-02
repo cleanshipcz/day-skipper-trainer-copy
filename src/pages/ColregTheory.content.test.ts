@@ -1,5 +1,6 @@
 import { describe, expect, it } from "vitest";
-import { COLREG_RULES, RULE_18_DECISIONS } from "./ColregTheory";
+import { readFileSync } from "node:fs";
+import { COLREG_RULES, RULE_18_DECISIONS, RULE_18_SCOPE } from "./ColregTheory";
 
 const rule = (number: number) => COLREG_RULES.find(item => item.rule === number)!;
 const text = (number: number) => rule(number).points.join(" ");
@@ -8,6 +9,7 @@ describe("COLREG Part B rule content", () => {
   it("states the visibility boundary for Rules 5–10 and 12–18", () => {
     for (const number of [5, 6, 7, 8, 9, 10]) expect(rule(number).scope).toMatch(/All vessels|All visibility/);
     for (const number of [12, 13, 14, 15, 16, 17]) expect(rule(number).scope).toContain("Vessels in sight");
+    expect(RULE_18_SCOPE).toContain("Vessels in sight");
   });
 
   it("preserves both Rule 17 intervention stages and crossing proviso", () => {
@@ -24,5 +26,10 @@ describe("COLREG Part B rule content", () => {
     expect(responsibilities).toMatch(/seaplane/i);
     expect(responsibilities).toMatch(/WIG craft/i);
     expect(responsibilities).not.toMatch(/highest priority|hierarchy/i);
+  });
+
+  it("gives the icon-only back control an accessible name", () => {
+    const source = readFileSync(new URL("./ColregTheory.tsx", import.meta.url), "utf8");
+    expect(source).toContain('aria-label="Back to rules of the road"');
   });
 });
