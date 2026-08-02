@@ -1,135 +1,18 @@
 import type { Question } from "./types";
 
 const rigQuestions: readonly Question[] = [
-  {
-    id: "rg1",
-    question: "What is standing rigging?",
-    options: ["Sails", "Fixed wires supporting the mast", "Ropes that control sails", "The boom"],
-    correctAnswer: 1,
-    explanation: "Standing rigging refers to the fixed wires (shrouds and stays) that support the mast.",
-  },
-  {
-    id: "rg2",
-    question: "When should you perform a full rig inspection?",
-    options: ["After every sail", "Weekly", "Before season start", "Only if something breaks"],
-    correctAnswer: 2,
-    explanation:
-      "Full rig inspection before season start, with visual checks before every sail and aloft inspection annually.",
-  },
-  {
-    id: "rg3",
-    question: "What should you check on turnbuckles?",
-    options: ["Color", "Split pins secure, no cracks", "Manufacturer name", "Weight"],
-    correctAnswer: 1,
-    explanation: "Check turnbuckles for secure split pins, no cracks, and that threads aren't showing excessively.",
-  },
-  {
-    id: "rg4",
-    question: "What indicates spreaders need attention?",
-    options: ["Wrong color", "Cracks, tips not protected, incorrect angle", "Too clean", "Different brand than mast"],
-    correctAnswer: 1,
-    explanation:
-      "Check spreaders for cracks, ensure tips are protected to prevent sail damage, and verify correct angle.",
-  },
-  {
-    id: "rg5",
-    question: "Why is rig tension important?",
-    options: ["Makes boat look better", "Performance and safety", "Easier to clean", "Reduces fuel consumption"],
-    correctAnswer: 1,
-    explanation:
-      "Proper rig tension is crucial for both sailing performance and safety. Incorrect tension can lead to rig failure.",
-  },
-  {
-    id: "rg6",
-    question: "What is the purpose of the forestay?",
-    options: [
-      "To support the boom",
-      "To prevent the mast from falling aft",
-      "To attach the spinnaker pole",
-      "To hold the guardrails",
-    ],
-    correctAnswer: 1,
-    explanation:
-      "The forestay runs from the masthead (or near it) to the bow, preventing the mast from falling backwards.",
-  },
-  {
-    id: "rg7",
-    question: "What is running rigging?",
-    options: [
-      "The fixed wires supporting the mast",
-      "Lines used to control and adjust sails",
-      "The chain plates on the hull",
-      "The keel bolts",
-    ],
-    correctAnswer: 1,
-    explanation:
-      "Running rigging includes halyards, sheets, and control lines that are used to hoist, trim, and adjust the sails.",
-  },
-  {
-    id: "rg8",
-    question: "What should you check on a halyard before hoisting sail?",
-    options: [
-      "That it is the correct colour",
-      "That it runs free, is not chafed, and the shackle is secure",
-      "That it is coiled neatly on deck",
-      "That it has a label attached",
-    ],
-    correctAnswer: 1,
-    explanation:
-      "Before hoisting, ensure the halyard runs free without tangles, is not chafed, and the shackle pin is secure and moused.",
-  },
-  {
-    id: "rg9",
-    question: "Why should you check the gooseneck fitting regularly?",
-    options: [
-      "It affects the sail colour",
-      "A failure would release the boom, causing injury and loss of control",
-      "It is purely cosmetic",
-      "To measure mast height",
-    ],
-    correctAnswer: 1,
-    explanation:
-      "The gooseneck connects the boom to the mast. Failure would release the boom, which could injure crew and cause loss of sail control.",
-  },
-  {
-    id: "rg10",
-    question: "What are shrouds?",
-    options: [
-      "Fabric covers for the sails",
-      "Fixed wires running from the mast to the sides of the hull",
-      "Ropes used to reef the mainsail",
-      "Fenders hung along the side",
-    ],
-    correctAnswer: 1,
-    explanation:
-      "Shrouds are fixed (standing rigging) wires running from the mast to chain plates on the hull sides, providing lateral support.",
-  },
-  {
-    id: "rg11",
-    question: "What is the purpose of a topping lift?",
-    options: [
-      "To hoist the mainsail",
-      "To support the boom when the mainsail is lowered or reefed",
-      "To tension the forestay",
-      "To tighten the backstay",
-    ],
-    correctAnswer: 1,
-    explanation:
-      "The topping lift supports the boom when the mainsail is lowered, reefed, or not set, preventing it from dropping onto the deck or crew.",
-  },
-  {
-    id: "rg12",
-    question: "What sign of wear would make you replace a wire shroud immediately?",
-    options: [
-      "Slight discolouration",
-      "Broken strands (meat hooks) visible on the wire",
-      "Surface salt deposits",
-      "It makes a humming sound in wind",
-    ],
-    correctAnswer: 1,
-    explanation:
-      "Broken strands (often called 'meat hooks' because they can cut skin) indicate serious fatigue and the shroud should be replaced before sailing.",
-  },
+  { id: "rg1", question: "You find one broken strand beside a shroud terminal. What is the safest disposition?", options: ["Tape it and sail gently", "Keep clear, do not sail or load the rig, secure it by a safe plan and obtain competent assessment", "Retension it by feel", "Note it for annual service"], correctAnswer: 1, explanation: "A broken strand is a sharp-wire and structural warning: keep clear, make the rig no-sail/no-load, secure or unload only under a safe plan, and refer it. Tape hides evidence, hand-tuning adds load, and a calendar reminder does not control the immediate hazard." },
+  { id: "rg2", question: "When is standing-rig inspection or renewal due?", options: ["Every rig at ten years", "Aloft annually and from deck weekly", "As required by fitted makers, materials, use, environment, incidents, coding, insurer and competent assessment", "Only after visible failure"], correctAnswer: 2, explanation: "There is no universal calendar for every wire, rod, fibre or terminal system. Current fitted-maker criteria plus history and applicable rules set the scope; fixed ages ignore configuration, fixed intervals overclaim, and waiting for failure is unsafe." },
+  { id: "rg3", question: "A bottlescrew shows more thread than its neighbour but no obvious crack. What can you conclude?", options: ["Unsafe because no thread may show", "Safe if a split pin is present", "Nothing from thread count alone: avoid adjustment and verify maker-specified engagement, articulation and retention", "Tighten it until both sides match"], correctAnswer: 2, explanation: "Permitted engagement and locking are component-specific. Visible thread alone neither condemns nor clears it; retention cannot prove internal condition, and adjusting a loaded fitting or matching by eye can destabilise the rig." },
+  { id: "rg4", question: "From deck, one spreader appears to have a different angle. What should you do?", options: ["Bend it until it matches", "Use a universal upward angle", "Record it, do not climb, secure if damage is suspected, and compare with the fitted plan/competent inspection", "Ignore it because perspective explains all asymmetry"], correctAnswer: 2, explanation: "Sweep, dihedral and attachment vary by rig, while perspective can mislead. Do not prescribe an angle or climb casually; unexplained movement, cracking or displacement requires securing and competent close inspection." },
+  { id: "rg5", question: "Which evidence best supports a rig-tension decision?", options: ["Both sides feel equally tight", "The leeward shroud never slackens", "Identified measurements by the specified method compared with the fitted maker's plan and baseline", "The mast looks straight at the dock"], correctAnswer: 2, explanation: "Tuning values and measurement methods are rig-specific. Feel, universal slackness rules and dockside appearance ignore load and configuration; do not tune loaded fittings without the competent fitted-rig procedure." },
+  { id: "rg6", question: "A chainplate looks clean above deck but its backing is hidden. How should that evidence be recorded?", options: ["Passed because no rust is visible", "Failed because hidden structure is always damaged", "Unresolved; avoid loading if there is movement, leakage or structural uncertainty and obtain competent assessment", "Passed after tightening the bolts"], correctAnswer: 2, explanation: "A deck view cannot clear crevice corrosion, wet core, backing or knees. It proves neither success nor failure; movement, cracking, leakage with uncertainty, or inaccessible support blocks readiness. Tightening can conceal or worsen a defect." },
+  { id: "rg7", question: "A halyard jams during a pre-passage check. What is the safe next action?", options: ["Add winch force", "Go aloft on that halyard", "Stop loading it, control sail and line, keep clear of bights and investigate under the vessel procedure", "Cut the loaded line"], correctAnswer: 2, explanation: "A jam can store energy and signal a bad lead or hidden sheave problem. More winch force, a halyard-only lift and cutting a loaded line expose crew to recoil or falls; stop, depower/control and use a competent procedure." },
+  { id: "rg8", question: "During a depowered furler check, the drum moves abnormally and the forestay is hidden. What follows?", options: ["Add winch load", "The forestay passes because the sail furled", "Control the sail, do not sail, and refer the furler and concealed support for competent assessment", "Replace only the furling line"], correctAnswer: 2, explanation: "Abnormal movement plus concealed structure cannot be cleared by function. Added force may overload it, successful furling does not inspect the forestay, and replacing a line assumes the cause; control it and escalate before reuse." },
+  { id: "rg9", question: "You find cracking at the gooseneck while the boom is supported only by its topping lift. What should happen?", options: ["Sail under jib alone", "Keep clear, depower and positively support the boom, then obtain competent assessment before sailing", "Tape the crack", "Test it by pulling down"], correctAnswer: 1, explanation: "A cracked attachment can release stored load into the boom's swing/drop zone. Positively support it and make the condition no-sail; changing sail plan, tape or a load test does not repair or safely diagnose it." },
+  { id: "rg10", question: "After grounding, the deck-level rig walk-round looks unchanged. Is that enough to return it to service?", options: ["Yes, if all visible items pass", "Yes, if tension feels unchanged", "No; record the incident and follow maker, insurer, coding and competent-person inspection requirements", "No; every grounded yacht must replace all rigging"], correctAnswer: 2, explanation: "Grounding can affect hidden supporting structure and triggers a new inspection. Visual outcomes and feel cannot certify it, while automatic replacement is also unsupported; scope and disposition follow the configuration and competent requirements." },
+  { id: "rg11", question: "Which statement about completing this online rig lesson is correct?", options: ["It certifies the yacht passed inspection", "It proves inaccessible components are sound", "It records learning only; real readiness requires vessel-specific evidence and resolution of every defect or uncertainty", "A high quiz score permits sailing"], correctAnswer: 2, explanation: "Lesson and quiz availability are not inspection evidence. They cannot see hidden components, resolve defects or authorise sailing; only the real vessel-specific process and responsible competent decisions can support readiness." },
+  { id: "rg12", question: "The mast is near overhead electrical conductors and a damaged stay needs securing. What is the first boundary?", options: ["Avoid touching the conductor and proceed", "Use a metal boat hook", "Keep mast and rig well clear, stop and obtain an electrically safe competent plan", "Lower the mast quickly"], correctAnswer: 2, explanation: "High voltage can arc without contact, and damaged rigging may move unpredictably. Touch avoidance is insufficient; conductive tools and hurried lowering increase exposure. Keep clear, stop and escalate control of electrical and stored-energy hazards." },
 ] as const;
 
 export default rigQuestions;
