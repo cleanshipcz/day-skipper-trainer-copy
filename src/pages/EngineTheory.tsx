@@ -9,7 +9,7 @@ import { useNavigate } from "react-router-dom";
 import { maintenanceChecks } from "@/data/engineChecks";
 import { useProgress, type ProgressSaveResult } from "@/hooks/useProgress";
 import { useAuth } from "@/contexts/AuthHooks";
-import { clearAnonymousEngineChecklist, ENGINE_CHECKLIST_CATALOGUE_ID, ENGINE_CHECKLIST_PROGRESS_ID, ENGINE_CHECKLIST_PROGRESS_VERSION, normalizeEngineCatalogue, parseEngineChecklistProgress, restoreAnonymousEngineChecklist, saveAnonymousEngineChecklist } from "@/features/progress/engineChecklistProgress";
+import { clearAnonymousEngineChecklist, ENGINE_CHECKLIST_CATALOGUE_ID, ENGINE_CHECKLIST_PROGRESS_ID, ENGINE_CHECKLIST_PROGRESS_VERSION, mergeEngineChecklistIds, normalizeEngineCatalogue, parseEngineChecklistProgress, restoreAnonymousEngineChecklist, saveAnonymousEngineChecklist, shouldClearAnonymousAfterMigration } from "@/features/progress/engineChecklistProgress";
 
 type Status = "loading" | "ready" | "saving" | "saved" | "queued" | "anonymous" | "conflict" | "failed";
 
@@ -29,17 +29,37 @@ const EngineTheory = () => {
 
   useEffect(() => {
     let cancelled = false;
+    const loadOwner = user?.id ?? null;
     setCheckedIds(new Set()); setPendingIds(null); setStatus("loading"); revisionRef.current = 0;
     void loadProgressDetailed(ENGINE_CHECKLIST_PROGRESS_ID).then(async (result) => {
       if (cancelled) return;
       if (result.status === "remote") {
         const restored = parseEngineChecklistProgress(result.record.answers_history, validIds);
         if (!restored) { setStatus("failed"); return; }
-        revisionRef.current = restored.revision; setCheckedIds(new Set(restored.checkedItemIds)); setStatus("ready");
+        revisionRef.current = restored.revision;
+        const anonymous = restoreAnonymousEngineChecklist(sessionStorage, validIds);
+        if (!anonymous || !loadOwner) { setCheckedIds(new Set(restored.checkedItemIds)); setStatus("ready"); return; }
+        const merged = mergeEngineChecklistIds(restored.checkedItemIds, anonymous.checkedItemIds, catalogue.map(({ id }) => id));
+        setCheckedIds(new Set(merged));
+        if (merged.length === restored.checkedItemIds.length && merged.every((id) => restored.checkedItemIds.includes(id))) {
+          if (ownerRef.current === loadOwner) clearAnonymousEngineChecklist(sessionStorage);
+          setStatus("ready"); return;
+        }
+        setPendingIds(merged); setStatus("saving");
+        let reconciled: ProgressSaveResult;
+        try { reconciled = await saveProgressDetailed(ENGINE_CHECKLIST_PROGRESS_ID, false, 0, 0, {
+          version: ENGINE_CHECKLIST_PROGRESS_VERSION, catalogueId: ENGINE_CHECKLIST_CATALOGUE_ID,
+          checkedItemIds: merged, revision: restored.revision,
+        }); } catch { reconciled = "failed"; }
+        if (cancelled || ownerRef.current !== loadOwner) return;
+        if (shouldClearAnonymousAfterMigration(reconciled === "anonymous" ? "failed" : reconciled, loadOwner, ownerRef.current)) {
+          revisionRef.current += 1; clearAnonymousEngineChecklist(sessionStorage); setPendingIds(null); setStatus("saved");
+        } else if (reconciled === "queued") { setPendingIds(null); setStatus("queued"); }
+        else setStatus(reconciled === "conflict" ? "conflict" : "failed");
       } else if (result.status === "anonymous") {
         const restored = restoreAnonymousEngineChecklist(sessionStorage, validIds);
         setCheckedIds(new Set(restored?.checkedItemIds ?? [])); setStatus("anonymous");
-      } else if (result.status === "missing" && user?.id) {
+      } else if (result.status === "missing" && loadOwner) {
         const anonymous = restoreAnonymousEngineChecklist(sessionStorage, validIds);
         if (!anonymous || anonymous.checkedItemIds.length === 0) { setStatus("ready"); return; }
         setCheckedIds(new Set(anonymous.checkedItemIds)); setPendingIds(anonymous.checkedItemIds); setStatus("saving");
@@ -48,14 +68,14 @@ const EngineTheory = () => {
           version: ENGINE_CHECKLIST_PROGRESS_VERSION, catalogueId: ENGINE_CHECKLIST_CATALOGUE_ID,
           checkedItemIds: anonymous.checkedItemIds, revision: 0,
         }); } catch { migrated = "failed"; }
-        if (cancelled || ownerRef.current !== user.id) return;
-        if (migrated === "remote") { revisionRef.current = 1; clearAnonymousEngineChecklist(sessionStorage); setPendingIds(null); setStatus("saved"); }
+        if (cancelled || ownerRef.current !== loadOwner) return;
+        if (shouldClearAnonymousAfterMigration(migrated === "anonymous" ? "failed" : migrated, loadOwner, ownerRef.current)) { revisionRef.current = 1; clearAnonymousEngineChecklist(sessionStorage); setPendingIds(null); setStatus("saved"); }
         else if (migrated === "queued") { setPendingIds(null); setStatus("queued"); }
         else setStatus(migrated === "conflict" ? "conflict" : "failed");
       } else setStatus(result.status === "failed" ? "failed" : "ready");
     }).catch(() => { if (!cancelled) setStatus("failed"); });
     return () => { cancelled = true; };
-  }, [user?.id, loadAttempt, loadProgressDetailed, saveProgressDetailed, validIds]);
+  }, [user?.id, catalogue, loadAttempt, loadProgressDetailed, saveProgressDetailed, validIds]);
 
   const persist = async (ids: string[]) => {
     const owner = user?.id ?? null;

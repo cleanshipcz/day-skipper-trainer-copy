@@ -12,6 +12,19 @@ export type EngineChecklistSaveState = "saved" | "queued" | "anonymous" | "confl
 export const engineChecklistSaveState = (result: "remote" | "queued" | "anonymous" | "conflict" | "failed"): EngineChecklistSaveState =>
   result === "remote" ? "saved" : result;
 
+export const mergeEngineChecklistIds = (
+  remoteIds: readonly string[], anonymousIds: readonly string[], catalogueOrder: readonly string[],
+): string[] => {
+  const selected = new Set([...remoteIds, ...anonymousIds]);
+  return catalogueOrder.filter((id) => selected.has(id));
+};
+
+export const shouldClearAnonymousAfterMigration = (
+  result: "remote" | "queued" | "conflict" | "failed",
+  ownerAtStart: string,
+  currentOwner: string | null,
+): boolean => result === "remote" && currentOwner === ownerAtStart;
+
 export const normalizeEngineCatalogue = (value: unknown): MaintenanceCheck[] => {
   if (!Array.isArray(value)) return [];
   const seen = new Set<string>();

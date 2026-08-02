@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import { maintenanceChecks } from "@/data/engineChecks";
-import { ANONYMOUS_ENGINE_CHECKLIST_MAX_AGE_MS, engineChecklistSaveState, normalizeEngineCatalogue, parseEngineChecklistProgress, restoreAnonymousEngineChecklist, saveAnonymousEngineChecklist } from "./engineChecklistProgress";
+import { ANONYMOUS_ENGINE_CHECKLIST_MAX_AGE_MS, engineChecklistSaveState, mergeEngineChecklistIds, normalizeEngineCatalogue, parseEngineChecklistProgress, restoreAnonymousEngineChecklist, saveAnonymousEngineChecklist, shouldClearAnonymousAfterMigration } from "./engineChecklistProgress";
 
 describe("engine checklist progress", () => {
   const ids = new Set(maintenanceChecks.map(({ id }) => id));
@@ -28,5 +28,21 @@ describe("engine checklist progress", () => {
     expect(engineChecklistSaveState("queued")).toBe("queued");
     expect(engineChecklistSaveState("conflict")).toBe("conflict");
     expect(engineChecklistSaveState("failed")).toBe("failed");
+  });
+  it("reconciles existing remote and anonymous practice with a catalogue-ordered union", () => {
+    expect(mergeEngineChecklistIds(["fuel", "oil"], ["oil", "coolant"], ["oil", "coolant", "fuel"])).toEqual(["oil", "coolant", "fuel"]);
+  });
+  it.each(["queued", "failed", "conflict"] as const)("preserves anonymous state after %s migration", (result) => {
+    expect(shouldClearAnonymousAfterMigration(result, "owner-a", "owner-a")).toBe(false);
+  });
+  it("clears only after confirmed persistence for the same owner", () => {
+    expect(shouldClearAnonymousAfterMigration("remote", "owner-a", "owner-a")).toBe(true);
+    expect(shouldClearAnonymousAfterMigration("remote", "owner-a", "owner-b")).toBe(false);
+    expect(shouldClearAnonymousAfterMigration("remote", "owner-a", null)).toBe(false);
+  });
+  it("resolves missing-account migration only on confirmed success", () => {
+    expect(shouldClearAnonymousAfterMigration("remote", "new-owner", "new-owner")).toBe(true);
+    expect(shouldClearAnonymousAfterMigration("queued", "new-owner", "new-owner")).toBe(false);
+    expect(shouldClearAnonymousAfterMigration("failed", "new-owner", "new-owner")).toBe(false);
   });
 });
