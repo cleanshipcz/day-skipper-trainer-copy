@@ -209,9 +209,14 @@ try {
   const readLearningLabels = () => evaluate(`(() => {
     const group = document.querySelector('[data-testid="scene-labels"]');
     const labels = group ? [...group.querySelectorAll('p')] : [];
+    const svg = document.querySelector('svg[aria-label="Anchoring side profile"]');
+    const liveStatus = document.querySelector('[role="status"][aria-live="polite"]');
     return {
       viewport: document.documentElement.clientWidth,
       scrollWidth: document.documentElement.scrollWidth,
+      screenWidth: screen.width,
+      svg: svg?.getBoundingClientRect().toJSON(),
+      liveText: liveStatus?.textContent ?? "",
       labels: labels.map((label) => {
         const rect = label.getBoundingClientRect();
         return { text: label.textContent, left: rect.left, right: rect.right, top: rect.top, bottom: rect.bottom, fontSize: parseFloat(getComputedStyle(label).fontSize) };
@@ -220,7 +225,15 @@ try {
   })()`);
   const assertLearningLabels = async (context) => {
     const layout = await readLearningLabels();
-    if (layout.labels.length !== 8 || layout.scrollWidth > layout.viewport || layout.labels.some(({ left, right, fontSize }) => left < 0 || right > layout.viewport || fontSize < 14)) {
+    const labelText = layout.labels.map(({ text }) => text).join(" ");
+    const requiredGeometry = ["Water depth", "Bow roller height", "Total vertical depth now", "Horizontal separation", "Straight-line distance", "Rode paid out", "Slack", "Scope now", "Forecast high-water"];
+    const requiredStatus = ["Anchor", "Rode", "current scope", "forecast high-water scope", "straight-line distance", "slack", "Holding", "Plan-view hazards", "neighbours"];
+    if (layout.labels.length !== 8
+      || layout.scrollWidth > layout.viewport
+      || !layout.svg || layout.svg.left < 0 || layout.svg.right > layout.viewport
+      || layout.labels.some(({ left, right, fontSize }) => left < 0 || right > layout.viewport || fontSize < 14)
+      || requiredGeometry.some((term) => !labelText.includes(term))
+      || requiredStatus.some((term) => !layout.liveText.includes(term))) {
       throw new Error(`${context} learning labels are clipped, too small, or missing: ${JSON.stringify(layout)}`);
     }
   };
@@ -279,18 +292,32 @@ try {
     await waitForRode("4.0 m");
   }
 
-  // Device scale exercises 200%/400% magnification at an effective narrow
-  // viewport. Forced colours and reduced motion are asserted concurrently so
-  // critical values cannot depend on gradients, animation, or SVG-only text.
-  for (const scale of [2, 4]) {
-    await send("Emulation.setDeviceMetricsOverride", { width: 320, height: 900, deviceScaleFactor: scale, mobile: true });
+  // Browser zoom reduces the CSS layout viewport while the physical desktop
+  // screen remains fixed. Model 200%/400% zoom on a 1280px screen as 640px and
+  // 320px CSS viewports; unlike DPR changes, this exercises reflow/breakpoints.
+  for (const zoom of [2, 4]) {
+    const cssViewport = 1280 / zoom;
+    await send("Emulation.setDeviceMetricsOverride", {
+      width: cssViewport,
+      height: Math.floor(900 / zoom),
+      screenWidth: 1280,
+      screenHeight: 900,
+      deviceScaleFactor: 1,
+      mobile: false,
+    });
     await send("Emulation.setEmulatedMedia", { features: [
       { name: "forced-colors", value: "active" },
       { name: "prefers-reduced-motion", value: "reduce" },
     ] });
     await send("Page.navigate", { url: `http://127.0.0.1:${previewPort}/anchor-minigame?scenarioRandom=0` });
     await waitForText("Anchoring Simulator");
-    await assertLearningLabels(`${scale * 100}% zoom with forced colours/reduced motion`);
+    const zoomLayout = await readLearningLabels();
+    // A classic scrollbar may consume up to 20 CSS pixels from the requested
+    // layout viewport; it must not change the fixed physical screen width.
+    if (zoomLayout.viewport > cssViewport || zoomLayout.viewport < cssViewport - 20 || zoomLayout.screenWidth !== 1280) {
+      throw new Error(`${zoom * 100}% zoom did not reduce the CSS viewport on a fixed desktop screen: ${JSON.stringify(zoomLayout)}`);
+    }
+    await assertLearningLabels(`${zoom * 100}% browser zoom with forced colours/reduced motion`);
     const media = await evaluate(`({ forced: matchMedia('(forced-colors: active)').matches, reduced: matchMedia('(prefers-reduced-motion: reduce)').matches })`);
     if (!media.forced || !media.reduced) throw new Error(`Accessibility media emulation failed: ${JSON.stringify(media)}`);
   }
