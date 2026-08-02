@@ -10,6 +10,7 @@ import { useProgress, type ProgressSaveResult } from "@/hooks/useProgress";
 import { useAuth } from "@/contexts/AuthHooks";
 import { parseVictuallingProgress, VICTUALLING_CHECKLIST_PROGRESS_ID, VICTUALLING_PROGRESS_VERSION } from "@/features/progress/victuallingProgress";
 import { ProvisioningPlanner } from "@/components/victualling/ProvisioningPlanner";
+import { FoodWaterSafetyGuide } from "@/components/victualling/FoodWaterSafetyGuide";
 
 const POINTS_PER_CHECK = 5;
 type PersistenceStatus = "loading" | "ready" | "saving" | "saved" | "anonymous" | "conflict" | "failed";
@@ -112,6 +113,7 @@ const VictuallingTheory = () => {
       <Card className="mb-6 border-2 border-secondary/20"><CardContent className="pt-6"><div className="flex items-center justify-between mb-2"><span className="font-semibold">Provisioning Progress</span><span className="text-sm text-muted-foreground">{percentage}%</span></div><div className="w-full bg-muted rounded-full h-3"><div className="bg-secondary h-3 rounded-full transition-all duration-500" style={{ width: `${percentage}%` }} /></div></CardContent></Card>
       <Card className="mb-6"><CardHeader><CardTitle className="flex items-center gap-2"><ShoppingCart className="w-5 h-5 text-primary" />Provisioning method</CardTitle></CardHeader><CardContent><p className="text-sm text-muted-foreground">Build an auditable plan: confirm dietary and medical needs; choose menus and portions; calculate passage-specific water and fuel; compare requirements with realistic usable capacity; then record stowage, spoilage, waste and alternatives. Recheck when crew, route or forecast changes.</p></CardContent></Card>
       <ProvisioningPlanner />
+      <FoodWaterSafetyGuide />
       {total === 0 && <Card><CardContent className="pt-6" role="status">No valid provisioning items are currently available.</CardContent></Card>}
       {[...grouped].map(([category, items]) => <Card key={category} className="mb-4"><CardHeader><CardTitle className="text-lg">{category}</CardTitle></CardHeader><CardContent><div className="space-y-3">{items.map((item) => {
         const checked = checkedIds.has(item.id);
