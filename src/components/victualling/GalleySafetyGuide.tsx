@@ -2,7 +2,7 @@ import { Link } from "react-router-dom";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 
 export const GalleySafetyGuide = () => <>
-  <Card className="mb-6 border-2 border-primary/20">
+  <Card id="victualling-galley" tabIndex={-1} className="mb-6 border-2 border-primary/20 scroll-mt-24">
     <CardHeader><CardTitle>Safe galley and LPG plan</CardTitle></CardHeader>
     <CardContent className="space-y-4 text-sm">
       <p>Match the menu to the vessel's approved appliance and compatible fuel. Calculate demand from measured consumption, planned cooking and contingency, then compare it with usable compatible capacity. Use only cylinders, regulators, hoses, connections and storage approved for the installation; follow the vessel's procedures, manufacturer instructions and applicable rules. Never improvise adapters, refill arrangements, indoor cylinder storage or an unapproved stove or fuel.</p>

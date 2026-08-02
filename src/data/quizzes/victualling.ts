@@ -38,17 +38,17 @@ const victuallingQuestions: readonly Question[] = [
     explanation: "Storage life varies by produce and conditions. Choose quantities from the passage menu and the vessel's actual temperature, ventilation, and storage limits.",
   },
   {
-    id: "v6",
-    question: "What is the recommended way to store tinned food on a passage?",
+    id: "v17",
+    question: "If a paper label may be damaged, how should a tin remain identifiable?",
     options: [
       "In their original cardboard packaging",
-      "Remove labels, mark with waterproof pen, and stow securely",
+      "Protect the label or keep a complete record reliably tied to that exact tin",
       "Stack loosely in the galley",
       "Keep in a plastic bag on deck",
     ],
     correctAnswer: 1,
     explanation:
-      "Remove labels (they disintegrate when wet), mark tins with a waterproof pen, and stow securely to prevent movement.",
+      "Keep the food name, ingredients and allergens, date mark, preparation and storage instructions, and batch/lot or recall details reliably associated with the exact tin. A product name written in pen is not enough; protect the original label unless the complete record can be preserved.",
   },
   {
     id: "v7",
@@ -116,7 +116,7 @@ const victuallingQuestions: readonly Question[] = [
       "Gimbals can help keep pots level, but they do not make every condition safe. Use designed locks and restraints, attend the flame, and choose prepared no-cook food when motion makes cooking hazardous.",
   },
   {
-    id: "v12",
+    id: "v18",
     question: "What is the safest way to prevent galley scalds when conditions deteriorate?",
     options: [
       "Rely on ordinary waterproof trousers",

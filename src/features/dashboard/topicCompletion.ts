@@ -17,6 +17,14 @@ export const deriveTopicCompletionState = (
   topic: TopicWithSubmodules,
   progressMap: Record<string, UserProgressData>
 ): TopicCompletionState => {
+  // Victualling's checklist is reversible planning state. Only the canonical
+  // quiz record is durable evidence that the learning topic was passed.
+  if (topic.id === "victualling") {
+    return {
+      isCompleted: progressMap["quiz-victualling"]?.completed ?? false,
+      score: progressMap["quiz-victualling"]?.score ?? 0,
+    };
+  }
   if (topic.submoduleIds && topic.submoduleIds.length > 0) {
     const isCompleted = topic.submoduleIds.every((submoduleId) => progressMap[submoduleId]?.completed);
     const totalScore = topic.submoduleIds.reduce((sum, submoduleId) => sum + (progressMap[submoduleId]?.score ?? 0), 0);

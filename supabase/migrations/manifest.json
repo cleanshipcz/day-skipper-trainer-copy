@@ -18,5 +18,6 @@
   "20260802053000_atomic_anchor_practice_progress.sql": "6ed90b6ba78a30bd34b8ec33d1a9bdc4886bca8db0e6fb66da06162afee6911d",
   "20260802093000_victualling_checklist_progress.sql": "47545d7fe2f47d92b845b0026c6077960cda6214987d6c1c998a68c926479279",
   "20260802101500_expand_victualling_quiz_attempts.sql": "506522d3b1e90ff834a34c81d9154e58361c7b480201395168d1ae165470c2be",
-  "20260802130000_retire_victualling_safety_items.sql": "04b06f1ba6f0840aaa570c15d74fd81c04d0871b6a4e352040e131a658469a0f"
+  "20260802130000_retire_victualling_safety_items.sql": "04b06f1ba6f0840aaa570c15d74fd81c04d0871b6a4e352040e131a658469a0f",
+  "20260802143000_withdraw_unsafe_victualling_reviews.sql": "5cf49e502d6024624eb4007d5317ea7473a11a0f94b0a716614ab9fb81260bd2"
 }

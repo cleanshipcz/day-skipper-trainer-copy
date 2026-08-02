@@ -2,6 +2,15 @@ import { describe, expect, it } from "vitest";
 import { deriveTopicCompletionState } from "./topicCompletion";
 
 describe("deriveTopicCompletionState", () => {
+  it("keeps reversible Victualling planning separate from durable quiz completion", () => {
+    expect(deriveTopicCompletionState({ id: "victualling" }, {
+      "victualling-checklist": { completed: true, score: 100 },
+      "quiz-victualling": { completed: false, score: 60 },
+    })).toEqual({ isCompleted: false, score: 60 });
+    expect(deriveTopicCompletionState({ id: "victualling" }, {
+      "quiz-victualling": { completed: true, score: 80 },
+    })).toEqual({ isCompleted: true, score: 80 });
+  });
   it("marks grouped topics complete only when all submodules are complete", () => {
     const groupedTopic = {
       id: "navigation",

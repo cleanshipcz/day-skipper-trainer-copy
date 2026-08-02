@@ -9,13 +9,27 @@ const topics = [
   { title: "Waste and retained disposal", body: "Minimise waste through menu planning, sensible portions, low-packaging choices and reusable containers. Segregate and securely retain waste so it cannot leak, contaminate stores or escape overboard. Dispose of it ashore or otherwise only as permitted by the rules that apply to the vessel, location and waste type; never assume food waste or packaging may be discharged.", check: "Before departure, identify retained-waste capacity and the applicable disposal rules for the route and ports, including any stricter local requirements." },
 ] as const;
 
+const sectionIds: Readonly<Record<(typeof topics)[number]["title"], string>> = {
+  "Crew needs before menus": "victualling-crew-needs",
+  "Menus that still work at sea": "victualling-menus",
+  "Shelf life, inspection and rotation": "victualling-shelf-life",
+  "Potable water hygiene": "victualling-water-hygiene",
+  "Secure, usable stowage": "victualling-stowage",
+  "Waste and retained disposal": "victualling-waste",
+};
+
 export const FoodWaterSafetyGuide = () => <Card className="mb-6">
   <CardHeader><CardTitle>Food, water and stowage safety</CardTitle></CardHeader>
   <CardContent className="grid gap-4 md:grid-cols-2">
-    {topics.map((topic) => <section key={topic.title} className="rounded-lg border p-4 space-y-2">
+    {topics.map((topic) => <section id={sectionIds[topic.title]} tabIndex={-1} key={topic.title} className="rounded-lg border p-4 space-y-2 scroll-mt-24">
       <h3 className="font-semibold">{topic.title}</h3>
       <p className="text-sm text-muted-foreground">{topic.body}</p>
       <p className="text-sm"><strong>Check:</strong> {topic.check}</p>
     </section>)}
+    <section id="victualling-traceability" tabIndex={-1} className="rounded-lg border p-4 space-y-2 scroll-mt-24 md:col-span-2">
+      <h3 className="font-semibold">Tin labels and traceability</h3>
+      <p className="text-sm text-muted-foreground">Protect original labels from moisture. If a label cannot remain attached, keep a complete, legible record reliably tied to that exact tin: food name, ingredients and allergens, use-by or best-before date, preparation and storage instructions, and batch/lot or recall information. Writing only a product name on a tin is not an adequate replacement.</p>
+      <p className="text-sm"><strong>Check:</strong> Another crew member must be able to identify, safely prepare and date-check the exact tin and act on a recall.</p>
+    </section>
   </CardContent>
 </Card>;
