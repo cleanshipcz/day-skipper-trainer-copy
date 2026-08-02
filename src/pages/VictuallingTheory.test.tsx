@@ -134,4 +134,17 @@ describe("VictuallingTheory durable checklist", () => {
     await user.type(capacity, "50");
     expect(screen.getByText(/Water capacity shortfall:/).closest("p")?.textContent).toContain("27 L");
   });
+
+  it("teaches practical food, potable-water, stowage and waste safety", async () => {
+    renderPage();
+    expect(await screen.findByRole("heading", { name: "Food, water and stowage safety" })).toBeTruthy();
+    expect(screen.getByText(/allergies, intolerances, dietary needs and preferences/)).toBeTruthy();
+    expect(screen.getByText(/shared knives, boards, pans/)).toBeTruthy();
+    expect(screen.getByText(/safe no-cook alternative/)).toBeTruthy();
+    expect(screen.getByText(/item- and condition-specific/)).toBeTruthy();
+    expect(screen.getByText(/leaking, bulging, badly dented or rusted cans/)).toBeTruthy();
+    expect(screen.getByText(/Isolate suspect water/)).toBeTruthy();
+    expect(screen.getByText(/Stow heavy items low/)).toBeTruthy();
+    expect(screen.getByText(/rules that apply to the vessel, location and waste type/)).toBeTruthy();
+  });
 });

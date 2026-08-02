@@ -168,6 +168,39 @@ describe("quiz review seeding identity isolation", () => {
     expect(localStorage.getItem("quiz-attempt:a:test")).not.toContain("expired-attempt");
   });
 
+  test("should replace a restored attempt issued for an older catalogue total", async () => {
+    localStorage.setItem("quiz-attempt:a:test", JSON.stringify({
+      version: 2,
+      attemptId: "twelve-question-attempt",
+      expectedTotal: 12,
+      scoreSaved: false,
+      startedAt: new Date().toISOString(),
+    }));
+
+    renderQuiz();
+
+    await waitFor(() => expect(mocks.rpc).toHaveBeenCalledWith("start_quiz_attempt", { p_topic_id: "test" }));
+    expect(localStorage.getItem("quiz-attempt:a:test")).toContain('"attemptId":"issued-attempt"');
+    expect(localStorage.getItem("quiz-attempt:a:test")).toContain('"expectedTotal":1');
+    expect(localStorage.getItem("quiz-attempt:a:test")).not.toContain("twelve-question-attempt");
+  });
+
+  test("should preserve a restored attempt matching the current catalogue total", async () => {
+    localStorage.setItem("quiz-attempt:a:test", JSON.stringify({
+      version: 2,
+      attemptId: "compatible-attempt",
+      expectedTotal: 1,
+      scoreSaved: false,
+      startedAt: new Date().toISOString(),
+    }));
+
+    renderQuiz();
+
+    expect(await screen.findByRole("radio", { name: "Right" })).toBeTruthy();
+    await waitFor(() => expect(localStorage.getItem("quiz-attempt:a:test")).toContain("compatible-attempt"));
+    expect(mocks.rpc.mock.calls.filter(([name]) => name === "start_quiz_attempt")).toHaveLength(0);
+  });
+
   test("should discard the current unsaved attempt when restarting", async () => {
     mocks.rpc.mockImplementation((name: string) => Promise.resolve({
       data: name === "start_quiz_attempt"
