@@ -585,7 +585,7 @@ const Quiz = () => {
       </header>
 
       <main className="container mx-auto max-w-3xl px-3 py-5 sm:px-4 sm:py-8">
-        {anonymousStorageNotice && <p role="status" className="mb-3 text-sm text-muted-foreground">
+        {anonymousStorageNotice && <p aria-live="polite" aria-atomic="true" className="mb-3 text-sm text-muted-foreground">
           {anonymousStorageNotice}
         </p>}
         <Card className="border-2">

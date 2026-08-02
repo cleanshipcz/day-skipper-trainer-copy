@@ -301,6 +301,8 @@ describe("quiz review seeding identity isolation", () => {
     fireEvent.click(await screen.findByRole("radio", { name: "Right" }));
     fireEvent.click(screen.getByRole("button", { name: "Submit Answer" }));
     await waitFor(() => expect(sessionStorage.getItem("quiz-anonymous-session-v1:test")).toContain('"questionId":"a1"'));
+    expect(screen.getAllByRole("status")).toHaveLength(1);
+    expect(screen.getByText(/anonymous progress is kept/i).getAttribute("aria-live")).toBe("polite");
     const stored = sessionStorage.getItem("quiz-anonymous-session-v1:test") ?? "";
     expect(stored).not.toContain("Question?");
     expect(stored).not.toContain("Why.");
