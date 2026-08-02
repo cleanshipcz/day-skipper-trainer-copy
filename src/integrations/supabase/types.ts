@@ -500,7 +500,12 @@ export type Database = {
         }[]
       }
       save_engine_checklist_progress: {
-        Args: { p_checked_item_ids: string[]; p_expected_revision: number }
+        Args: {
+          p_catalogue_id: string
+          p_checked_item_ids: string[]
+          p_expected_revision: number
+          p_version: number
+        }
         Returns: {
           awarded_points: number
           completion_awarded: boolean
