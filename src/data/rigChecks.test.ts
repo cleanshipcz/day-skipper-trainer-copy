@@ -34,6 +34,10 @@ describe("rig safety guidance", () => {
     expect(rigSources.length).toBeGreaterThanOrEqual(5);
     expect(new Set(rigSources.map(({ id }) => id)).size).toBe(rigSources.length);
     expect(rigSources.every(({ href }) => href.startsWith("https://"))).toBe(true);
+    expect(rigSources.find(({ id }) => id === "mca-coswp")).toEqual(expect.objectContaining({
+      label: expect.stringMatching(/2026 edition/i),
+      href: "https://www.gov.uk/government/publications/code-of-safe-working-practices-for-merchant-seafarers-2026-edition",
+    }));
     expect(rigSources.find(({ id }) => id === "selden")?.label).toMatch(/maker example/i);
   });
 });

@@ -96,7 +96,7 @@ export const rigChecks: RigCheck[] = [
 ];
 
 export const rigSources = [
-  { id: "mca-coswp", label: "UK MCA Code of Safe Working Practices for Merchant Seafarers (2024): work aloft, ropes and lifting hazards", href: "https://www.gov.uk/government/publications/code-of-safe-working-practices-for-merchant-seafarers-coswp-2024" },
+  { id: "mca-coswp", label: "UK MCA Code of Safe Working Practices for Merchant Seafarers (2026 edition): work aloft, ropes and lifting hazards", href: "https://www.gov.uk/government/publications/code-of-safe-working-practices-for-merchant-seafarers-2026-edition" },
   { id: "hse-height", label: "UK HSE: Work at height—planning, competence and fall protection", href: "https://www.hse.gov.uk/work-at-height/index.htm" },
   { id: "hse-lines", label: "UK HSE GS6: Avoiding danger from overhead power lines", href: "https://www.hse.gov.uk/pubns/gs6.htm" },
   { id: "selden", label: "Seldén Mast: Hints and advice / rigging instructions (configuration-specific maker example)", href: "https://support.seldenmast.com/en/services/manuals/rigging_instructions.html" },
