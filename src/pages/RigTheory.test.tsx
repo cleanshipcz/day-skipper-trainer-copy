@@ -105,6 +105,25 @@ describe("RigTheory honest durable outcomes", () => {
     expect(await screen.findByRole("heading", { name: "Rig quiz destination" })).toBeTruthy();
   });
 
+  it("names progress, practice instructions, feedback, and icon-only navigation", async () => {
+    renderPage(); await screen.findByText(/saved for this browser session/i);
+    expect(screen.getByRole("button", { name: "Back to Home from Rig Checks & Preparation" })).toBeTruthy();
+    expect(screen.getByText(/Rig review progress: 0 of 12/).getAttribute("aria-live")).toBe("polite");
+    expect(screen.getByTestId("rig-evidence-practice").getAttribute("aria-describedby")).toBe("rig-practice-instructions");
+    fireEvent.click(screen.getByRole("radio", { name: "Wire beside its terminal" }));
+    fireEvent.click(screen.getByRole("button", { name: "Check location" }));
+    expect(screen.getByText(/^Correct location/).getAttribute("role")).toBe("status");
+  });
+
+  it("provides reflow, touch, forced-colour, and reduced-motion safeguards", async () => {
+    const { container } = renderPage(); await screen.findByText(/saved for this browser session/i);
+    expect(container.firstElementChild?.className).toContain("overflow-x-hidden");
+    expect(container.firstElementChild?.className).toContain("motion-reduce:scroll-auto");
+    expect(screen.getByRole("region", { name: /Scrollable rig diagram/ }).querySelector("svg")?.classList.contains("w-full")).toBe(true);
+    expect(screen.getByRole("button", { name: "Practise Rig Quiz" }).className).toContain("min-h-11");
+    expect(screen.getByTestId("rig-evidence-practice").className).toContain("forced-colors:border-[CanvasText]");
+  });
+
   it("pauses editing on save failure and retries the same snapshot", async () => {
     auth.user = { id: "rig-user" };
     loadProgressDetailed.mockResolvedValue({ status: "missing" });
@@ -124,7 +143,7 @@ describe("RigTheory honest durable outcomes", () => {
       return Promise.resolve({ status: "missing" });
     });
     renderPage();
-    await screen.findByText("0 of 12 items reviewed; 0 unresolved.");
+    await screen.findByText(/0 of 12 items reviewed; 0 unresolved/);
     expect(loadProgressDetailed).toHaveBeenCalledWith("rig-review");
     expect(loadProgressDetailed).not.toHaveBeenCalledWith("rig");
   });
