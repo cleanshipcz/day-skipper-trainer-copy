@@ -138,7 +138,9 @@ describe("RigTheory honest durable outcomes", () => {
     await select(/Shrouds & Stays/i, "Satisfactory evidence");
     const alert = await screen.findByRole("alert");
     expect(alert.textContent).toContain("latest outcome was not saved");
-    fireEvent.click(within(alert).getByRole("button", { name: "Retry save" }));
+    const retrySave = within(alert).getByRole("button", { name: "Retry save" });
+    expect(retrySave.className).toContain("min-h-11");
+    fireEvent.click(retrySave);
     await waitFor(() => expect(screen.queryByRole("alert")).toBeNull());
     expect(saveProgressDetailed).toHaveBeenLastCalledWith("rig-review", false, 0, 0, expect.objectContaining({ catalogueId: "rig-review-v1" }));
   });
@@ -157,7 +159,9 @@ describe("RigTheory honest durable outcomes", () => {
   it("offers retry for transient load failure", async () => {
     loadProgressDetailed.mockResolvedValueOnce({ status: "failed" }).mockResolvedValueOnce({ status: "anonymous" });
     renderPage();
-    fireEvent.click(within(await screen.findByRole("alert")).getByRole("button", { name: "Retry load" }));
+    const retryLoad = within(await screen.findByRole("alert")).getByRole("button", { name: "Retry load" });
+    expect(retryLoad.className).toContain("min-w-11");
+    fireEvent.click(retryLoad);
     expect(await screen.findByText(/saved for this browser session/i)).toBeTruthy();
   });
 
@@ -167,7 +171,10 @@ describe("RigTheory honest durable outcomes", () => {
     const alert = await screen.findByRole("alert");
     expect(alert.textContent).toContain("was not deleted");
     expect(sessionStorage.getItem("rig-review-anonymous-v1")).toBe("{bad");
-    fireEvent.click(within(alert).getByRole("button", { name: "Clear local review" }));
+    expect(within(alert).getByRole("button", { name: "Retry load" }).className).toContain("min-h-11");
+    const clearLocal = within(alert).getByRole("button", { name: "Clear local review" });
+    expect(clearLocal.className).toContain("min-h-11");
+    fireEvent.click(clearLocal);
     expect(sessionStorage.getItem("rig-review-anonymous-v1")).toBeNull();
     expect(await screen.findByText(/saved for this browser session/i)).toBeTruthy();
   });
@@ -180,7 +187,9 @@ describe("RigTheory honest durable outcomes", () => {
     const alert = await screen.findByRole("alert");
     expect(alert.textContent).toContain("it was not changed");
     expect(saveProgressDetailed).not.toHaveBeenCalled();
-    fireEvent.click(within(alert).getByRole("button", { name: "Reset saved review" }));
+    const resetSaved = within(alert).getByRole("button", { name: "Reset saved review" });
+    expect(resetSaved.className).toContain("min-h-11");
+    fireEvent.click(resetSaved);
     await waitFor(() => expect(saveProgressDetailed).toHaveBeenCalledWith("rig-review", false, 0, 0, expect.objectContaining({ outcomes: {} })));
   });
 });
