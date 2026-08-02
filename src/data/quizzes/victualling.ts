@@ -117,16 +117,16 @@ const victuallingQuestions: readonly Question[] = [
   },
   {
     id: "v12",
-    question: "Why should the cook wear oilskin trousers in rough weather?",
+    question: "What is the safest way to prevent galley scalds when conditions deteriorate?",
     options: [
-      "To stay dry from spray on deck",
-      "To protect against scalds from spilling hot liquids",
-      "It is a uniform requirement",
-      "To keep warm in the galley",
+      "Rely on ordinary waterproof trousers",
+      "Stop unsafe cooking; otherwise use lids, designed restraints and locks, secure handholds and keep people clear",
+      "Hold an open pan by hand",
+      "Keep cooking but add more crew to the galley",
     ],
     correctAnswer: 1,
     explanation:
-      "Oilskin trousers protect the cook's legs against scalds from hot liquids spilling in rough conditions.",
+      "Eliminate the hazard first: switch to prepared no-cook food when motion makes cooking unsafe. In manageable conditions use lids, designed pot restraints and gimbal locks, secure handholds and an exclusion area. Ordinary oilskins are not scald PPE; use only manufacturer-rated protective equipment where the task and instructions call for it.",
   },
   {
     id: "v13",

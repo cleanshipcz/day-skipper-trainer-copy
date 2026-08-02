@@ -26,11 +26,11 @@ export const gasSafetyTopics: readonly GasSafetyTopic[] = [
     content:
       "Liquefied Petroleum Gas (LPG) installations may use propane, butane or another approved supply. LPG vapour is heavier than air, so a leak can collect low in the vessel and form a flammable atmosphere. LPG is colourless and is normally odorised to aid detection, but smell is not a substitute for approved detection and system checks. Fuel composition affects its flammable limits; even a small spark may ignite accumulated gas.",
     keyPoints: [
-      "LPG (propane/butane) is heavier than air and sinks to the bilge",
+      "LPG vapour can collect in low spaces; use approved detection and vessel checks",
       "A fuel-specific range of LPG mixtures in air is flammable",
-      "Mercaptan odour is added to aid leak detection",
+      "Odour may warn of a leak but must never be the only detection method",
       "A small spark can ignite accumulated gas",
-      "Gas accumulates in the lowest parts of the vessel",
+      "Avoid ignition sources whenever gas is detected or suspected",
     ],
   },
   {
@@ -39,10 +39,10 @@ export const gasSafetyTopics: readonly GasSafetyTopic[] = [
     content:
       "Know the installation's designated isolation controls and follow the vessel shutdown procedure whenever gas is not in use. Some systems include a remote solenoid as well as cylinder isolation. Only use compatible approved components, and inspect or replace hoses, regulators and connections at the intervals specified by their manufacturer, the vessel procedure and applicable rules. Leak testing must use the approved method and competent help where required—never a naked flame.",
     keyPoints: [
-      "Turn off the cylinder valve when gas is not in use",
+      "Use the installation's designated controls and vessel shutdown procedure",
       "Follow the vessel procedure for safely isolating the supply and residual gas",
-      "A solenoid shut-off valve at the galley adds an extra layer of safety",
-      "Use marine-grade hoses inspected regularly for cracking",
+      "Use only isolation equipment approved for the installation",
+      "Inspect approved hoses and components at their specified intervals",
       "Use the approved leak-test method—never a naked flame",
     ],
   },
@@ -52,11 +52,11 @@ export const gasSafetyTopics: readonly GasSafetyTopic[] = [
     content:
       "Follow the vessel's checks before starting engines or operating electrical equipment after it has been closed up. If gas is detected or suspected, do not operate switches, engines or flames. Evacuate as needed, isolate the supply only if safe, ventilate naturally from outside, follow the emergency procedure, and have the cause made safe by a competent person before reuse. Do not rely on smell alone.",
     keyPoints: [
-      "Sniff the bilge before starting the engine or using electrical equipment",
-      "LPG smells of rotten eggs (mercaptan additive)",
-      "If gas is detected: do not operate any switches",
-      "Ventilate thoroughly by opening all hatches",
-      "Make the bilge sniff test part of your daily routine",
+      "Carry out the vessel's specified pre-use gas checks",
+      "Never rely on smell alone to declare a space safe",
+      "If gas is suspected, do not operate switches, engines or flames",
+      "Evacuate as needed and isolate the supply only if it is safe to do so",
+      "Ventilate naturally from outside as directed by the vessel emergency procedure",
     ],
   },
   {
@@ -65,11 +65,11 @@ export const gasSafetyTopics: readonly GasSafetyTopic[] = [
     content:
       "Store connected and spare cylinders only in the approved location provided by the vessel, secured in their designed orientation. A marine LPG locker is normally vapour-tight to the accommodation and drained overboard to open air from its low point; its design must follow the vessel specification and applicable standards. Keep drains and ventilation paths clear and inspect the locker, restraints and fittings as instructed. Never move a cylinder below decks or improvise storage to gain capacity.",
     keyPoints: [
-      "Gas locker must be sealed from the vessel interior",
-      "Must have an overboard drain at the bottom",
-      "Cylinders stored upright and secured against movement",
-      "Locker must be ventilated and self-draining",
-      "Spare cylinders stored in the gas locker, never below decks",
+      "Use only the cylinder location approved for the vessel and installation",
+      "Keep specified drain and ventilation paths clear",
+      "Secure cylinders in their manufacturer-designed orientation",
+      "Inspect the locker, restraints and fittings as vessel instructions require",
+      "Never improvise cylinder storage or move cylinders into accommodation",
     ],
   },
   {
@@ -91,11 +91,11 @@ export const gasSafetyTopics: readonly GasSafetyTopic[] = [
     content:
       "Use detectors specified for the vessel and installation. LPG and CO sensors have different placement constraints: mounting height, distance from appliances, airflow, sleeping areas and environmental protection must follow the detector manufacturer and vessel instructions rather than a generic position. Test, service and replace detectors and batteries on their specified schedule. A detector supports—rather than replaces—ventilation, isolation, inspection and correct operation.",
     keyPoints: [
-      "LPG detectors: mount low (floor level / bilge) — gas sinks",
-      "CO detectors: mount at head height (breathing zone) — gas mixes with air",
-      "Place detectors near the cooker, bilge, gas locker, saloon, and sleeping cabins",
-      "Test detectors regularly and replace batteries on schedule",
-      "Consider hard-wired systems with automatic solenoid shut-off",
+      "Use alarms specified for the vessel, fuel and installation",
+      "Follow each alarm manufacturer's exact placement instructions",
+      "Account for airflow, appliances, sleeping spaces and environmental limits as instructed",
+      "Test, service and replace alarms and batteries on their specified schedule",
+      "Detection supplements rather than replaces ventilation, isolation and inspection",
     ],
   },
 ];
