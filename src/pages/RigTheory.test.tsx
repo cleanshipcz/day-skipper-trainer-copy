@@ -69,6 +69,9 @@ describe("RigTheory honest durable outcomes", () => {
     completeEvidencePractice();
     expect(await screen.findByRole("heading", { name: "Learning review complete" })).toBeTruthy();
     expect(screen.getByText(/not a certificate/i)).toBeTruthy();
+    const liveCompletionRegions = [...document.querySelectorAll('[aria-live="polite"]')].filter((node) => node.textContent?.includes("Learning review complete"));
+    expect(liveCompletionRegions).toHaveLength(1);
+    expect(screen.getByText("Evidence walk-round practice complete.").closest('[aria-live]')).toBeNull();
   });
 
   it("teaches configuration orientation and requires locating evidence with feedback", async () => {
@@ -80,7 +83,7 @@ describe("RigTheory honest durable outcomes", () => {
     fireEvent.click(screen.getByRole("button", { name: "Check location" }));
     expect(screen.getByText(/Not yet.*trace the observation/i)).toBeTruthy();
     completeEvidencePractice();
-    expect(screen.getByText(/Evidence walk-round practice complete/i)).toBeTruthy();
+    expect(screen.getByText("Evidence walk-round practice complete.")).toBeTruthy();
   });
 
   it("blocks completion until the safe evidence decision is correct", async () => {
@@ -121,6 +124,9 @@ describe("RigTheory honest durable outcomes", () => {
     expect(container.firstElementChild?.className).toContain("motion-reduce:scroll-auto");
     expect(screen.getByRole("region", { name: /Scrollable rig diagram/ }).querySelector("svg")?.classList.contains("w-full")).toBe(true);
     expect(screen.getByRole("button", { name: "Practise Rig Quiz" }).className).toContain("min-h-11");
+    expect(screen.getByRole("button", { name: "Back to Home from Rig Checks & Preparation" }).className).toContain("min-w-11");
+    expect(screen.getByRole("button", { name: "Reset review" }).className).toContain("min-h-11");
+    expect(screen.getByRole("button", { name: "Check location" }).className).toContain("min-w-11");
     expect(screen.getByTestId("rig-evidence-practice").className).toContain("forced-colors:border-[CanvasText]");
   });
 
