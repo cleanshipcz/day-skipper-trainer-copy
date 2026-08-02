@@ -13,5 +13,5 @@ export const engineSources = [
   { label: "US Coast Guard: Boater's Guide to Federal Requirements", href: "https://www.uscgboating.org/assets/1/AssetManager/Boaters-Guide-to-Federal-Requirements-for-Receational-Boats-20231108.pdf" },
   { label: "US Coast Guard: Carbon monoxide protection", href: "https://uscgboating.org/recreational-boaters/carbon-monoxide-protect.php" },
   { label: "UK MAIB: Carbon monoxide safety lessons", href: "https://www.gov.uk/government/publications/safety-lessons-be-alert-to-carbon-monoxide-accumulating-on-your-boat/safety-flyer-to-the-recreational-craft-industry-and-pleasure-craft-users" },
-  { label: "Yanmar: Marine engine operation manual (example only—use the manual for the fitted engine)", href: "https://www.yanmar.com/marine/wp-content/uploads/2021/01/0A6LF-EN0010_2020.09-6LF-operation-manual.pdf" },
+  { label: "Yanmar 4JH57 product page: manufacturer operation-manual downloads (example only—use the page/manual for the fitted engine)", href: "https://www.yanmar.com/marine/product/engines/4jh57/" },
 ];

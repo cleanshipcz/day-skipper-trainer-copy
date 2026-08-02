@@ -68,6 +68,8 @@ export const saveProgressRecord = async ({
       })
     : topicId === ENGINE_CHECKLIST_PROGRESS_ID
       ? await supabaseClient.rpc("save_engine_checklist_progress", {
+        p_catalogue_id: enginePayload?.catalogueId as string,
+        p_version: enginePayload?.version as number,
         p_expected_revision: enginePayload?.revision as number,
         p_checked_item_ids: enginePayload?.checkedItemIds as string[],
       })
