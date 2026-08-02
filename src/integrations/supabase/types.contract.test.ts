@@ -41,6 +41,9 @@ describe("generated Supabase service contracts", () => {
   });
 
   it("covers review RPC arguments", () => {
+    expectTypeOf<Functions["seed_active_question_reviews_internal"]["Args"]>().toEqualTypeOf<{
+      p_question_ids: string[];
+    }>();
     expectTypeOf<Functions["seed_question_reviews"]["Args"]>().toEqualTypeOf<{
       p_question_ids: string[];
     }>();
@@ -52,6 +55,9 @@ describe("generated Supabase service contracts", () => {
     }>();
     expectTypeOf<Functions["record_question_review"]["Returns"]>().toEqualTypeOf<
       Database["public"]["Tables"]["question_reviews"]["Row"]
+    >();
+    expectTypeOf<Functions["record_active_question_review_internal"]>().toEqualTypeOf<
+      Functions["record_question_review"]
     >();
   });
 });

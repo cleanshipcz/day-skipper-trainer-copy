@@ -431,6 +431,32 @@ export type Database = {
           unlocked_badge_ids: string[]
         }[]
       }
+      record_active_question_review_internal: {
+        Args: {
+          p_quality: number
+          p_question_id: string
+          p_review_id: string
+          p_reviewed_at?: string
+        }
+        Returns: {
+          created_at: string
+          ease_factor: number
+          id: string
+          interval_days: number
+          last_reviewed_at: string | null
+          next_review_at: string
+          question_id: string
+          repetitions: number
+          updated_at: string
+          user_id: string
+        }
+        SetofOptions: {
+          from: "*"
+          to: "question_reviews"
+          isOneToOne: true
+          isSetofReturn: false
+        }
+      }
       record_question_review: {
         Args: {
           p_quality: number
@@ -494,6 +520,10 @@ export type Database = {
           completion_awarded: boolean
           points_awarded: boolean
         }[]
+      }
+      seed_active_question_reviews_internal: {
+        Args: { p_question_ids: string[] }
+        Returns: undefined
       }
       seed_question_reviews: {
         Args: { p_question_ids: string[] }
