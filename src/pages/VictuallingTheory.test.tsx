@@ -120,4 +120,16 @@ describe("VictuallingTheory durable checklist", () => {
     await waitFor(() => expect(checkbox.disabled).toBe(false));
     expect(mocks.load).toHaveBeenCalledTimes(2);
   });
+
+  it("exposes editable passage inputs and announces capacity warnings", async () => {
+    const user = userEvent.setup();
+    renderPage();
+    expect(await screen.findByLabelText(/Crew \(people\)/)).toBeTruthy();
+    expect(screen.getByText(/Water arithmetic:/).closest("p")?.textContent).toContain("92 L");
+    expect(screen.getByText(/Cooking-fuel shortfall:/).closest("p")?.textContent).toContain("0.4 units");
+    const capacity = screen.getByLabelText(/Installed water capacity/);
+    await user.clear(capacity);
+    await user.type(capacity, "50");
+    expect(screen.getByText(/Water capacity shortfall:/).closest("p")?.textContent).toContain("47 L");
+  });
 });
