@@ -36,6 +36,14 @@ const buildSupabaseMock = () => {
 };
 
 describe("saveProgressRecord", () => {
+  it("routes completed practice updates through the zero-reward mutable RPC", async () => {
+    const { client, rpc } = buildSupabaseMock();
+    const snapshot = { version: 1, completedFamilies: ["sheltered", "harbour", "exposed", "tidal"], attempts: 8, failedChecks: 3, scenarioSeed: 1, sequenceIndex: 5, scenarioIdentity: "anchor-1-2-2-harbour" };
+    await saveProgressRecord({ supabaseClient: client as never, userId: "user-1", topicId: "anchorwork-practice", completed: true, score: 100, pointsEarned: 999, answersHistory: snapshot });
+    expect(rpc).toHaveBeenCalledWith("save_anchorwork_practice_progress", {
+      p_completed: true, p_score: 100, p_answers_history: snapshot,
+    });
+  });
   it("routes Anchorwork snapshots through the server-validated monotonic RPC", async () => {
     const { client, rpc } = buildSupabaseMock();
     await saveProgressRecord({

@@ -145,9 +145,8 @@ const scenarioPool: AnchorScenarioTemplate[] = [
   },
 ];
 
-const AnchorMinigame = () => {
+const AnchorMinigameSession = ({ ownerId }: { ownerId: string | null }) => {
   const navigate = useNavigate();
-  const { user } = useAuth();
   const { loadProgressDetailed, saveProgressDetailed } = useProgress();
   const [searchParams, setSearchParams] = useSearchParams();
   const returnTopic = searchParams.get("returnTopic") || "scope";
@@ -169,7 +168,7 @@ const AnchorMinigame = () => {
   gameRef.current = game;
   const [attempts, setAttempts] = useState(0);
   const [failedChecks, setFailedChecks] = useState(0);
-  const [persistenceStatus, setPersistenceStatus] = useState<"loading" | "ready" | "saving" | "saved" | "queued" | "anonymous" | "failed">(user ? "loading" : "anonymous");
+  const [persistenceStatus, setPersistenceStatus] = useState<"loading" | "ready" | "saving" | "saved" | "queued" | "anonymous" | "failed">(ownerId ? "loading" : "anonymous");
   const [loadRevision, setLoadRevision] = useState(0);
   const pendingSaveRef = useRef<Parameters<typeof saveProgressDetailed> | null>(null);
   const saveChainRef = useRef<Promise<void>>(Promise.resolve());
@@ -180,7 +179,7 @@ const AnchorMinigame = () => {
 
   useEffect(() => {
     let cancelled = false;
-    if (!user?.id) { setPersistenceStatus("anonymous"); return () => { cancelled = true; }; }
+    if (!ownerId) { setPersistenceStatus("anonymous"); return () => { cancelled = true; }; }
     setPersistenceStatus("loading");
     void loadProgressDetailed(ANCHOR_MINIGAME_TOPIC_ID).then((result) => {
       if (cancelled) return;
@@ -196,7 +195,7 @@ const AnchorMinigame = () => {
       setPersistenceStatus(result.status === "anonymous" ? "anonymous" : result.status === "failed" ? "failed" : "ready");
     }).catch(() => { if (!cancelled) setPersistenceStatus("failed"); });
     return () => { cancelled = true; };
-  }, [loadProgressDetailed, loadRevision, user?.id]);
+  }, [loadProgressDetailed, loadRevision, ownerId]);
 
   const persistPractice = useCallback((families: AnchorScenarioFamily[], nextAttempts: number, nextFailures: number, checkpoint = { seed: scenarioSeed, index: sequenceIndex, identity: scenario.identity }) => {
     const complete = ANCHOR_SCENARIO_FAMILIES.every((family) => families.includes(family));
@@ -746,6 +745,12 @@ const AnchorMinigame = () => {
       </main>
     </div>
   );
+};
+
+const AnchorMinigame = () => {
+  const { user } = useAuth();
+  const ownerId = user?.id ?? null;
+  return <AnchorMinigameSession key={ownerId ?? "anonymous"} ownerId={ownerId} />;
 };
 
 export default AnchorMinigame;

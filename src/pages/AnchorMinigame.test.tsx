@@ -259,6 +259,21 @@ describe("AnchorMinigame", () => {
     expect(screen.getByText("Attempted 1 time")).toBeTruthy();
   });
 
+  it("discards a delayed owner A load after switching to owner B", async () => {
+    progressMocks.user = { id: "user-a" };
+    let resolveA!: (value: { status: "remote"; record: { answers_history: Record<string, unknown> } }) => void;
+    progressMocks.load.mockReturnValueOnce(new Promise((resolve) => { resolveA = resolve; })).mockResolvedValueOnce({ status: "missing", record: null });
+    const view = render(<MemoryRouter><AnchorMinigame /></MemoryRouter>);
+    progressMocks.user = { id: "user-b" };
+    view.rerender(<MemoryRouter><AnchorMinigame /></MemoryRouter>);
+    expect(await screen.findByText("Practice ready.")).toBeTruthy();
+    resolveA({ status: "remote", record: { answers_history: {
+      version: 1, completedFamilies: ["sheltered"], attempts: 9, failedChecks: 4,
+      scenarioSeed: 0, sequenceIndex: 1, scenarioIdentity: "anchor-0-1-2-harbour",
+    } } });
+    await waitFor(() => expect(screen.getByText(/0 checks, 0 needing remediation/)).toBeTruthy());
+  });
+
   it("surfaces load failure and retries hydration", async () => {
     progressMocks.user = { id: "user-a" };
     progressMocks.load.mockResolvedValueOnce({ status: "failed", record: null }).mockResolvedValueOnce({ status: "missing", record: null });
@@ -319,6 +334,40 @@ describe("AnchorMinigame", () => {
       attempts: 1, failedChecks: 1, sequenceIndex: 1, scenarioIdentity: "anchor-0-1-2-harbour",
     }));
     expect(await screen.findByText(/1 checks, 1 needing remediation/)).toBeTruthy();
+  });
+
+  it("clears owner A state and retry generation on signout during a delayed save", async () => {
+    progressMocks.user = { id: "user-a" };
+    progressMocks.load.mockResolvedValue({ status: "missing", record: null });
+    let resolveSave!: (value: "failed") => void;
+    progressMocks.save.mockReturnValue(new Promise((resolve) => { resolveSave = resolve; }));
+    const user = userEvent.setup();
+    const view = render(<MemoryRouter><AnchorMinigame /></MemoryRouter>);
+    await screen.findByText("Practice ready.");
+    await user.click(screen.getByRole("button", { name: "Enter (check)" }));
+    progressMocks.user = null;
+    view.rerender(<MemoryRouter><AnchorMinigame /></MemoryRouter>);
+    expect(screen.getByText(/0 checks, 0 needing remediation/)).toBeTruthy();
+    expect(screen.getByText(/Practice lasts for this visit only/)).toBeTruthy();
+    resolveSave("failed");
+    await waitFor(() => expect(screen.queryByRole("button", { name: "Retry progress" })).toBeNull());
+  });
+
+  it("does not expose or retry owner A's delayed failed save after switching to owner B", async () => {
+    progressMocks.user = { id: "user-a" };
+    progressMocks.load.mockResolvedValue({ status: "missing", record: null });
+    let resolveSave!: (value: "failed") => void;
+    progressMocks.save.mockReturnValue(new Promise((resolve) => { resolveSave = resolve; }));
+    const user = userEvent.setup();
+    const view = render(<MemoryRouter><AnchorMinigame /></MemoryRouter>);
+    await screen.findByText("Practice ready.");
+    await user.click(screen.getByRole("button", { name: "Enter (check)" }));
+    progressMocks.user = { id: "user-b" };
+    view.rerender(<MemoryRouter><AnchorMinigame /></MemoryRouter>);
+    await screen.findByText("Practice ready.");
+    resolveSave("failed");
+    await waitFor(() => expect(screen.queryByRole("button", { name: "Retry progress" })).toBeNull());
+    expect(screen.getByText(/0 checks, 0 needing remediation/)).toBeTruthy();
   });
 
   it("offers parent theory and quiz handoff after restored mastery", async () => {
