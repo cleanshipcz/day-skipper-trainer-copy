@@ -1,8 +1,11 @@
 import { canonicalQuizProgressKey } from "./progressKeys";
 import type { Json } from "@/integrations/supabase/types";
 import type { Question } from "@/data/quizzes/types";
+import { ownerStorageKey, readStored, removeStored, writeStored, type StorageWriteResult } from "@/features/persistence/browserStorage";
 
 const QUIZ_SESSION_SCHEMA_VERSION = 3;
+const ANONYMOUS_QUIZ_SESSION_VERSION = 1;
+export const ANONYMOUS_QUIZ_SESSION_MAX_AGE_MS = 30 * 60 * 1000;
 
 export type RestoredQuizSession = {
   answers: Array<number | null>;
@@ -49,6 +52,90 @@ export const quizCatalogueVersion = (questions: readonly Question[]): string =>
   JSON.stringify([...questions]
     .map(({ id, options }) => [id, [...options].sort()] as const)
     .sort(([left], [right]) => left.localeCompare(right)));
+
+export const anonymousQuizSessionKey = (topicKey: string) =>
+  ownerStorageKey("quiz-anonymous-session-v1", topicKey);
+
+interface AnonymousQuizSessionEnvelope {
+  readonly version: typeof ANONYMOUS_QUIZ_SESSION_VERSION;
+  readonly expiresAt: number;
+  readonly progress: QuizSessionProgress;
+}
+
+export type AnonymousQuizRestore = {
+  readonly session: RestoredQuizSession | null;
+  readonly status: "missing" | "restored" | "expired" | "invalid" | "stale";
+};
+
+export const saveAnonymousQuizSession = (
+  storage: Storage | undefined,
+  topicKey: string,
+  progress: QuizSessionProgress,
+  now = Date.now(),
+): StorageWriteResult => writeStored(storage, anonymousQuizSessionKey(topicKey), {
+  version: ANONYMOUS_QUIZ_SESSION_VERSION,
+  expiresAt: now + ANONYMOUS_QUIZ_SESSION_MAX_AGE_MS,
+  progress,
+} satisfies AnonymousQuizSessionEnvelope);
+
+export const clearAnonymousQuizSession = (storage: Storage | undefined, topicKey: string) =>
+  removeStored(storage, anonymousQuizSessionKey(topicKey));
+
+export const clearAllAnonymousQuizSessions = (storage: Storage | undefined): void => {
+  if (!storage) return;
+  const prefix = "quiz-anonymous-session-v1:";
+  try {
+    for (let index = storage.length - 1; index >= 0; index -= 1) {
+      const key = storage.key(index);
+      if (key?.startsWith(prefix)) storage.removeItem(key);
+    }
+  } catch {
+    // Identity-boundary cleanup is best effort when browser storage is denied;
+    // denied storage cannot be read to resume an anonymous attempt either.
+  }
+};
+
+export const restoreAnonymousQuizSession = (
+  storage: Storage | undefined,
+  topicKey: string,
+  questions: readonly Question[],
+  now = Date.now(),
+): AnonymousQuizRestore => {
+  const key = anonymousQuizSessionKey(topicKey);
+  let stored: string | null;
+  try {
+    stored = storage?.getItem(key) ?? null;
+  } catch {
+    return { session: null, status: "missing" };
+  }
+  if (stored === null) return { session: null, status: "missing" };
+  const raw = readStored(storage, key, { decode: (value) => value && typeof value === "object" && !Array.isArray(value)
+    ? value as Record<string, unknown> : null });
+  if (!raw) {
+    removeStored(storage, key);
+    return { session: null, status: "invalid" };
+  }
+  const progress = raw.progress;
+  if (raw.version !== ANONYMOUS_QUIZ_SESSION_VERSION || !Number.isFinite(raw.expiresAt)
+    || !progress || typeof progress !== "object" || Array.isArray(progress)) {
+    removeStored(storage, key);
+    return { session: null, status: "invalid" };
+  }
+  if ((raw.expiresAt as number) <= now) {
+    removeStored(storage, key);
+    return { session: null, status: "expired" };
+  }
+  if ((progress as Record<string, unknown>).catalogueVersion !== quizCatalogueVersion(questions)) {
+    removeStored(storage, key);
+    return { session: null, status: "stale" };
+  }
+  const session = parseSavedQuizSession(progress as Json, questions);
+  if (!session) {
+    removeStored(storage, key);
+    return { session: null, status: "invalid" };
+  }
+  return { session, status: "restored" };
+};
 
 export const buildQuizSessionProgress = (
   answers: Array<number | null>,

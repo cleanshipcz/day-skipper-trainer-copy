@@ -1,6 +1,10 @@
 import { describe, expect, it, vi } from "vitest";
 import type { Question } from "@/data/quizzes/types";
-import { buildQuizSessionProgress, createEmptyQuizAnswers, parseSavedQuizSession, persistQuizSessionProgress } from "./sessionProgress";
+import {
+  ANONYMOUS_QUIZ_SESSION_MAX_AGE_MS, anonymousQuizSessionKey, buildQuizSessionProgress,
+  clearAnonymousQuizSession, createEmptyQuizAnswers, parseSavedQuizSession,
+  persistQuizSessionProgress, restoreAnonymousQuizSession, saveAnonymousQuizSession,
+} from "./sessionProgress";
 
 const question = (id: string, options = ["Wrong", "Right"]): Question => ({
   id, question: `${id}?`, options, correctAnswer: 1, explanation: "Because.",
@@ -97,5 +101,57 @@ describe("quiz session progress helpers", () => {
     const saveProgress = vi.fn();
     await persistQuizSessionProgress({ isAuthenticated: false, topicKey: "engine", saveProgress, progress: buildQuizSessionProgress([null, null], 0, catalogue) });
     expect(saveProgress).not.toHaveBeenCalled();
+  });
+
+  it("resumes anonymous identity-safe progress after reload and refreshes a short expiry", () => {
+    sessionStorage.clear();
+    const progress = buildQuizSessionProgress([1, null], 1, catalogue);
+    expect(saveAnonymousQuizSession(sessionStorage, "engine", progress, 1_000)).toEqual({ ok: true });
+    expect(restoreAnonymousQuizSession(sessionStorage, "engine", catalogue, 1_001)).toEqual({
+      status: "restored", session: { answers: [1, null], currentQuestion: 1 },
+    });
+    expect(JSON.parse(sessionStorage.getItem(anonymousQuizSessionKey("engine")) ?? "{}").expiresAt)
+      .toBe(1_000 + ANONYMOUS_QUIZ_SESSION_MAX_AGE_MS);
+  });
+
+  it("expires and removes anonymous progress", () => {
+    sessionStorage.clear();
+    saveAnonymousQuizSession(sessionStorage, "engine", buildQuizSessionProgress([1, null], 0, catalogue), 1_000);
+    expect(restoreAnonymousQuizSession(sessionStorage, "engine", catalogue, 1_000 + ANONYMOUS_QUIZ_SESSION_MAX_AGE_MS).status).toBe("expired");
+    expect(sessionStorage.getItem(anonymousQuizSessionKey("engine"))).toBeNull();
+  });
+
+  it.each([
+    ["malformed", "{bad", "invalid"],
+    ["wrong envelope version", JSON.stringify({ version: 99, expiresAt: Date.now() + 1_000, progress: {} }), "invalid"],
+  ])("fails closed for %s anonymous storage", (_label, value, status) => {
+    sessionStorage.clear();
+    sessionStorage.setItem(anonymousQuizSessionKey("engine"), value);
+    expect(restoreAnonymousQuizSession(sessionStorage, "engine", catalogue).status).toBe(status);
+  });
+
+  it("removes anonymous progress after catalogue identity changes", () => {
+    sessionStorage.clear();
+    saveAnonymousQuizSession(sessionStorage, "engine", buildQuizSessionProgress([1, null], 0, catalogue));
+    expect(restoreAnonymousQuizSession(sessionStorage, "engine", [question("replacement")]).status).toBe("stale");
+    expect(sessionStorage.getItem(anonymousQuizSessionKey("engine"))).toBeNull();
+  });
+
+  it("continues safely when session storage is denied or over quota", () => {
+    const denied = { setItem: () => { throw new Error("denied"); } } as unknown as Storage;
+    const quota = { setItem: () => { throw new DOMException("full", "QuotaExceededError"); } } as unknown as Storage;
+    const progress = buildQuizSessionProgress([null, null], 0, catalogue);
+    expect(saveAnonymousQuizSession(denied, "engine", progress)).toEqual({ ok: false, reason: "unavailable" });
+    expect(saveAnonymousQuizSession(quota, "engine", progress)).toEqual({ ok: false, reason: "quota" });
+  });
+
+  it("clears only the requested anonymous topic", () => {
+    sessionStorage.clear();
+    const progress = buildQuizSessionProgress([null, null], 0, catalogue);
+    saveAnonymousQuizSession(sessionStorage, "engine", progress);
+    saveAnonymousQuizSession(sessionStorage, "weather", progress);
+    clearAnonymousQuizSession(sessionStorage, "engine");
+    expect(sessionStorage.getItem(anonymousQuizSessionKey("engine"))).toBeNull();
+    expect(sessionStorage.getItem(anonymousQuizSessionKey("weather"))).not.toBeNull();
   });
 });
