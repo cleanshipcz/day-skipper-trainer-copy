@@ -37,6 +37,7 @@ describe("applied COLREG exercises", () => {
     expect(screen.getByRole("status").textContent).toMatch(/Correct/);
     await user.click(screen.getByRole("button", { name: "Continue to Responsibilities" }));
     expect(screen.getByText(/Responsibilities: choose/)).toBeTruthy();
+    expect(document.activeElement).toBe(screen.getByRole("group", { name: /Responsibilities: choose/ }));
   });
 
   it("completes all four stages, advances, and resets when switching scenarios", async () => {
@@ -50,6 +51,7 @@ describe("applied COLREG exercises", () => {
     await user.click(screen.getByRole("button", { name: "Next scenario" }));
     expect(screen.getByText("Overtaking from abaft the beam", { selector: "h3" })).toBeTruthy();
     expect(screen.getByText(/Classify: choose/)).toBeTruthy();
+    expect(document.activeElement).toBe(screen.getByRole("group", { name: /Classify: choose/ }));
     await user.click(screen.getByRole("button", { name: /4\. Crossing with target/ }));
     expect(screen.getByText("Crossing with target to starboard", { selector: "h3" })).toBeTruthy();
     expect(screen.getByText(/Classify: choose/)).toBeTruthy();

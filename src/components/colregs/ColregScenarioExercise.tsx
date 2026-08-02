@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 
@@ -27,6 +27,8 @@ export function ColregScenarioExercise({ onScenarioCompleted }: { onScenarioComp
   const [scenarioIndex, setScenarioIndex] = useState(0);
   const [step, setStep] = useState(0);
   const [feedback, setFeedback] = useState<string | null>(null);
+  const decisionRef = useRef<HTMLFieldSetElement>(null);
+  const focusDecisionRef = useRef(false);
   const scenario = COLREG_SCENARIOS[scenarioIndex];
   const unrotatedChoices = [scenario.answers[step], ...scenario.distractors[step]];
   const choiceOffset = (scenarioIndex + step) % unrotatedChoices.length;
@@ -40,8 +42,13 @@ export function ColregScenarioExercise({ onScenarioCompleted }: { onScenarioComp
       if (step === 3) onScenarioCompleted?.(scenario.id);
     } else setFeedback(`Not yet. Recheck ${scenario.rule}: use the stated observations and do not assume facts that are missing.`);
   };
-  const continueDecision = () => { setStep(step + 1); setFeedback(null); };
-  const next = () => { setScenarioIndex((scenarioIndex + 1) % COLREG_SCENARIOS.length); setStep(0); setFeedback(null); };
+  useEffect(() => {
+    if (!focusDecisionRef.current) return;
+    focusDecisionRef.current = false;
+    decisionRef.current?.focus({ preventScroll: true });
+  }, [scenarioIndex, step]);
+  const continueDecision = () => { focusDecisionRef.current = true; setStep(step + 1); setFeedback(null); };
+  const next = () => { focusDecisionRef.current = true; setScenarioIndex((scenarioIndex + 1) % COLREG_SCENARIOS.length); setStep(0); setFeedback(null); };
   return <section aria-labelledby="applied-colregs" className="min-w-0 space-y-4">
     <div><h2 id="applied-colregs" className="text-2xl font-semibold">Applied encounter exercises</h2><p className="text-sm text-muted-foreground">Observe → classify → assign responsibilities → act → monitor until finally past and clear. If in doubt, deem risk to exist; scanty information never proves no risk.</p></div>
     <div className="flex min-w-0 flex-wrap gap-2" aria-label="Choose scenario">{COLREG_SCENARIOS.map((item, index) => <Button className="min-h-11 max-w-full whitespace-normal break-words" aria-pressed={index === scenarioIndex} key={item.id} variant={index === scenarioIndex ? "default" : "outline"} onClick={() => { setScenarioIndex(index); setStep(0); setFeedback(null); }}>{index + 1}. {item.title}</Button>)}</div>
@@ -56,7 +63,7 @@ export function ColregScenarioExercise({ onScenarioCompleted }: { onScenarioComp
         <div className="min-w-0"><h3 className="break-words text-lg font-bold">{scenario.title}</h3><dl aria-label={`${scenario.title} structured text description`} className="mt-2 min-w-0 space-y-2 break-words text-sm"><div><dt className="inline font-bold">Conditions: </dt><dd className="inline">{scenario.conditions}</dd></div><div><dt className="inline font-bold">Own vessel: </dt><dd className="inline">{scenario.own}</dd></div><div><dt className="inline font-bold">Target: </dt><dd className="inline">{scenario.target}</dd></div><div><dt className="inline font-bold">Relative geometry: </dt><dd className="inline">{scenario.geometry}</dd></div><div><dt className="inline font-bold">Observation: </dt><dd className="inline">{scenario.observation}</dd></div><div><dt className="inline font-bold">Risk assessment: </dt><dd className="inline">{scenario.risk}</dd></div><div><dt className="inline font-bold">Applicable basis: </dt><dd className="inline">{scenario.rule}</dd></div></dl></div>
       </div>
       <ol className="grid grid-cols-2 gap-2 md:grid-cols-4" aria-label="Decision workflow">{STEPS.map((label, index) => <li key={label} className={`rounded border p-2 text-center text-sm forced-colors:border-[CanvasText] ${index === step ? "font-bold ring-2 ring-primary forced-colors:outline forced-colors:outline-2" : ""}`} aria-current={index === step ? "step" : undefined}>{index + 1}. {label}</li>)}</ol>
-      <fieldset className="min-w-0 space-y-2"><legend className="break-words font-semibold">{STEPS[step]}: choose the best assessment</legend><div className="grid min-w-0 gap-2 sm:grid-cols-2">{choices.map(choice => <Button disabled={feedback?.startsWith("Correct")} key={choice} variant="outline" className="h-auto min-h-11 min-w-0 whitespace-normal break-words text-left justify-start forced-colors:border-[CanvasText]" onClick={() => choose(choice)}>{choice}</Button>)}</div></fieldset>
+      <fieldset ref={decisionRef} tabIndex={-1} className="min-w-0 space-y-2 rounded-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"><legend className="break-words font-semibold">{STEPS[step]}: choose the best assessment</legend><div className="grid min-w-0 gap-2 sm:grid-cols-2">{choices.map(choice => <Button disabled={feedback?.startsWith("Correct")} key={choice} variant="outline" className="h-auto min-h-11 min-w-0 whitespace-normal break-words text-left justify-start forced-colors:border-[CanvasText]" onClick={() => choose(choice)}>{choice}</Button>)}</div></fieldset>
       <div role="status" aria-live="polite" aria-atomic="true" className="min-h-6 break-words text-sm font-medium">{feedback ?? `Step ${step + 1} of ${STEPS.length}: ${STEPS[step]}.`}</div>
       {step < 3 && feedback?.startsWith("Correct") && <Button className="min-h-11" onClick={continueDecision}>Continue to {STEPS[step + 1]}</Button>}
       {step === 3 && feedback?.startsWith("Correct") && <Button className="min-h-11" onClick={next}>Next scenario</Button>}
