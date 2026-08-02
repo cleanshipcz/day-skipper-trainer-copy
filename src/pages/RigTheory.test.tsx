@@ -1,5 +1,5 @@
 import { fireEvent, render, screen, waitFor, within } from "@testing-library/react";
-import { MemoryRouter } from "react-router-dom";
+import { MemoryRouter, Route, Routes } from "react-router-dom";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
 const auth = { user: null as { id: string } | null };
@@ -15,6 +15,14 @@ const select = async (groupName: RegExp, choice: string) => {
   const group = await screen.findByRole("group", { name: groupName });
   fireEvent.click(within(group).getByRole("radio", { name: choice }));
   await waitFor(() => expect(within(group).getByRole("radio", { name: choice }).getAttribute("aria-checked") ?? (within(group).getByRole("radio", { name: choice }) as HTMLInputElement).checked).toBeTruthy());
+};
+const completeEvidencePractice = () => {
+  for (const location of ["Wire beside its terminal", "Chainplate/deck interface", "Headsail sheet and lead"]) {
+    fireEvent.click(screen.getByRole("radio", { name: location }));
+    fireEvent.click(screen.getByRole("button", { name: "Evaluate evidence" }));
+    expect(screen.getByText(/^Correct location/)).toBeTruthy();
+    fireEvent.click(screen.getByRole("button", { name: "Next observation" }));
+  }
 };
 
 describe("RigTheory honest durable outcomes", () => {
@@ -46,11 +54,32 @@ describe("RigTheory honest durable outcomes", () => {
   it("requires every item to be satisfactory for qualified learning completion", async () => {
     renderPage(); await screen.findByText(/saved for this browser session/i);
     for (const group of screen.getAllByRole("group")) {
+      if (!within(group).queryByRole("radio", { name: "Satisfactory evidence" })) continue;
       fireEvent.click(within(group).getByRole("radio", { name: "Satisfactory evidence" }));
       await screen.findByText(/saved for this browser session/i);
     }
+    completeEvidencePractice();
     expect(await screen.findByRole("heading", { name: "Learning review complete" })).toBeTruthy();
     expect(screen.getByText(/not a certificate/i)).toBeTruthy();
+  });
+
+  it("teaches configuration orientation and requires locating evidence with feedback", async () => {
+    renderPage(); await screen.findByText(/saved for this browser session/i);
+    expect(screen.getByRole("img", { name: /configuration-qualified mast/i })).toBeTruthy();
+    expect(screen.getByText(/one masthead-sloop example/i)).toBeTruthy();
+    expect(screen.getByRole("heading", { name: /Safe deck-level walk-round/i })).toBeTruthy();
+    fireEvent.click(screen.getByRole("radio", { name: "Sail reefing patch" }));
+    fireEvent.click(screen.getByRole("button", { name: "Evaluate evidence" }));
+    expect(screen.getByText(/Not yet.*trace the observation/i)).toBeTruthy();
+    completeEvidencePractice();
+    expect(screen.getByText(/Evidence walk-round practice complete/i)).toBeTruthy();
+  });
+
+  it("navigates from the lesson to rig quiz practice", async () => {
+    render(<MemoryRouter initialEntries={["/rig"]}><Routes><Route path="/rig" element={<RigTheory />} /><Route path="/quiz/rig" element={<h1>Rig quiz destination</h1>} /></Routes></MemoryRouter>);
+    await screen.findByText(/saved for this browser session/i);
+    fireEvent.click(screen.getByRole("button", { name: "Practise Rig Quiz" }));
+    expect(await screen.findByRole("heading", { name: "Rig quiz destination" })).toBeTruthy();
   });
 
   it("pauses editing on save failure and retries the same snapshot", async () => {
