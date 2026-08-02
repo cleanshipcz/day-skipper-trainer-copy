@@ -35,8 +35,6 @@ export const calculateSceneGeometry = (
   const yScale = (viewHeight - 116) / (verticalDistance + 1.5);
   const surfaceY = 82;
   const seabedY = surfaceY + scenario.depth * yScale;
-  const boatTopY = surfaceY - 18;
-  const boatBottomY = surfaceY + 10;
   const bowAttachX = state.boatX + BOAT_LENGTH - BOW_ATTACH_OFFSET;
   const anchorDepth = state.anchorOnBottom
     ? scenario.depth
@@ -47,6 +45,10 @@ export const calculateSceneGeometry = (
     x: toX(bowAttachX),
     y: surfaceY - scenario.bowHeight * yScale,
   };
+  // The hull and the dimension marker share the same physically scaled bow
+  // reference instead of drawing a marker detached above a fixed-size boat.
+  const boatTopY = attach.y;
+  const boatBottomY = surfaceY + 10;
   const anchorPoint = {
     x: toX(state.anchorOnBottom && state.anchorX !== null ? state.anchorX : bowAttachX),
     y: toY(anchorDepth),

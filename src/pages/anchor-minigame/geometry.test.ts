@@ -19,6 +19,7 @@ describe("anchor scene geometry", () => {
     expect(geometry.toX(42)).toBe(732);
     expect(geometry.chainPath.split("L")).toHaveLength(19);
     expect(geometry.boatPath).toContain("Z");
+    expect(geometry.boatTopY).toBe(geometry.bowAttachment.y);
   });
 
   it("keeps physical distance invariants independent of camera movement", () => {

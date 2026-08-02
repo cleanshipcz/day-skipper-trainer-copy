@@ -206,6 +206,24 @@ try {
     return { rode, status };
   })()`);
   const waitForRode = (rode) => waitFor(async () => (await readManipulationState()).rode === rode, `${rode} rode readout`);
+  const readLearningLabels = () => evaluate(`(() => {
+    const group = document.querySelector('[data-testid="scene-labels"]');
+    const labels = group ? [...group.querySelectorAll('p')] : [];
+    return {
+      viewport: document.documentElement.clientWidth,
+      scrollWidth: document.documentElement.scrollWidth,
+      labels: labels.map((label) => {
+        const rect = label.getBoundingClientRect();
+        return { text: label.textContent, left: rect.left, right: rect.right, top: rect.top, bottom: rect.bottom, fontSize: parseFloat(getComputedStyle(label).fontSize) };
+      }),
+    };
+  })()`);
+  const assertLearningLabels = async (context) => {
+    const layout = await readLearningLabels();
+    if (layout.labels.length !== 8 || layout.scrollWidth > layout.viewport || layout.labels.some(({ left, right, fontSize }) => left < 0 || right > layout.viewport || fontSize < 14)) {
+      throw new Error(`${context} learning labels are clipped, too small, or missing: ${JSON.stringify(layout)}`);
+    }
+  };
 
   await send("Runtime.enable");
   await send("Network.enable");
@@ -227,6 +245,7 @@ try {
     await send("Page.navigate", { url: `http://127.0.0.1:${previewPort}/anchor-minigame?scenarioRandom=0` });
     await waitForText("Anchoring Simulator");
     await delay(100);
+    await assertLearningLabels(`${width}px`);
 
     const mousePoint = await manipulationPoint();
     if (mousePoint.touchAction !== "none" || mousePoint.parentTouchAction === "none") {
@@ -259,6 +278,23 @@ try {
     await send("Input.dispatchTouchEvent", { type: "touchEnd", touchPoints: [] });
     await waitForRode("4.0 m");
   }
+
+  // Device scale exercises 200%/400% magnification at an effective narrow
+  // viewport. Forced colours and reduced motion are asserted concurrently so
+  // critical values cannot depend on gradients, animation, or SVG-only text.
+  for (const scale of [2, 4]) {
+    await send("Emulation.setDeviceMetricsOverride", { width: 320, height: 900, deviceScaleFactor: scale, mobile: true });
+    await send("Emulation.setEmulatedMedia", { features: [
+      { name: "forced-colors", value: "active" },
+      { name: "prefers-reduced-motion", value: "reduce" },
+    ] });
+    await send("Page.navigate", { url: `http://127.0.0.1:${previewPort}/anchor-minigame?scenarioRandom=0` });
+    await waitForText("Anchoring Simulator");
+    await assertLearningLabels(`${scale * 100}% zoom with forced colours/reduced motion`);
+    const media = await evaluate(`({ forced: matchMedia('(forced-colors: active)').matches, reduced: matchMedia('(prefers-reduced-motion: reduce)').matches })`);
+    if (!media.forced || !media.reduced) throw new Error(`Accessibility media emulation failed: ${JSON.stringify(media)}`);
+  }
+  await send("Emulation.setEmulatedMedia", { features: [] });
 
   const coverageMatrix = [
     { width: 375, random: 0, title: "Sheltered cove", rode: 32, overRoomRode: 43, astern: 5, settingLoads: 3 },
@@ -403,7 +439,7 @@ try {
 
   await send("Browser.close");
   socket.close();
-  console.log("Anchor browser characterization passed direct mouse/touch manipulation across 320px, 375px, 768px, and 1280px plus every scenario fixture (cancellation, negative safety gates, buttons, keyboard, layout, storage).");
+  console.log("Anchor browser characterization passed direct mouse/touch manipulation across 320px, 375px, 768px, and 1280px plus 200%/400% zoom, forced colours, reduced motion, legible unclipped learning labels, and every scenario fixture (cancellation, negative safety gates, buttons, keyboard, layout, storage).");
 } finally {
   for (const child of children.reverse()) {
     if (child.exitCode === null && !child.killed) child.kill("SIGTERM");
