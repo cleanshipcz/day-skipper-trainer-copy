@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from "react";
+import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 
@@ -27,8 +27,6 @@ export function ColregScenarioExercise({ onScenarioCompleted }: { onScenarioComp
   const [scenarioIndex, setScenarioIndex] = useState(0);
   const [step, setStep] = useState(0);
   const [feedback, setFeedback] = useState<string | null>(null);
-  const decisionRef = useRef<HTMLFieldSetElement>(null);
-  const previousStage = useRef({ scenarioIndex, step });
   const scenario = COLREG_SCENARIOS[scenarioIndex];
   const unrotatedChoices = [scenario.answers[step], ...scenario.distractors[step]];
   const choiceOffset = (scenarioIndex + step) % unrotatedChoices.length;
@@ -36,35 +34,32 @@ export function ColregScenarioExercise({ onScenarioCompleted }: { onScenarioComp
   const bearingRadians = RELATIVE_BEARINGS[scenario.id] * Math.PI / 180;
   const targetX = 300 + Math.sin(bearingRadians) * 105;
   const targetY = 190 - Math.cos(bearingRadians) * 105;
-  useEffect(() => {
-    const changed = previousStage.current.scenarioIndex !== scenarioIndex || previousStage.current.step !== step;
-    previousStage.current = { scenarioIndex, step };
-    if (changed) decisionRef.current?.focus();
-  }, [scenarioIndex, step]);
   const choose = (choice: string) => {
     if (choice === scenario.answers[step]) {
       setFeedback(`Correct. ${choice}`);
-      if (step < 3) setStep(step + 1); else onScenarioCompleted?.(scenario.id);
+      if (step === 3) onScenarioCompleted?.(scenario.id);
     } else setFeedback(`Not yet. Recheck ${scenario.rule}: use the stated observations and do not assume facts that are missing.`);
   };
+  const continueDecision = () => { setStep(step + 1); setFeedback(null); };
   const next = () => { setScenarioIndex((scenarioIndex + 1) % COLREG_SCENARIOS.length); setStep(0); setFeedback(null); };
-  return <section aria-labelledby="applied-colregs" className="space-y-4">
+  return <section aria-labelledby="applied-colregs" className="min-w-0 space-y-4">
     <div><h2 id="applied-colregs" className="text-2xl font-semibold">Applied encounter exercises</h2><p className="text-sm text-muted-foreground">Observe → classify → assign responsibilities → act → monitor until finally past and clear. If in doubt, deem risk to exist; scanty information never proves no risk.</p></div>
-    <div className="flex flex-wrap gap-2" aria-label="Choose scenario">{COLREG_SCENARIOS.map((item, index) => <Button key={item.id} variant={index === scenarioIndex ? "default" : "outline"} onClick={() => { setScenarioIndex(index); setStep(0); setFeedback(null); }}>{index + 1}. {item.title}</Button>)}</div>
-    <Card><CardContent className="pt-6 space-y-5">
-      <div className="grid lg:grid-cols-2 gap-5">
-        <svg viewBox="0 0 600 300" role="img" aria-labelledby={`scene-title-${scenario.id} scene-desc-${scenario.id}`} className="w-full rounded-lg border bg-slate-950 text-white">
+    <div className="flex min-w-0 flex-wrap gap-2" aria-label="Choose scenario">{COLREG_SCENARIOS.map((item, index) => <Button className="min-h-11 max-w-full whitespace-normal break-words" aria-pressed={index === scenarioIndex} key={item.id} variant={index === scenarioIndex ? "default" : "outline"} onClick={() => { setScenarioIndex(index); setStep(0); setFeedback(null); }}>{index + 1}. {item.title}</Button>)}</div>
+    <Card className="min-w-0 forced-colors:border-[CanvasText]"><CardContent className="min-w-0 space-y-5 pt-6">
+      <div className="grid min-w-0 gap-5 lg:grid-cols-2">
+        <svg viewBox="0 0 600 300" role="img" aria-labelledby={`scene-title-${scenario.id} scene-desc-${scenario.id}`} className="block h-auto max-w-full rounded-lg border bg-slate-950 text-white forced-colors:bg-[Canvas] forced-colors:text-[CanvasText]">
           <title id={`scene-title-${scenario.id}`}>{scenario.title}</title><desc id={`scene-desc-${scenario.id}`}>{scenario.conditions}. Own vessel: {scenario.own}. Target: {scenario.target}. Geometry: {scenario.geometry}. {scenario.observation}</desc>
           <path d="M300 210 L280 245 L320 245 Z" fill="none" stroke="currentColor" strokeWidth="5"/><text x="330" y="235" fill="currentColor" fontSize="18">OWN: heading ↑</text>
           <g transform={`translate(${targetX} ${targetY})`}><circle r="24" fill="none" stroke="currentColor" strokeWidth="5"/><text x="30" y="6" fill="currentColor" fontSize="18">TARGET</text></g>
           <path d={`M300 190 L${targetX} ${targetY}`} stroke="currentColor" strokeDasharray="10 8" strokeWidth="3"/><text x="25" y="35" fill="currentColor" fontSize="17">{scenario.geometry}</text><text x="25" y="65" fill="currentColor" fontSize="16">Relative position is schematic; labels state exact geometry.</text>
         </svg>
-        <div className="space-y-2 text-sm"><h3 className="text-lg font-bold">{scenario.title}</h3><p><strong>Conditions:</strong> {scenario.conditions}</p><p><strong>Own vessel:</strong> {scenario.own}</p><p><strong>Target:</strong> {scenario.target}</p><p><strong>Relative geometry:</strong> {scenario.geometry}</p><p><strong>Observation:</strong> {scenario.observation}</p><p><strong>Risk assessment:</strong> {scenario.risk}</p><p><strong>Applicable basis:</strong> {scenario.rule}</p></div>
+        <div className="min-w-0"><h3 className="break-words text-lg font-bold">{scenario.title}</h3><dl aria-label={`${scenario.title} structured text description`} className="mt-2 min-w-0 space-y-2 break-words text-sm"><div><dt className="inline font-bold">Conditions: </dt><dd className="inline">{scenario.conditions}</dd></div><div><dt className="inline font-bold">Own vessel: </dt><dd className="inline">{scenario.own}</dd></div><div><dt className="inline font-bold">Target: </dt><dd className="inline">{scenario.target}</dd></div><div><dt className="inline font-bold">Relative geometry: </dt><dd className="inline">{scenario.geometry}</dd></div><div><dt className="inline font-bold">Observation: </dt><dd className="inline">{scenario.observation}</dd></div><div><dt className="inline font-bold">Risk assessment: </dt><dd className="inline">{scenario.risk}</dd></div><div><dt className="inline font-bold">Applicable basis: </dt><dd className="inline">{scenario.rule}</dd></div></dl></div>
       </div>
-      <ol className="grid grid-cols-2 md:grid-cols-4 gap-2" aria-label="Decision workflow">{STEPS.map((label, index) => <li key={label} className={`rounded border p-2 text-center text-sm ${index === step ? "font-bold ring-2 ring-primary" : ""}`} aria-current={index === step ? "step" : undefined}>{index + 1}. {label}</li>)}</ol>
-      <fieldset ref={decisionRef} tabIndex={-1} className="space-y-2 outline-none focus-visible:ring-2 focus-visible:ring-primary"><legend className="font-semibold">{STEPS[step]}: choose the best assessment</legend><div className="grid sm:grid-cols-2 gap-2">{choices.map(choice => <Button key={choice} variant="outline" className="h-auto min-h-11 whitespace-normal text-left justify-start" onClick={() => choose(choice)}>{choice}</Button>)}</div></fieldset>
-      <div aria-live="polite" className="min-h-6 text-sm font-medium">{feedback}</div>
-      {step === 3 && feedback?.startsWith("Correct") && <Button onClick={next}>Next scenario</Button>}
+      <ol className="grid grid-cols-2 gap-2 md:grid-cols-4" aria-label="Decision workflow">{STEPS.map((label, index) => <li key={label} className={`rounded border p-2 text-center text-sm forced-colors:border-[CanvasText] ${index === step ? "font-bold ring-2 ring-primary forced-colors:outline forced-colors:outline-2" : ""}`} aria-current={index === step ? "step" : undefined}>{index + 1}. {label}</li>)}</ol>
+      <fieldset className="min-w-0 space-y-2"><legend className="break-words font-semibold">{STEPS[step]}: choose the best assessment</legend><div className="grid min-w-0 gap-2 sm:grid-cols-2">{choices.map(choice => <Button disabled={feedback?.startsWith("Correct")} key={choice} variant="outline" className="h-auto min-h-11 min-w-0 whitespace-normal break-words text-left justify-start forced-colors:border-[CanvasText]" onClick={() => choose(choice)}>{choice}</Button>)}</div></fieldset>
+      <div role="status" aria-live="polite" aria-atomic="true" className="min-h-6 break-words text-sm font-medium">{feedback ?? `Step ${step + 1} of ${STEPS.length}: ${STEPS[step]}.`}</div>
+      {step < 3 && feedback?.startsWith("Correct") && <Button className="min-h-11" onClick={continueDecision}>Continue to {STEPS[step + 1]}</Button>}
+      {step === 3 && feedback?.startsWith("Correct") && <Button className="min-h-11" onClick={next}>Next scenario</Button>}
     </CardContent></Card>
     <p className="text-xs text-muted-foreground">Static geometry is intentionally labelled and has an equivalent text description. Controls are native buttons for keyboard, touch and assistive technology. State changes do not depend on animation and respect reduced-motion preferences.</p>
   </section>;
