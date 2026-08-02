@@ -77,7 +77,7 @@ describe("VictuallingTheory durable checklist", () => {
     await user.click(checkbox);
     const retry = await screen.findByRole("button", { name: "Retry save" });
     const saveAlert = screen.getByText(/latest checklist change was not saved/).closest('[role="alert"]');
-    expect(saveAlert?.textContent).toContain("Retry save is available");
+    expect(saveAlert?.textContent?.match(/Retry save/g)).toHaveLength(1);
     expect((checkbox as HTMLButtonElement).disabled).toBe(true);
     await user.click(retry);
     await screen.findByText("Checklist saved.");
@@ -96,7 +96,7 @@ describe("VictuallingTheory durable checklist", () => {
     const reload = await screen.findByRole("button", { name: "Reload checklist" });
     const conflictAlert = screen.getByText(/checklist changed elsewhere/).closest('[role="alert"]');
     expect(conflictAlert?.textContent).toContain("latest change was not saved");
-    expect(conflictAlert?.textContent).toContain("Reload checklist is available");
+    expect(conflictAlert?.textContent?.match(/Reload checklist/g)).toHaveLength(1);
     expect((first as HTMLButtonElement).disabled).toBe(true);
     await user.click(reload);
     await waitFor(() => expect((first as HTMLButtonElement).disabled).toBe(false));
@@ -119,7 +119,7 @@ describe("VictuallingTheory durable checklist", () => {
     const user = userEvent.setup();
     renderPage();
     expect((await screen.findByRole("button", { name: "Retry load" }))).toBeTruthy();
-    expect(screen.getByText(/Saved checklist could not be loaded/).closest('[role="alert"]')?.textContent).toContain("Retry load is available");
+    expect(screen.getByText(/Saved checklist could not be loaded/).closest('[role="alert"]')?.textContent?.match(/Retry load/g)).toHaveLength(1);
     const checkbox = screen.getByRole("checkbox", { name: checklistData[0].item }) as HTMLButtonElement;
     expect(checkbox.disabled).toBe(true);
     await user.click(screen.getByRole("button", { name: "Retry load" }));
