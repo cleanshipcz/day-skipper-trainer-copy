@@ -25,6 +25,7 @@
     "src/features/progress/completionGates.ts",
     "src/features/progress/anchorProgress.ts",
     "src/features/progress/progressPersistence.ts",
+    "src/features/progress/progressClient.ts",
     "src/features/progress/useTheoryCompletionGate.ts",
     "src/features/quiz/progressKeys.ts",
     "src/features/quiz/randomization.ts",
