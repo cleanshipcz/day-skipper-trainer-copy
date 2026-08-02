@@ -1,4 +1,4 @@
-import { render, screen } from "@testing-library/react";
+import { render, screen, within } from "@testing-library/react";
 import { describe, expect, it } from "vitest";
 import { PartCLights, PartCShapes, RULE_22_RANGES } from "./PartCLightsShapes";
 
@@ -46,6 +46,25 @@ describe("COLREG Part C safety-critical content", () => {
     expect(screen.getByText(/shooting nets shows two all-round whites vertically/)).toBeTruthy();
     expect(screen.getByText(/hauling nets shows all-round white over red/)).toBeTruthy();
     expect(screen.getByText(/purse seiner hampered by its gear/)).toBeTruthy();
+  });
+
+  it("renders one coloured symbol for every light in a stated group", () => {
+    render(<PartCLights />);
+    const towingPlan = screen.getByText("Towing astern, tow 200 m or less").closest("figure")!;
+    const verticalGroup = within(towingPlan).getByText("two masthead lights vertically").parentElement!;
+    expect(verticalGroup.querySelectorAll('[data-light-colour="white"]')).toHaveLength(2);
+    const cbdPlan = screen.getByText("Constrained by draught underway").closest("figure")!;
+    const cbdGroup = within(cbdPlan).getByText("three all-round reds vertically").parentElement!;
+    expect(cbdGroup.querySelectorAll('[data-light-colour="red"]')).toHaveLength(3);
+  });
+
+  it("shows the 50 m trawler masthead ahead but not astern", () => {
+    render(<PartCLights />);
+    const plan = screen.getByText("Trawling and making way").closest("figure")!;
+    const ahead = within(plan).getByText("Ahead").nextElementSibling!;
+    const astern = within(plan).getByText("Astern").nextElementSibling!;
+    expect(within(ahead as HTMLElement).getByText("50 m+ masthead light")).toBeTruthy();
+    expect(within(astern as HTMLElement).queryByText("50 m+ masthead light")).toBeNull();
   });
 
   it("provides text equivalents and separates mnemonics", () => {
