@@ -10,12 +10,18 @@ type ColregQuestion = Question & {
 const steering = (question: Omit<ColregQuestion, "prerequisite" | "remediationRoute">): ColregQuestion => ({
   ...question,
   prerequisite: "Steering & Sailing",
-  remediationRoute: "/rules/colregs",
+  remediationRoute: question.id === "cr1" ? "/rules/colregs#rule-18"
+    : question.id === "cr10" ? "/rules/colregs#rule-19"
+      : `/rules/colregs#rule-${({ cr2: 13, cr3: 15, cr4: 17, cr5: 12, cr6: 6, cr7: 14, cr8: 9, cr9: 10, cr11: 8, cr12: 15 } as Record<string, number>)[question.id]}`,
 });
 const lights = (question: Omit<ColregQuestion, "prerequisite" | "remediationRoute">): ColregQuestion => ({
   ...question,
   prerequisite: "Lights & Signals",
-  remediationRoute: "/rules/lights/theory",
+  remediationRoute: question.id === "cr19" ? "/rules/lights/theory?section=shapes#rule-30"
+    : question.id === "cr20" ? "/rules/lights/theory?section=lights#rule-27"
+      : ["cr15", "cr16"].includes(question.id) ? "/rules/lights/theory?section=sounds#rule-34"
+        : ["cr17", "cr18"].includes(question.id) ? "/rules/lights/theory?section=sounds#rule-35"
+          : `/rules/lights/theory?section=lights#rule-${question.id === "cr13" ? 23 : 25}`,
 });
 
 const colregsQuestions: readonly ColregQuestion[] = [
@@ -41,9 +47,19 @@ const colregsQuestions: readonly ColregQuestion[] = [
   lights({ id: "cr20", learningObjective: "Distinguish NUC from RAM signals", question: "At night, a vessel underway shows two all-round red lights vertically and, because she is making way, also shows sidelights and a sternlight. Which status is indicated?", options: ["Not under command", "Restricted in ability to manoeuvre", "Constrained by draught", "Engaged in trawling"], correctAnswer: 0, explanation: "Rule 27 indicates NUC with two all-round red lights vertically (and two balls by day). A RAM vessel instead uses red-white-red; when making way, the applicable sidelights and sternlight are also shown." }),
 ] as const;
 
+export const COLREG_OBJECTIVE_IDS = {
+  cr1: "rule-18-responsibilities", cr2: "rule-13-overtaking", cr3: "rules-7-15-16-crossing-risk",
+  cr4: "rule-17-escalation", cr5: "rule-12-sailing", cr6: "rule-6-safe-speed", cr7: "rule-14-head-on",
+  cr8: "rule-9-narrow-channel", cr9: "rule-10-tss", cr10: "rule-19-restricted-visibility",
+  cr11: "rule-8-verify-action", cr12: "rule-15-applicability", cr13: "rule-23-power-lights",
+  cr14: "rule-25-sailing-lights", cr15: "rule-34-starboard-signal", cr16: "rule-34-doubt-signal",
+  cr17: "rule-35-making-way", cr18: "rule-35-stopped", cr19: "rule-30-anchor-shape", cr20: "rule-27-nuc-lights",
+} as const;
+
 /** Published curriculum traceability for the combined diagnostic. */
 export const COLREG_QUIZ_OBJECTIVE_MATRIX = colregsQuestions.map(({ id, learningObjective, prerequisite, remediationRoute }) => ({
   questionId: id,
+  objectiveId: COLREG_OBJECTIVE_IDS[id as keyof typeof COLREG_OBJECTIVE_IDS],
   learningObjective,
   prerequisite,
   remediationRoute,

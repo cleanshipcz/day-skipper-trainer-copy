@@ -1,4 +1,4 @@
-import { useNavigate } from "react-router-dom";
+import { useLocation, useNavigate, useSearchParams } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -10,6 +10,10 @@ import { TOPIC_IDS } from "@/constants/topicRegistry";
 
 const LightsTheory = () => {
   const navigate = useNavigate();
+  const location = useLocation();
+  const [searchParams, setSearchParams] = useSearchParams();
+  const requestedSection = searchParams.get("section");
+  const activeSection = ["lights", "shapes", "sounds", "distress"].includes(requestedSection ?? "") ? requestedSection! : "lights";
   const { canComplete, markCompleted, markSectionVisited } = useTheoryCompletionGate({
     topicId: TOPIC_IDS.LIGHTS_THEORY,
     requiredSectionIds: ["lights", "shapes", "sounds", "distress"],
@@ -17,8 +21,16 @@ const LightsTheory = () => {
   });
 
   useEffect(() => {
-    void markSectionVisited("lights");
-  }, [markSectionVisited]);
+    void markSectionVisited(activeSection);
+  }, [activeSection, markSectionVisited]);
+
+  useEffect(() => {
+    const targetId = location.hash.slice(1);
+    if (!/^rule-(?:23|25|27|30|34|35)$/.test(targetId)) return;
+    const target = document.getElementById(targetId);
+    target?.scrollIntoView({ block: "start" });
+    target?.focus({ preventScroll: true });
+  }, [activeSection, location.hash]);
 
   const LightDot = ({ color, border = false }: { color: string; border?: boolean }) => (
     <span className={`w-4 h-4 rounded-full inline-block mr-1 ${color} ${border ? "border border-gray-400" : ""}`} />
@@ -42,7 +54,10 @@ const LightsTheory = () => {
       </header>
 
       <main className="container mx-auto px-4 py-8 max-w-4xl">
-        <Tabs defaultValue="lights" className="space-y-6" onValueChange={(value) => void markSectionVisited(value)}>
+        <Tabs value={activeSection} className="space-y-6" onValueChange={(value) => {
+          setSearchParams({ section: value });
+          void markSectionVisited(value);
+        }}>
           <TabsList className="grid w-full grid-cols-2 md:grid-cols-4 h-auto">
             <TabsTrigger value="lights" className="py-2">
               <Lightbulb className="w-4 h-4 mr-2" />
@@ -74,7 +89,7 @@ const LightsTheory = () => {
             </div>
 
             <div className="grid md:grid-cols-2 gap-6">
-              <Card>
+              <Card id="rule-23" tabIndex={-1} className="scroll-mt-28 focus:outline-none">
                 <CardHeader>
                   <CardTitle>Power-Driven Vessels (Rule 23)</CardTitle>
                 </CardHeader>
@@ -103,7 +118,7 @@ const LightsTheory = () => {
                 </CardContent>
               </Card>
 
-              <Card>
+              <Card id="rule-25" tabIndex={-1} className="scroll-mt-28 focus:outline-none">
                 <CardHeader>
                   <CardTitle>Sailing Vessels (Rule 25)</CardTitle>
                 </CardHeader>
@@ -169,7 +184,7 @@ const LightsTheory = () => {
                 </CardContent>
               </Card>
 
-              <Card>
+              <Card id="rule-27" tabIndex={-1} className="scroll-mt-28 focus:outline-none">
                 <CardHeader>
                   <CardTitle>NUC & RAM (Rule 27)</CardTitle>
                 </CardHeader>
@@ -192,7 +207,7 @@ const LightsTheory = () => {
                 </CardContent>
               </Card>
 
-              <Card>
+              <Card id="rule-30" tabIndex={-1} className="scroll-mt-28 focus:outline-none">
                 <CardHeader>
                   <CardTitle>Anchored & Aground (Rule 30)</CardTitle>
                 </CardHeader>
@@ -293,7 +308,7 @@ const LightsTheory = () => {
             </div>
 
             <div className="space-y-6">
-              <Card>
+              <Card id="rule-34" tabIndex={-1} className="scroll-mt-28 focus:outline-none">
                 <CardHeader>
                   <CardTitle>Maneuvering & Warning (Rule 34)</CardTitle>
                   <CardDescription>Only when vessels are in sight of one another</CardDescription>
@@ -325,7 +340,7 @@ const LightsTheory = () => {
                 </CardContent>
               </Card>
 
-              <Card>
+              <Card id="rule-35" tabIndex={-1} className="scroll-mt-28 focus:outline-none">
                 <CardHeader>
                   <CardTitle>Restricted Visibility (Rule 35)</CardTitle>
                   <CardDescription>Tests use "Prolonged" (4-6s) and "Short" (1s) blasts</CardDescription>
