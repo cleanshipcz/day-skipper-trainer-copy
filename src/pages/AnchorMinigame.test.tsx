@@ -244,6 +244,29 @@ describe("AnchorMinigame", () => {
     expect(screen.getByText("Harbour afternoon")).toBeTruthy();
   });
 
+  it("continues checks and New setup on the hydrated seed lineage instead of the URL seed", async () => {
+    progressMocks.user = { id: "user-a" };
+    progressMocks.load.mockResolvedValue({ status: "remote", record: { answers_history: {
+      version: 1, completedFamilies: [], attempts: 2, failedChecks: 1,
+      scenarioSeed: 7, sequenceIndex: 1, scenarioIdentity: "anchor-7-1-2-harbour",
+    } } });
+    progressMocks.save.mockResolvedValue("remote");
+    const user = userEvent.setup();
+    render(<MemoryRouter initialEntries={["/?scenarioSeed=99&scenarioIndex=3"]}><AnchorMinigame /></MemoryRouter>);
+    await screen.findByText("Practice ready.");
+    await user.click(screen.getByRole("button", { name: "Enter (check)" }));
+    await waitFor(() => expect(progressMocks.save).toHaveBeenCalledWith(
+      "anchorwork-practice", false, 0, 0,
+      expect.objectContaining({ scenarioSeed: 7, sequenceIndex: 1, scenarioIdentity: expect.stringMatching(/^anchor-7-1-2-/) }),
+    ));
+    await user.click(screen.getAllByRole("button", { name: "Close" })[0]);
+    await user.click(screen.getByRole("button", { name: "New setup" }));
+    await waitFor(() => expect(progressMocks.save).toHaveBeenLastCalledWith(
+      "anchorwork-practice", false, 0, 0,
+      expect.objectContaining({ scenarioSeed: 7, sequenceIndex: 2, scenarioIdentity: expect.stringMatching(/^anchor-7-1-3-/) }),
+    ));
+  });
+
   it("blocks checks and setup changes until authenticated hydration resolves", async () => {
     progressMocks.user = { id: "user-a" };
     let resolveLoad!: (value: { status: "missing"; record: null }) => void;

@@ -150,7 +150,7 @@ const AnchorMinigameSession = ({ ownerId }: { ownerId: string | null }) => {
   const { loadProgressDetailed, saveProgressDetailed } = useProgress();
   const [searchParams, setSearchParams] = useSearchParams();
   const returnTopic = searchParams.get("returnTopic") || "scope";
-  const [scenarioSeed] = useState(() => normaliseScenarioSeed(searchParams.get("scenarioSeed")
+  const [scenarioSeed, setScenarioSeed] = useState(() => normaliseScenarioSeed(searchParams.get("scenarioSeed")
     ?? (searchParams.has("scenarioRandom") ? "0" : String(Math.floor(Math.random() * 0xffffffff)))));
   const [initialSequenceIndex] = useState(() => {
     const rawIndex = searchParams.get("scenarioIndex");
@@ -188,6 +188,7 @@ const AnchorMinigameSession = ({ ownerId }: { ownerId: string | null }) => {
         if (!saved) { setPersistenceStatus("failed"); return; }
         const restored = createScenario(scenarioPool, saved.scenarioSeed, saved.sequenceIndex);
         setCompletedFamilies(saved.completedFamilies); setAttempts(saved.attempts); setFailedChecks(saved.failedChecks);
+        setScenarioSeed(saved.scenarioSeed);
         setSequenceIndex(saved.sequenceIndex); setScenario(restored);
         setPersistenceStatus("ready"); return;
       }
