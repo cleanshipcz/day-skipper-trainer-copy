@@ -5,6 +5,7 @@ import EngineTheory from "./EngineTheory";
 
 const loadProgressDetailed = vi.fn();
 const saveProgressDetailed = vi.fn();
+const scrollIntoView = vi.fn();
 
 vi.mock("@/contexts/AuthHooks", () => ({ useAuth: () => ({ user: null }) }));
 vi.mock("@/hooks/useProgress", () => ({
@@ -13,9 +14,25 @@ vi.mock("@/hooks/useProgress", () => ({
 
 describe("EngineTheory practical lesson", () => {
   beforeEach(() => {
+    Object.defineProperty(HTMLElement.prototype, "scrollIntoView", { configurable: true, value: scrollIntoView });
+    scrollIntoView.mockReset();
     sessionStorage.clear();
     loadProgressDetailed.mockReset().mockResolvedValue({ status: "anonymous" });
     saveProgressDetailed.mockReset();
+  });
+
+  it("scrolls and focuses an allowlisted remediation heading", async () => {
+    render(<MemoryRouter initialEntries={["/engine#engine-component-inspections"]}><EngineTheory /></MemoryRouter>);
+    const heading = await screen.findByRole("heading", { name: "Component inspection examples" });
+    expect(scrollIntoView).toHaveBeenCalledWith({ block: "start" });
+    expect(document.activeElement).toBe(heading);
+  });
+
+  it("ignores unrecognised hash targets", async () => {
+    render(<MemoryRouter initialEntries={["/engine#not-an-engine-objective"]}><EngineTheory /></MemoryRouter>);
+    await screen.findByText(/Lesson objectives and scope/i);
+    expect(scrollIntoView).not.toHaveBeenCalled();
+    expect(document.activeElement).toBe(document.body);
   });
 
   it("renders objectives, an accessible visual alternative, and the ordered routine", async () => {

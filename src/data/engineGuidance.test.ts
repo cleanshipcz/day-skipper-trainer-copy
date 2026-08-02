@@ -29,8 +29,10 @@ describe("Engine safety learning content", () => {
   });
 
   it("links authoritative and manufacturer follow-up sources", () => {
-    expect(engineSources).toHaveLength(5);
+    expect(engineSources).toHaveLength(6);
+    expect(new Set(engineSources.map(({ id }) => id)).size).toBe(engineSources.length);
     expect(engineSources.every(({ href }) => href.startsWith("https://"))).toBe(true);
-    expect(engineSources.map(({ label }) => label).join(" ")).toMatch(/RYA.*Coast Guard.*MAIB.*Yanmar/);
+    const labels = engineSources.map(({ label }) => label).join(" ");
+    for (const authority of ["RYA", "Coast Guard", "MAIB", "Yanmar", "Volvo Penta"]) expect(labels).toContain(authority);
   });
 });

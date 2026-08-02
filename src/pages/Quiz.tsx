@@ -22,6 +22,7 @@ import {
   clearAllAnonymousQuizSessions,
   clearAnonymousQuizSession,
   createEmptyQuizAnswers,
+  isCurrentCompletedQuizCatalogue,
   parseSavedQuizSession,
   persistQuizSessionProgress,
   restoreAnonymousQuizSession,
@@ -32,6 +33,7 @@ import { seedQuizQuestions } from "@/features/spaced-repetition/reviewService";
 import { syncEngagementEvent } from "@/features/engagement/engagementService";
 import { ownerStorageKey, readStored, removeStored, writeStored } from "@/features/persistence/browserStorage";
 import { resolveQuizParentDestination } from "@/constants/topicRegistry";
+import { engineTheoryRoute } from "@/data/engineAssessment";
 import { anchorQuizRemediationTopic, anchorTheoryRoute } from "@/features/anchorwork/learningPath";
 import { victuallingQuizRemediationRoute, victuallingTheoryRoute } from "@/features/victualling/learningPath";
 
@@ -209,8 +211,6 @@ const Quiz = () => {
       const resolution = resolveQuizProgressForLoad(topicKey, canonicalRecord, legacyRecord);
       const savedData = resolution.record;
 
-      if (savedData?.completed && owner) void seedReviews(owner, generation);
-
       if (savedData?.answers_history) {
         try {
           const savedRaw =
@@ -218,7 +218,15 @@ const Quiz = () => {
               ? JSON.parse(savedData.answers_history)
               : savedData.answers_history;
 
-          const saved = parseSavedQuizSession(savedRaw, questions, Boolean(savedData.completed));
+          if (savedData.completed) {
+            if (owner && isCurrentCompletedQuizCatalogue(savedRaw, questions)) void seedReviews(owner, generation);
+            setAnswers(createEmptyQuizAnswers(questions.length));
+            setCurrentQuestion(0);
+            setTentativeAnswer(null);
+            return;
+          }
+
+          const saved = parseSavedQuizSession(savedRaw, questions);
           if (saved) {
             setAnswers(saved.answers);
             setCurrentQuestion(saved.currentQuestion);
@@ -654,6 +662,7 @@ const Quiz = () => {
                 </h3>
                 <p className="text-muted-foreground break-words [overflow-wrap:anywhere]">{question.explanation}</p>
                 {topicKey === "victualling" && selectedAnswer !== question.correctAnswer && <Button variant="link" className="h-auto px-0 pt-2" onClick={() => navigate(victuallingTheoryRoute(question.id))}>Review this objective in Victualling theory</Button>}
+                {topicKey === "engine" && selectedAnswer !== question.correctAnswer && <Button variant="link" className="h-auto px-0 pt-2" onClick={() => navigate(engineTheoryRoute(question.id))}>Review this objective in Engine theory</Button>}
               </div>
             )}
 
