@@ -13,7 +13,7 @@ const outcomes = new Set<RigOutcome>(["satisfactory", "defect", "unknown-na"]);
 export const normalizeRigCatalogue = (value: readonly RigCheck[]) => {
   const seen = new Set<string>();
   return value.filter((item) => {
-    if (!item || !item.id.trim() || !item.area.trim() || !item.item.trim() || !item.lookFor.trim() || seen.has(item.id)) return false;
+    if (!item || !item.id.trim() || !item.area.trim() || !item.item.trim() || !item.lookFor.trim() || !item.boundary.trim() || seen.has(item.id)) return false;
     seen.add(item.id); return true;
   });
 };
