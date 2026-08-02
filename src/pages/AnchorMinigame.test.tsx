@@ -254,6 +254,49 @@ describe("AnchorMinigame", () => {
     expect(await screen.findByText("Practice ready.")).toBeTruthy();
   });
 
+  it.each([
+    ["queued", "Practice saved offline and queued to sync."],
+    ["remote", "Practice saved to your account."],
+  ])("persists diagnostic failures with zero reward and surfaces %s", async (saveResult, message) => {
+    progressMocks.user = { id: "user-a" };
+    progressMocks.load.mockResolvedValue({ status: "missing", record: null });
+    progressMocks.save.mockResolvedValue(saveResult);
+    const user = userEvent.setup();
+    render(<MemoryRouter><AnchorMinigame /></MemoryRouter>);
+    await screen.findByText("Practice ready.");
+    await user.click(screen.getByRole("button", { name: "Enter (check)" }));
+    await waitFor(() => expect(progressMocks.save).toHaveBeenCalledWith(
+      "anchorwork-practice", false, 0, 0, expect.objectContaining({ attempts: 1, failedChecks: 1 }),
+    ));
+    expect(await screen.findByText(message)).toBeTruthy();
+  });
+
+  it("retries the exact failed save without creating reward-bearing duplicate credit", async () => {
+    progressMocks.user = { id: "user-a" };
+    progressMocks.load.mockResolvedValue({ status: "missing", record: null });
+    progressMocks.save.mockResolvedValueOnce("failed").mockResolvedValueOnce("remote");
+    const user = userEvent.setup();
+    render(<MemoryRouter><AnchorMinigame /></MemoryRouter>);
+    await screen.findByText("Practice ready.");
+    await user.click(screen.getByRole("button", { name: "Enter (check)" }));
+    await user.click(screen.getAllByRole("button", { name: "Close" })[0]);
+    await user.click(await screen.findByRole("button", { name: "Retry progress" }));
+    await waitFor(() => expect(progressMocks.save).toHaveBeenCalledTimes(2));
+    expect(progressMocks.save.mock.calls[1]).toEqual(progressMocks.save.mock.calls[0]);
+    expect(progressMocks.save.mock.calls[1][3]).toBe(0);
+  });
+
+  it("offers parent theory and quiz handoff after restored mastery", async () => {
+    progressMocks.user = { id: "user-a" };
+    progressMocks.load.mockResolvedValue({ status: "remote", record: { answers_history: {
+      version: 1, completedFamilies: ["sheltered", "harbour", "exposed", "tidal"], attempts: 8, failedChecks: 4,
+      scenarioSeed: 0, sequenceIndex: 0, scenarioIdentity: "anchor-0-1-1-sheltered",
+    } } });
+    render(<MemoryRouter><AnchorMinigame /></MemoryRouter>);
+    expect(await screen.findByRole("button", { name: "Review Anchorwork" })).toBeTruthy();
+    expect(screen.getByRole("button", { name: "Take Anchorwork quiz" })).toBeTruthy();
+  });
+
   it("preserves a passed history outcome when continuing to the next setup", () => {
     const now = vi.spyOn(Date, "now").mockReturnValue(1_000);
     render(<MemoryRouter initialEntries={["/?scenarioSeed=0&scenarioIndex=0"]}><AnchorMinigame /></MemoryRouter>);
