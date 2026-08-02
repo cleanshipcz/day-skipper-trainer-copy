@@ -204,7 +204,14 @@ const AnchorMinigame = () => {
   const rollScenario = () => {
     const nextIndex = sequenceIndex + 1;
     const next = createScenario(scenarioPool, scenarioSeed, nextIndex);
-    setHistory((items) => [{ identity: scenario.identity, title: scenario.title, outcome: "changed" }, ...items].slice(0, 5));
+    setHistory((items) => {
+      const previous = items.find((item) => item.identity === scenario.identity);
+      return [{
+        identity: scenario.identity,
+        title: scenario.title,
+        outcome: previous?.outcome === "passed" ? "passed" : "changed",
+      }, ...items.filter((item) => item.identity !== scenario.identity)].slice(0, 5);
+    });
     setSequenceIndex(nextIndex);
     setScenario(next);
     setAttempts(0);

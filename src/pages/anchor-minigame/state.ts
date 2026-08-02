@@ -55,7 +55,7 @@ const seededValue = (seed: number, index: number) => {
   return (value ^ (value >>> 15)) >>> 0;
 };
 
-export const getScenarioFamilyOrder = (seed: number, cycle: number): AnchorScenarioFamily[] => {
+const getShuffledScenarioFamilies = (seed: number, cycle: number) => {
   const families: AnchorScenarioFamily[] = ["sheltered", "harbour", "exposed", "tidal"];
   // Seed zero is the documented baseline fixture used by examples and browser characterization.
   if (seed === 0 && cycle === 0) return families;
@@ -63,8 +63,15 @@ export const getScenarioFamilyOrder = (seed: number, cycle: number): AnchorScena
     const swap = seededValue(seed, cycle * families.length + index) % (index + 1);
     [families[index], families[swap]] = [families[swap], families[index]];
   }
+  return families;
+};
+
+export const getScenarioFamilyOrder = (seed: number, cycle: number): AnchorScenarioFamily[] => {
+  const families = getShuffledScenarioFamilies(seed, cycle);
   if (cycle > 0) {
-    const previousLast = getScenarioFamilyOrder(seed, cycle - 1).at(-1);
+    // Boundary correction only swaps the first two entries, so it never changes
+    // the previous cycle's last entry. Reading its raw shuffle avoids recursion.
+    const previousLast = getShuffledScenarioFamilies(seed, cycle - 1).at(-1);
     if (families[0] === previousLast) [families[0], families[1]] = [families[1], families[0]];
   }
   return families;

@@ -77,6 +77,21 @@ describe("anchor minigame transitions", () => {
     }
   });
 
+  it("handles adversarially large reproducible indices without recursive cycle lookup", () => {
+    const templates = (["sheltered", "harbour", "exposed", "tidal"] as const).map((family) => ({
+      ...scenario, family, title: family, windDirection: `${family} wind`,
+    })).map(({ id: _id, identity: _identity, seed: _seed, cycle: _cycle, ...template }) => template) as AnchorScenarioTemplate[];
+    const index = Number.MAX_SAFE_INTEGER - 1;
+    const generated = createScenario(templates, 0xffffffff, index);
+
+    expect(generated).toEqual(createScenario(templates, 0xffffffff, index));
+    expect(generated.cycle).toBe(Math.floor(index / 4) + 1);
+    expect(generated.identity).toContain(`-${generated.cycle}-${index % 4 + 1}-`);
+    expect(getScenarioFamilyOrder(123, 10_000_000)[0]).not.toBe(
+      getScenarioFamilyOrder(123, 9_999_999).at(-1),
+    );
+  });
+
   it("creates and resets the stable starting position", () => {
     expect(createInitialState()).toEqual({
       boatX: 17,

@@ -164,6 +164,25 @@ describe("AnchorMinigame", () => {
     now.mockRestore();
   });
 
+  it("preserves a passed history outcome when continuing to the next setup", () => {
+    const now = vi.spyOn(Date, "now").mockReturnValue(1_000);
+    render(<MemoryRouter initialEntries={["/?scenarioSeed=0&scenarioIndex=0"]}><AnchorMinigame /></MemoryRouter>);
+    for (let index = 0; index < 32; index += 1) fireEvent.keyDown(window, { key: "ArrowDown" });
+    for (let index = 0; index < 10; index += 1) fireEvent.keyDown(window, { key: "ArrowLeft" });
+    for (let index = 0; index < 3; index += 1) fireEvent.click(screen.getByRole("button", { name: "Apply setting load" }));
+    fireEvent.keyDown(window, { key: "Enter" });
+    fireEvent.click(screen.getByRole("button", { name: "Close" }));
+    now.mockReturnValue(6_000);
+    fireEvent.click(screen.getByRole("button", { name: "Apply wind/tide change" }));
+    fireEvent.click(screen.getByRole("button", { name: "Run anchor watch" }));
+    fireEvent.keyDown(window, { key: "Enter" });
+    fireEvent.click(screen.getByRole("button", { name: "Next setup" }));
+
+    expect(screen.getByText(/Sheltered cove \(passed, anchor-0-1-1-sheltered\)/)).toBeTruthy();
+    expect(screen.queryByText(/Sheltered cove \(changed, anchor-0-1-1-sheltered\)/)).toBeNull();
+    now.mockRestore();
+  });
+
   it("lets a focused control handle Enter without also running the global placement check", async () => {
     const user = userEvent.setup();
     render(<MemoryRouter><AnchorMinigame /></MemoryRouter>);
