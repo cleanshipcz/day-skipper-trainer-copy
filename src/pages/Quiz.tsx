@@ -19,6 +19,7 @@ import { canonicalQuizProgressKey, resolveQuizProgressForLoad, type QuizProgress
 import { createSeededRng, shuffleWithRng } from "@/features/quiz/randomization";
 import {
   buildQuizSessionProgress,
+  clearAllAnonymousQuizSessions,
   clearAnonymousQuizSession,
   createEmptyQuizAnswers,
   parseSavedQuizSession,
@@ -198,7 +199,7 @@ const Quiz = () => {
       }
       // Anonymous practice is session-scoped and is never promoted into an
       // authenticated attempt or score on sign-in.
-      clearAnonymousQuizSession(globalThis.sessionStorage, topicKey);
+      clearAllAnonymousQuizSessions(globalThis.sessionStorage);
       setAnonymousStorageNotice(null);
       const canonicalKey = canonicalQuizProgressKey(topicKey);
       const canonicalRecord: QuizProgressRow | null = await loadProgress(canonicalKey);

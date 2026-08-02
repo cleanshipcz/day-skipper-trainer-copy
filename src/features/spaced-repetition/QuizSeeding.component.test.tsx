@@ -323,12 +323,19 @@ describe("quiz review seeding identity isolation", () => {
     fireEvent.click(await screen.findByRole("radio", { name: "Right" }));
     fireEvent.click(screen.getByRole("button", { name: "Submit Answer" }));
     await waitFor(() => expect(sessionStorage.getItem("quiz-anonymous-session-v1:test")).not.toBeNull());
+    sessionStorage.setItem("quiz-anonymous-session-v1:weather", JSON.stringify({ unrelated: "anonymous quiz" }));
 
     mocks.auth.user = { id: "a" };
     view.rerender(<MemoryRouter initialEntries={["/quiz/test"]}><Routes><Route path="/quiz/:topicId" element={<Quiz />} /></Routes></MemoryRouter>);
     await waitFor(() => expect(sessionStorage.getItem("quiz-anonymous-session-v1:test")).toBeNull());
+    expect(sessionStorage.getItem("quiz-anonymous-session-v1:weather")).toBeNull();
     await waitFor(() => expect(mocks.rpc).toHaveBeenCalledWith("start_quiz_attempt", { p_topic_id: "test" }));
     expect(mocks.rpc.mock.calls.some(([name]) => name === "submit_quiz_score")).toBe(false);
     expect(mocks.saveProgress.mock.calls.some((call) => call[1] === true)).toBe(false);
+
+    mocks.auth.user = null;
+    view.rerender(<MemoryRouter initialEntries={["/quiz/test"]}><Routes><Route path="/quiz/:topicId" element={<Quiz />} /></Routes></MemoryRouter>);
+    await waitFor(() => expect(screen.queryByText("Practice attempt resumed for this browser session.")).toBeNull());
+    expect((screen.getByRole("radio", { name: "Right" }) as HTMLInputElement).checked).toBe(false);
   });
 });

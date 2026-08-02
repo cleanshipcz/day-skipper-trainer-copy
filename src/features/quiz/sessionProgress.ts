@@ -81,6 +81,20 @@ export const saveAnonymousQuizSession = (
 export const clearAnonymousQuizSession = (storage: Storage | undefined, topicKey: string) =>
   removeStored(storage, anonymousQuizSessionKey(topicKey));
 
+export const clearAllAnonymousQuizSessions = (storage: Storage | undefined): void => {
+  if (!storage) return;
+  const prefix = "quiz-anonymous-session-v1:";
+  try {
+    for (let index = storage.length - 1; index >= 0; index -= 1) {
+      const key = storage.key(index);
+      if (key?.startsWith(prefix)) storage.removeItem(key);
+    }
+  } catch {
+    // Identity-boundary cleanup is best effort when browser storage is denied;
+    // denied storage cannot be read to resume an anonymous attempt either.
+  }
+};
+
 export const restoreAnonymousQuizSession = (
   storage: Storage | undefined,
   topicKey: string,
