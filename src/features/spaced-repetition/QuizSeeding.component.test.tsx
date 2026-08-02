@@ -411,6 +411,7 @@ describe("quiz review seeding identity isolation", () => {
       p_score: 1,
     })));
     expect(mocks.saveProgress).toHaveBeenCalledWith("quiz-test", true, 100, 0, expect.any(Object));
+    await waitFor(() => expect(screen.queryByRole("button", { name: "Save completed quiz" })).toBeNull());
   });
 
   test("keeps start recovery separate when retry fails again", async () => {

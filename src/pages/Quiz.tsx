@@ -619,7 +619,7 @@ const Quiz = () => {
                 Retry starting quiz
               </Button>}
             </div>}
-            {user && attemptStartState === "ready" && !workflow?.scoreSaved && !completionSaveError && <div className="text-center">
+            {user && attemptStartState === "ready" && workflow && !workflow.scoreSaved && !completionSaveError && <div className="text-center">
               <Button variant="outline" onClick={() => void handleComplete()}>Save completed quiz</Button>
             </div>}
             {seedStatus === "failed" && <div className="text-center space-y-2">
