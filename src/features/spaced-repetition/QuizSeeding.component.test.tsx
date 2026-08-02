@@ -92,6 +92,23 @@ describe("quiz review seeding identity isolation", () => {
     expect(mocks.seedQuizQuestions).not.toHaveBeenCalled();
   });
 
+  test("should repair review seeding for a completed current catalogue", async () => {
+    mocks.questions = [{ id: "e13", question: "Replacement?", options: ["Wrong", "Right"], correctAnswer: 1, explanation: "Why." }];
+    const { buildQuizSessionProgress } = await import("@/features/quiz/sessionProgress");
+    mocks.loadProgress.mockResolvedValue({
+      completed: true,
+      score: 100,
+      answers_history: buildQuizSessionProgress([1], 0, mocks.questions),
+    });
+
+    renderQuiz();
+
+    await waitFor(() => expect(mocks.seedQuizQuestions).toHaveBeenCalledWith(
+      expect.anything(), "test", ["e13"],
+    ));
+    expect(await screen.findByRole("radio", { name: "Right" })).toBeTruthy();
+  });
+
   test("should not seed after auth changes while quiz completion persistence is pending", async () => {
     let resolveInsert!: (value: { data: object; error: null }) => void;
     mocks.rpc.mockImplementation((name: string) => name === "submit_quiz_score"

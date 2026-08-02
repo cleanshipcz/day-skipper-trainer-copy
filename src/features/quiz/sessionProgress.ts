@@ -53,6 +53,20 @@ export const quizCatalogueVersion = (questions: readonly Question[]): string =>
     .map(({ id, options }) => [id, [...options].sort()] as const)
     .sort(([left], [right]) => left.localeCompare(right)));
 
+/**
+ * Proves that a completed progress row belongs to the exact current question
+ * and option catalogue without turning its answers back into an active attempt.
+ */
+export const isCurrentCompletedQuizCatalogue = (
+  raw: Json | undefined,
+  questions: readonly Question[],
+): boolean => {
+  if (!validCatalogue(questions) || !raw || typeof raw !== "object" || Array.isArray(raw)) return false;
+  const record = raw as Record<string, unknown>;
+  return (record.version === 2 || record.version === QUIZ_SESSION_SCHEMA_VERSION)
+    && record.catalogueVersion === quizCatalogueVersion(questions);
+};
+
 export const anonymousQuizSessionKey = (topicKey: string) =>
   ownerStorageKey("quiz-anonymous-session-v1", topicKey);
 

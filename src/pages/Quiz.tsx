@@ -22,6 +22,7 @@ import {
   clearAllAnonymousQuizSessions,
   clearAnonymousQuizSession,
   createEmptyQuizAnswers,
+  isCurrentCompletedQuizCatalogue,
   parseSavedQuizSession,
   persistQuizSessionProgress,
   restoreAnonymousQuizSession,
@@ -217,12 +218,16 @@ const Quiz = () => {
               ? JSON.parse(savedData.answers_history)
               : savedData.answers_history;
 
-          const saved = parseSavedQuizSession(savedRaw, questions, Boolean(savedData.completed));
+          if (savedData.completed) {
+            if (owner && isCurrentCompletedQuizCatalogue(savedRaw, questions)) void seedReviews(owner, generation);
+            setAnswers(createEmptyQuizAnswers(questions.length));
+            setCurrentQuestion(0);
+            setTentativeAnswer(null);
+            return;
+          }
+
+          const saved = parseSavedQuizSession(savedRaw, questions);
           if (saved) {
-            // A completion is meaningful for review seeding only when its
-            // persisted session proves the exact current question catalogue.
-            // Legacy completed rows must never seed replacement identities.
-            if (savedData.completed && owner) void seedReviews(owner, generation);
             setAnswers(saved.answers);
             setCurrentQuestion(saved.currentQuestion);
             setTentativeAnswer(saved.tentativeAnswer ?? null);
