@@ -177,6 +177,7 @@ try {
     }
   };
   const blurFocus = () => evaluate("document.activeElement?.blur()");
+  const focusManipulationSurface = () => evaluate(`document.querySelector('[role="application"][aria-label^="Anchor manipulation surface"]')?.focus()`);
   const key = async (keyName, times = 1) => {
     const virtualKeyCode = { Enter: 13, ArrowLeft: 37, ArrowUp: 38, ArrowRight: 39, ArrowDown: 40 }[keyName];
     for (let index = 0; index < times; index += 1) {
@@ -227,7 +228,7 @@ try {
     const layout = await readLearningLabels();
     const labelText = layout.labels.map(({ text }) => text).join(" ");
     const requiredGeometry = ["Water depth", "Bow roller height", "Total vertical depth now", "Horizontal separation", "Straight-line distance", "Rode paid out", "Slack", "Scope now", "Forecast high-water"];
-    const requiredStatus = ["Anchor", "Rode", "current scope", "forecast high-water scope", "straight-line distance", "slack", "Holding", "Plan-view hazards", "neighbours"];
+    const requiredStatus = ["Tap ↓ to lower the anchor"];
     if (layout.labels.length !== 8
       || layout.scrollWidth > layout.viewport
       || !layout.svg || layout.svg.left < 0 || layout.svg.right > layout.viewport
@@ -416,10 +417,13 @@ try {
     await waitForText("Anchor not set");
 
     await blurFocus();
+    await key("ArrowDown");
+    await waitForRode("0.0 m");
+    await focusManipulationSurface();
     await key("ArrowDown", workflow.rode);
     await key("ArrowLeft", workflow.astern);
     await clickButton("Apply setting load", workflow.settingLoads);
-    await blurFocus();
+    await focusManipulationSurface();
     await key("Enter");
     await waitForText("holding observation");
     await clickButton("Close");
@@ -429,18 +433,18 @@ try {
     if (workflow.title === "Tidal river bend") {
       await waitForText("detected dragging");
       await clickButton("Safe recovery", 2);
-      await blurFocus();
+      await focusManipulationSurface();
       await key("ArrowDown", workflow.rode);
       await key("ArrowLeft", workflow.astern);
       await clickButton("Apply setting load", workflow.settingLoads);
-      await blurFocus();
+      await focusManipulationSurface();
       await key("Enter");
       await clickButton("Close");
       await delay(5_100);
       await clickButton("Apply wind/tide change");
       await clickButton("Run anchor watch");
     }
-    await blurFocus();
+    await focusManipulationSurface();
     await key("Enter");
     try {
       await waitForText("Modeled checks passed");

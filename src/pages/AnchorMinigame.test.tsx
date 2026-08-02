@@ -1,4 +1,4 @@
-import { fireEvent, render, screen } from "@testing-library/react";
+import { fireEvent, render, screen, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import "fake-indexeddb/auto";
 import { MemoryRouter, Route, Routes, useLocation } from "react-router-dom";
@@ -12,6 +12,40 @@ vi.mock("sonner", () => ({
 describe("AnchorMinigame", () => {
   beforeEach(() => {
     vi.spyOn(Math, "random").mockReturnValue(0);
+  });
+
+  it("limits shortcuts to the focused named surface and announces concise actions", () => {
+    render(<MemoryRouter><AnchorMinigame /></MemoryRouter>);
+    const surface = screen.getByRole("application", { name: /Anchor manipulation surface/ });
+    const values = screen.getByTestId("scene-labels");
+
+    fireEvent.keyDown(window, { key: "ArrowDown" });
+    expect(values.textContent).toContain("Rode paid out: 0.0 m");
+    surface.focus();
+    fireEvent.keyDown(surface, { key: "ArrowLeft" });
+    expect(screen.getByRole("status").textContent).toBe("Drifting back from the anchor");
+    fireEvent.keyDown(surface, { key: "Enter" });
+    expect(screen.getByText("Attempted 1 time")).toBeTruthy();
+    expect(screen.getByRole("button", { name: "Back to anchorwork theory" })).toBeTruthy();
+  });
+
+  it("manages result-dialog focus, pauses gameplay, handles Escape, and restores focus", async () => {
+    render(<MemoryRouter><AnchorMinigame /></MemoryRouter>);
+    const surface = screen.getByRole("application", { name: /Anchor manipulation surface/ });
+    surface.focus();
+    fireEvent.keyDown(surface, { key: "Enter" });
+
+    const dialog = screen.getByRole("dialog", { name: "Checks not passed" });
+    expect(dialog.getAttribute("aria-modal")).toBe("true");
+    expect(document.activeElement).toBe(screen.getByRole("button", { name: "Close" }));
+    expect(surface.getAttribute("aria-disabled")).toBe("true");
+    fireEvent.keyDown(surface, { key: "ArrowDown" });
+    expect(screen.getByTestId("scene-labels").textContent).toContain("Rode paid out: 0.0 m");
+
+    fireEvent.keyDown(dialog, { key: "Escape" });
+    await waitFor(() => expect(document.activeElement).toBe(surface));
+    expect(screen.queryByRole("dialog")).toBeNull();
+    expect(surface.hasAttribute("aria-disabled")).toBe(false);
   });
 
   it("returns to the originating lesson and routes procedural failure to remediation", async () => {
@@ -58,7 +92,7 @@ describe("AnchorMinigame", () => {
     fireEvent.pointerUp(surface, { pointerId: 7, pointerType, isPrimary: true, clientX: 62, clientY: 130 });
 
     expect(screen.getByText("2.0 m")).toBeTruthy();
-    expect(screen.getByText("Drifting back from the anchor")).toBeTruthy();
+    expect(screen.getByRole("status").textContent).toBe("Drifting back from the anchor");
     expect(surface.className).toContain("touch-none");
   });
 
@@ -120,14 +154,17 @@ describe("AnchorMinigame", () => {
     const now = vi.spyOn(Date, "now").mockReturnValue(1_000);
     const Probe = () => { const location = useLocation(); return <p>Route: {location.pathname}{location.search}</p>; };
     render(<MemoryRouter><Routes><Route path="/" element={<AnchorMinigame />} /><Route path="*" element={<Probe />} /></Routes></MemoryRouter>);
-    for (let index = 0; index < 32; index += 1) fireEvent.keyDown(window, { key: "ArrowDown" });
-    for (let index = 0; index < 10; index += 1) fireEvent.keyDown(window, { key: "ArrowLeft" });
+    const surface = screen.getByRole("application", { name: /Anchor manipulation surface/ });
+    surface.focus();
+    for (let index = 0; index < 32; index += 1) fireEvent.keyDown(surface, { key: "ArrowDown" });
+    for (let index = 0; index < 10; index += 1) fireEvent.keyDown(surface, { key: "ArrowLeft" });
     for (let index = 0; index < 3; index += 1) fireEvent.click(screen.getByRole("button", { name: "Apply setting load" }));
-    fireEvent.keyDown(window, { key: "Enter" });
+    fireEvent.keyDown(surface, { key: "Enter" });
     fireEvent.click(screen.getByRole("button", { name: "Close" }));
     now.mockReturnValue(6_000);
     fireEvent.click(screen.getByRole("button", { name: "Apply wind/tide change" }));
-    fireEvent.keyDown(window, { key: "Enter" });
+    surface.focus();
+    fireEvent.keyDown(surface, { key: "Enter" });
     fireEvent.click(screen.getByRole("button", { name: "Review anchor-watch lesson" }));
     expect(await screen.findByText("Route: /anchorwork?topic=swinging-room&from=practice")).toBeTruthy();
     now.mockRestore();
@@ -139,16 +176,19 @@ describe("AnchorMinigame", () => {
     const sessionSetItem = vi.spyOn(window.sessionStorage, "setItem");
     const indexedDbOpen = vi.spyOn(window.indexedDB, "open");
     render(<MemoryRouter><AnchorMinigame /></MemoryRouter>);
+    const surface = screen.getByRole("application", { name: /Anchor manipulation surface/ });
+    surface.focus();
 
-    for (let index = 0; index < 32; index += 1) fireEvent.keyDown(window, { key: "ArrowDown" });
-    for (let index = 0; index < 10; index += 1) fireEvent.keyDown(window, { key: "ArrowLeft" });
+    for (let index = 0; index < 32; index += 1) fireEvent.keyDown(surface, { key: "ArrowDown" });
+    for (let index = 0; index < 10; index += 1) fireEvent.keyDown(surface, { key: "ArrowLeft" });
     for (let index = 0; index < 3; index += 1) fireEvent.click(screen.getByRole("button", { name: "Apply setting load" }));
-    fireEvent.keyDown(window, { key: "Enter" });
+    fireEvent.keyDown(surface, { key: "Enter" });
     fireEvent.click(screen.getByRole("button", { name: "Close" }));
     now.mockReturnValue(6_000);
     fireEvent.click(screen.getByRole("button", { name: "Apply wind/tide change" }));
     fireEvent.click(screen.getByRole("button", { name: "Run anchor watch" }));
-    fireEvent.keyDown(window, { key: "Enter" });
+    surface.focus();
+    fireEvent.keyDown(surface, { key: "Enter" });
 
     expect(screen.getByText("Modeled checks passed")).toBeTruthy();
     expect(screen.getByText("Attempted 2 times")).toBeTruthy();
@@ -167,15 +207,18 @@ describe("AnchorMinigame", () => {
   it("preserves a passed history outcome when continuing to the next setup", () => {
     const now = vi.spyOn(Date, "now").mockReturnValue(1_000);
     render(<MemoryRouter initialEntries={["/?scenarioSeed=0&scenarioIndex=0"]}><AnchorMinigame /></MemoryRouter>);
-    for (let index = 0; index < 32; index += 1) fireEvent.keyDown(window, { key: "ArrowDown" });
-    for (let index = 0; index < 10; index += 1) fireEvent.keyDown(window, { key: "ArrowLeft" });
+    const surface = screen.getByRole("application", { name: /Anchor manipulation surface/ });
+    surface.focus();
+    for (let index = 0; index < 32; index += 1) fireEvent.keyDown(surface, { key: "ArrowDown" });
+    for (let index = 0; index < 10; index += 1) fireEvent.keyDown(surface, { key: "ArrowLeft" });
     for (let index = 0; index < 3; index += 1) fireEvent.click(screen.getByRole("button", { name: "Apply setting load" }));
-    fireEvent.keyDown(window, { key: "Enter" });
+    fireEvent.keyDown(surface, { key: "Enter" });
     fireEvent.click(screen.getByRole("button", { name: "Close" }));
     now.mockReturnValue(6_000);
     fireEvent.click(screen.getByRole("button", { name: "Apply wind/tide change" }));
     fireEvent.click(screen.getByRole("button", { name: "Run anchor watch" }));
-    fireEvent.keyDown(window, { key: "Enter" });
+    surface.focus();
+    fireEvent.keyDown(surface, { key: "Enter" });
     fireEvent.click(screen.getByRole("button", { name: "Next setup" }));
 
     expect(screen.getByText(/Sheltered cove \(passed, anchor-0-1-1-sheltered\)/)).toBeTruthy();
