@@ -7,6 +7,10 @@ export const ANONYMOUS_ENGINE_CHECKLIST_MAX_AGE_MS = 24 * 60 * 60 * 1000;
 const ANONYMOUS_KEY = "engine-checklist-anonymous-v1";
 
 export type EngineChecklistProgress = { checkedItemIds: string[]; revision: number };
+export type EngineChecklistSaveState = "saved" | "queued" | "anonymous" | "conflict" | "failed";
+
+export const engineChecklistSaveState = (result: "remote" | "queued" | "anonymous" | "conflict" | "failed"): EngineChecklistSaveState =>
+  result === "remote" ? "saved" : result;
 
 export const normalizeEngineCatalogue = (value: unknown): MaintenanceCheck[] => {
   if (!Array.isArray(value)) return [];

@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import { maintenanceChecks } from "@/data/engineChecks";
-import { ANONYMOUS_ENGINE_CHECKLIST_MAX_AGE_MS, normalizeEngineCatalogue, parseEngineChecklistProgress, restoreAnonymousEngineChecklist, saveAnonymousEngineChecklist } from "./engineChecklistProgress";
+import { ANONYMOUS_ENGINE_CHECKLIST_MAX_AGE_MS, engineChecklistSaveState, normalizeEngineCatalogue, parseEngineChecklistProgress, restoreAnonymousEngineChecklist, saveAnonymousEngineChecklist } from "./engineChecklistProgress";
 
 describe("engine checklist progress", () => {
   const ids = new Set(maintenanceChecks.map(({ id }) => id));
@@ -18,5 +18,15 @@ describe("engine checklist progress", () => {
     expect(saveAnonymousEngineChecklist(sessionStorage, ["oil"], 100)).toBe(true);
     expect(restoreAnonymousEngineChecklist(sessionStorage, ids, 101)?.checkedItemIds).toEqual(["oil"]);
     expect(restoreAnonymousEngineChecklist(sessionStorage, ids, 100 + ANONYMOUS_ENGINE_CHECKLIST_MAX_AGE_MS)).toBeNull();
+  });
+  it("reports unavailable anonymous storage instead of claiming success", () => {
+    const denied = { setItem: () => { throw new DOMException("denied"); } } as unknown as Storage;
+    expect(saveAnonymousEngineChecklist(denied, ["oil"])).toBe(false);
+  });
+  it("does not describe an offline queue or conflict as a remote save", () => {
+    expect(engineChecklistSaveState("remote")).toBe("saved");
+    expect(engineChecklistSaveState("queued")).toBe("queued");
+    expect(engineChecklistSaveState("conflict")).toBe("conflict");
+    expect(engineChecklistSaveState("failed")).toBe("failed");
   });
 });

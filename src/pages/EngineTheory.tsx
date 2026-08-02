@@ -11,7 +11,7 @@ import { useProgress, type ProgressSaveResult } from "@/hooks/useProgress";
 import { useAuth } from "@/contexts/AuthHooks";
 import { clearAnonymousEngineChecklist, ENGINE_CHECKLIST_CATALOGUE_ID, ENGINE_CHECKLIST_PROGRESS_ID, ENGINE_CHECKLIST_PROGRESS_VERSION, normalizeEngineCatalogue, parseEngineChecklistProgress, restoreAnonymousEngineChecklist, saveAnonymousEngineChecklist } from "@/features/progress/engineChecklistProgress";
 
-type Status = "loading" | "ready" | "saving" | "saved" | "anonymous" | "conflict" | "failed";
+type Status = "loading" | "ready" | "saving" | "saved" | "queued" | "anonymous" | "conflict" | "failed";
 
 const EngineTheory = () => {
   const navigate = useNavigate();
@@ -29,9 +29,8 @@ const EngineTheory = () => {
 
   useEffect(() => {
     let cancelled = false;
-    if (user?.id) clearAnonymousEngineChecklist(sessionStorage);
     setCheckedIds(new Set()); setPendingIds(null); setStatus("loading"); revisionRef.current = 0;
-    void loadProgressDetailed(ENGINE_CHECKLIST_PROGRESS_ID).then((result) => {
+    void loadProgressDetailed(ENGINE_CHECKLIST_PROGRESS_ID).then(async (result) => {
       if (cancelled) return;
       if (result.status === "remote") {
         const restored = parseEngineChecklistProgress(result.record.answers_history, validIds);
@@ -40,14 +39,32 @@ const EngineTheory = () => {
       } else if (result.status === "anonymous") {
         const restored = restoreAnonymousEngineChecklist(sessionStorage, validIds);
         setCheckedIds(new Set(restored?.checkedItemIds ?? [])); setStatus("anonymous");
+      } else if (result.status === "missing" && user?.id) {
+        const anonymous = restoreAnonymousEngineChecklist(sessionStorage, validIds);
+        if (!anonymous || anonymous.checkedItemIds.length === 0) { setStatus("ready"); return; }
+        setCheckedIds(new Set(anonymous.checkedItemIds)); setPendingIds(anonymous.checkedItemIds); setStatus("saving");
+        let migrated: ProgressSaveResult;
+        try { migrated = await saveProgressDetailed(ENGINE_CHECKLIST_PROGRESS_ID, false, 0, 0, {
+          version: ENGINE_CHECKLIST_PROGRESS_VERSION, catalogueId: ENGINE_CHECKLIST_CATALOGUE_ID,
+          checkedItemIds: anonymous.checkedItemIds, revision: 0,
+        }); } catch { migrated = "failed"; }
+        if (cancelled || ownerRef.current !== user.id) return;
+        if (migrated === "remote") { revisionRef.current = 1; clearAnonymousEngineChecklist(sessionStorage); setPendingIds(null); setStatus("saved"); }
+        else if (migrated === "queued") { setPendingIds(null); setStatus("queued"); }
+        else setStatus(migrated === "conflict" ? "conflict" : "failed");
       } else setStatus(result.status === "failed" ? "failed" : "ready");
     }).catch(() => { if (!cancelled) setStatus("failed"); });
     return () => { cancelled = true; };
-  }, [user?.id, loadAttempt, loadProgressDetailed, validIds]);
+  }, [user?.id, loadAttempt, loadProgressDetailed, saveProgressDetailed, validIds]);
 
   const persist = async (ids: string[]) => {
     const owner = user?.id ?? null;
-    if (!owner) { saveAnonymousEngineChecklist(sessionStorage, ids); setStatus("anonymous"); return; }
+    if (!owner) {
+      setPendingIds(ids);
+      if (saveAnonymousEngineChecklist(sessionStorage, ids)) { setPendingIds(null); setStatus("anonymous"); }
+      else setStatus("failed");
+      return;
+    }
     setPendingIds(ids); setStatus("saving");
     let result: ProgressSaveResult;
     try { result = await saveProgressDetailed(ENGINE_CHECKLIST_PROGRESS_ID, false, 0, 0, {
@@ -55,10 +72,10 @@ const EngineTheory = () => {
       checkedItemIds: ids, revision: revisionRef.current,
     }); } catch { result = "failed"; }
     if (ownerRef.current !== owner) return;
-    if (result === "conflict") { setPendingIds(null); setStatus("conflict"); return; }
+    if (result === "conflict") { setStatus("conflict"); return; }
     if (result === "failed") { setStatus("failed"); return; }
     if (result === "remote") { revisionRef.current += 1; clearAnonymousEngineChecklist(sessionStorage); }
-    setPendingIds(null); setStatus(result === "anonymous" ? "anonymous" : "saved");
+    setPendingIds(null); setStatus(result === "queued" ? "queued" : result === "anonymous" ? "anonymous" : "saved");
   };
 
   const toggle = (id: string, checked: boolean) => {
@@ -77,7 +94,7 @@ const EngineTheory = () => {
     <main className="container mx-auto px-4 py-8 max-w-5xl">
       <p className="mb-4 text-sm text-muted-foreground">This reversible checklist is a private practice and planning aid, not an attestation that an engine was inspected, maintained, safe, or ready. It awards no points and never marks the Engine topic complete. Authenticated progress belongs to your account; anonymous progress stays only in this browser session and expires after 24 hours.</p>
       <div className="mb-4 text-sm" role={status === "failed" || status === "conflict" ? "alert" : "status"}>
-        {status === "loading" && "Loading saved checklist…"}{status === "saving" && "Saving checklist…"}{status === "saved" && "Checklist saved."}{status === "anonymous" && "Checklist saved for this browser session. Sign in to keep it across devices."}
+        {status === "loading" && "Loading saved checklist…"}{status === "saving" && "Saving checklist…"}{status === "saved" && "Checklist saved."}{status === "queued" && "Checklist saved offline and queued to sync; it is not yet confirmed on the server."}{status === "anonymous" && "Checklist saved for this browser session. Sign in to keep it across devices."}
         {status === "conflict" && <span>Checklist changed elsewhere; your change was not saved. <Button size="sm" variant="outline" onClick={() => setLoadAttempt((n) => n + 1)}>Reload checklist</Button></span>}
         {status === "failed" && <span>{pendingIds ? "Your latest change was not saved." : "Saved progress could not be loaded; editing is paused to protect it."} <Button size="sm" variant="outline" onClick={() => pendingIds ? void persist(pendingIds) : setLoadAttempt((n) => n + 1)}>{pendingIds ? "Retry save" : "Retry load"}</Button></span>}
       </div>
