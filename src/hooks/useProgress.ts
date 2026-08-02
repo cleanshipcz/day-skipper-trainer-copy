@@ -9,7 +9,7 @@ import { loadProgressClient } from "@/features/progress/progressClient";
 
 type UserProgressRow = Tables<"user_progress">;
 
-export type ProgressSaveResult = "anonymous" | "remote" | "queued" | "failed";
+export type ProgressSaveResult = "anonymous" | "remote" | "queued" | "conflict" | "failed";
 export type ProgressLoadResult =
   | { status: "remote"; record: UserProgressRow }
   | { status: "missing" | "anonymous" | "failed"; record: null };
@@ -101,6 +101,7 @@ export const useProgress = () => {
       } catch (error) {
         if (ownerRef.current !== user.id) return "failed" as const;
         console.error("Error saving progress:", error);
+        if ((error as { code?: string })?.code === "40001") return "conflict" as const;
         if (!isRetryableProgressError(error)) {
           toast.error("Failed to save progress");
           return "failed" as const;

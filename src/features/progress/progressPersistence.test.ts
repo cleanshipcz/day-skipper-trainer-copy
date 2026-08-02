@@ -36,6 +36,33 @@ const buildSupabaseMock = () => {
 };
 
 describe("saveProgressRecord", () => {
+  it("routes checklist snapshots away from completed legacy victualling rows", async () => {
+    const { client, rpc } = buildSupabaseMock();
+    await saveProgressRecord({
+      supabaseClient: client as never,
+      userId: "user-1",
+      topicId: "victualling-checklist",
+      completed: false,
+      score: 50,
+      pointsEarned: 0,
+      answersHistory: { version: 1, checkedItemIds: ["f1"], revision: 4 },
+    });
+    expect(rpc).toHaveBeenCalledWith("save_victualling_checklist_progress", {
+      p_expected_revision: 4,
+      p_checked_item_ids: ["f1"],
+    });
+    expect(rpc).not.toHaveBeenCalledWith("save_topic_progress", expect.anything());
+  });
+
+  it("rejects unrevisioned or reward-bearing checklist writes", async () => {
+    const { client, rpc } = buildSupabaseMock();
+    await expect(saveProgressRecord({
+      supabaseClient: client as never, userId: "user-1", topicId: "victualling-checklist",
+      completed: true, pointsEarned: 5, answersHistory: { version: 1, checkedItemIds: ["f1"] },
+    })).rejects.toThrow("valid revisioned snapshot");
+    expect(rpc).not.toHaveBeenCalled();
+  });
+
   it("routes completed practice updates through the zero-reward mutable RPC", async () => {
     const { client, rpc } = buildSupabaseMock();
     const snapshot = { version: 1, completedFamilies: ["sheltered", "harbour", "exposed", "tidal"], attempts: 8, failedChecks: 3, scenarioSeed: 1, sequenceIndex: 5, scenarioIdentity: "anchor-1-2-2-harbour" };

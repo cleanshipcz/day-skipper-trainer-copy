@@ -6,13 +6,12 @@ import { Checkbox } from "@/components/ui/checkbox";
 import { ArrowLeft, Trophy, ShoppingCart } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { checklistData } from "@/data/victuallingItems";
-import { TOPIC_IDS } from "@/constants/topicRegistry";
 import { useProgress, type ProgressSaveResult } from "@/hooks/useProgress";
 import { useAuth } from "@/contexts/AuthHooks";
-import { parseVictuallingProgress, VICTUALLING_PROGRESS_VERSION } from "@/features/progress/victuallingProgress";
+import { parseVictuallingProgress, VICTUALLING_CHECKLIST_PROGRESS_ID, VICTUALLING_PROGRESS_VERSION } from "@/features/progress/victuallingProgress";
 
 const POINTS_PER_CHECK = 5;
-type PersistenceStatus = "loading" | "ready" | "saving" | "saved" | "anonymous" | "failed";
+type PersistenceStatus = "loading" | "ready" | "saving" | "saved" | "anonymous" | "conflict" | "failed";
 
 const VictuallingTheory = () => {
   const navigate = useNavigate();
@@ -23,6 +22,7 @@ const VictuallingTheory = () => {
   const [pendingIds, setPendingIds] = useState<string[] | null>(null);
   const [loadRevision, setLoadRevision] = useState(0);
   const ownerRef = useRef(user?.id ?? null);
+  const revisionRef = useRef(0);
   ownerRef.current = user?.id ?? null;
   const validIds = useMemo(() => new Set(checklistData.map(({ id }) => id)), []);
 
@@ -30,13 +30,19 @@ const VictuallingTheory = () => {
     let cancelled = false;
     setCheckedIds(new Set());
     setPendingIds(null);
+    revisionRef.current = 0;
     setStatus("loading");
-    void loadProgressDetailed(TOPIC_IDS.VICTUALLING).then((result) => {
+    void loadProgressDetailed(VICTUALLING_CHECKLIST_PROGRESS_ID).then((result) => {
       if (cancelled) return;
       if (result.status === "remote") {
         const restored = parseVictuallingProgress(result.record.answers_history, validIds);
-        if (restored) setCheckedIds(new Set(restored));
-        setStatus("ready");
+        if (restored) {
+          revisionRef.current = restored.revision;
+          setCheckedIds(new Set(restored.checkedItemIds));
+          setStatus("ready");
+        } else {
+          setStatus("failed");
+        }
       } else {
         setStatus(result.status === "anonymous" ? "anonymous" : result.status === "failed" ? "failed" : "ready");
       }
@@ -53,19 +59,26 @@ const VictuallingTheory = () => {
     try {
       // Checklist completion is planning readiness, not evidence of learning.
       // The quiz-victualling record is the only durable completion/credit gate.
-      result = await saveProgressDetailed(TOPIC_IDS.VICTUALLING, false, percentage, 0, {
+      result = await saveProgressDetailed(VICTUALLING_CHECKLIST_PROGRESS_ID, false, percentage, 0, {
         version: VICTUALLING_PROGRESS_VERSION,
         checkedItemIds: ids,
+        revision: revisionRef.current,
       });
     } catch { result = "failed"; }
     if (ownerRef.current !== owner) return;
+    if (result === "conflict") {
+      setPendingIds(null);
+      setStatus("conflict");
+      return;
+    }
     if (result === "failed") { setStatus("failed"); return; }
+    if (result === "remote") revisionRef.current += 1;
     setPendingIds(null);
     setStatus(result === "anonymous" ? "anonymous" : "saved");
   };
 
   const toggle = (id: string, checked: boolean) => {
-    if (!validIds.has(id) || status === "loading" || status === "saving" || status === "failed") return;
+    if (!validIds.has(id) || status === "loading" || status === "saving" || status === "failed" || status === "conflict") return;
     const next = new Set(checkedIds);
     if (checked) next.add(id); else next.delete(id);
     setCheckedIds(next);
@@ -81,7 +94,7 @@ const VictuallingTheory = () => {
   const total = checklistData.length;
   const percentage = total === 0 ? 0 : Math.round((count / total) * 100);
   const planningScore = count * POINTS_PER_CHECK;
-  const interactive = status !== "loading" && status !== "saving" && status !== "failed";
+  const interactive = status !== "loading" && status !== "saving" && status !== "failed" && status !== "conflict";
 
   return <div className="min-h-screen bg-gradient-to-br from-background via-ocean-light/10 to-background">
     <header className="border-b border-border bg-card/50 backdrop-blur-sm sticky top-0 z-10"><div className="container mx-auto px-4 py-4"><div className="flex items-center justify-between">
@@ -92,6 +105,7 @@ const VictuallingTheory = () => {
       <p className="mb-4 text-sm text-muted-foreground">Completion criteria: this reversible checklist records planning readiness only. Checking items earns no durable learning credit. Pass the Victualling Quiz to complete the learning topic.</p>
       <div className="mb-4 text-sm" aria-live="polite">
         {status === "loading" && "Loading saved checklist…"}{status === "saving" && "Saving checklist…"}{status === "saved" && "Checklist saved."}{status === "anonymous" && "Checklist is available for this visit. Sign in to save it across devices."}
+        {status === "conflict" && <span className="inline-flex items-center gap-3">This checklist changed elsewhere. Reload the latest version before editing.<Button size="sm" variant="outline" onClick={() => setLoadRevision((value) => value + 1)}>Reload checklist</Button></span>}
         {status === "failed" && <span className="inline-flex items-center gap-3">{pendingIds ? "Checklist could not be saved." : "Saved checklist could not be loaded. Editing is paused to protect your existing progress."}<Button size="sm" variant="outline" onClick={() => pendingIds ? void persist(pendingIds) : setLoadRevision((value) => value + 1)}>{pendingIds ? "Retry save" : "Retry load"}</Button></span>}
       </div>
       <Card className="mb-6 border-2 border-secondary/20"><CardContent className="pt-6"><div className="flex items-center justify-between mb-2"><span className="font-semibold">Provisioning Progress</span><span className="text-sm text-muted-foreground">{percentage}%</span></div><div className="w-full bg-muted rounded-full h-3"><div className="bg-secondary h-3 rounded-full transition-all duration-500" style={{ width: `${percentage}%` }} /></div></CardContent></Card>

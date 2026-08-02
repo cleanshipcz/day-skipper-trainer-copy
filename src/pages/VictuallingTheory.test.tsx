@@ -30,12 +30,12 @@ describe("VictuallingTheory durable checklist", () => {
     await waitFor(() => expect(mocks.save).toHaveBeenCalledTimes(1));
     await screen.findByText("Checklist saved.");
     expect(screen.getByLabelText("Planning score: 5 points")).toBeTruthy();
-    expect(mocks.save).toHaveBeenLastCalledWith("victualling", false, Math.round(100 / checklistData.length), 0, { version: 1, checkedItemIds: [checklistData[0].id] });
+    expect(mocks.save).toHaveBeenLastCalledWith("victualling-checklist", false, Math.round(100 / checklistData.length), 0, { version: 1, checkedItemIds: [checklistData[0].id], revision: 0 });
     await user.click(checkbox);
     await waitFor(() => expect(mocks.save).toHaveBeenCalledTimes(2));
     await screen.findByText("Checklist saved.");
     expect(screen.getByLabelText("Planning score: 0 points")).toBeTruthy();
-    expect(mocks.save).toHaveBeenLastCalledWith("victualling", false, 0, 0, { version: 1, checkedItemIds: [] });
+    expect(mocks.save).toHaveBeenLastCalledWith("victualling-checklist", false, 0, 0, { version: 1, checkedItemIds: [], revision: 1 });
     await user.click(checkbox);
     await waitFor(() => expect(mocks.save).toHaveBeenCalledTimes(3));
     expect(screen.getByLabelText("Planning score: 5 points")).toBeTruthy();
@@ -43,7 +43,7 @@ describe("VictuallingTheory durable checklist", () => {
   });
 
   it("restores by stable ID across reorder and ignores removed IDs", async () => {
-    mocks.load.mockResolvedValue({ status: "remote", record: record({ version: 1, checkedItemIds: ["removed", checklistData[1].id, checklistData[0].id, checklistData[0].id] }) });
+    mocks.load.mockResolvedValue({ status: "remote", record: record({ version: 1, checkedItemIds: ["removed", checklistData[1].id, checklistData[0].id, checklistData[0].id], revision: 7 }) });
     renderPage();
     expect(await screen.findByLabelText("Planning score: 10 points")).toBeTruthy();
     expect(screen.getByRole("checkbox", { name: checklistData[0].item }).getAttribute("data-state")).toBe("checked");
@@ -52,16 +52,16 @@ describe("VictuallingTheory durable checklist", () => {
   });
 
   it("rejects stale and malformed payloads without trusting a completed row", async () => {
-    mocks.load.mockResolvedValue({ status: "remote", record: record({ version: 99, checkedItemIds: checklistData.map(({ id }) => id) }, true) });
+    mocks.load.mockResolvedValue({ status: "remote", record: record({ version: 99, checkedItemIds: checklistData.map(({ id }) => id), revision: 1 }, true) });
     renderPage();
     await waitFor(() => expect(screen.queryByText("Loading saved checklist…")).toBeNull());
     expect(screen.getByLabelText("Planning score: 0 points")).toBeTruthy();
     expect(screen.queryByText("Provisioning plan ready")).toBeNull();
-    expect(parseVictuallingProgress({ version: 1, checkedItemIds: [1] }, new Set(["1"]))).toBeNull();
+    expect(parseVictuallingProgress({ version: 1, checkedItemIds: [1], revision: 1 }, new Set(["1"]))).toBeNull();
   });
 
   it("shows planning readiness but never persists learning completion", async () => {
-    mocks.load.mockResolvedValue({ status: "remote", record: record({ version: 1, checkedItemIds: checklistData.map(({ id }) => id) }) });
+    mocks.load.mockResolvedValue({ status: "remote", record: record({ version: 1, checkedItemIds: checklistData.map(({ id }) => id), revision: 2 }) });
     renderPage();
     expect(await screen.findByRole("region", { name: "Provisioning checklist ready" })).toBeTruthy();
     expect(screen.getByText(/quiz is the learning completion gate/i)).toBeTruthy();
@@ -82,8 +82,25 @@ describe("VictuallingTheory durable checklist", () => {
     expect(mocks.save.mock.calls[1]).toEqual(mocks.save.mock.calls[0]);
   });
 
+  it("reloads instead of replaying a stale multi-device snapshot", async () => {
+    mocks.save.mockResolvedValueOnce("conflict");
+    mocks.load.mockResolvedValueOnce({ status: "remote", record: record({ version: 1, checkedItemIds: [], revision: 2 }) })
+      .mockResolvedValueOnce({ status: "remote", record: record({ version: 1, checkedItemIds: [checklistData[1].id], revision: 3 }) });
+    const user = userEvent.setup();
+    renderPage();
+    const first = await screen.findByRole("checkbox", { name: checklistData[0].item });
+    await waitFor(() => expect((first as HTMLButtonElement).disabled).toBe(false));
+    await user.click(first);
+    const reload = await screen.findByRole("button", { name: "Reload checklist" });
+    expect((first as HTMLButtonElement).disabled).toBe(true);
+    await user.click(reload);
+    await waitFor(() => expect((first as HTMLButtonElement).disabled).toBe(false));
+    expect(screen.getByRole("checkbox", { name: checklistData[1].item }).getAttribute("data-state")).toBe("checked");
+    expect(mocks.save).toHaveBeenCalledTimes(1);
+  });
+
   it("protects identity boundaries and keeps anonymous state local", async () => {
-    mocks.load.mockResolvedValueOnce({ status: "remote", record: record({ version: 1, checkedItemIds: [checklistData[0].id] }) }).mockResolvedValueOnce({ status: "anonymous", record: null });
+    mocks.load.mockResolvedValueOnce({ status: "remote", record: record({ version: 1, checkedItemIds: [checklistData[0].id], revision: 1 }) }).mockResolvedValueOnce({ status: "anonymous", record: null });
     const view = renderPage();
     await screen.findByLabelText("Planning score: 5 points");
     mocks.user = null;

@@ -484,6 +484,14 @@ export type Database = {
           points_awarded: boolean
         }[]
       }
+      save_victualling_checklist_progress: {
+        Args: { p_checked_item_ids: string[]; p_expected_revision: number }
+        Returns: {
+          awarded_points: number
+          completion_awarded: boolean
+          points_awarded: boolean
+        }[]
+      }
       seed_question_reviews: {
         Args: { p_question_ids: string[] }
         Returns: undefined
