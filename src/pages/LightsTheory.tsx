@@ -7,6 +7,7 @@ import { ArrowLeft, Lightbulb, AlertTriangle, Volume2, Flame, Ship, Anchor, Wind
 import { useEffect } from "react";
 import { useTheoryCompletionGate } from "@/features/progress/useTheoryCompletionGate";
 import { TOPIC_IDS } from "@/constants/topicRegistry";
+import { PartCLights, PartCShapes } from "@/components/colregs/PartCLightsShapes";
 
 const LightsTheory = () => {
   const navigate = useNavigate();
@@ -31,10 +32,6 @@ const LightsTheory = () => {
     target?.scrollIntoView({ block: "start" });
     target?.focus({ preventScroll: true });
   }, [activeSection, location.hash]);
-
-  const LightDot = ({ color, border = false }: { color: string; border?: boolean }) => (
-    <span className={`w-4 h-4 rounded-full inline-block mr-1 ${color} ${border ? "border border-gray-400" : ""}`} />
-  );
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-background via-ocean-light/10 to-background pb-20">
@@ -83,11 +80,10 @@ const LightsTheory = () => {
               <h2 className="text-2xl font-bold flex items-center gap-2">
                 <Lightbulb className="text-yellow-500" /> Part C: Lights
               </h2>
-              <p>
-                Lights must be shown from <strong>sunset to sunrise</strong> and in restricted visibility.
-              </p>
+              <p>Rules 20–31: prescribed lights, day shapes and the conditions that make each display meaningful.</p>
             </div>
-
+            <PartCLights />
+            {/* Legacy summary removed: it omitted Rules 20–22, 24, 28 and 31 and collapsed conditional displays into unsafe dot mnemonics.
             <div className="grid md:grid-cols-2 gap-6">
               <Card id="rule-23" tabIndex={-1} className="scroll-mt-28 focus:outline-none">
                 <CardHeader>
@@ -228,7 +224,7 @@ const LightsTheory = () => {
                   </div>
                 </CardContent>
               </Card>
-            </div>
+            </div> */}
           </TabsContent>
 
           {/* SHAPES TAB */}
@@ -237,9 +233,10 @@ const LightsTheory = () => {
               <h2 className="text-2xl font-bold flex items-center gap-2">
                 <AlertTriangle className="text-red-500" /> Day Shapes
               </h2>
-              <p>Black shapes displayed by day to indicate status.</p>
+              <p>Rules 20–31 day shapes, with their status and operating conditions.</p>
             </div>
-
+            <PartCShapes />
+            {/* Legacy silhouettes lacked structured equivalents and operation-specific combinations.
             <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
               <Card id="rule-30" tabIndex={-1} className="text-center p-4 flex flex-col items-center justify-center scroll-mt-28 focus:outline-none">
                 <div className="w-8 h-8 rounded-full bg-black mb-2" />
@@ -296,7 +293,7 @@ const LightsTheory = () => {
                 <h3 className="font-bold">Hourglass</h3>
                 <p className="text-xs text-muted-foreground">Fishing / Trawling</p>
               </Card>
-            </div>
+            </div> */}
           </TabsContent>
 
           {/* SOUNDS TAB */}
