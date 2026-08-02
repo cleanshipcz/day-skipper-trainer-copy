@@ -1,4 +1,4 @@
-import { useCallback, useMemo, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useProgress } from "@/hooks/useProgress";
 import { deriveCompletionGateDecision, type CompletionState } from "./completionGates";
 
@@ -6,17 +6,46 @@ interface UseTheoryCompletionGateArgs {
   topicId: string;
   requiredSectionIds: string[];
   pointsOnComplete?: number;
+  catalogueRevision?: string;
 }
 
 export const useTheoryCompletionGate = ({
   topicId,
   requiredSectionIds,
   pointsOnComplete = 10,
+  catalogueRevision,
 }: UseTheoryCompletionGateArgs) => {
-  const { saveProgress } = useProgress();
+  const progress = useProgress();
+  const { loadProgressDetailed, saveProgress, saveProgressDetailed } = progress;
   const [visitedSectionIds, setVisitedSectionIds] = useState<string[]>([]);
   const visitedRef = useRef<readonly string[]>(visitedSectionIds);
   const inProgressPersistedRef = useRef(false);
+  const completionPromiseRef = useRef<Promise<boolean> | null>(null);
+  const [saveState, setSaveState] = useState<"idle" | "saving" | "saved" | "queued" | "failed">("idle");
+  const storageKey = catalogueRevision ? `theory-gate:${topicId}:${catalogueRevision}` : null;
+
+  useEffect(() => {
+    if (!storageKey) return;
+    let active = true;
+    const restore = async () => {
+      let restored: string[] = [];
+      try {
+        const parsed = JSON.parse(localStorage.getItem(storageKey) ?? "null") as { visitedSectionIds?: unknown } | null;
+        if (parsed && Array.isArray(parsed.visitedSectionIds)) restored = parsed.visitedSectionIds.filter((id): id is string => typeof id === "string" && requiredSectionIds.includes(id));
+      } catch { /* Ignore corrupt legacy browser state. */ }
+      const load = loadProgressDetailed ? await loadProgressDetailed(topicId) : null;
+      const remoteHistory = load?.status === "remote" ? load.record.answers_history as { catalogueRevision?: string; visitedSectionIds?: unknown } | null : null;
+      if (remoteHistory?.catalogueRevision === catalogueRevision && Array.isArray(remoteHistory.visitedSectionIds)) {
+        restored = [...new Set([...restored, ...remoteHistory.visitedSectionIds.filter((id): id is string => typeof id === "string" && requiredSectionIds.includes(id))])];
+      }
+      if (!active) return;
+      visitedRef.current = restored;
+      setVisitedSectionIds(restored);
+      inProgressPersistedRef.current = restored.length > 0;
+    };
+    void restore();
+    return () => { active = false; };
+  }, [catalogueRevision, loadProgressDetailed, requiredSectionIds, storageKey, topicId]);
 
   const decision = useMemo(
     () => deriveCompletionGateDecision({ visitedSectionIds, requiredSectionIds }),
@@ -25,7 +54,7 @@ export const useTheoryCompletionGate = ({
 
   const persistInProgressIfNeeded = useCallback(
     async (state: CompletionState, score: number, nextVisitedSectionIds: string[]) => {
-      if (state !== "in_progress" || inProgressPersistedRef.current) return;
+      if (state !== "in_progress" || (!catalogueRevision && inProgressPersistedRef.current)) return;
 
       inProgressPersistedRef.current = true;
       await saveProgress(topicId, false, score, 0, {
@@ -33,7 +62,7 @@ export const useTheoryCompletionGate = ({
         visitedSectionIds: nextVisitedSectionIds,
       });
     },
-    [saveProgress, topicId]
+    [catalogueRevision, saveProgress, topicId]
   );
 
   const markSectionVisited = useCallback(
@@ -53,6 +82,7 @@ export const useTheoryCompletionGate = ({
       const nextVisitedSectionIds = [...prev, sectionId];
       visitedRef.current = nextVisitedSectionIds;
       setVisitedSectionIds(nextVisitedSectionIds);
+      if (storageKey) localStorage.setItem(storageKey, JSON.stringify({ catalogueRevision, visitedSectionIds: nextVisitedSectionIds }));
 
       const nextDecision = deriveCompletionGateDecision({
         visitedSectionIds: nextVisitedSectionIds,
@@ -60,19 +90,31 @@ export const useTheoryCompletionGate = ({
       });
       await persistInProgressIfNeeded(nextDecision.state, nextDecision.score, nextVisitedSectionIds);
     },
-    [persistInProgressIfNeeded, requiredSectionIds]
+    [catalogueRevision, persistInProgressIfNeeded, requiredSectionIds, storageKey]
   );
 
   const markCompleted = useCallback(async () => {
     if (!decision.canComplete) return false;
-
-    await saveProgress(topicId, true, 100, pointsOnComplete, {
-      completionState: "completed",
-      visitedSectionIds,
-    });
-
-    return true;
-  }, [decision.canComplete, pointsOnComplete, saveProgress, topicId, visitedSectionIds]);
+    if (completionPromiseRef.current) return completionPromiseRef.current;
+    const attempt = (async () => {
+      setSaveState("saving");
+      try {
+        const history = { completionState: "completed", catalogueRevision, visitedSectionIds: visitedRef.current };
+        const result = saveProgressDetailed
+          ? await saveProgressDetailed(topicId, true, 100, pointsOnComplete, history)
+          : await saveProgress(topicId, true, 100, pointsOnComplete, history);
+        // Legacy saveProgress mocks/consumers historically resolved void on success.
+        const ok = result !== false && result !== "failed" && result !== "conflict";
+        setSaveState(result === "queued" ? "queued" : ok ? "saved" : "failed");
+        return ok;
+      } catch {
+        setSaveState("failed");
+        return false;
+      } finally { completionPromiseRef.current = null; }
+    })();
+    completionPromiseRef.current = attempt;
+    return attempt;
+  }, [catalogueRevision, decision.canComplete, pointsOnComplete, saveProgress, saveProgressDetailed, topicId]);
 
   return {
     completionState: decision.state,
@@ -81,5 +123,6 @@ export const useTheoryCompletionGate = ({
     visitedSectionIds,
     markSectionVisited,
     markCompleted,
+    saveState,
   };
 };
