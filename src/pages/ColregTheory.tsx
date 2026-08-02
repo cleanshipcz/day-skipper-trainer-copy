@@ -1,4 +1,5 @@
-import { useNavigate } from "react-router-dom";
+import { useEffect } from "react";
+import { useLocation, useNavigate } from "react-router-dom";
 import { ArrowLeft, Compass, AlertTriangle } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
@@ -87,9 +88,17 @@ const COLREG_COMPLETION_SECTIONS = ["framework", "rules-5-17", "rule-18", "rule-
 
 const ColregTheory = () => {
   const navigate = useNavigate();
+  const location = useLocation();
   const requiredSections = COLREG_COMPLETION_SECTIONS;
   const { canComplete, markCompleted, markSectionVisited, visitedSectionIds, saveState } = useTheoryCompletionGate({ topicId: TOPIC_IDS.COLREGS_THEORY, requiredSectionIds: requiredSections, pointsOnComplete: 10, catalogueRevision: "colregs-part-b-v1" });
   const reviewButton = (id: string, label: string) => <Button variant="outline" disabled={visitedSectionIds.includes(id)} onClick={() => void markSectionVisited(id)}>{visitedSectionIds.includes(id) ? "Reviewed" : label}</Button>;
+  useEffect(() => {
+    const targetId = location.hash.slice(1);
+    if (!/^rule-(?:[5-9]|1[0-9])$/.test(targetId)) return;
+    const target = document.getElementById(targetId);
+    target?.scrollIntoView({ block: "start" });
+    target?.focus({ preventScroll: true });
+  }, [location.hash]);
 
   return <div className="min-h-screen bg-gradient-to-br from-background via-ocean-light/10 to-background pb-20">
     <header className="border-b border-border bg-card/50 backdrop-blur-sm sticky top-0 z-40"><div className="container mx-auto px-4 py-4 flex items-center gap-3">
@@ -106,12 +115,12 @@ const ColregTheory = () => {
         </div>
         {reviewButton("framework", "I have reviewed the Part B framework")}</section>
       <section className="space-y-4"><h2 className="text-2xl font-semibold">Rules 5–17: decision essentials</h2><div className="grid md:grid-cols-2 gap-4">
-        {COLREG_RULES.map(({ rule, title, scope, points }) => <Card key={rule}><CardContent className="pt-6"><h3 className="font-bold text-lg">Rule {rule}: {title}</h3><p className="text-xs font-medium text-primary mb-3">{scope}</p><ul className="list-disc pl-5 space-y-2 text-sm text-muted-foreground">{points.map(point => <li key={point}>{point}</li>)}</ul></CardContent></Card>)}
+        {COLREG_RULES.map(({ rule, title, scope, points }) => <Card id={`rule-${rule}`} tabIndex={-1} className="scroll-mt-28 focus:outline-none" key={rule}><CardContent className="pt-6"><h3 className="font-bold text-lg">Rule {rule}: {title}</h3><p className="text-xs font-medium text-primary mb-3">{scope}</p><ul className="list-disc pl-5 space-y-2 text-sm text-muted-foreground">{points.map(point => <li key={point}>{point}</li>)}</ul></CardContent></Card>)}
       </div>{reviewButton("rules-5-17", "I have reviewed Rules 5–17")}</section>
-      <section className="space-y-3"><h2 className="text-2xl font-semibold flex gap-2"><AlertTriangle />Rule 18: responsibilities, not a ladder</h2>
+      <section id="rule-18" tabIndex={-1} className="space-y-3 scroll-mt-28 focus:outline-none"><h2 className="text-2xl font-semibold flex gap-2"><AlertTriangle />Rule 18: responsibilities, not a ladder</h2>
         <Card><CardContent className="pt-6"><p className="text-xs font-medium text-primary mb-3">{RULE_18_SCOPE}</p><p className="mb-3">Identify the encounter and special waterway duties first; then apply the relevant responsibility:</p><ol className="list-decimal pl-5 space-y-2 text-sm text-muted-foreground">{RULE_18_DECISIONS.map(x => <li key={x}>{x}</li>)}</ol></CardContent></Card>
         {reviewButton("rule-18", "I have reviewed Rule 18 responsibilities")}</section>
-      <section className="space-y-3"><h2 className="text-2xl font-semibold">Rule 19: restricted visibility</h2><Card><CardContent className="pt-6 space-y-3 text-sm text-muted-foreground">
+      <section id="rule-19" tabIndex={-1} className="space-y-3 scroll-mt-28 focus:outline-none"><h2 className="text-2xl font-semibold">Rule 19: restricted visibility</h2><Card><CardContent className="pt-6 space-y-3 text-sm text-muted-foreground">
         <p>Rule 19 applies to vessels not in sight of one another when navigating in or near restricted visibility. Proceed at a safe speed adapted to the conditions; a power-driven vessel has engines ready for immediate manoeuvre. Apply Rules 5–10 with due regard to the restricted conditions.</p>
         <p>For a vessel detected by radar alone, determine whether close quarters or collision risk is developing and act in ample time. If altering course, so far as possible avoid port for a vessel forward of the beam (unless overtaking) and avoid altering toward a vessel abeam or abaft the beam.</p>
         <p>Except where satisfied no risk exists, a vessel hearing apparently forward of her beam another vessel's fog signal—or unable to avoid close quarters forward of the beam—reduces to the minimum speed at which she can keep course, takes all way off if necessary, and navigates with extreme caution until danger is over.</p>

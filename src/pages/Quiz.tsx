@@ -676,6 +676,14 @@ const Quiz = () => {
       </header>
 
       <main className="container mx-auto max-w-3xl px-3 py-5 sm:px-4 sm:py-8">
+        {topicKey === "colregs" && <div className="mb-4 rounded-lg border bg-muted/50 p-4 text-sm">
+          <p className="font-semibold">Diagnostic: study both learning modules first</p>
+          <p className="mt-1 text-muted-foreground">This 20-objective check combines Steering &amp; Sailing with Lights &amp; Signals. A missed answer links to the theory that teaches it.</p>
+          <div className="mt-2 flex flex-wrap gap-2">
+            <Button size="sm" variant="outline" onClick={() => navigate("/rules/colregs")}>Steering &amp; Sailing theory</Button>
+            <Button size="sm" variant="outline" onClick={() => navigate("/rules/lights/theory")}>Lights &amp; Signals theory</Button>
+          </div>
+        </div>}
         {user && attemptStartState !== "ready" && <div className="mb-3 space-y-2 rounded-lg border border-destructive/50 bg-destructive/10 p-3">
           <p role={attemptStartState === "failed" ? "alert" : "status"} aria-live="assertive" className="text-sm">
             {attemptStartState === "failed"
@@ -701,6 +709,9 @@ const Quiz = () => {
               </div>
             )}
             <CardTitle ref={questionHeadingRef} tabIndex={-1} className="text-2xl break-words [overflow-wrap:anywhere] focus:outline-none">{question.question}</CardTitle>
+            {topicKey === "colregs" && question.learningObjective && <p className="text-sm text-muted-foreground">
+              Objective: {question.learningObjective} · Prerequisite: {question.prerequisite}
+            </p>}
           </CardHeader>
           <CardContent className="space-y-4">
             <fieldset className="min-w-0">
@@ -754,6 +765,7 @@ const Quiz = () => {
                   {selectedAnswer === question.correctAnswer ? "Correct" : "Incorrect"}
                 </h3>
                 <p className="text-muted-foreground break-words [overflow-wrap:anywhere]">{question.explanation}</p>
+                {topicKey === "colregs" && selectedAnswer !== question.correctAnswer && question.remediationRoute && <Button variant="link" className="h-auto px-0 pt-2" onClick={() => navigate(question.remediationRoute!)}>Review {question.prerequisite ?? "this objective"} theory</Button>}
                 {topicKey === "victualling" && selectedAnswer !== question.correctAnswer && <Button variant="link" className="h-auto px-0 pt-2" onClick={() => navigate(victuallingTheoryRoute(question.id))}>Review this objective in Victualling theory</Button>}
                 {topicKey === "engine" && selectedAnswer !== question.correctAnswer && <Button variant="link" className="h-auto px-0 pt-2" onClick={() => navigate(engineTheoryRoute(question.id))}>Review this objective in Engine theory</Button>}
               </div>

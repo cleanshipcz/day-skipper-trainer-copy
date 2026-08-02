@@ -16,7 +16,7 @@ vi.mock("@/contexts/AuthHooks", () => ({ useAuth: () => ({ user: mocks.user }) }
 vi.mock("@/hooks/useProgress", () => ({ useProgress: () => mocks }));
 vi.mock("@/integrations/supabase/client", () => ({ supabase: { rpc: mocks.rpc } }));
 vi.mock("@/data/quizzes", () => ({
-  isQuizTopicId: (topic: string) => ["test", "anchorwork", "engine", "nautical-terms-quiz", "ropework", "lights-signals"].includes(topic),
+  isQuizTopicId: (topic: string) => ["test", "anchorwork", "engine", "nautical-terms-quiz", "ropework", "lights-signals", "colregs"].includes(topic),
   topicMeta: {
     test: { title: "A very long localized quiz title that must reflow", subtitle: "Long localized supporting text" },
     "nautical-terms-quiz": { title: "Full Nautical Terms Quiz", subtitle: "Terms" },
@@ -24,6 +24,7 @@ vi.mock("@/data/quizzes", () => ({
     "lights-signals": { title: "Lights & Signals Mastery", subtitle: "Signals" },
     anchorwork: { title: "Anchorwork Quiz", subtitle: "Anchoring" },
     engine: { title: "Engine Checks Quiz", subtitle: "Engine safety" },
+    colregs: { title: "Combined Rules Diagnostic", subtitle: "Rules" },
   },
   loadQuizTopic: mocks.loadQuizTopic,
 }));
@@ -94,6 +95,28 @@ describe("Quiz accessible interaction and reflow", () => {
     await user.click(screen.getByRole("button", { name: "Submit Answer" }));
     await user.click(await screen.findByRole("button", { name: "Review this objective in Engine theory" }));
     expect(await screen.findByText("Route: /engine#engine-objectives")).toBeTruthy();
+  });
+
+  it("routes a missed sound objective to its exact theory tab and rule", async () => {
+    const user = userEvent.setup();
+    mocks.loadQuizTopic.mockResolvedValue([{ ...questions[0], id: "cr17", prerequisite: "Lights & Signals", remediationRoute: "/rules/lights/theory?section=sounds#rule-35" }]);
+    const RouteProbe = () => { const location = useLocation(); return <p>Route: {location.pathname}{location.search}{location.hash}</p>; };
+    render(<MemoryRouter initialEntries={["/quiz/colregs"]}><Routes><Route path="/quiz/:topicId" element={<Quiz />} /><Route path="*" element={<RouteProbe />} /></Routes></MemoryRouter>);
+    await user.click(await screen.findByRole("radio", { name: "First wrong" }));
+    await user.click(screen.getByRole("button", { name: "Submit Answer" }));
+    await user.click(await screen.findByRole("button", { name: "Review Lights & Signals theory" }));
+    expect(await screen.findByText("Route: /rules/lights/theory?section=sounds#rule-35")).toBeTruthy();
+  });
+
+  it("routes a missed steering objective to its exact rule section", async () => {
+    const user = userEvent.setup();
+    mocks.loadQuizTopic.mockResolvedValue([{ ...questions[0], id: "cr4", prerequisite: "Steering & Sailing", remediationRoute: "/rules/colregs#rule-17" }]);
+    const RouteProbe = () => { const location = useLocation(); return <p>Route: {location.pathname}{location.hash}</p>; };
+    render(<MemoryRouter initialEntries={["/quiz/colregs"]}><Routes><Route path="/quiz/:topicId" element={<Quiz />} /><Route path="*" element={<RouteProbe />} /></Routes></MemoryRouter>);
+    await user.click(await screen.findByRole("radio", { name: "First wrong" }));
+    await user.click(screen.getByRole("button", { name: "Submit Answer" }));
+    await user.click(await screen.findByRole("button", { name: "Review Steering & Sailing theory" }));
+    expect(await screen.findByText("Route: /rules/colregs#rule-17")).toBeTruthy();
   });
 
   it("uses the same safe fallback in the unavailable state", async () => {

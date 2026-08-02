@@ -7,6 +7,10 @@ export interface Question {
   readonly options: readonly string[];
   readonly correctAnswer: number;
   readonly explanation: string;
+  /** Optional curriculum traceability used by diagnostic quizzes. */
+  readonly learningObjective?: string;
+  readonly prerequisite?: string;
+  readonly remediationRoute?: string;
 }
 
 /** Metadata displayed in the quiz header for a given topic. */
