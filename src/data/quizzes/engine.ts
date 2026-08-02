@@ -1,139 +1,20 @@
 import type { Question } from "./types";
 
+// IDs remain stable for review/history consumers. The catalogue fingerprint
+// invalidates in-flight sessions when any assessed wording or answer changes.
 const engineQuestions: readonly Question[] = [
-  {
-    id: "e1",
-    question: "What does BWORCA stand for?",
-    options: [
-      "Boat Water Oil Reserve Control Anchor",
-      "Blower Water Oil Reserve Controls Ancillaries",
-      "Battery Water Oil Rudder Controls Anchor",
-      "Blower Wind Oil Rigging Controls Air",
-    ],
-    correctAnswer: 1,
-    explanation: "BWORCA: Blower, Water, Oil, Reserve (fuel), Controls, Ancillaries - the pre-start check sequence.",
-  },
-  {
-    id: "e2",
-    question: "How long should you run the blower before starting the engine?",
-    options: ["1 minute", "2 minutes", "4 minutes", "10 minutes"],
-    correctAnswer: 2,
-    explanation:
-      "Run blower for 4 minutes minimum to clear any fuel vapor from the engine compartment before starting.",
-  },
-  {
-    id: "e3",
-    question: "When should you check the engine oil level?",
-    options: ["While engine running", "When engine is hot", "When engine is cold", "Once per season"],
-    correctAnswer: 2,
-    explanation: "Check oil level when engine is cold using the dipstick for an accurate reading.",
-  },
-  {
-    id: "e4",
-    question: "What indicates a raw water impeller needs replacing?",
-    options: ["Engine starts slowly", "Damaged or missing blades", "Oil looks dirty", "Battery is low"],
-    correctAnswer: 1,
-    explanation: "Inspect impeller for damaged or missing blades. Replace if worn and always carry a spare.",
-  },
-  {
-    id: "e5",
-    question: "What is the first thing to check if the engine overheats?",
-    options: ["Oil level", "Battery", "Sea cock open", "Fuel filter"],
-    correctAnswer: 2,
-    explanation:
-      "First check the sea cock is open to allow cooling water intake. Then check impeller and coolant level.",
-  },
-  {
-    id: "e6",
-    question: "What colour should healthy engine coolant be?",
-    options: [
-      "Black",
-      "Pink or green (depending on type), clear and free of debris",
-      "Brown and cloudy",
-      "Colourless like water",
-    ],
-    correctAnswer: 1,
-    explanation:
-      "Coolant should be pink or green (depending on the antifreeze type), clear, and free of debris or oil contamination.",
-  },
-  {
-    id: "e7",
-    question: "Why should you check the stern gland before starting the engine?",
-    options: [
-      "To ensure the propeller is attached",
-      "To verify it is dripping slightly (not dry, not streaming)",
-      "To check the hull paint",
-      "To tighten it as much as possible",
-    ],
-    correctAnswer: 1,
-    explanation:
-      "A stern gland should drip slightly when the shaft turns. Too dry causes overheating; too wet means it needs repacking or tightening.",
-  },
-  {
-    id: "e8",
-    question: "What should you do immediately if the engine oil pressure warning light comes on?",
-    options: [
-      "Increase revs to build pressure",
-      "Stop the engine immediately and investigate",
-      "Wait five minutes and check again",
-      "Top up the fuel tank",
-    ],
-    correctAnswer: 1,
-    explanation:
-      "Stop the engine immediately to prevent serious damage. Investigate oil level, leaks, and filter condition before restarting.",
-  },
-  {
-    id: "e9",
-    question: "How often should fuel filters be checked on a diesel engine?",
-    options: [
-      "Once a year",
-      "Before every passage and regularly during the season",
-      "Only when the engine stalls",
-      "Every 1,000 engine hours only",
-    ],
-    correctAnswer: 1,
-    explanation:
-      "Check fuel filters before every passage. Diesel bug and water contamination can block filters unexpectedly.",
-  },
-  {
-    id: "e10",
-    question: "What is 'diesel bug'?",
-    options: [
-      "An insect attracted to fuel fumes",
-      "Microbial growth in diesel fuel that blocks filters",
-      "A fault in the injection system",
-      "Condensation on the engine block",
-    ],
-    correctAnswer: 1,
-    explanation:
-      "Diesel bug is microbial contamination (bacteria and fungi) that grows in diesel fuel, especially where water is present, and blocks fuel filters.",
-  },
-  {
-    id: "e11",
-    question: "Why is it important to run the engine in neutral before engaging gear?",
-    options: [
-      "To warm the gearbox oil and allow oil pressure to build",
-      "To charge the batteries faster",
-      "To test the throttle cable",
-      "It makes no difference",
-    ],
-    correctAnswer: 0,
-    explanation:
-      "Warming up in neutral allows oil pressure to stabilise and gearbox oil to circulate before putting load on the drivetrain.",
-  },
-  {
-    id: "e12",
-    question: "What should you check when looking at the exhaust discharge?",
-    options: [
-      "That exhaust gases are blue",
-      "That cooling water is flowing out with the exhaust",
-      "That no exhaust gases are visible",
-      "That the exhaust is completely dry",
-    ],
-    correctAnswer: 1,
-    explanation:
-      "Water should be visible in the exhaust discharge, confirming the raw-water cooling system is functioning. No water means overheating risk.",
-  },
+  { id: "e1", question: "Before starting an unfamiliar small-vessel engine, which plan has authority?", options: ["Use one memorised checklist for every engine", "Follow the current vessel/engine manuals and labels, identify the installation, and work within the skipper's authority and your competence", "Copy the previous boat's routine", "Start first and identify the system later"], correctAnswer: 1, explanation: "Diesel, petrol/gasoline, outboard and different cooling/ventilation arrangements require different sequences. Manuals, labels, applicable rules and the skipper's authority govern." },
+  { id: "e2", question: "When is a powered bilge blower part of the pre-start routine?", options: ["Before every diesel or outboard start", "Only after an alarm", "Where the petrol/gasoline installation, label or vessel manual requires it, for the specified time, followed by a leak/vapour inspection", "Only when fuel can already be smelled"], correctAnswer: 2, explanation: "Powered ventilation is installation-specific. Absence of odour does not prove there is no fuel leak or explosive vapour." },
+  { id: "e3", question: "How should oil and coolant levels be checked?", options: ["By the fitted engine manual's method and limits, with the engine stopped and at the specified temperature", "Only while running", "Always when hot", "Against universal colour and dipstick rules"], correctAnswer: 0, explanation: "The specified state and method vary. Isolate before work and never remove a hot, pressurised cooling-system cap." },
+  { id: "e4", question: "An impeller inspection finds missing blade fragments. What is the safe response?", options: ["Fit a new impeller and ignore the fragments", "Recover the fragments and inspect the downstream cooling route as the manual directs before return to service", "Run at full load to flush them out", "Replace it only at a universal annual interval"], correctAnswer: 1, explanation: "Fragments can obstruct the cooling circuit. Inspection intervals and the recovery procedure come from the fitted system's manufacturer guidance." },
+  { id: "e5", question: "A high-temperature alarm sounds underway. What is the safest general sequence?", options: ["Open the coolant cap immediately", "Increase speed to force more water through", "Reduce load and manoeuvre out of danger if safe, stop, isolate, allow cooling, then investigate the installation-specific cooling route", "Restart repeatedly until the alarm clears"], correctAnswer: 2, explanation: "Protect navigation first, then stop and isolate. Hot coolant is pressurised; do not open the cap. Do not restart until the cause is known and resolved." },
+  { id: "e6", question: "Which coolant observation establishes that an engine is safe to run?", options: ["Pink colour alone", "Green colour alone", "A level, condition and mixture within the fitted engine manufacturer's specification, with no unresolved leak or contamination", "Clear liquid of any type"], correctAnswer: 2, explanation: "Coolant types and colours vary and colour alone proves neither condition nor compatibility. Use the manual specification and investigate loss or contamination." },
+  { id: "e7", question: "How should a stern gland or shaft seal be assessed?", options: ["Every type must drip slightly", "Every type must be completely dry", "Use the maker's criteria for the fitted seal, checking leakage, cooling/lubrication and temperature only by a safe procedure", "Tighten it fully before every start"], correctAnswer: 2, explanation: "Traditional packed glands and dripless seals have different requirements. A universal drip rule can damage equipment or hide flooding risk." },
+  { id: "e8", question: "What should you do if the engine oil-pressure warning remains on after starting or illuminates underway?", options: ["Increase revs", "Stop promptly when navigationally safe, isolate and investigate; do not restart until a safe cause is established", "Wait five minutes", "Top up fuel"], correctAnswer: 1, explanation: "Loss of oil pressure can rapidly damage the engine. Account for immediate navigational risk, stop and isolate, then follow the manual and escalate beyond your competence." },
+  { id: "e9", question: "When should filters and water separators be inspected or serviced?", options: ["At a universal annual interval", "Only after the engine stalls", "At the manufacturer/vessel schedule, with additional checks driven by passage planning, contamination risk and observed condition", "Every 1,000 hours regardless of model"], correctAnswer: 2, explanation: "Intervals and access procedures are installation-specific. Fuel reserve, contamination, records and carried spares inform passage readiness." },
+  { id: "e10", question: "What is 'diesel bug'?", options: ["An insect attracted to fuel", "Microbial contamination associated with water in diesel that can block filters and corrode systems", "An injector wiring fault", "Condensation on the engine exterior"], correctAnswer: 1, explanation: "Micro-organisms can grow at the fuel/water interface. Good fuel management, water control and manufacturer-compatible treatment are required." },
+  { id: "e11", question: "Before engaging propulsion after start, what should be verified?", options: ["A fixed warm-up time on every engine", "Only that the battery is charging", "The manual's start/warm-up indications, expected alarms and cooling flow, plus clear propeller area, lines and people", "Maximum neutral revs"], correctAnswer: 2, explanation: "Warm-up requirements vary. Expected oil/charge indications, cooling discharge and abnormal noise, smoke, vibration or leaks must be checked before loading the drivetrain." },
+  { id: "e12", question: "What cooling-discharge check is appropriate immediately after start?", options: ["Every engine must discharge visible water from its exhaust", "Confirm the tell-tale, wet-exhaust flow or other indication specified for the fitted cooling system; stop if the expected response is absent", "A dry exhaust always proves correct operation", "Check only after an overheat alarm"], correctAnswer: 1, explanation: "Raw-water, closed-circuit and outboard installations present cooling flow differently. Use the fitted system's specified indication and stop to investigate an absent expected response." },
 ] as const;
 
 export default engineQuestions;

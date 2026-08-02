@@ -39,8 +39,8 @@ describe("saveProgressRecord", () => {
   it("routes zero-reward Engine catalogue snapshots to the checklist RPC", async () => {
     const { client, rpc } = buildSupabaseMock();
     await saveProgressRecord({ supabaseClient: client as never, userId: "user-1", topicId: "engine-checklist",
-      answersHistory: { version: 1, catalogueId: "engine-maintenance-v1", checkedItemIds: ["oil"], revision: 2 } });
-    expect(rpc).toHaveBeenCalledWith("save_engine_checklist_progress", { p_expected_revision: 2, p_checked_item_ids: ["oil"] });
+      answersHistory: { version: 2, catalogueId: "engine-maintenance-v2", checkedItemIds: ["oil"], revision: 2 } });
+    expect(rpc).toHaveBeenCalledWith("save_engine_checklist_progress", { p_catalogue_id: "engine-maintenance-v2", p_version: 2, p_expected_revision: 2, p_checked_item_ids: ["oil"] });
   });
 
   it("rejects Engine checklist completion, rewards, and stale catalogue identities", async () => {

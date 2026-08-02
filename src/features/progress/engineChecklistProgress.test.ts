@@ -9,8 +9,8 @@ describe("engine checklist progress", () => {
     expect(normalizeEngineCatalogue(null)).toEqual([]);
   });
   it("accepts the stable catalogue identity, deduplicates, and drops retired IDs", () => {
-    expect(parseEngineChecklistProgress({ version: 1, catalogueId: "engine-maintenance-v1", checkedItemIds: ["oil", "oil", "retired"], revision: 2 }, ids)).toEqual({ checkedItemIds: ["oil"], revision: 2 });
-    expect(parseEngineChecklistProgress({ version: 1, catalogueId: "changed", checkedItemIds: [], revision: 0 }, ids)).toBeNull();
+    expect(parseEngineChecklistProgress({ version: 2, catalogueId: "engine-maintenance-v2", checkedItemIds: ["oil", "oil", "retired"], revision: 2 }, ids)).toEqual({ checkedItemIds: ["oil"], revision: 2 });
+    expect(parseEngineChecklistProgress({ version: 2, catalogueId: "changed", checkedItemIds: [], revision: 0 }, ids)).toBeNull();
     expect(parseEngineChecklistProgress("bad", ids)).toBeNull();
   });
   it("keeps anonymous state for one browser session with explicit expiry", () => {
@@ -64,6 +64,15 @@ describe("engine checklist progress", () => {
   });
   it("removes incompatible anonymous snapshots", () => {
     sessionStorage.setItem("engine-checklist-anonymous-v1", JSON.stringify({ expiresAt: Date.now() + 1000, version: 0 }));
+    expect(restoreAnonymousEngineChecklist(sessionStorage, ids)).toBeNull();
+    expect(sessionStorage.getItem("engine-checklist-anonymous-v1")).toBeNull();
+  });
+  it("invalidates repurposed v1 checks while preserving authenticated CAS revision", () => {
+    expect(parseEngineChecklistProgress({ version: 1, catalogueId: "engine-maintenance-v1", checkedItemIds: ["oil", "coolant"], revision: 7 }, ids)).toEqual({ checkedItemIds: [], revision: 7 });
+  });
+  it("removes legacy anonymous v1 state instead of pre-checking repurposed tasks", () => {
+    sessionStorage.clear();
+    sessionStorage.setItem("engine-checklist-anonymous-v1", JSON.stringify({ expiresAt: Date.now() + 1000, version: 1, catalogueId: "engine-maintenance-v1", checkedItemIds: ["oil"], revision: 0 }));
     expect(restoreAnonymousEngineChecklist(sessionStorage, ids)).toBeNull();
     expect(sessionStorage.getItem("engine-checklist-anonymous-v1")).toBeNull();
   });
