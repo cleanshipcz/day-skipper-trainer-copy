@@ -377,4 +377,81 @@ describe("quiz review seeding identity isolation", () => {
     await waitFor(() => expect(screen.queryByText("Practice attempt resumed for this browser session.")).toBeNull());
     expect((screen.getByRole("radio", { name: "Right" }) as HTMLInputElement).checked).toBe(false);
   });
+
+  test("surfaces an empty attempt response early and retries the real start operation", async () => {
+    mocks.rpc
+      .mockResolvedValueOnce({ data: null, error: null })
+      .mockResolvedValueOnce({ data: { attempt_id: "recovered-attempt", started_at: new Date().toISOString() }, error: null });
+
+    renderQuiz();
+
+    expect((await screen.findByRole("alert")).textContent).toContain("could not start your saved quiz attempt");
+    fireEvent.click(screen.getByRole("button", { name: "Retry starting quiz" }));
+    await waitFor(() => expect(localStorage.getItem("quiz-attempt:a:test")).toContain("recovered-attempt"));
+    expect(mocks.rpc.mock.calls.filter(([name]) => name === "start_quiz_attempt")).toHaveLength(2);
+  });
+
+  test("buffers a completed quiz and submits it after attempt-start recovery", async () => {
+    mocks.rpc
+      .mockResolvedValueOnce({ data: null, error: new Error("offline") })
+      .mockResolvedValueOnce({ data: { attempt_id: "recovered-attempt", started_at: new Date().toISOString() }, error: null })
+      .mockResolvedValue({ data: {}, error: null });
+
+    renderQuiz();
+    await screen.findByRole("alert");
+    fireEvent.click(screen.getByRole("radio", { name: "Right" }));
+    fireEvent.click(screen.getByRole("button", { name: "Submit Answer" }));
+    fireEvent.click(screen.getByRole("button", { name: "View Results" }));
+    expect(await screen.findByText("Quiz Complete!")).toBeTruthy();
+    expect(screen.getByText(/result cannot be saved until it starts/i)).toBeTruthy();
+
+    fireEvent.click(screen.getByRole("button", { name: "Retry starting quiz" }));
+    await waitFor(() => expect(mocks.rpc).toHaveBeenCalledWith("submit_quiz_score", expect.objectContaining({
+      p_attempt_id: "recovered-attempt",
+      p_score: 1,
+    })));
+    expect(mocks.saveProgress).toHaveBeenCalledWith("quiz-test", true, 100, 0, expect.any(Object));
+  });
+
+  test("keeps start recovery separate when retry fails again", async () => {
+    mocks.rpc.mockResolvedValue({ data: null, error: new Error("offline") });
+    renderQuiz();
+    await screen.findByRole("alert");
+
+    fireEvent.click(screen.getByRole("button", { name: "Retry starting quiz" }));
+    await waitFor(() => expect(mocks.rpc.mock.calls.filter(([name]) => name === "start_quiz_attempt")).toHaveLength(2));
+    expect(screen.getByRole("button", { name: "Retry starting quiz" })).toBeTruthy();
+    expect(screen.queryByRole("button", { name: "Retry completion save" })).toBeNull();
+  });
+
+  test("preserves completion across a delayed initial start and submits only on the explicit save action", async () => {
+    let resolveStart!: (value: { data: { attempt_id: string; started_at: string }; error: null }) => void;
+    mocks.rpc.mockImplementation((name: string) => name === "start_quiz_attempt"
+      ? new Promise((resolve) => { resolveStart = resolve; })
+      : Promise.resolve({ data: {}, error: null }));
+    renderQuiz();
+    await screen.findByText(/Starting your saved quiz attempt/i);
+    fireEvent.click(screen.getByRole("radio", { name: "Right" }));
+    fireEvent.click(screen.getByRole("button", { name: "Submit Answer" }));
+    fireEvent.click(screen.getByRole("button", { name: "View Results" }));
+    expect(await screen.findByText(/not saveable yet/i)).toBeTruthy();
+
+    await act(async () => resolveStart({ data: { attempt_id: "delayed-attempt", started_at: new Date().toISOString() }, error: null }));
+    fireEvent.click(await screen.findByRole("button", { name: "Save completed quiz" }));
+    await waitFor(() => expect(mocks.rpc.mock.calls.filter(([name]) => name === "submit_quiz_score")).toHaveLength(1));
+  });
+
+  test("ignores delayed attempt success after the authenticated owner changes", async () => {
+    let resolveStart!: (value: { data: { attempt_id: string; started_at: string }; error: null }) => void;
+    mocks.rpc.mockImplementationOnce(() => new Promise((resolve) => { resolveStart = resolve; }));
+    const view = renderQuiz();
+    expect(await screen.findByText(/Starting your saved quiz attempt/i)).toBeTruthy();
+
+    mocks.auth.user = { id: "b" };
+    view.rerender(<MemoryRouter initialEntries={["/quiz/test"]}><Routes><Route path="/quiz/:topicId" element={<Quiz />} /></Routes></MemoryRouter>);
+    await act(async () => resolveStart({ data: { attempt_id: "stale-a-attempt", started_at: new Date().toISOString() }, error: null }));
+
+    expect(localStorage.getItem("quiz-attempt:a:test")).toBeNull();
+    expect(localStorage.getItem("quiz-attempt:b:test")).not.toContain("stale-a-attempt");
+  });
 });

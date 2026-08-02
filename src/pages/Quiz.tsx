@@ -52,6 +52,7 @@ interface QuizWorkflow {
     readonly pointsEarned: number;
   };
 }
+type AttemptStartState = "idle" | "starting" | "ready" | "failed";
 const QUIZ_ATTEMPT_MAX_AGE_MS = 2 * 60 * 60 * 1000;
 const readQuizWorkflow = (owner: string | undefined, topic: string, expectedTotal: number): QuizWorkflow | null => {
   if (!owner) return null;
@@ -132,6 +133,7 @@ const Quiz = () => {
   const anchorReturnTopic = searchParams.get("returnTopic") || "scope";
 
   const [workflow, setWorkflow] = useState<QuizWorkflow | null>(null);
+  const [attemptStartState, setAttemptStartState] = useState<AttemptStartState>("idle");
   const [currentQuestion, setCurrentQuestion] = useState(0);
   const [answers, setAnswers] = useState<(number | null)[]>([]);
   const [tentativeAnswer, setTentativeAnswer] = useState<number | null>(null);
@@ -147,11 +149,17 @@ const Quiz = () => {
   const seedOwnerRef = useRef(user?.id ?? null);
   const seedGenerationRef = useRef(0);
   const assessmentPersistenceRef = useRef<Promise<void> | null>(null);
+  const attemptStartRequestRef = useRef<Promise<QuizWorkflow | null> | null>(null);
+  const attemptRecoveryRef = useRef(false);
+  const completionRequestRef = useRef(false);
+  const attemptScopeRef = useRef("");
   const currentSeedOwner = user?.id ?? null;
+  attemptScopeRef.current = `${currentSeedOwner ?? "anonymous"}:${topicKey}:${questions.length}:${attemptCycle}`;
   if (seedOwnerRef.current !== currentSeedOwner) {
     seedOwnerRef.current = currentSeedOwner;
     seedGenerationRef.current += 1;
     verifiedScoreAttemptRef.current = null;
+    attemptStartRequestRef.current = null;
   }
 
   const seedReviews = useCallback(async (owner: string, generation: number) => {
@@ -255,21 +263,64 @@ const Quiz = () => {
     initQuiz();
   }, [sourceQuestions, questions, topicKey, user?.id, loadProgress, saveProgress, resetProgress, seedReviews]);
 
+  const startAuthenticatedAttempt = useCallback((): Promise<QuizWorkflow | null> => {
+    const owner = seedOwnerRef.current;
+    const generation = seedGenerationRef.current;
+    const scope = attemptScopeRef.current;
+    if (!owner || !sourceQuestions) return Promise.resolve(null);
+    const existing = readQuizWorkflow(owner, topicKey, questions.length);
+    if (existing) {
+      setWorkflow(existing);
+      setAttemptStartState("ready");
+      return Promise.resolve(existing);
+    }
+    if (attemptStartRequestRef.current) return attemptStartRequestRef.current;
+
+    setAttemptStartState("starting");
+    const request = (async () => {
+      const { data, error } = await supabase.rpc("start_quiz_attempt", { p_topic_id: topicKey });
+      if (seedOwnerRef.current !== owner || seedGenerationRef.current !== generation || attemptScopeRef.current !== scope) return null;
+      if (error || !data || typeof data.attempt_id !== "string") {
+        attemptStartRequestRef.current = null;
+        setWorkflow(null);
+        setAttemptStartState("failed");
+        return null;
+      }
+      const created: QuizWorkflow = {
+        version: 2,
+        attemptId: data.attempt_id,
+        expectedTotal: questions.length,
+        scoreSaved: false,
+        startedAt: data.started_at,
+      };
+      writeStored(localStorage, quizAttemptKey(owner, topicKey), created);
+      setWorkflow(created);
+      setAttemptStartState("ready");
+      return created;
+    })().catch(() => {
+      if (seedOwnerRef.current === owner && seedGenerationRef.current === generation && attemptScopeRef.current === scope) {
+        attemptStartRequestRef.current = null;
+        setWorkflow(null);
+        setAttemptStartState("failed");
+      }
+      return null;
+    }).finally(() => {
+      if (attemptStartRequestRef.current === request) attemptStartRequestRef.current = null;
+    });
+    attemptStartRequestRef.current = request;
+    return request;
+  }, [questions.length, sourceQuestions, topicKey]);
+
   useEffect(() => {
     if (!sourceQuestions) return;
     const owner = user?.id;
-    const generation = seedGenerationRef.current;
     const existing = readQuizWorkflow(owner, topicKey, questions.length);
     setWorkflow(existing);
-    if (!owner || existing) return;
-    void (async () => {
-      const { data, error } = await supabase.rpc("start_quiz_attempt", { p_topic_id: topicKey });
-      if (error || !data || seedOwnerRef.current !== owner || seedGenerationRef.current !== generation) return;
-      const created: QuizWorkflow = { version: 2, attemptId: data.attempt_id, expectedTotal: questions.length, scoreSaved: false, startedAt: data.started_at };
-      writeStored(localStorage, quizAttemptKey(owner, topicKey), created);
-      setWorkflow(created);
-    })();
-  }, [user?.id, topicKey, attemptCycle, sourceQuestions, questions.length]);
+    setAttemptStartState(!owner ? "idle" : existing ? "ready" : "idle");
+    attemptStartRequestRef.current = null;
+    attemptRecoveryRef.current = false;
+    if (owner && !existing) void startAuthenticatedAttempt();
+  }, [user?.id, topicKey, attemptCycle, sourceQuestions, questions.length, startAuthenticatedAttempt]);
 
   const assessedAnswer = answers[currentQuestion] ?? null;
   const showExplanation = assessedAnswer !== null;
@@ -382,19 +433,23 @@ const Quiz = () => {
     }
   };
 
-  const handleComplete = async () => {
+  const handleComplete = async (workflowOverride?: QuizWorkflow) => {
     setIsComplete(true);
 
     if (!user) {
       clearAnonymousQuizSession(globalThis.sessionStorage, topicKey);
       return;
     }
+    if (completionRequestRef.current) return;
+    completionRequestRef.current = true;
+    try {
     const owner = user.id;
     const generation = seedGenerationRef.current;
-    const activeWorkflow = workflow;
+    const activeWorkflow = workflowOverride ?? workflow;
     if (!activeWorkflow) {
-      setCompletionSaveError(true);
-      toast.error("Quiz attempt is still starting. Retry saving.");
+      toast.error(attemptStartState === "failed"
+        ? "Your answers are kept, but the quiz attempt still needs to start."
+        : "Your answers are kept while the quiz attempt starts.");
       return;
     }
     setCompletionSaveError(false);
@@ -461,6 +516,20 @@ const Quiz = () => {
       console.error("Error saving quiz results:", error);
       if (seedOwnerRef.current === owner && seedGenerationRef.current === generation) setCompletionSaveError(true);
     }
+    } finally {
+      completionRequestRef.current = false;
+    }
+  };
+
+  const retryAttemptStart = async () => {
+    if (attemptRecoveryRef.current) return;
+    attemptRecoveryRef.current = true;
+    try {
+      const recovered = await startAuthenticatedAttempt();
+      if (recovered && isComplete) await handleComplete(recovered);
+    } finally {
+      attemptRecoveryRef.current = false;
+    }
   };
 
   const handleRestart = () => {
@@ -475,6 +544,7 @@ const Quiz = () => {
     setIsComplete(false);
     setSeed((n) => n + 1);
     setWorkflow(null);
+    setAttemptStartState("idle");
     verifiedScoreAttemptRef.current = null;
     setCompletionSaveError(false);
     suppressNextProgressLoadRef.current = true;
@@ -539,6 +609,19 @@ const Quiz = () => {
                 {completionSaveError && workflow?.scoreSaved ? "Finish saving first" : "Retry Quiz"}
               </Button>
             </div>
+            {user && attemptStartState !== "ready" && <div className="text-center space-y-2">
+              <p role={attemptStartState === "failed" ? "alert" : "status"} aria-live="assertive" className="text-sm text-destructive">
+                {attemptStartState === "failed"
+                  ? "We could not start your saved quiz attempt. Your answers are still here, but this result cannot be saved until it starts."
+                  : "Your answers are kept while your saved quiz attempt starts. This result is not saveable yet."}
+              </p>
+              {attemptStartState === "failed" && <Button variant="outline" onClick={() => void retryAttemptStart()}>
+                Retry starting quiz
+              </Button>}
+            </div>}
+            {user && attemptStartState === "ready" && !workflow?.scoreSaved && !completionSaveError && <div className="text-center">
+              <Button variant="outline" onClick={() => void handleComplete()}>Save completed quiz</Button>
+            </div>}
             {seedStatus === "failed" && <div className="text-center space-y-2">
               <p role="alert" className="text-sm text-destructive">Your quiz is saved, but its review schedule still needs syncing.</p>
               <Button variant="outline" onClick={() => {
@@ -593,6 +676,16 @@ const Quiz = () => {
       </header>
 
       <main className="container mx-auto max-w-3xl px-3 py-5 sm:px-4 sm:py-8">
+        {user && attemptStartState !== "ready" && <div className="mb-3 space-y-2 rounded-lg border border-destructive/50 bg-destructive/10 p-3">
+          <p role={attemptStartState === "failed" ? "alert" : "status"} aria-live="assertive" className="text-sm">
+            {attemptStartState === "failed"
+              ? "We could not start your saved quiz attempt. You may continue answering, but your result cannot be saved until this is recovered."
+              : "Starting your saved quiz attempt. You may answer while it connects; your result is not saveable yet."}
+          </p>
+          {attemptStartState === "failed" && <Button size="sm" variant="outline" onClick={() => void retryAttemptStart()}>
+            Retry starting quiz
+          </Button>}
+        </div>}
         {anonymousStorageNotice && <p aria-live="polite" aria-atomic="true" className="mb-3 text-sm text-muted-foreground">
           {anonymousStorageNotice}
         </p>}
