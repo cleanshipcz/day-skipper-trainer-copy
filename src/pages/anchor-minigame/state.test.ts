@@ -6,20 +6,28 @@ import {
   applyWindTideChange,
   changeRode,
   checkPlacement,
+  createScenario,
   createInitialState,
   getHorizontalAllowance,
   getMaximumVerticalDistance,
   getClearanceFailures,
   getPlannedSwingRadius,
   getTargetRode,
+  getScenarioFamilyOrder,
   moveBoat,
   recoverSafely,
   runAnchorWatch,
   type AnchorScenario,
+  type AnchorScenarioTemplate,
 } from "./state";
 
 const scenario: AnchorScenario = {
   id: 1,
+  identity: "anchor-test",
+  seed: 1,
+  cycle: 1,
+  family: "sheltered",
+  windDirection: "Light wind from ahead",
   title: "Test cove",
   condition: "mild",
   depth: 5.5,
@@ -43,6 +51,32 @@ const scenario: AnchorScenario = {
 };
 
 describe("anchor minigame transitions", () => {
+  it("generates deterministic complete cycles without boundary repeats", () => {
+    const templates = (["sheltered", "harbour", "exposed", "tidal"] as const).map((family) => ({
+      ...scenario,
+      family,
+      title: family,
+      windDirection: `${family} wind`,
+    })).map(({ id: _id, identity: _identity, seed: _seed, cycle: _cycle, ...template }) => template) as AnchorScenarioTemplate[];
+    const first = Array.from({ length: 12 }, (_, index) => createScenario(templates, 4242, index));
+    const replay = Array.from({ length: 12 }, (_, index) => createScenario(templates, 4242, index));
+
+    expect(replay).toEqual(first);
+    expect(new Set(first.slice(0, 4).map(({ family }) => family))).toHaveLength(4);
+    expect(new Set(first.slice(4, 8).map(({ family }) => family))).toHaveLength(4);
+    first.slice(1).forEach((item, index) => expect(item.family).not.toBe(first[index].family));
+    expect(first[0].identity).toMatch(/^anchor-39u-1-1-/);
+  });
+
+  it("keeps seeded family ordering stable at cycle boundaries", () => {
+    for (const seed of [0, 1, 19, 0xffffffff]) {
+      const first = getScenarioFamilyOrder(seed, 0);
+      const second = getScenarioFamilyOrder(seed, 1);
+      expect(new Set(first)).toHaveLength(4);
+      expect(second[0]).not.toBe(first.at(-1));
+    }
+  });
+
   it("creates and resets the stable starting position", () => {
     expect(createInitialState()).toEqual({
       boatX: 17,

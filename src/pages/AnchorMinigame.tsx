@@ -25,6 +25,7 @@ import {
   applyWindTideChange,
   changeRode as transitionRode,
   checkPlacement as evaluatePlacement,
+  createScenario,
   createInitialState,
   getTargetRode,
   getCurrentVerticalDistance,
@@ -36,11 +37,16 @@ import {
   runAnchorWatch,
   startHoldingObservation,
   type AnchorScenario,
+  type AnchorScenarioFamily,
+  type AnchorScenarioTemplate,
+  normaliseScenarioSeed,
 } from "@/pages/anchor-minigame/state";
 import { anchorPracticeSkills, anchorTheoryRoute } from "@/features/anchorwork/learningPath";
 
-const scenarioPool: Omit<AnchorScenario, "id">[] = [
+const scenarioPool: AnchorScenarioTemplate[] = [
   {
+    family: "sheltered",
+    windDirection: "Light wind from ahead",
     title: "Sheltered cove",
     condition: "mild",
     depth: 5.5,
@@ -63,6 +69,8 @@ const scenarioPool: Omit<AnchorScenario, "id">[] = [
     basis: ["RNLI SAR Unit 9, p. 67", "MCA MGN 592 §§2.3–2.4"],
   },
   {
+    family: "harbour",
+    windDirection: "Moderate wind across the bow",
     title: "Harbour afternoon",
     condition: "moderate",
     depth: 7.5,
@@ -85,6 +93,8 @@ const scenarioPool: Omit<AnchorScenario, "id">[] = [
     basis: ["RNLI SAR Unit 9, p. 67", "MCA MGN 592 §§2.3–2.4"],
   },
   {
+    family: "exposed",
+    windDirection: "Strong gusts across the bow",
     title: "Open roadstead",
     condition: "strong",
     depth: 9.5,
@@ -107,6 +117,8 @@ const scenarioPool: Omit<AnchorScenario, "id">[] = [
     basis: ["RNLI SAR Unit 9, p. 67", "MCA MGN 592 §§2.3–2.4", "RYA anchoring and mooring guidance"],
   },
   {
+    family: "tidal",
+    windDirection: "Moderate wind against reversing current",
     title: "Tidal river bend",
     condition: "moderate",
     depth: 6.2,
@@ -130,25 +142,38 @@ const scenarioPool: Omit<AnchorScenario, "id">[] = [
   },
 ];
 
-let scenarioCounter = 0;
-
-const pickScenario = () => {
-  const choice = scenarioPool[Math.floor(Math.random() * scenarioPool.length)];
-  scenarioCounter += 1;
-  return { ...choice, id: scenarioCounter };
-};
-
 const AnchorMinigame = () => {
   const navigate = useNavigate();
-  const [searchParams] = useSearchParams();
+  const [searchParams, setSearchParams] = useSearchParams();
   const returnTopic = searchParams.get("returnTopic") || "scope";
-  const [scenario, setScenario] = useState<AnchorScenario>(() => pickScenario());
+  const [scenarioSeed] = useState(() => normaliseScenarioSeed(searchParams.get("scenarioSeed")
+    ?? (searchParams.has("scenarioRandom") ? "0" : String(Math.floor(Math.random() * 0xffffffff)))));
+  const [initialSequenceIndex] = useState(() => {
+    const rawIndex = searchParams.get("scenarioIndex");
+    const value = Number(rawIndex);
+    if (rawIndex !== null && Number.isSafeInteger(value) && value >= 0) return value;
+    const legacyRandom = Number(searchParams.get("scenarioRandom"));
+    return Number.isFinite(legacyRandom) ? Math.min(Math.max(Math.floor(legacyRandom * scenarioPool.length), 0), scenarioPool.length - 1) : 0;
+  });
+  const [sequenceIndex, setSequenceIndex] = useState(initialSequenceIndex);
+  const [scenario, setScenario] = useState<AnchorScenario>(() => createScenario(scenarioPool, scenarioSeed, initialSequenceIndex));
+  const [completedFamilies, setCompletedFamilies] = useState<AnchorScenarioFamily[]>([]);
+  const [history, setHistory] = useState<{ identity: string; title: string; outcome: "passed" | "changed" }[]>([]);
   const [game, setGame] = useState(createInitialState);
   const gameRef = useRef(game);
   gameRef.current = game;
   const [attempts, setAttempts] = useState(0);
   const [lastStatus, setLastStatus] = useState("Tap ↓ to lower the anchor. Drift back with ←.");
   const [resultOverlay, setResultOverlay] = useState<AnchorResult | null>(null);
+
+  useEffect(() => {
+    if (searchParams.get("scenarioSeed") === String(scenarioSeed)
+      && searchParams.get("scenarioIndex") === String(sequenceIndex)) return;
+    const next = new URLSearchParams(searchParams);
+    next.set("scenarioSeed", String(scenarioSeed));
+    next.set("scenarioIndex", String(sequenceIndex));
+    setSearchParams(next, { replace: true });
+  }, [scenarioSeed, searchParams, sequenceIndex, setSearchParams]);
 
   const currentVerticalDistance = useMemo(() => getCurrentVerticalDistance(scenario), [scenario]);
   const maximumVerticalDistance = useMemo(() => getMaximumVerticalDistance(scenario), [scenario]);
@@ -177,7 +202,10 @@ const AnchorMinigame = () => {
   };
 
   const rollScenario = () => {
-    const next = pickScenario();
+    const nextIndex = sequenceIndex + 1;
+    const next = createScenario(scenarioPool, scenarioSeed, nextIndex);
+    setHistory((items) => [{ identity: scenario.identity, title: scenario.title, outcome: "changed" }, ...items].slice(0, 5));
+    setSequenceIndex(nextIndex);
     setScenario(next);
     setAttempts(0);
     resetPosition();
@@ -220,6 +248,8 @@ const AnchorMinigame = () => {
       setLastStatus("Fixed-position observation started. Hold the progressive setting load and re-check after 5 seconds without moving or changing rode.");
     }
     if (result.type === "success") {
+      setCompletedFamilies((families) => families.includes(scenario.family) ? families : [...families, scenario.family]);
+      setHistory((items) => [{ identity: scenario.identity, title: scenario.title, outcome: "passed" }, ...items.filter((item) => item.identity !== scenario.identity)].slice(0, 5));
       toast.success("Modeled placement passed", {
         description: result.message,
       });
@@ -321,6 +351,7 @@ const AnchorMinigame = () => {
             <Badge variant="secondary" className="text-sm">
               Attempted {attempts} time{attempts === 1 ? "" : "s"}
             </Badge>
+            <Badge variant="outline" className="text-sm">Family {sequenceIndex % scenarioPool.length + 1}/{scenarioPool.length} • Cycle {scenario.cycle}</Badge>
             <Button variant="outline" onClick={rollScenario}>
               <RefreshCcw className="w-4 h-4 mr-2" />
               New setup
@@ -412,6 +443,20 @@ const AnchorMinigame = () => {
         </div>
 
         <Card>
+          <CardHeader className="pb-3">
+            <CardTitle className="text-base">Practice progress</CardTitle>
+            <CardDescription>
+              Mastery means passing all {scenarioPool.length} scenario families. Setup ID <code>{scenario.identity}</code> uses seed <code>{scenario.seed}</code>; keep the URL to reproduce it.
+            </CardDescription>
+          </CardHeader>
+          <CardContent className="space-y-2 text-sm">
+            <p><strong>{completedFamilies.length}/{scenarioPool.length} families passed:</strong> {completedFamilies.length ? completedFamilies.join(", ") : "none yet"}.</p>
+            <p><strong>Recent setups:</strong> {history.length ? history.map((item) => `${item.title} (${item.outcome}, ${item.identity})`).join(" • ") : "This is the first setup."}</p>
+            <p className="text-muted-foreground">“Try again here” resets the controls without changing this setup. “New setup” advances through every family once per cycle with no immediate repeats.</p>
+          </CardContent>
+        </Card>
+
+        <Card>
           <CardHeader className="flex flex-col gap-2 md:flex-row md:items-center md:justify-between">
             <div>
               <CardTitle className="flex items-center gap-2">
@@ -478,7 +523,7 @@ const AnchorMinigame = () => {
                     style={{ opacity: 0.6 }}
                   />
                   <text className="hidden sm:block" x="22" y="10" fontSize="16" fill="hsl(var(--foreground))">
-                    Wind from ahead
+                    {scenario.windDirection}
                   </text>
                 </g>
 
@@ -643,9 +688,11 @@ const AnchorMinigame = () => {
             <p><strong className="text-foreground">Rode:</strong> {scenario.rode}</p>
             <p><strong className="text-foreground">Anchor/vessel:</strong> {scenario.anchorAndVessel}</p>
             <p><strong className="text-foreground">Seabed/local guidance:</strong> {scenario.seabed}</p>
+            <p><strong className="text-foreground">Modeled condition effects:</strong> {scenario.windDirection}; wind exposure and equipment are encoded in required rode, setting distance/load and safety allowance. Tide changes touchdown depth, high-water scope and swept clearance. {scenario.weakHolding ? "This seabed can trigger modeled dragging and safe recovery." : "This seabed is modeled as holding after a correct set."}</p>
             <p><strong className="text-foreground">Modeled room:</strong> {scenario.availableSwingRadius.toFixed(1)}m radius; the full swept area includes {scenario.vesselExtent.toFixed(1)}m vessel extent and {scenario.safetyAllowance.toFixed(1)}m safety allowance.</p>
             <p><strong className="text-foreground">Hazards:</strong> {scenario.hazards.map(({ label, distance, clearance }) => `${label} at ${distance}m with ${clearance}m exclusion`).join("; ")}.</p>
             <p><strong className="text-foreground">Differently swinging neighbours:</strong> {scenario.neighbours.map(({ label, distance, swingRadius }) => `${label} at ${distance}m, ${swingRadius}m radius`).join("; ")}.</p>
+            <p><strong className="text-foreground">Not modeled:</strong> exact wind/current vectors, catenary, yaw, traffic, equipment wear and neighbour response. Their descriptive wording does not change the physics beyond the numeric fixture effects listed above.</p>
             <p><strong className="text-foreground">Basis:</strong> {scenario.basis.join("; ")}. These sources support the factors and checks; the numeric exercise bounds are conservative training fixtures, not universal recommendations.</p>
           </CardContent>
         </Card>
