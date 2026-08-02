@@ -24,8 +24,26 @@ export const useTheoryCompletionGate = ({
   const completionPromiseRef = useRef<Promise<boolean> | null>(null);
   const hydrationKeyRef = useRef<string | null>(null);
   const hydrationGenerationRef = useRef(0);
+  const pendingSaveRef = useRef<{ generation: number; ids: string[] } | null>(null);
+  const saveWorkerRef = useRef<{ generation: number; promise: Promise<void> } | null>(null);
   const [saveState, setSaveState] = useState<"idle" | "saving" | "saved" | "queued" | "failed">("idle");
   const storageKey = catalogueRevision ? `theory-gate:${ownerId ?? "anonymous"}:${topicId}:${catalogueRevision}` : null;
+
+  const enqueueInProgressSave = useCallback((ids: string[], generation = hydrationGenerationRef.current) => {
+    pendingSaveRef.current = { generation, ids };
+    if (saveWorkerRef.current?.generation === generation) return saveWorkerRef.current.promise;
+    const worker = { generation, promise: Promise.resolve() };
+    worker.promise = (async () => {
+      while (pendingSaveRef.current?.generation === generation) {
+        const snapshot = pendingSaveRef.current;
+        pendingSaveRef.current = null;
+        const score = deriveCompletionGateDecision({ visitedSectionIds: snapshot.ids, requiredSectionIds }).score;
+        await saveProgress(topicId, false, score, 0, { completionState: "in_progress", catalogueRevision, visitedSectionIds: snapshot.ids });
+      }
+    })().finally(() => { if (saveWorkerRef.current === worker) saveWorkerRef.current = null; });
+    saveWorkerRef.current = worker;
+    return worker.promise;
+  }, [catalogueRevision, requiredSectionIds, saveProgress, topicId]);
 
   useEffect(() => {
     if (!storageKey) return;
@@ -52,9 +70,11 @@ export const useTheoryCompletionGate = ({
       visitedRef.current = merged;
       setVisitedSectionIds(merged);
       inProgressPersistedRef.current = merged.length > 0;
+      localStorage.setItem(storageKey, JSON.stringify({ catalogueRevision, visitedSectionIds: merged }));
+      if (merged.length > 0) await enqueueInProgressSave(merged, generation);
     };
     void restore();
-  }, [catalogueRevision, loadProgressDetailed, ownerId, requiredSectionIds, storageKey, topicId]);
+  }, [catalogueRevision, enqueueInProgressSave, loadProgressDetailed, ownerId, requiredSectionIds, storageKey, topicId]);
 
   const decision = useMemo(
     () => deriveCompletionGateDecision({ visitedSectionIds, requiredSectionIds }),
@@ -66,13 +86,10 @@ export const useTheoryCompletionGate = ({
       if (state !== "in_progress" || (!catalogueRevision && inProgressPersistedRef.current)) return;
 
       inProgressPersistedRef.current = true;
-      await saveProgress(topicId, false, score, 0, {
-        completionState: "in_progress",
-        catalogueRevision,
-        visitedSectionIds: nextVisitedSectionIds,
-      });
+      if (catalogueRevision) await enqueueInProgressSave(nextVisitedSectionIds);
+      else await saveProgress(topicId, false, score, 0, { completionState: "in_progress", visitedSectionIds: nextVisitedSectionIds });
     },
-    [catalogueRevision, saveProgress, topicId]
+    [catalogueRevision, enqueueInProgressSave, saveProgress, topicId]
   );
 
   const markSectionVisited = useCallback(

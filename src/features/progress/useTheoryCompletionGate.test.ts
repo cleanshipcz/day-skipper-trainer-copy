@@ -243,6 +243,8 @@ describe("useTheoryCompletionGate", () => {
     rerender();
     expect(result.current.visitedSectionIds).toEqual(["s1", "s2"]);
     expect(mocks.loadProgressDetailed).toHaveBeenCalledTimes(1);
+    expect(JSON.parse(localStorage.getItem(`theory-gate:anonymous:${topicId}:v1`)!).visitedSectionIds).toEqual(["s1", "s2"]);
+    expect(mocks.saveProgress).toHaveBeenLastCalledWith(topicId, false, 67, 0, expect.objectContaining({ visitedSectionIds: ["s1", "s2"] }));
   });
 
   it("isolates browser evidence by owner", async () => {
@@ -265,5 +267,18 @@ describe("useTheoryCompletionGate", () => {
     expect(result.current.saveState).toBe("failed");
     await act(async () => { const one = result.current.markCompleted(); const two = result.current.markCompleted(); expect(await one).toBe(true); expect(await two).toBe(true); });
     expect(mocks.saveProgressDetailed).toHaveBeenCalledTimes(2);
+  });
+
+  it("serializes rapid evidence saves and writes the latest snapshot last", async () => {
+    let releaseFirst!: () => void;
+    mocks.saveProgress.mockImplementationOnce(() => new Promise<void>(resolve => { releaseFirst = resolve; })).mockResolvedValue(true);
+    const { result } = renderHook(() => useTheoryCompletionGate({ topicId, requiredSectionIds, catalogueRevision: "v1" }));
+    await act(async () => {});
+    let first!: Promise<void>; let second!: Promise<void>;
+    act(() => { first = result.current.markSectionVisited("s1"); second = result.current.markSectionVisited("s2"); });
+    expect(mocks.saveProgress).toHaveBeenCalledTimes(1);
+    await act(async () => { releaseFirst(); await Promise.all([first, second]); });
+    expect(mocks.saveProgress).toHaveBeenCalledTimes(2);
+    expect(mocks.saveProgress).toHaveBeenLastCalledWith(topicId, false, 67, 0, expect.objectContaining({ visitedSectionIds: ["s1", "s2"] }));
   });
 });
