@@ -38,14 +38,74 @@ const definitions: Record<QuizTopicId, { meta: TopicMeta; importer: QuizImporter
 
 const cache = new Map<QuizTopicId, Promise<readonly Question[]>>();
 
-const validateBank = (topicId: QuizTopicId, questions: readonly Question[]) => {
-  if (!Array.isArray(questions) || questions.length === 0) throw new Error(`Quiz topic "${topicId}" contains no questions.`);
+const normalizedOption = (value: string) => value.normalize("NFKC").trim().replace(/\s+/g, " ").toLocaleLowerCase("en");
+const localQuizImage = /^\/images\/(?:[A-Za-z0-9_-]+\/)*[A-Za-z0-9_-]+\.(?:png|jpe?g|webp|svg)$/i;
+
+const questionError = (topicId: string, index: number, candidate: unknown, detail: string) => {
+  const id = candidate && typeof candidate === "object" && "id" in candidate && typeof candidate.id === "string"
+    ? ` "${candidate.id}"`
+    : ` at index ${index}`;
+  return new Error(`Quiz topic "${topicId}" question${id}: ${detail}`);
+};
+
+/**
+ * Runtime boundary for quiz modules. Both lazy topic loads and bulk exam/review
+ * loads use this exact validator, so malformed authored data never reaches UI,
+ * scoring, persistence, or review scheduling.
+ */
+export const validateQuizBank = (topicId: string, candidate: unknown): readonly Question[] => {
+  if (!Array.isArray(candidate) || candidate.length === 0) throw new Error(`Quiz topic "${topicId}" contains no questions.`);
   const ids = new Set<string>();
-  for (const question of questions) {
-    if (!question.id || ids.has(question.id)) throw new Error(`Quiz topic "${topicId}" has an invalid or duplicate question ID.`);
+  for (const [index, value] of candidate.entries()) {
+    if (!value || typeof value !== "object" || Array.isArray(value)) {
+      throw questionError(topicId, index, value, "must be an object.");
+    }
+    const question = value as Record<string, unknown>;
+    if (typeof question.id !== "string" || question.id.trim() === "" || question.id !== question.id.trim()) {
+      throw questionError(topicId, index, value, "id must be a non-blank, trimmed string.");
+    }
+    if (ids.has(question.id)) throw questionError(topicId, index, value, `id "${question.id}" is duplicated in this topic.`);
     ids.add(question.id);
+    if (typeof question.question !== "string" || question.question.trim() === "" || question.question !== question.question.trim()) {
+      throw questionError(topicId, index, value, "text must be a non-blank, trimmed string.");
+    }
+    if (!Array.isArray(question.options) || question.options.length < 2) {
+      throw questionError(topicId, index, value, "options must intentionally provide at least two choices.");
+    }
+    const options = new Set<string>();
+    for (const [optionIndex, option] of question.options.entries()) {
+      if (typeof option !== "string" || option.trim() === "") {
+        throw questionError(topicId, index, value, `option ${optionIndex + 1} must be a non-blank string.`);
+      }
+      const normalized = normalizedOption(option);
+      if (options.has(normalized)) {
+        throw questionError(topicId, index, value, `option ${optionIndex + 1} duplicates another choice after normalization.`);
+      }
+      options.add(normalized);
+    }
+    if (!Number.isInteger(question.correctAnswer) || (question.correctAnswer as number) < 0 || (question.correctAnswer as number) >= question.options.length) {
+      throw questionError(topicId, index, value, "correctAnswer must be an integer index within options.");
+    }
+    if (typeof question.explanation !== "string" || question.explanation.trim() === "") {
+      throw questionError(topicId, index, value, "explanation must be a non-blank string.");
+    }
+    if (question.image !== undefined && (typeof question.image !== "string" || !localQuizImage.test(question.image))) {
+      throw questionError(topicId, index, value, "image must be a canonical local asset path under /images/.");
+    }
   }
-  return questions;
+  return candidate as readonly Question[];
+};
+
+export const validateQuizCatalogueIds = (catalogue: Readonly<Record<string, readonly Question[]>>) => {
+  const ownerById = new Map<string, string>();
+  for (const [topicId, questions] of Object.entries(catalogue)) for (const question of questions) {
+    const firstOwner = ownerById.get(question.id);
+    if (firstOwner !== undefined) {
+      throw new Error(`Question ID "${question.id}" belongs to both quiz topics "${firstOwner}" and "${topicId}".`);
+    }
+    ownerById.set(question.id, topicId);
+  }
+  return catalogue;
 };
 
 export const isQuizTopicId = (value: string): value is QuizTopicId =>
@@ -60,7 +120,7 @@ export const loadQuizTopic = (topicId: string): Promise<readonly Question[]> => 
   const existing = cache.get(topicId);
   if (existing) return existing;
   const request = definitions[topicId].importer()
-    .then(({ default: questions }) => validateBank(topicId, questions))
+    .then(({ default: questions }) => validateQuizBank(topicId, questions))
     .catch((error: unknown) => {
       cache.delete(topicId);
       throw new Error(`Could not load ${definitions[topicId].meta.title}.`, { cause: error });
@@ -80,12 +140,7 @@ export const loadAllQuizTopics = async (concurrency = 4): Promise<Readonly<Recor
       result[topicId] = await loadQuizTopic(topicId);
     }
   }));
-  const allIds = new Set<string>();
-  for (const topicId of topicIds) for (const question of result[topicId]) {
-    if (allIds.has(question.id)) throw new Error(`Question ID "${question.id}" is duplicated across quiz topics.`);
-    allIds.add(question.id);
-  }
-  return result;
+  return validateQuizCatalogueIds(result) as Readonly<Record<QuizTopicId, readonly Question[]>>;
 };
 
 export const quizCatalogue: Readonly<Record<QuizTopicId, QuizTopic>> = Object.fromEntries(
