@@ -67,6 +67,17 @@ describe("COLREG Part C safety-critical content", () => {
     expect(within(astern as HTMLElement).queryByText("50 m+ masthead light")).toBeNull();
   });
 
+  it("renders optional sailing red over green in every observer aspect", () => {
+    render(<PartCLights />);
+    const plan = screen.getByText("Sailing vessel underway").closest("figure")!;
+    for (const aspect of ["ahead", "port", "starboard", "astern"]) {
+      const row = within(plan).getByText(aspect).nextElementSibling!;
+      const pair = Array.from(row.querySelectorAll("[data-light-colour]")).slice(0, 2);
+      expect(pair).toHaveLength(2);
+      expect(pair.map(light => light.getAttribute("data-light-colour"))).toEqual(["red", "green"]);
+    }
+  });
+
   it("provides text equivalents and separates mnemonics", () => {
     render(<><PartCLights /><PartCShapes /></>);
     expect(screen.getAllByText("Structured equivalent:").length).toBeGreaterThanOrEqual(18);
