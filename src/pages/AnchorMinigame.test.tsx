@@ -244,6 +244,21 @@ describe("AnchorMinigame", () => {
     expect(screen.getByText("Harbour afternoon")).toBeTruthy();
   });
 
+  it("blocks checks and setup changes until authenticated hydration resolves", async () => {
+    progressMocks.user = { id: "user-a" };
+    let resolveLoad!: (value: { status: "missing"; record: null }) => void;
+    progressMocks.load.mockReturnValue(new Promise((resolve) => { resolveLoad = resolve; }));
+    const user = userEvent.setup();
+    render(<MemoryRouter><AnchorMinigame /></MemoryRouter>);
+    expect((screen.getByRole("button", { name: "Enter (check)" }) as HTMLButtonElement).disabled).toBe(true);
+    expect((screen.getByRole("button", { name: "New setup" }) as HTMLButtonElement).disabled).toBe(true);
+    expect(screen.getByText("Attempted 0 times")).toBeTruthy();
+    resolveLoad({ status: "missing", record: null });
+    await screen.findByText("Practice ready.");
+    await user.click(screen.getByRole("button", { name: "Enter (check)" }));
+    expect(screen.getByText("Attempted 1 time")).toBeTruthy();
+  });
+
   it("surfaces load failure and retries hydration", async () => {
     progressMocks.user = { id: "user-a" };
     progressMocks.load.mockResolvedValueOnce({ status: "failed", record: null }).mockResolvedValueOnce({ status: "missing", record: null });
@@ -284,6 +299,26 @@ describe("AnchorMinigame", () => {
     await waitFor(() => expect(progressMocks.save).toHaveBeenCalledTimes(2));
     expect(progressMocks.save.mock.calls[1]).toEqual(progressMocks.save.mock.calls[0]);
     expect(progressMocks.save.mock.calls[1][3]).toBe(0);
+  });
+
+  it("serializes saves and keeps cumulative diagnostics in the later checkpoint", async () => {
+    progressMocks.user = { id: "user-a" };
+    progressMocks.load.mockResolvedValue({ status: "missing", record: null });
+    let resolveFirst!: (value: "remote") => void;
+    progressMocks.save.mockReturnValueOnce(new Promise((resolve) => { resolveFirst = resolve; })).mockResolvedValueOnce("remote");
+    const user = userEvent.setup();
+    render(<MemoryRouter><AnchorMinigame /></MemoryRouter>);
+    await screen.findByText("Practice ready.");
+    await user.click(screen.getByRole("button", { name: "Enter (check)" }));
+    await user.click(screen.getAllByRole("button", { name: "Close" })[0]);
+    await user.click(screen.getByRole("button", { name: "New setup" }));
+    expect(progressMocks.save).toHaveBeenCalledTimes(1);
+    resolveFirst("remote");
+    await waitFor(() => expect(progressMocks.save).toHaveBeenCalledTimes(2));
+    expect(progressMocks.save.mock.calls[1][4]).toEqual(expect.objectContaining({
+      attempts: 1, failedChecks: 1, sequenceIndex: 1, scenarioIdentity: "anchor-0-1-2-harbour",
+    }));
+    expect(await screen.findByText(/1 checks, 1 needing remediation/)).toBeTruthy();
   });
 
   it("offers parent theory and quiz handoff after restored mastery", async () => {

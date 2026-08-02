@@ -7,6 +7,6 @@ describe("Anchor minigame progress", () => {
   it.each([
     { ...valid, version: 2 }, { ...valid, completedFamilies: ["unknown"] },
     { ...valid, completedFamilies: ["sheltered", "sheltered"] }, { ...valid, attempts: -1 },
+    { ...valid, attempts: 1, failedChecks: 2 },
   ])("rejects unsafe or stale snapshots %#", (snapshot) => expect(parseAnchorMinigameProgress(snapshot)).toBeNull());
 });
-

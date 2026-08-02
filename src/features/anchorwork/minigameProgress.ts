@@ -23,9 +23,9 @@ export const parseAnchorMinigameProgress = (value: unknown): AnchorMinigameProgr
     || new Set(candidate.completedFamilies).size !== candidate.completedFamilies.length
     || !Number.isSafeInteger(candidate.attempts) || (candidate.attempts ?? -1) < 0
     || !Number.isSafeInteger(candidate.failedChecks) || (candidate.failedChecks ?? -1) < 0
+    || (candidate.failedChecks ?? 0) > (candidate.attempts ?? 0)
     || !Number.isSafeInteger(candidate.scenarioSeed) || (candidate.scenarioSeed ?? -1) < 0
     || !Number.isSafeInteger(candidate.sequenceIndex) || (candidate.sequenceIndex ?? -1) < 0
     || typeof candidate.scenarioIdentity !== "string") return null;
   return candidate as AnchorMinigameProgress;
 };
-
