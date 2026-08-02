@@ -17,10 +17,18 @@ const select = async (groupName: RegExp, choice: string) => {
   await waitFor(() => expect(within(group).getByRole("radio", { name: choice }).getAttribute("aria-checked") ?? (within(group).getByRole("radio", { name: choice }) as HTMLInputElement).checked).toBeTruthy());
 };
 const completeEvidencePractice = () => {
-  for (const location of ["Wire beside its terminal", "Chainplate/deck interface", "Headsail sheet and lead"]) {
+  const answers = [
+    ["Wire beside its terminal", /No-sail; keep clear and refer/],
+    ["Chainplate/deck interface", /Record as unresolved hidden-structure evidence/],
+    ["Headsail sheet and lead", /Depower; correct the specified lead/],
+  ] as const;
+  for (const [location, decision] of answers) {
     fireEvent.click(screen.getByRole("radio", { name: location }));
-    fireEvent.click(screen.getByRole("button", { name: "Evaluate evidence" }));
+    fireEvent.click(screen.getByRole("button", { name: "Check location" }));
     expect(screen.getByText(/^Correct location/)).toBeTruthy();
+    fireEvent.click(screen.getByRole("radio", { name: decision }));
+    fireEvent.click(screen.getByRole("button", { name: "Evaluate decision" }));
+    expect(screen.getByText(/^Correct decision/)).toBeTruthy();
     fireEvent.click(screen.getByRole("button", { name: "Next observation" }));
   }
 };
@@ -69,10 +77,25 @@ describe("RigTheory honest durable outcomes", () => {
     expect(screen.getByText(/one masthead-sloop example/i)).toBeTruthy();
     expect(screen.getByRole("heading", { name: /Safe deck-level walk-round/i })).toBeTruthy();
     fireEvent.click(screen.getByRole("radio", { name: "Sail reefing patch" }));
-    fireEvent.click(screen.getByRole("button", { name: "Evaluate evidence" }));
+    fireEvent.click(screen.getByRole("button", { name: "Check location" }));
     expect(screen.getByText(/Not yet.*trace the observation/i)).toBeTruthy();
     completeEvidencePractice();
     expect(screen.getByText(/Evidence walk-round practice complete/i)).toBeTruthy();
+  });
+
+  it("blocks completion until the safe evidence decision is correct", async () => {
+    renderPage(); await screen.findByText(/saved for this browser session/i);
+    fireEvent.click(screen.getByRole("radio", { name: "Wire beside its terminal" }));
+    fireEvent.click(screen.getByRole("button", { name: "Check location" }));
+    fireEvent.click(screen.getByRole("radio", { name: /Tape the strand smooth/ }));
+    fireEvent.click(screen.getByRole("button", { name: "Evaluate decision" }));
+    expect(screen.getByText(/Not safe.*Do not conceal/i)).toBeTruthy();
+    expect(screen.queryByRole("button", { name: "Next observation" })).toBeNull();
+    expect(screen.queryByText(/practice complete/i)).toBeNull();
+    fireEvent.click(screen.getByRole("radio", { name: /No-sail; keep clear and refer/ }));
+    fireEvent.click(screen.getByRole("button", { name: "Evaluate decision" }));
+    expect(screen.getByText(/^Correct decision.*No-sail/i)).toBeTruthy();
+    expect(screen.getByRole("button", { name: "Next observation" })).toBeTruthy();
   });
 
   it("navigates from the lesson to rig quiz practice", async () => {
