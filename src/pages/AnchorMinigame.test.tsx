@@ -5,6 +5,14 @@ import { MemoryRouter, Route, Routes, useLocation } from "react-router-dom";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import AnchorMinigame from "./AnchorMinigame";
 
+const progressMocks = vi.hoisted(() => ({
+  user: null as { id: string } | null,
+  load: vi.fn(),
+  save: vi.fn(),
+}));
+vi.mock("@/contexts/AuthHooks", () => ({ useAuth: () => ({ user: progressMocks.user }) }));
+vi.mock("@/hooks/useProgress", () => ({ useProgress: () => ({ loadProgressDetailed: progressMocks.load, saveProgressDetailed: progressMocks.save }) }));
+
 vi.mock("sonner", () => ({
   toast: { success: vi.fn(), error: vi.fn(), message: vi.fn() },
 }));
@@ -12,6 +20,9 @@ vi.mock("sonner", () => ({
 describe("AnchorMinigame", () => {
   beforeEach(() => {
     vi.spyOn(Math, "random").mockReturnValue(0);
+    progressMocks.user = null;
+    progressMocks.load.mockReset().mockResolvedValue({ status: "anonymous", record: null });
+    progressMocks.save.mockReset().mockResolvedValue("anonymous");
   });
 
   it("limits shortcuts to the focused named surface and announces concise actions", () => {
@@ -187,7 +198,7 @@ describe("AnchorMinigame", () => {
     now.mockRestore();
   });
 
-  it("supports keyboard placement, checking, and reset without writing browser storage", () => {
+  it("supports keyboard placement, checking, and reset without writing browser storage for anonymous practice", () => {
     const now = vi.spyOn(Date, "now").mockReturnValue(1_000);
     const localSetItem = vi.spyOn(window.localStorage, "setItem");
     const sessionSetItem = vi.spyOn(window.sessionStorage, "setItem");
@@ -219,6 +230,28 @@ describe("AnchorMinigame", () => {
     expect(sessionSetItem).not.toHaveBeenCalled();
     expect(indexedDbOpen).not.toHaveBeenCalled();
     now.mockRestore();
+  });
+
+  it("hydrates authenticated mastery by stable scenario identity", async () => {
+    progressMocks.user = { id: "user-a" };
+    progressMocks.load.mockResolvedValue({ status: "remote", record: { answers_history: {
+      version: 1, completedFamilies: ["sheltered", "harbour"], attempts: 5, failedChecks: 3,
+      scenarioSeed: 0, sequenceIndex: 1, scenarioIdentity: "anchor-0-1-2-harbour",
+    } } });
+    render(<MemoryRouter><AnchorMinigame /></MemoryRouter>);
+    expect(await screen.findByText(/2\/4 families passed/)).toBeTruthy();
+    expect(screen.getByText(/5 checks, 3 needing remediation/)).toBeTruthy();
+    expect(screen.getByText("Harbour afternoon")).toBeTruthy();
+  });
+
+  it("surfaces load failure and retries hydration", async () => {
+    progressMocks.user = { id: "user-a" };
+    progressMocks.load.mockResolvedValueOnce({ status: "failed", record: null }).mockResolvedValueOnce({ status: "missing", record: null });
+    const user = userEvent.setup();
+    render(<MemoryRouter><AnchorMinigame /></MemoryRouter>);
+    await user.click(await screen.findByRole("button", { name: "Retry progress" }));
+    await waitFor(() => expect(progressMocks.load).toHaveBeenCalledTimes(2));
+    expect(await screen.findByText("Practice ready.")).toBeTruthy();
   });
 
   it("preserves a passed history outcome when continuing to the next setup", () => {

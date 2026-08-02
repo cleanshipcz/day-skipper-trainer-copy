@@ -19,6 +19,10 @@ const atomicAnchorworkSql = readFileSync(
   resolve(process.cwd(), "supabase/migrations/20260801190000_atomic_anchorwork_progress.sql"),
   "utf8",
 ).toLowerCase();
+const anchorPracticeCatalogueSql = readFileSync(
+  resolve(process.cwd(), "supabase/migrations/20260802050000_register_anchor_practice_progress.sql"),
+  "utf8",
+).toLowerCase();
 
 describe("atomic progress migration", () => {
   it("derives identity from auth.uid and accepts no user-id argument", () => {
@@ -65,6 +69,12 @@ describe("atomic progress migration", () => {
     expect(anchorworkCatalogueSql).toContain("'anchorwork', 'ropework', 'pilotage-plan'");
     expect(anchorworkCatalogueSql).toContain("when 'anchorwork' then 100");
     expect(anchorworkCatalogueSql).toContain("anchorwork catalogue marker was not found");
+  });
+
+  it("registers Anchor practice as diagnostic progress with no reward case", () => {
+    expect(anchorPracticeCatalogueSql).toContain("'anchorwork-practice', 'ropework', 'pilotage-plan'");
+    expect(anchorPracticeCatalogueSql).not.toContain("when 'anchorwork-practice'");
+    expect(anchorPracticeCatalogueSql).toContain("practice catalogue marker was not found");
   });
 
   it("merges stale Anchorwork snapshots monotonically under a user-scoped lock", () => {
