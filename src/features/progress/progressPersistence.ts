@@ -1,5 +1,6 @@
 import type { SupabaseClient } from "@supabase/supabase-js";
 import { VICTUALLING_CHECKLIST_PROGRESS_ID, VICTUALLING_PROGRESS_VERSION } from "./victuallingProgress";
+import { ENGINE_CHECKLIST_CATALOGUE_ID, ENGINE_CHECKLIST_PROGRESS_ID, ENGINE_CHECKLIST_PROGRESS_VERSION } from "./engineChecklistProgress";
 
 interface SaveProgressRecordArgs {
   supabaseClient: SupabaseClient;
@@ -44,6 +45,14 @@ export const saveProgressRecord = async ({
     || victuallingPayload.checkedItemIds.some((id) => typeof id !== "string")
     || !Number.isSafeInteger(victuallingPayload.revision) || (victuallingPayload.revision as number) < 0
   )) throw new Error("Victualling checklist progress requires a valid revisioned snapshot");
+  const enginePayload = answersHistory as { version?: unknown; catalogueId?: unknown; checkedItemIds?: unknown; revision?: unknown } | undefined;
+  if (topicId === ENGINE_CHECKLIST_PROGRESS_ID && (
+    completed || pointsEarned !== 0 || enginePayload?.version !== ENGINE_CHECKLIST_PROGRESS_VERSION
+    || enginePayload?.catalogueId !== ENGINE_CHECKLIST_CATALOGUE_ID
+    || !Array.isArray(enginePayload.checkedItemIds) || enginePayload.checkedItemIds.length > 10
+    || enginePayload.checkedItemIds.some((id) => typeof id !== "string")
+    || !Number.isSafeInteger(enginePayload.revision) || (enginePayload.revision as number) < 0
+  )) throw new Error("Engine checklist progress requires a valid revisioned catalogue snapshot");
   const { data, error } = topicId === "anchorwork"
     ? await supabaseClient.rpc("save_anchorwork_progress", { p_completed_topic_ids: anchorworkIds as string[] })
     : topicId === "anchorwork-practice"
@@ -56,6 +65,11 @@ export const saveProgressRecord = async ({
       ? await supabaseClient.rpc("save_victualling_checklist_progress", {
         p_expected_revision: victuallingPayload?.revision as number,
         p_checked_item_ids: victuallingPayload?.checkedItemIds as string[],
+      })
+    : topicId === ENGINE_CHECKLIST_PROGRESS_ID
+      ? await supabaseClient.rpc("save_engine_checklist_progress", {
+        p_expected_revision: enginePayload?.revision as number,
+        p_checked_item_ids: enginePayload?.checkedItemIds as string[],
       })
       : await supabaseClient.rpc("save_topic_progress", {
       p_topic_id: topicId,
