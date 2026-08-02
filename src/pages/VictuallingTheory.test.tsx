@@ -76,6 +76,8 @@ describe("VictuallingTheory durable checklist", () => {
     await waitFor(() => expect((checkbox as HTMLButtonElement).disabled).toBe(false));
     await user.click(checkbox);
     const retry = await screen.findByRole("button", { name: "Retry save" });
+    const saveAlert = screen.getByText(/latest checklist change was not saved/).closest('[role="alert"]');
+    expect(saveAlert?.textContent).toContain("Retry save is available");
     expect((checkbox as HTMLButtonElement).disabled).toBe(true);
     await user.click(retry);
     await screen.findByText("Checklist saved.");
@@ -92,6 +94,9 @@ describe("VictuallingTheory durable checklist", () => {
     await waitFor(() => expect((first as HTMLButtonElement).disabled).toBe(false));
     await user.click(first);
     const reload = await screen.findByRole("button", { name: "Reload checklist" });
+    const conflictAlert = screen.getByText(/checklist changed elsewhere/).closest('[role="alert"]');
+    expect(conflictAlert?.textContent).toContain("latest change was not saved");
+    expect(conflictAlert?.textContent).toContain("Reload checklist is available");
     expect((first as HTMLButtonElement).disabled).toBe(true);
     await user.click(reload);
     await waitFor(() => expect((first as HTMLButtonElement).disabled).toBe(false));
@@ -114,11 +119,27 @@ describe("VictuallingTheory durable checklist", () => {
     const user = userEvent.setup();
     renderPage();
     expect((await screen.findByRole("button", { name: "Retry load" }))).toBeTruthy();
+    expect(screen.getByText(/Saved checklist could not be loaded/).closest('[role="alert"]')?.textContent).toContain("Retry load is available");
     const checkbox = screen.getByRole("checkbox", { name: checklistData[0].item }) as HTMLButtonElement;
     expect(checkbox.disabled).toBe(true);
     await user.click(screen.getByRole("button", { name: "Retry load" }));
     await waitFor(() => expect(checkbox.disabled).toBe(false));
     expect(mocks.load).toHaveBeenCalledTimes(2);
+  });
+
+  it("keeps routine persistence statuses out of live regions", async () => {
+    let resolveSave!: (value: "remote") => void;
+    mocks.save.mockReturnValue(new Promise((resolve) => { resolveSave = resolve; }));
+    const user = userEvent.setup();
+    renderPage();
+    const checkbox = await screen.findByRole("checkbox", { name: checklistData[0].item });
+    await waitFor(() => expect((checkbox as HTMLButtonElement).disabled).toBe(false));
+    await user.click(checkbox);
+    expect(screen.getByText("Saving checklist…").closest("div")?.getAttribute("role")).toBeNull();
+    resolveSave("remote");
+    await screen.findByText("Checklist saved.");
+    expect(screen.getByText("Checklist saved.").closest("div")?.getAttribute("aria-live")).toBeNull();
+    expect(screen.getByText("Checklist saved.").closest("div")?.getAttribute("role")).toBeNull();
   });
 
   it("exposes editable passage inputs and announces capacity warnings", async () => {
