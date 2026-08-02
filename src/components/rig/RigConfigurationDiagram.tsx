@@ -7,9 +7,9 @@ const callouts = [
   { n: 6, x: 222, y: 206, label: "Halyard and reefing leads", detail: "Illustrative running-rigging path; trace the vessel's labelled lead plan." },
 ] as const;
 
-export const RigConfigurationDiagram = () => <figure className="rounded-lg border bg-muted/30 p-3" aria-labelledby="rig-diagram-caption">
-  <div className="overflow-x-auto rounded-md bg-background" tabIndex={0} aria-label="Scrollable rig diagram; zoom the browser if needed">
-    <svg className="mx-auto h-auto min-w-[34rem] max-w-3xl" viewBox="0 0 420 290" role="img" aria-labelledby="rig-diagram-title rig-diagram-desc">
+export const RigConfigurationDiagram = () => <figure className="min-w-0 rounded-lg border bg-muted/30 p-3 forced-colors:border-[CanvasText]" aria-labelledby="rig-diagram-caption">
+  <div className="overflow-x-auto rounded-md bg-background focus-visible:ring-2 focus-visible:ring-ring" tabIndex={0} role="region" aria-label="Scrollable rig diagram; the numbered text alternative follows">
+    <svg className="mx-auto h-auto w-full min-w-[20rem] max-w-3xl" viewBox="0 0 420 290" role="img" aria-labelledby="rig-diagram-title rig-diagram-desc">
       <title id="rig-diagram-title">Configuration-qualified mast and rigging orientation diagram</title>
       <desc id="rig-diagram-desc">Side view of one masthead sloop example, labelling mast and spreaders, forestay and shrouds, backstay, chainplate and terminal, boom and gooseneck, and illustrative halyard and reefing paths. It is not a tuning or assembly plan.</desc>
       <path d="M35 250 Q210 266 385 250 L365 278 L62 278 Z" className="fill-ocean/15 stroke-foreground" strokeWidth="2" />
@@ -28,4 +28,3 @@ export const RigConfigurationDiagram = () => <figure className="rounded-lg borde
     <ol className="mt-2 grid gap-2 text-sm text-muted-foreground sm:grid-cols-2">{callouts.map(({ n, label, detail }) => <li key={n}><strong className="text-foreground">{n}. {label}:</strong> {detail}</li>)}</ol>
   </figcaption>
 </figure>;
-

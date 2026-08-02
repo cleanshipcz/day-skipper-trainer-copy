@@ -69,6 +69,9 @@ describe("RigTheory honest durable outcomes", () => {
     completeEvidencePractice();
     expect(await screen.findByRole("heading", { name: "Learning review complete" })).toBeTruthy();
     expect(screen.getByText(/not a certificate/i)).toBeTruthy();
+    const liveCompletionRegions = [...document.querySelectorAll('[aria-live="polite"]')].filter((node) => node.textContent?.includes("Learning review complete"));
+    expect(liveCompletionRegions).toHaveLength(1);
+    expect(screen.getByText("Evidence walk-round practice complete.").closest('[aria-live]')).toBeNull();
   });
 
   it("teaches configuration orientation and requires locating evidence with feedback", async () => {
@@ -80,7 +83,7 @@ describe("RigTheory honest durable outcomes", () => {
     fireEvent.click(screen.getByRole("button", { name: "Check location" }));
     expect(screen.getByText(/Not yet.*trace the observation/i)).toBeTruthy();
     completeEvidencePractice();
-    expect(screen.getByText(/Evidence walk-round practice complete/i)).toBeTruthy();
+    expect(screen.getByText("Evidence walk-round practice complete.")).toBeTruthy();
   });
 
   it("blocks completion until the safe evidence decision is correct", async () => {
@@ -105,6 +108,28 @@ describe("RigTheory honest durable outcomes", () => {
     expect(await screen.findByRole("heading", { name: "Rig quiz destination" })).toBeTruthy();
   });
 
+  it("names progress, practice instructions, feedback, and icon-only navigation", async () => {
+    renderPage(); await screen.findByText(/saved for this browser session/i);
+    expect(screen.getByRole("button", { name: "Back to Home from Rig Checks & Preparation" })).toBeTruthy();
+    expect(screen.getByText(/Rig review progress: 0 of 12/).getAttribute("aria-live")).toBe("polite");
+    expect(screen.getByTestId("rig-evidence-practice").getAttribute("aria-describedby")).toBe("rig-practice-instructions");
+    fireEvent.click(screen.getByRole("radio", { name: "Wire beside its terminal" }));
+    fireEvent.click(screen.getByRole("button", { name: "Check location" }));
+    expect(screen.getByText(/^Correct location/).getAttribute("role")).toBe("status");
+  });
+
+  it("provides reflow, touch, forced-colour, and reduced-motion safeguards", async () => {
+    const { container } = renderPage(); await screen.findByText(/saved for this browser session/i);
+    expect(container.firstElementChild?.className).toContain("overflow-x-hidden");
+    expect(container.firstElementChild?.className).toContain("motion-reduce:scroll-auto");
+    expect(screen.getByRole("region", { name: /Scrollable rig diagram/ }).querySelector("svg")?.classList.contains("w-full")).toBe(true);
+    expect(screen.getByRole("button", { name: "Practise Rig Quiz" }).className).toContain("min-h-11");
+    expect(screen.getByRole("button", { name: "Back to Home from Rig Checks & Preparation" }).className).toContain("min-w-11");
+    expect(screen.getByRole("button", { name: "Reset review" }).className).toContain("min-h-11");
+    expect(screen.getByRole("button", { name: "Check location" }).className).toContain("min-w-11");
+    expect(screen.getByTestId("rig-evidence-practice").className).toContain("forced-colors:border-[CanvasText]");
+  });
+
   it("pauses editing on save failure and retries the same snapshot", async () => {
     auth.user = { id: "rig-user" };
     loadProgressDetailed.mockResolvedValue({ status: "missing" });
@@ -113,7 +138,9 @@ describe("RigTheory honest durable outcomes", () => {
     await select(/Shrouds & Stays/i, "Satisfactory evidence");
     const alert = await screen.findByRole("alert");
     expect(alert.textContent).toContain("latest outcome was not saved");
-    fireEvent.click(within(alert).getByRole("button", { name: "Retry save" }));
+    const retrySave = within(alert).getByRole("button", { name: "Retry save" });
+    expect(retrySave.className).toContain("min-h-11");
+    fireEvent.click(retrySave);
     await waitFor(() => expect(screen.queryByRole("alert")).toBeNull());
     expect(saveProgressDetailed).toHaveBeenLastCalledWith("rig-review", false, 0, 0, expect.objectContaining({ catalogueId: "rig-review-v1" }));
   });
@@ -124,7 +151,7 @@ describe("RigTheory honest durable outcomes", () => {
       return Promise.resolve({ status: "missing" });
     });
     renderPage();
-    await screen.findByText("0 of 12 items reviewed; 0 unresolved.");
+    await screen.findByText(/0 of 12 items reviewed; 0 unresolved/);
     expect(loadProgressDetailed).toHaveBeenCalledWith("rig-review");
     expect(loadProgressDetailed).not.toHaveBeenCalledWith("rig");
   });
@@ -132,7 +159,9 @@ describe("RigTheory honest durable outcomes", () => {
   it("offers retry for transient load failure", async () => {
     loadProgressDetailed.mockResolvedValueOnce({ status: "failed" }).mockResolvedValueOnce({ status: "anonymous" });
     renderPage();
-    fireEvent.click(within(await screen.findByRole("alert")).getByRole("button", { name: "Retry load" }));
+    const retryLoad = within(await screen.findByRole("alert")).getByRole("button", { name: "Retry load" });
+    expect(retryLoad.className).toContain("min-w-11");
+    fireEvent.click(retryLoad);
     expect(await screen.findByText(/saved for this browser session/i)).toBeTruthy();
   });
 
@@ -142,7 +171,10 @@ describe("RigTheory honest durable outcomes", () => {
     const alert = await screen.findByRole("alert");
     expect(alert.textContent).toContain("was not deleted");
     expect(sessionStorage.getItem("rig-review-anonymous-v1")).toBe("{bad");
-    fireEvent.click(within(alert).getByRole("button", { name: "Clear local review" }));
+    expect(within(alert).getByRole("button", { name: "Retry load" }).className).toContain("min-h-11");
+    const clearLocal = within(alert).getByRole("button", { name: "Clear local review" });
+    expect(clearLocal.className).toContain("min-h-11");
+    fireEvent.click(clearLocal);
     expect(sessionStorage.getItem("rig-review-anonymous-v1")).toBeNull();
     expect(await screen.findByText(/saved for this browser session/i)).toBeTruthy();
   });
@@ -155,7 +187,9 @@ describe("RigTheory honest durable outcomes", () => {
     const alert = await screen.findByRole("alert");
     expect(alert.textContent).toContain("it was not changed");
     expect(saveProgressDetailed).not.toHaveBeenCalled();
-    fireEvent.click(within(alert).getByRole("button", { name: "Reset saved review" }));
+    const resetSaved = within(alert).getByRole("button", { name: "Reset saved review" });
+    expect(resetSaved.className).toContain("min-h-11");
+    fireEvent.click(resetSaved);
     await waitFor(() => expect(saveProgressDetailed).toHaveBeenCalledWith("rig-review", false, 0, 0, expect.objectContaining({ outcomes: {} })));
   });
 });
