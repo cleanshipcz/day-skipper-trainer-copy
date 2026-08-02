@@ -72,6 +72,26 @@ describe("quiz review seeding identity isolation", () => {
     expect(mocks.seedQuizQuestions).not.toHaveBeenCalled();
   });
 
+  test("should not seed replacement IDs from a completed legacy catalogue", async () => {
+    mocks.questions = [{ id: "e13", question: "Replacement?", options: ["Wrong", "Right"], correctAnswer: 1, explanation: "Why." }];
+    mocks.loadProgress.mockResolvedValue({
+      completed: true,
+      score: 100,
+      answers_history: {
+        version: 3,
+        catalogueVersion: "legacy-e1-e12",
+        answers: [{ questionId: "e1", optionId: "Old answer" }],
+        currentQuestionId: "e1",
+      },
+    });
+
+    renderQuiz();
+
+    expect(await screen.findByRole("radio", { name: "Right" })).toBeTruthy();
+    await waitFor(() => expect(mocks.loadProgress).toHaveBeenCalled());
+    expect(mocks.seedQuizQuestions).not.toHaveBeenCalled();
+  });
+
   test("should not seed after auth changes while quiz completion persistence is pending", async () => {
     let resolveInsert!: (value: { data: object; error: null }) => void;
     mocks.rpc.mockImplementation((name: string) => name === "submit_quiz_score"

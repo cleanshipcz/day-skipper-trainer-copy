@@ -46,6 +46,8 @@ describe("Engine assessment contract", () => {
     expect(migration).toContain("generate_series(13, 24)");
     expect(migration).toContain("set active = false");
     expect(migration.match(/\^e\(\[1-9\]\|1\[0-2\]\)\$/g)).toHaveLength(2);
+    expect(migration).toContain("where topic_id = 'quiz-engine'");
+    expect(migration).toMatch(/set completed = false,\s+score = 0,\s+answers_history = null/);
     expect(questions.map(({ id }) => id)).toEqual(Array.from({ length: 12 }, (_, index) => `e${index + 13}`));
   });
 });

@@ -210,8 +210,6 @@ const Quiz = () => {
       const resolution = resolveQuizProgressForLoad(topicKey, canonicalRecord, legacyRecord);
       const savedData = resolution.record;
 
-      if (savedData?.completed && owner) void seedReviews(owner, generation);
-
       if (savedData?.answers_history) {
         try {
           const savedRaw =
@@ -221,6 +219,10 @@ const Quiz = () => {
 
           const saved = parseSavedQuizSession(savedRaw, questions, Boolean(savedData.completed));
           if (saved) {
+            // A completion is meaningful for review seeding only when its
+            // persisted session proves the exact current question catalogue.
+            // Legacy completed rows must never seed replacement identities.
+            if (savedData.completed && owner) void seedReviews(owner, generation);
             setAnswers(saved.answers);
             setCurrentQuestion(saved.currentQuestion);
             setTentativeAnswer(saved.tentativeAnswer ?? null);
