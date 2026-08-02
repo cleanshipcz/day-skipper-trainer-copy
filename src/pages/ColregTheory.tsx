@@ -83,10 +83,11 @@ export const RULE_18_DECISIONS = [
 
 // Rule 18 sits in Part B, Section II; it applies only when vessels are in sight.
 export const RULE_18_SCOPE = "Vessels in sight of one another";
+const COLREG_COMPLETION_SECTIONS = ["framework", "rules-5-17", "rule-18", "rule-19", "applied"];
 
 const ColregTheory = () => {
   const navigate = useNavigate();
-  const requiredSections = ["framework", "rules-5-17", "rule-18", "rule-19", "applied"];
+  const requiredSections = COLREG_COMPLETION_SECTIONS;
   const { canComplete, markCompleted, markSectionVisited, visitedSectionIds, saveState } = useTheoryCompletionGate({ topicId: TOPIC_IDS.COLREGS_THEORY, requiredSectionIds: requiredSections, pointsOnComplete: 10, catalogueRevision: "colregs-part-b-v1" });
   const reviewButton = (id: string, label: string) => <Button variant="outline" disabled={visitedSectionIds.includes(id)} onClick={() => void markSectionVisited(id)}>{visitedSectionIds.includes(id) ? "Reviewed" : label}</Button>;
 

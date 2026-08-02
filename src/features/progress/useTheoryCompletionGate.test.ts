@@ -3,10 +3,13 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
 
 const mocks = vi.hoisted(() => ({
   saveProgress: vi.fn(),
+  saveProgressDetailed: vi.fn(),
+  loadProgressDetailed: vi.fn(),
+  ownerId: null as string | null,
 }));
 
 vi.mock("@/hooks/useProgress", () => ({
-  useProgress: () => ({ saveProgress: mocks.saveProgress }),
+  useProgress: () => ({ ownerId: mocks.ownerId, saveProgress: mocks.saveProgress, saveProgressDetailed: mocks.saveProgressDetailed, loadProgressDetailed: mocks.loadProgressDetailed }),
 }));
 
 import { useTheoryCompletionGate } from "./useTheoryCompletionGate";
@@ -18,6 +21,10 @@ describe("useTheoryCompletionGate", () => {
   beforeEach(() => {
     mocks.saveProgress.mockReset();
     mocks.saveProgress.mockResolvedValue(undefined);
+    mocks.saveProgressDetailed.mockResolvedValue("remote");
+    mocks.loadProgressDetailed.mockResolvedValue({ status: "anonymous", record: null });
+    mocks.ownerId = null;
+    localStorage.clear();
   });
 
   it("should start with not_started state and empty visited sections", () => {
@@ -225,5 +232,38 @@ describe("useTheoryCompletionGate", () => {
     // then
     expect(completed).toBe(false);
     expect(mocks.saveProgress).not.toHaveBeenCalled();
+  });
+
+  it("loads revisioned evidence once and merges interaction made while loading", async () => {
+    let resolveLoad!: (value: unknown) => void;
+    mocks.loadProgressDetailed.mockReturnValue(new Promise(resolve => { resolveLoad = resolve; }));
+    const { result, rerender } = renderHook(() => useTheoryCompletionGate({ topicId, requiredSectionIds, catalogueRevision: "v1" }));
+    await act(async () => { await result.current.markSectionVisited("s2"); });
+    await act(async () => { resolveLoad({ status: "remote", record: { answers_history: { catalogueRevision: "v1", visitedSectionIds: ["s1"] } } }); });
+    rerender();
+    expect(result.current.visitedSectionIds).toEqual(["s1", "s2"]);
+    expect(mocks.loadProgressDetailed).toHaveBeenCalledTimes(1);
+  });
+
+  it("isolates browser evidence by owner", async () => {
+    mocks.ownerId = "owner-a";
+    localStorage.setItem(`theory-gate:owner-a:${topicId}:v1`, JSON.stringify({ visitedSectionIds: ["s1"] }));
+    const { result, rerender } = renderHook(() => useTheoryCompletionGate({ topicId, requiredSectionIds, catalogueRevision: "v1" }));
+    await act(async () => {});
+    expect(result.current.visitedSectionIds).toEqual(["s1"]);
+    mocks.ownerId = "owner-b";
+    rerender();
+    await act(async () => {});
+    expect(result.current.visitedSectionIds).toEqual([]);
+  });
+
+  it("distinguishes failed saves and permits a single-flight retry", async () => {
+    const { result } = renderHook(() => useTheoryCompletionGate({ topicId, requiredSectionIds: ["s1"], catalogueRevision: "v1" }));
+    await act(async () => { await result.current.markSectionVisited("s1"); });
+    mocks.saveProgressDetailed.mockResolvedValueOnce("failed").mockResolvedValueOnce("remote");
+    await act(async () => { expect(await result.current.markCompleted()).toBe(false); });
+    expect(result.current.saveState).toBe("failed");
+    await act(async () => { const one = result.current.markCompleted(); const two = result.current.markCompleted(); expect(await one).toBe(true); expect(await two).toBe(true); });
+    expect(mocks.saveProgressDetailed).toHaveBeenCalledTimes(2);
   });
 });

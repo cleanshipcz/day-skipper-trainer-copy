@@ -17,16 +17,25 @@ export const useTheoryCompletionGate = ({
 }: UseTheoryCompletionGateArgs) => {
   const progress = useProgress();
   const { loadProgressDetailed, saveProgress, saveProgressDetailed } = progress;
+  const ownerId = "ownerId" in progress ? progress.ownerId : null;
   const [visitedSectionIds, setVisitedSectionIds] = useState<string[]>([]);
   const visitedRef = useRef<readonly string[]>(visitedSectionIds);
   const inProgressPersistedRef = useRef(false);
   const completionPromiseRef = useRef<Promise<boolean> | null>(null);
+  const hydrationKeyRef = useRef<string | null>(null);
+  const hydrationGenerationRef = useRef(0);
   const [saveState, setSaveState] = useState<"idle" | "saving" | "saved" | "queued" | "failed">("idle");
-  const storageKey = catalogueRevision ? `theory-gate:${topicId}:${catalogueRevision}` : null;
+  const storageKey = catalogueRevision ? `theory-gate:${ownerId ?? "anonymous"}:${topicId}:${catalogueRevision}` : null;
 
   useEffect(() => {
     if (!storageKey) return;
-    let active = true;
+    const hydrationKey = `${ownerId ?? "anonymous"}:${topicId}:${catalogueRevision}`;
+    if (hydrationKeyRef.current === hydrationKey) return;
+    hydrationKeyRef.current = hydrationKey;
+    visitedRef.current = [];
+    setVisitedSectionIds([]);
+    inProgressPersistedRef.current = false;
+    const generation = ++hydrationGenerationRef.current;
     const restore = async () => {
       let restored: string[] = [];
       try {
@@ -38,14 +47,14 @@ export const useTheoryCompletionGate = ({
       if (remoteHistory?.catalogueRevision === catalogueRevision && Array.isArray(remoteHistory.visitedSectionIds)) {
         restored = [...new Set([...restored, ...remoteHistory.visitedSectionIds.filter((id): id is string => typeof id === "string" && requiredSectionIds.includes(id))])];
       }
-      if (!active) return;
-      visitedRef.current = restored;
-      setVisitedSectionIds(restored);
-      inProgressPersistedRef.current = restored.length > 0;
+      if (hydrationGenerationRef.current !== generation) return;
+      const merged = [...new Set([...restored, ...visitedRef.current])];
+      visitedRef.current = merged;
+      setVisitedSectionIds(merged);
+      inProgressPersistedRef.current = merged.length > 0;
     };
     void restore();
-    return () => { active = false; };
-  }, [catalogueRevision, loadProgressDetailed, requiredSectionIds, storageKey, topicId]);
+  }, [catalogueRevision, loadProgressDetailed, ownerId, requiredSectionIds, storageKey, topicId]);
 
   const decision = useMemo(
     () => deriveCompletionGateDecision({ visitedSectionIds, requiredSectionIds }),
@@ -59,6 +68,7 @@ export const useTheoryCompletionGate = ({
       inProgressPersistedRef.current = true;
       await saveProgress(topicId, false, score, 0, {
         completionState: "in_progress",
+        catalogueRevision,
         visitedSectionIds: nextVisitedSectionIds,
       });
     },
@@ -100,7 +110,7 @@ export const useTheoryCompletionGate = ({
       setSaveState("saving");
       try {
         const history = { completionState: "completed", catalogueRevision, visitedSectionIds: visitedRef.current };
-        const result = saveProgressDetailed
+        const result = catalogueRevision && saveProgressDetailed
           ? await saveProgressDetailed(topicId, true, 100, pointsOnComplete, history)
           : await saveProgress(topicId, true, 100, pointsOnComplete, history);
         // Legacy saveProgress mocks/consumers historically resolved void on success.
