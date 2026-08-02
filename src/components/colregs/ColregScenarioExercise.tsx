@@ -23,7 +23,7 @@ export const COLREG_SCENARIOS: readonly ColregScenario[] = [
 const STEPS = ["Classify", "Responsibilities", "Action", "Monitor"] as const;
 const RELATIVE_BEARINGS: Readonly<Record<string, number>> = { sailing: 45, overtaking: 0, "head-on": 0, crossing: 60, channel: 180, fog: 20 };
 
-export function ColregScenarioExercise() {
+export function ColregScenarioExercise({ onScenarioCompleted }: { onScenarioCompleted?: (scenarioId: string) => void }) {
   const [scenarioIndex, setScenarioIndex] = useState(0);
   const [step, setStep] = useState(0);
   const [feedback, setFeedback] = useState<string | null>(null);
@@ -44,7 +44,7 @@ export function ColregScenarioExercise() {
   const choose = (choice: string) => {
     if (choice === scenario.answers[step]) {
       setFeedback(`Correct. ${choice}`);
-      if (step < 3) setStep(step + 1);
+      if (step < 3) setStep(step + 1); else onScenarioCompleted?.(scenario.id);
     } else setFeedback(`Not yet. Recheck ${scenario.rule}: use the stated observations and do not assume facts that are missing.`);
   };
   const next = () => { setScenarioIndex((scenarioIndex + 1) % COLREG_SCENARIOS.length); setStep(0); setFeedback(null); };

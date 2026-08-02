@@ -1,4 +1,4 @@
-import { useCallback, useMemo, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useProgress } from "@/hooks/useProgress";
 import { deriveCompletionGateDecision, type CompletionState } from "./completionGates";
 
@@ -6,17 +6,75 @@ interface UseTheoryCompletionGateArgs {
   topicId: string;
   requiredSectionIds: string[];
   pointsOnComplete?: number;
+  catalogueRevision?: string;
 }
 
 export const useTheoryCompletionGate = ({
   topicId,
   requiredSectionIds,
   pointsOnComplete = 10,
+  catalogueRevision,
 }: UseTheoryCompletionGateArgs) => {
-  const { saveProgress } = useProgress();
+  const progress = useProgress();
+  const { loadProgressDetailed, saveProgress, saveProgressDetailed } = progress;
+  const ownerId = "ownerId" in progress ? progress.ownerId : null;
   const [visitedSectionIds, setVisitedSectionIds] = useState<string[]>([]);
   const visitedRef = useRef<readonly string[]>(visitedSectionIds);
   const inProgressPersistedRef = useRef(false);
+  const completionPromiseRef = useRef<Promise<boolean> | null>(null);
+  const hydrationKeyRef = useRef<string | null>(null);
+  const hydrationGenerationRef = useRef(0);
+  const pendingSaveRef = useRef<{ generation: number; ids: string[] } | null>(null);
+  const saveWorkerRef = useRef<{ generation: number; promise: Promise<void> } | null>(null);
+  const [saveState, setSaveState] = useState<"idle" | "saving" | "saved" | "queued" | "failed">("idle");
+  const storageKey = catalogueRevision ? `theory-gate:${ownerId ?? "anonymous"}:${topicId}:${catalogueRevision}` : null;
+
+  const enqueueInProgressSave = useCallback((ids: string[], generation = hydrationGenerationRef.current) => {
+    pendingSaveRef.current = { generation, ids };
+    if (saveWorkerRef.current?.generation === generation) return saveWorkerRef.current.promise;
+    const worker = { generation, promise: Promise.resolve() };
+    worker.promise = (async () => {
+      while (pendingSaveRef.current?.generation === generation) {
+        const snapshot = pendingSaveRef.current;
+        pendingSaveRef.current = null;
+        const score = deriveCompletionGateDecision({ visitedSectionIds: snapshot.ids, requiredSectionIds }).score;
+        await saveProgress(topicId, false, score, 0, { completionState: "in_progress", catalogueRevision, visitedSectionIds: snapshot.ids });
+      }
+    })().finally(() => { if (saveWorkerRef.current === worker) saveWorkerRef.current = null; });
+    saveWorkerRef.current = worker;
+    return worker.promise;
+  }, [catalogueRevision, requiredSectionIds, saveProgress, topicId]);
+
+  useEffect(() => {
+    if (!storageKey) return;
+    const hydrationKey = `${ownerId ?? "anonymous"}:${topicId}:${catalogueRevision}`;
+    if (hydrationKeyRef.current === hydrationKey) return;
+    hydrationKeyRef.current = hydrationKey;
+    visitedRef.current = [];
+    setVisitedSectionIds([]);
+    inProgressPersistedRef.current = false;
+    const generation = ++hydrationGenerationRef.current;
+    const restore = async () => {
+      let restored: string[] = [];
+      try {
+        const parsed = JSON.parse(localStorage.getItem(storageKey) ?? "null") as { visitedSectionIds?: unknown } | null;
+        if (parsed && Array.isArray(parsed.visitedSectionIds)) restored = parsed.visitedSectionIds.filter((id): id is string => typeof id === "string" && requiredSectionIds.includes(id));
+      } catch { /* Ignore corrupt legacy browser state. */ }
+      const load = loadProgressDetailed ? await loadProgressDetailed(topicId) : null;
+      const remoteHistory = load?.status === "remote" ? load.record.answers_history as { catalogueRevision?: string; visitedSectionIds?: unknown } | null : null;
+      if (remoteHistory?.catalogueRevision === catalogueRevision && Array.isArray(remoteHistory.visitedSectionIds)) {
+        restored = [...new Set([...restored, ...remoteHistory.visitedSectionIds.filter((id): id is string => typeof id === "string" && requiredSectionIds.includes(id))])];
+      }
+      if (hydrationGenerationRef.current !== generation) return;
+      const merged = [...new Set([...restored, ...visitedRef.current])];
+      visitedRef.current = merged;
+      setVisitedSectionIds(merged);
+      inProgressPersistedRef.current = merged.length > 0;
+      localStorage.setItem(storageKey, JSON.stringify({ catalogueRevision, visitedSectionIds: merged }));
+      if (merged.length > 0) await enqueueInProgressSave(merged, generation);
+    };
+    void restore();
+  }, [catalogueRevision, enqueueInProgressSave, loadProgressDetailed, ownerId, requiredSectionIds, storageKey, topicId]);
 
   const decision = useMemo(
     () => deriveCompletionGateDecision({ visitedSectionIds, requiredSectionIds }),
@@ -25,15 +83,13 @@ export const useTheoryCompletionGate = ({
 
   const persistInProgressIfNeeded = useCallback(
     async (state: CompletionState, score: number, nextVisitedSectionIds: string[]) => {
-      if (state !== "in_progress" || inProgressPersistedRef.current) return;
+      if (state !== "in_progress" || (!catalogueRevision && inProgressPersistedRef.current)) return;
 
       inProgressPersistedRef.current = true;
-      await saveProgress(topicId, false, score, 0, {
-        completionState: "in_progress",
-        visitedSectionIds: nextVisitedSectionIds,
-      });
+      if (catalogueRevision) await enqueueInProgressSave(nextVisitedSectionIds);
+      else await saveProgress(topicId, false, score, 0, { completionState: "in_progress", visitedSectionIds: nextVisitedSectionIds });
     },
-    [saveProgress, topicId]
+    [catalogueRevision, enqueueInProgressSave, saveProgress, topicId]
   );
 
   const markSectionVisited = useCallback(
@@ -53,6 +109,7 @@ export const useTheoryCompletionGate = ({
       const nextVisitedSectionIds = [...prev, sectionId];
       visitedRef.current = nextVisitedSectionIds;
       setVisitedSectionIds(nextVisitedSectionIds);
+      if (storageKey) localStorage.setItem(storageKey, JSON.stringify({ catalogueRevision, visitedSectionIds: nextVisitedSectionIds }));
 
       const nextDecision = deriveCompletionGateDecision({
         visitedSectionIds: nextVisitedSectionIds,
@@ -60,19 +117,31 @@ export const useTheoryCompletionGate = ({
       });
       await persistInProgressIfNeeded(nextDecision.state, nextDecision.score, nextVisitedSectionIds);
     },
-    [persistInProgressIfNeeded, requiredSectionIds]
+    [catalogueRevision, persistInProgressIfNeeded, requiredSectionIds, storageKey]
   );
 
   const markCompleted = useCallback(async () => {
     if (!decision.canComplete) return false;
-
-    await saveProgress(topicId, true, 100, pointsOnComplete, {
-      completionState: "completed",
-      visitedSectionIds,
-    });
-
-    return true;
-  }, [decision.canComplete, pointsOnComplete, saveProgress, topicId, visitedSectionIds]);
+    if (completionPromiseRef.current) return completionPromiseRef.current;
+    const attempt = (async () => {
+      setSaveState("saving");
+      try {
+        const history = { completionState: "completed", catalogueRevision, visitedSectionIds: visitedRef.current };
+        const result = catalogueRevision && saveProgressDetailed
+          ? await saveProgressDetailed(topicId, true, 100, pointsOnComplete, history)
+          : await saveProgress(topicId, true, 100, pointsOnComplete, history);
+        // Legacy saveProgress mocks/consumers historically resolved void on success.
+        const ok = result !== false && result !== "failed" && result !== "conflict";
+        setSaveState(result === "queued" ? "queued" : ok ? "saved" : "failed");
+        return ok;
+      } catch {
+        setSaveState("failed");
+        return false;
+      } finally { completionPromiseRef.current = null; }
+    })();
+    completionPromiseRef.current = attempt;
+    return attempt;
+  }, [catalogueRevision, decision.canComplete, pointsOnComplete, saveProgress, saveProgressDetailed, topicId]);
 
   return {
     completionState: decision.state,
@@ -81,5 +150,6 @@ export const useTheoryCompletionGate = ({
     visitedSectionIds,
     markSectionVisited,
     markCompleted,
+    saveState,
   };
 };
