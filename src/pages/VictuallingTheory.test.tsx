@@ -76,6 +76,8 @@ describe("VictuallingTheory durable checklist", () => {
     await waitFor(() => expect((checkbox as HTMLButtonElement).disabled).toBe(false));
     await user.click(checkbox);
     const retry = await screen.findByRole("button", { name: "Retry save" });
+    const saveAlert = screen.getByText(/latest checklist change was not saved/).closest('[role="alert"]');
+    expect(saveAlert?.textContent?.match(/Retry save/g)).toHaveLength(1);
     expect((checkbox as HTMLButtonElement).disabled).toBe(true);
     await user.click(retry);
     await screen.findByText("Checklist saved.");
@@ -92,6 +94,9 @@ describe("VictuallingTheory durable checklist", () => {
     await waitFor(() => expect((first as HTMLButtonElement).disabled).toBe(false));
     await user.click(first);
     const reload = await screen.findByRole("button", { name: "Reload checklist" });
+    const conflictAlert = screen.getByText(/checklist changed elsewhere/).closest('[role="alert"]');
+    expect(conflictAlert?.textContent).toContain("latest change was not saved");
+    expect(conflictAlert?.textContent?.match(/Reload checklist/g)).toHaveLength(1);
     expect((first as HTMLButtonElement).disabled).toBe(true);
     await user.click(reload);
     await waitFor(() => expect((first as HTMLButtonElement).disabled).toBe(false));
@@ -114,11 +119,27 @@ describe("VictuallingTheory durable checklist", () => {
     const user = userEvent.setup();
     renderPage();
     expect((await screen.findByRole("button", { name: "Retry load" }))).toBeTruthy();
+    expect(screen.getByText(/Saved checklist could not be loaded/).closest('[role="alert"]')?.textContent?.match(/Retry load/g)).toHaveLength(1);
     const checkbox = screen.getByRole("checkbox", { name: checklistData[0].item }) as HTMLButtonElement;
     expect(checkbox.disabled).toBe(true);
     await user.click(screen.getByRole("button", { name: "Retry load" }));
     await waitFor(() => expect(checkbox.disabled).toBe(false));
     expect(mocks.load).toHaveBeenCalledTimes(2);
+  });
+
+  it("keeps routine persistence statuses out of live regions", async () => {
+    let resolveSave!: (value: "remote") => void;
+    mocks.save.mockReturnValue(new Promise((resolve) => { resolveSave = resolve; }));
+    const user = userEvent.setup();
+    renderPage();
+    const checkbox = await screen.findByRole("checkbox", { name: checklistData[0].item });
+    await waitFor(() => expect((checkbox as HTMLButtonElement).disabled).toBe(false));
+    await user.click(checkbox);
+    expect(screen.getByText("Saving checklist…").closest("div")?.getAttribute("role")).toBeNull();
+    resolveSave("remote");
+    await screen.findByText("Checklist saved.");
+    expect(screen.getByText("Checklist saved.").closest("div")?.getAttribute("aria-live")).toBeNull();
+    expect(screen.getByText("Checklist saved.").closest("div")?.getAttribute("role")).toBeNull();
   });
 
   it("exposes editable passage inputs and announces capacity warnings", async () => {
@@ -157,5 +178,47 @@ describe("VictuallingTheory durable checklist", () => {
     expect(screen.getByRole("link", { name: /dedicated pre-departure checklist/ }).getAttribute("href")).toBe("/passage-planning/checklist?from=victualling");
     expect(screen.getByText(/Never improvise adapters/)).toBeTruthy();
     expect(screen.getByText(/Do not light a flame or operate electrical switches/)).toBeTruthy();
+  });
+
+  it("exposes named score, count, back action and valid semantic progress", async () => {
+    renderPage();
+    expect(await screen.findByRole("button", { name: "Back to home" })).toBeTruthy();
+    expect(screen.getByLabelText("Planning score: 0 points")).toBeTruthy();
+    expect(screen.getByLabelText(`0 of ${checklistData.length} Victualling items checked`)).toBeTruthy();
+    const progress = screen.getByRole("progressbar", { name: "Victualling checklist progress" });
+    expect(progress.getAttribute("aria-valuemin")).toBe("0");
+    expect(progress.getAttribute("aria-valuemax")).toBe("100");
+    expect(progress.getAttribute("aria-valuenow")).toBe("0");
+  });
+
+  it("announces one concise item/score/completion update and preserves checkbox focus", async () => {
+    const user = userEvent.setup();
+    const finalItem = checklistData.at(-1)!;
+    mocks.load.mockResolvedValue({ status: "remote", record: record({
+      version: 1,
+      checkedItemIds: checklistData.slice(0, -1).map(({ id }) => id),
+      revision: 3,
+    }) });
+    renderPage();
+    const finalCheckbox = await screen.findByRole("checkbox", { name: finalItem.item });
+    await waitFor(() => expect((finalCheckbox as HTMLButtonElement).disabled).toBe(false));
+    await user.click(finalCheckbox);
+    await screen.findByRole("button", { name: "Take Quiz" });
+
+    expect(document.activeElement).toBe(finalCheckbox);
+    expect(finalCheckbox.getAttribute("aria-checked")).toBe("true");
+    expect(screen.getAllByText("Checked")).toHaveLength(checklistData.length);
+    const announcement = screen.getByTestId("victualling-progress-announcement");
+    expect(announcement.textContent).toBe(`${finalItem.item} checked. ${checklistData.length} of ${checklistData.length} items; planning score ${checklistData.length * 5} points. Victualling checklist complete; Take Quiz is now available.`);
+  });
+
+  it("uses narrow reflow, long-text wrapping, touch targets and non-colour checked text", async () => {
+    mocks.load.mockResolvedValue({ status: "remote", record: record({ version: 1, checkedItemIds: [checklistData[0].id], revision: 1 }) });
+    renderPage();
+    const checkbox = await screen.findByRole("checkbox", { name: checklistData[0].item });
+    expect(checkbox.className).toContain("size-11");
+    expect(screen.getByText("Checked")).toBeTruthy();
+    expect(screen.getByText(checklistData[0].quantity).className).toContain("break-words");
+    expect(screen.getByRole("banner").innerHTML).toContain("flex-wrap");
   });
 });
