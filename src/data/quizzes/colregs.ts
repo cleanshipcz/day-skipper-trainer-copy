@@ -1,221 +1,52 @@
 import type { Question } from "./types";
 
-const colregsQuestions: readonly Question[] = [
-  {
-    id: "cr1",
-    question: "In this hierarchy of vessels, which vessel must give way (keep clear) of all the others listed?",
-    options: ["Power-driven vessel", "Sailing vessel", "Fishing vessel", "Restricted in Ability to Maneuver"],
-    correctAnswer: 0,
-    explanation:
-      "Rule 18: A power-driven vessel routinely gives way to sailing vessels, fishing vessels, RAM, NUC, and CBD vessels.",
-  },
-  {
-    id: "cr2",
-    question: "You are overtaking another vessel. Who is the give-way vessel?",
-    image: "/images/colregs/quiz_overtaking.png",
-    options: [
-      "I am (the overtaking vessel)",
-      "The vessel being overtaken",
-      "The smaller vessel",
-      "The power-driven vessel",
-    ],
-    correctAnswer: 0,
-    explanation: "Rule 13: Any vessel overtaking any other shall keep out of the way of the vessel being overtaken.",
-  },
-  {
-    id: "cr3",
-    question: "You see this red light on your starboard bow. What is the situation?",
-    image: "/images/colregs/quiz_crossing_giveway.png",
-    options: [
-      "Crossing situation, risk of collision exists, I must give way",
-      "Crossing situation, I am stand-on",
-      "He is overtaking me",
-      "He is safe to pass ahead",
-    ],
-    correctAnswer: 0,
-    explanation:
-      "Rule 15: You see a red light on your starboard side ('Red Right Returning' doesn't apply here!). This is a crossing situation where you are the give-way vessel.",
-  },
-  {
-    id: "cr4",
-    question: "You see this green light on your port bow. What action should you take?",
-    image: "/images/colregs/quiz_crossing_standon.png",
-    options: ["Maintain course and speed (Stand-on)", "Give way immediately", "Turn to port", "Stop engines"],
-    correctAnswer: 0,
-    explanation:
-      "Rule 15: You see a green light (starboard side) of another vessel on your port side. You are the stand-on vessel.",
-  },
-  {
-    id: "cr5",
-    question: "Two sailing vessels with wind on the same side. Which one gives way?",
-    image: "/images/colregs/quiz_sailing_windward.png",
-    options: [
-      "The windward vessel (Boat A) gives way",
-      "The leeward vessel (Boat B) gives way",
-      "The faster vessel gives way",
-      "The vessel with more sails gives way",
-    ],
-    correctAnswer: 0,
-    explanation:
-      "Rule 12: When both have the wind on the same side, the vessel which is to WINDWARD shall keep out of the way of the vessel which is to leeward.",
-  },
-  {
-    id: "cr6",
-    question: "Identify these lights.",
-    image: "/images/colregs/quiz_lights_power.png",
-    options: ["Power-driven vessel under 50m", "Sailing vessel", "Fishing vessel", "Vessel at anchor"],
-    correctAnswer: 0,
-    explanation:
-      "Rule 23: A power-driven vessel underway exhibits a masthead light forward and sidelights. (Under 50m only requires one masthead light).",
-  },
-  {
-    id: "cr7",
-    question: "Identify these lights.",
-    image: "/images/colregs/quiz_lights_sailing.png",
-    options: ["Sailing vessel underway", "Power-driven vessel", "Vessel Not Under Command", "Pilot vessel"],
-    correctAnswer: 0,
-    explanation:
-      "Rule 25: A sailing vessel underway exhibits sidelights and a sternlight. It does NOT show a white masthead light.",
-  },
-  {
-    id: "cr8",
-    question: "What signal should a vessel sound when altering course to starboard?",
-    options: ["1 short blast", "2 short blasts", "3 short blasts", "5 short blasts"],
-    correctAnswer: 0,
-    explanation: "Rule 34: One short blast means 'I am altering my course to starboard'.",
-  },
-  {
-    id: "cr9",
-    question: "What does 5 short blasts mean?",
-    options: [
-      "I am in doubt of your intentions / Danger signal",
-      "I am operating astern propulsion",
-      "I am altering course to port",
-      "I intend to overtake you",
-    ],
-    correctAnswer: 0,
-    explanation: "Rule 34: 5 short blasts is the signal for doubt/danger.",
-  },
-  {
-    id: "cr10",
-    question: "What is a 'safe speed'?",
-    options: [
-      "A speed that allows effective action to avoid collision",
-      "5 knots",
-      "The slowest speed the vessel can maintain steerage",
-      "Maximum speed in good visibility",
-    ],
-    correctAnswer: 0,
-    explanation:
-      "Rule 6: Every vessel shall at all times proceed at a safe speed so that she can take proper and effective action to avoid collision.",
-  },
-  {
-    id: "cr11",
-    question: "In a head-on situation, how should two power-driven vessels pass?",
-    options: ["Port to Port", "Starboard to Starboard", "It doesn't matter", "Review the other vessel's size"],
-    correctAnswer: 0,
-    explanation:
-      "Rule 14: Each shall alter her course to starboard so that each shall pass on the port side of the other.",
-  },
-  {
-    id: "cr12",
-    question: "Does a sailing vessel under power (motoring) count as a sailing vessel?",
-    options: [
-      "No, it is treated as a power-driven vessel",
-      "Yes, if the sails are up",
-      "Only if the engine is in neutral",
-      "Yes, always",
-    ],
-    correctAnswer: 0,
-    explanation:
-      "Rule 3: The term 'sailing vessel' means any vessel under sail provided that propelling machinery, if fitted, is NOT being used.",
-  },
-  {
-    id: "cr13",
-    question: "What is a 'Not Under Command' (NUC) vessel?",
-    options: [
-      "Unable to maneuver as required by these Rules due to exceptional circumstances",
-      "A vessel with no captain",
-      "A vessel anchored",
-      "A vessel engaged in fishing",
-    ],
-    correctAnswer: 0,
-    explanation:
-      "Rule 3: NUC means a vessel which through some exceptional circumstance (breakdown) is unable to maneuver as required.",
-  },
-  {
-    id: "cr14",
-    question: "Which side is the 'danger side' in a crossing situation?",
-    options: ["Starboard", "Port", "Stern", "Bow"],
-    correctAnswer: 0,
-    explanation: "If a vessel is approaching from your Starboard side, you must give way. 'Right is Might'.",
-  },
-  {
-    id: "cr15",
-    question: "What lights must a vessel under oars show?",
-    options: [
-      "Must have an electric torch or lantern ready to show to prevent collision",
-      "Sidelights and sternlight",
-      "All-round white light",
-      "No lights required",
-    ],
-    correctAnswer: 0,
-    explanation:
-      "Rule 25: A vessel under oars may exhibit the lights for a sailing vessel, but if not, must have an electric torch/lantern ready.",
-  },
-  {
-    id: "cr16",
-    question: "When is a vessel 'underway'?",
-    options: [
-      "When not at anchor, or made fast to the shore, or aground",
-      "When moving through the water",
-      "When the engine is running",
-      "When the sails are up",
-    ],
-    correctAnswer: 0,
-    explanation:
-      "Rule 3: 'Underway' means that a vessel is not at anchor, or made fast to the shore, or aground. You can be underway but not making way (stopped).",
-  },
-  {
-    id: "cr17",
-    question: "What shape does a vessel at anchor exhibit by day?",
-    options: ["One black ball", "A diamond shape", "A cylinder", "Two black balls"],
-    correctAnswer: 0,
-    explanation: "Rule 30: A vessel at anchor shall exhibit where it can best be seen: in the fore part, a ball.",
-  },
-  {
-    id: "cr18",
-    question: "You are in fog. You hear one prolonged blast every 2 minutes. What is it?",
-    options: ["Power-driven vessel making way", "Sailing vessel", "Vessel at anchor", "Pilot vessel"],
-    correctAnswer: 0,
-    explanation:
-      "Rule 35: A power-driven vessel making way through the water sounds one prolonged blast at intervals of not more than 2 minutes.",
-  },
-  {
-    id: "cr19",
-    question: "You are in fog. You hear two prolonged blasts every 2 minutes. What is it?",
-    options: [
-      "Power-driven vessel underway but stopped (not making way)",
-      "Sailing vessel",
-      "Fishing vessel",
-      "Vessel aground",
-    ],
-    correctAnswer: 0,
-    explanation: "Rule 35: A power-driven vessel underway but stopped/not making way sounds two prolonged blasts.",
-  },
-  {
-    id: "cr20",
-    question: "What is the general rule for Narrow Channels regarding small vessels?",
-    options: [
-      "Vessels <20m and sailing vessels shall not impede safe passage of a vessel that can only navigate safely in the channel",
-      "Small vessels have right of way",
-      "Keep to the port side",
-      "All vessels have equal rights",
-    ],
-    correctAnswer: 0,
-    explanation:
-      "Rule 9: A vessel of less than 20 meters in length or a sailing vessel shall not impede the passage of a vessel which can safely navigate only within a narrow channel or fairway.",
-  },
+export type ColregPrerequisite = "Steering & Sailing" | "Lights & Signals";
+type ColregQuestion = Question & {
+  readonly learningObjective: string;
+  readonly prerequisite: ColregPrerequisite;
+  readonly remediationRoute: string;
+};
+
+const steering = (question: Omit<ColregQuestion, "prerequisite" | "remediationRoute">): ColregQuestion => ({
+  ...question,
+  prerequisite: "Steering & Sailing",
+  remediationRoute: "/rules/colregs",
+});
+const lights = (question: Omit<ColregQuestion, "prerequisite" | "remediationRoute">): ColregQuestion => ({
+  ...question,
+  prerequisite: "Lights & Signals",
+  remediationRoute: "/rules/lights/theory",
+});
+
+const colregsQuestions: readonly ColregQuestion[] = [
+  steering({ id: "cr1", learningObjective: "Apply Rule 18 only after Rules 9, 10 and 13", question: "In clear daylight and open water, a power-driven vessel and a sailing vessel are in sight, are not overtaking, and no narrow-channel or TSS duty applies. Risk of collision exists. What does Rule 18 ordinarily require?", options: ["The power-driven vessel keeps out of the way of the sailing vessel", "The sailing vessel always keeps out of the way of the power-driven vessel", "The vessel on the port side always keeps out of the way", "Both vessels must maintain course and speed"], correctAnswer: 0, explanation: "With Rules 9, 10 and 13 excluded by the facts, Rule 18 requires the power-driven vessel underway to keep out of the way of the sailing vessel. This is a conditional responsibility, not a universal vessel hierarchy; both vessels retain their other duties." }),
+  steering({ id: "cr2", learningObjective: "Recognise and continue an overtaking duty", question: "In clear visibility you approach another vessel from 30° abaft her starboard beam. You are unsure whether the bearing will later open. What applies?", options: ["Treat yourself as overtaking and keep out of the way until finally past and clear", "Treat it as crossing once the bearing begins to change", "The vessel ahead must alter to starboard", "The faster vessel may pass on either side without further assessment"], correctAnswer: 0, explanation: "Rule 13 applies when approaching from more than 22.5° abaft the beam and says doubt is resolved by assuming overtaking. A later bearing change does not end the overtaker's duty before finally past and clear." }),
+  steering({ id: "cr3", learningObjective: "Establish crossing risk from systematic observation", question: "At night in clear visibility, your power-driven vessel sees a power-driven vessel's red sidelight 35° on the starboard bow. Repeated compass bearings remain 035° while range decreases. No Rule 9, 10 or 13 circumstance applies. What is the assessment?", options: ["A crossing situation with risk of collision; we are give-way and should take early, substantial action", "The red light alone proves we can safely cross ahead", "A head-on situation; both vessels must alter to port", "There is no risk because only one sidelight is visible"], correctAnswer: 0, explanation: "The stated status, clear in-sight conditions, crossing geometry, steady bearing and closing range establish Rules 7 and 15. With the other vessel on our starboard side, Rule 16 calls for early and substantial action; sidelight colour alone would not establish this." }),
+  steering({ id: "cr4", learningObjective: "Apply both Rule 17 intervention stages", question: "In clear visibility, two power-driven vessels are crossing with established collision risk. The other vessel is on your port side, so you are stand-on. Her bearing stays steady and she takes no effective action. Which sequence matches Rule 17?", options: ["Initially keep course and speed; you may act when her failure becomes apparent, and must act when her action alone can no longer avoid collision", "Maintain course and speed even when collision can no longer be avoided", "Alter to port immediately because she is on your port side", "Stop assessing once you have been identified as stand-on"], correctAnswer: 0, explanation: "Rule 17 is an escalation, not an instruction to hold on indefinitely. The stand-on vessel initially keeps course and speed, may manoeuvre when give-way failure becomes apparent, and must take the action best aiding avoidance when give-way action alone is insufficient. At the may-act stage, avoid altering to port for a vessel on your port side if circumstances admit." }),
+  steering({ id: "cr5", learningObjective: "Apply Rule 12 to same-tack sailing vessels", question: "In clear daylight, two sailing vessels are in sight with wind on the port side. Collision risk exists. Your vessel is to windward of the other. Which vessel keeps out of the way?", options: ["Your windward vessel", "The leeward vessel", "The vessel with less sail set", "Neither until one starts an engine"], correctAnswer: 0, explanation: "Under Rule 12, when both sailing vessels have the wind on the same side, the windward vessel keeps out of the way of the leeward vessel. Sail area and speed do not replace that responsibility." }),
+  steering({ id: "cr6", learningObjective: "Choose a safe speed from the full circumstances", question: "Visibility is deteriorating, traffic is dense, and your vessel needs a long stopping distance. Which speed decision follows Rule 6?", options: ["Reduce to a speed permitting effective avoiding action and stopping within an appropriate distance for these conditions", "Keep the harbour speed limit because it is automatically safe", "Use the slowest possible speed regardless of steerage and conditions", "Maintain passage speed until another vessel is visually identified"], correctAnswer: 0, explanation: "Safe speed is circumstance-dependent. Rule 6 requires both effective avoiding action and the ability to stop within an appropriate distance, considering visibility, traffic, manoeuvrability and the other listed factors." }),
+  steering({ id: "cr7", learningObjective: "Recognise a head-on power-driven encounter", question: "In clear visibility, two power-driven vessels are in sight on reciprocal courses, each sees the other's masthead lights in line and both sidelights, and risk of collision exists. What should each do?", options: ["Alter course to starboard so they pass port-to-port", "Alter course to port so they pass starboard-to-starboard", "The smaller vessel alone gives way", "Both maintain course because both sidelights are visible"], correctAnswer: 0, explanation: "The facts establish Rule 14: two power-driven vessels meeting on reciprocal or nearly reciprocal courses with risk of collision. Each alters to starboard for a port-to-port passing." }),
+  steering({ id: "cr8", learningObjective: "Apply narrow-channel non-impediment duties", question: "In clear visibility, your 9 m sailing vessel plans to cross a narrow channel ahead of a power-driven vessel that can safely navigate only within it. The crossing would make her slow or alter. What should you do?", options: ["Remain clear and do not cross if doing so would impede her passage", "Cross because sail always has priority over power", "Anchor in the channel to make your intentions clear", "Cross diagonally because that shortens time in the channel"], correctAnswer: 0, explanation: "Rule 9 says a vessel under 20 m or a sailing vessel must not impede a vessel that can safely navigate only within the channel, and must not cross if that would impede her. Rule 18 does not erase this duty." }),
+  steering({ id: "cr9", learningObjective: "Apply TSS crossing conduct", question: "You are obliged to cross an IMO-adopted traffic separation lane. Which plan follows Rule 10?", options: ["Cross on a heading as nearly as practicable at right angles to traffic flow while continuing the full collision-risk assessment", "Steer diagonally with the traffic to reduce apparent closing speed", "Follow the separation line until a gap appears", "Assume lane-following vessels must give way to any crossing sailing vessel"], correctAnswer: 0, explanation: "Rule 10 says avoid crossing if possible; if obliged, use a heading as nearly as practicable at right angles to traffic flow. Rule 10 does not remove duties under the other Rules, so lookout and collision-risk assessment continue." }),
+  steering({ id: "cr10", learningObjective: "Act safely in restricted visibility", question: "In fog, a radar contact is forward of your beam with decreasing range. The vessel is not in sight and a close-quarters situation is developing. Which action is consistent with Rule 19?", options: ["Take avoiding action in ample time; if altering course, avoid port for a vessel forward of the beam unless overtaking", "Apply Rule 15 from the contact's relative side and maintain speed", "Alter to port because no sidelights are visible", "Wait until visual contact establishes which vessel is stand-on"], correctAnswer: 0, explanation: "When vessels are not in sight in restricted visibility, Rule 19 applies rather than the in-sight crossing rules. Action must be timely; course alterations should avoid port for a vessel forward of the beam, except when overtaking, and speed may need reducing to the minimum for steerage or all way taken off." }),
+  steering({ id: "cr11", learningObjective: "Verify avoiding action until past and clear", question: "After a substantial starboard alteration to avoid a vessel, its bearing begins to open. What completes the Rule 8 assessment?", options: ["Continue checking bearing, range and the action's effect until the vessel is finally past and clear", "Resume the original course immediately after one changing bearing", "Stop the lookout because the alteration was substantial", "Make several small counter-alterations to recover track quickly"], correctAnswer: 0, explanation: "Rule 8 requires checking the effectiveness of avoiding action until the other vessel is finally past and clear. One opening bearing is evidence to monitor, not permission to abandon the assessment." }),
+  steering({ id: "cr12", learningObjective: "Avoid the 'danger side' shortcut", question: "A vessel is detected on your starboard side. Which statement is safe?", options: ["Starboard bearing alone is not a 'danger side' rule; establish visibility, status, encounter and collision risk before applying the relevant Rule", "Every vessel to starboard is automatically stand-on", "Always turn to port for a vessel to starboard", "A green sidelight always means no collision risk"], correctAnswer: 0, explanation: "'Danger side' and 'right is might' are mnemonics, not COLREG rules. A starboard contact becomes a Rule 15 give-way case only when the required in-sight, power-driven, crossing and collision-risk facts exist; other Rules may control." }),
+  lights({ id: "cr13", learningObjective: "Identify a power-driven vessel under 50 m", question: "At night you see one white masthead light above red and green sidelights from ahead. No second masthead light is visible. Which identification is supported?", options: ["A power-driven vessel underway, consistent with a vessel under 50 m", "A sailing vessel under sail alone", "A vessel at anchor", "A vessel not under command"], correctAnswer: 0, explanation: "Rule 23 requires a power-driven vessel underway to show masthead light(s), sidelights and a sternlight by aspect. A vessel under 50 m need not show the second masthead light, though it may do so." }),
+  lights({ id: "cr14", learningObjective: "Identify sailing-vessel lights", question: "At night, an underway vessel under sail alone is seen from ahead showing red and green sidelights but no white masthead light. Which identification fits?", options: ["A sailing vessel underway", "A power-driven vessel underway", "A vessel at anchor", "A pilot vessel on duty"], correctAnswer: 0, explanation: "Rule 25's basic sailing-vessel display is sidelights and a sternlight. It does not include the Rule 23 white masthead light; permitted combined and optional red-over-green arrangements depend on vessel length and configuration." }),
+  lights({ id: "cr15", learningObjective: "Apply Rule 34 manoeuvring-signal scope", question: "Two power-driven vessels are in sight of one another and meeting or crossing. One sounds one short blast. What does it state?", options: ["I am altering my course to starboard", "I am altering my course to port", "I am operating astern propulsion", "I am anchored in restricted visibility"], correctAnswer: 0, explanation: "In the stated Rule 34 in-sight context, one short blast means 'I am altering my course to starboard.' It is not a general fog or anchoring signal." }),
+  lights({ id: "cr16", learningObjective: "Recognise the Rule 34 doubt signal", question: "Power-driven vessels are in sight and one vessel doubts whether the other is taking sufficient action to avoid collision. What warning may she sound?", options: ["At least five short and rapid blasts", "Exactly two prolonged blasts", "One prolonged followed by two short blasts", "Three short blasts only"], correctAnswer: 0, explanation: "Rule 34(d) provides at least five short and rapid blasts for doubt about the other's intentions or action. 'At least' matters; it is not limited to exactly five." }),
+  lights({ id: "cr17", learningObjective: "Recognise a power-driven fog signal while making way", question: "In restricted visibility you hear one prolonged blast repeated at intervals of not more than two minutes. Which vessel state does Rule 35 identify?", options: ["A power-driven vessel making way through the water", "A power-driven vessel underway but stopped", "A vessel at anchor", "A sailing vessel underway"], correctAnswer: 0, explanation: "Rule 35(a) assigns one prolonged blast at intervals of not more than two minutes to a power-driven vessel making way through the water." }),
+  lights({ id: "cr18", learningObjective: "Recognise a stopped power-driven fog signal", question: "In restricted visibility you hear two prolonged blasts with about two seconds between them, repeated at intervals of not more than two minutes. What does this identify?", options: ["A power-driven vessel underway but stopped and making no way through the water", "A power-driven vessel making way", "A vessel at anchor", "A vessel being overtaken in sight"], correctAnswer: 0, explanation: "Rule 35(b) assigns two prolonged blasts separated by about two seconds to a power-driven vessel underway but stopped and making no way through the water." }),
+  lights({ id: "cr19", learningObjective: "Identify the anchor day shape", question: "In daylight, which basic shape identifies a vessel at anchor under Rule 30 (ignoring the stated small-vessel exception)?", options: ["One black ball", "Two black balls in a vertical line", "A black cylinder", "Two cones apexes together"], correctAnswer: 0, explanation: "Rule 30 requires a vessel at anchor to exhibit one ball in the fore part where best seen, subject to the rule's exceptions and additional requirements for larger vessels." }),
+  lights({ id: "cr20", learningObjective: "Distinguish NUC from RAM signals", question: "At night, a vessel underway shows two all-round red lights vertically and, because she is making way, also shows sidelights and a sternlight. Which status is indicated?", options: ["Not under command", "Restricted in ability to manoeuvre", "Constrained by draught", "Engaged in trawling"], correctAnswer: 0, explanation: "Rule 27 indicates NUC with two all-round red lights vertically (and two balls by day). A RAM vessel instead uses red-white-red; when making way, the applicable sidelights and sternlight are also shown." }),
 ] as const;
+
+/** Published curriculum traceability for the combined diagnostic. */
+export const COLREG_QUIZ_OBJECTIVE_MATRIX = colregsQuestions.map(({ id, learningObjective, prerequisite, remediationRoute }) => ({
+  questionId: id,
+  learningObjective,
+  prerequisite,
+  remediationRoute,
+}));
 
 export default colregsQuestions;

@@ -25,8 +25,8 @@ const subModules: ModuleMenuItem[] = [
   },
   {
     id: "colregs",
-    title: "Rules of the Road Quiz",
-    description: "Test your knowledge with 20+ scenario questions",
+    title: "Combined Rules Diagnostic",
+    description: "Check 20 taught objectives, then follow targeted review links",
     icon: Trophy,
     path: "/quiz/colregs",
     type: "quiz",
@@ -48,7 +48,7 @@ const RulesOfTheRoadMenu = () => {
         <ModuleMenuIntroCard
           icon={Compass}
           title="Safety at Sea"
-          description="The COLREGs are the highway code of the sea. Mastering them is essential for avoiding collisions and navigating safely. Start with the Steering & Sailing rules, then learn about Lights & Shapes before testing your knowledge."
+          description="Study both Steering & Sailing and Lights & Signals first. The combined diagnostic then checks 20 taught objectives and links missed answers back to the relevant theory."
         />
       }
     />
