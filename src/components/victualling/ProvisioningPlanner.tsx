@@ -28,7 +28,7 @@ export const ProvisioningPlanner = () => {
     catch (error) { return { plan: null, error: error instanceof Error ? error.message : "Invalid plan" }; }
   }, [inputs]);
 
-  return <Card className="mb-6 border-2 border-primary/20">
+  return <Card id="victualling-planner" className="mb-6 border-2 border-primary/20" tabIndex={-1}>
     <CardHeader><CardTitle>Passage-specific calculator</CardTitle></CardHeader>
     <CardContent className="space-y-5">
       <p className="text-sm text-muted-foreground">These values are editable planning assumptions, not universal minima. Record why your contingency and rates fit the route, forecast, workload, climate, crew and diversion/resupply options. Follow vessel/operator instructions and applicable local guidance.</p>

@@ -346,12 +346,15 @@ export type Database = {
       }
       review_question_catalog: {
         Row: {
+          active: boolean
           question_id: string
         }
         Insert: {
+          active?: boolean
           question_id: string
         }
         Update: {
+          active?: boolean
           question_id?: string
         }
         Relationships: []
@@ -419,6 +422,32 @@ export type Database = {
       increment_user_points: {
         Args: { p_increment: number; p_user_id: string }
         Returns: undefined
+      }
+      record_active_question_review_internal: {
+        Args: {
+          p_quality: number
+          p_question_id: string
+          p_review_id: string
+          p_reviewed_at?: string
+        }
+        Returns: {
+          created_at: string
+          ease_factor: number
+          id: string
+          interval_days: number
+          last_reviewed_at: string | null
+          next_review_at: string
+          question_id: string
+          repetitions: number
+          updated_at: string
+          user_id: string
+        }
+        SetofOptions: {
+          from: "*"
+          to: "question_reviews"
+          isOneToOne: true
+          isSetofReturn: false
+        }
       }
       record_learning_activity: {
         Args: { p_activity_type: string }
@@ -491,6 +520,10 @@ export type Database = {
           completion_awarded: boolean
           points_awarded: boolean
         }[]
+      }
+      seed_active_question_reviews_internal: {
+        Args: { p_question_ids: string[] }
+        Returns: undefined
       }
       seed_question_reviews: {
         Args: { p_question_ids: string[] }

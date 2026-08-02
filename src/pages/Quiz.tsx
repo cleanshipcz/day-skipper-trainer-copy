@@ -29,6 +29,7 @@ import { syncEngagementEvent } from "@/features/engagement/engagementService";
 import { ownerStorageKey, readStored, removeStored, writeStored } from "@/features/persistence/browserStorage";
 import { resolveQuizParentDestination } from "@/constants/topicRegistry";
 import { anchorQuizRemediationTopic, anchorTheoryRoute } from "@/features/anchorwork/learningPath";
+import { victuallingQuizRemediationRoute, victuallingTheoryRoute } from "@/features/victualling/learningPath";
 
 const quizAttemptKey = (owner: string, topic: string) => ownerStorageKey("quiz-attempt", owner, topic);
 interface QuizWorkflow {
@@ -477,9 +478,13 @@ const Quiz = () => {
             <div className="flex flex-col gap-3 sm:flex-row">
               <Button variant="outline" className="flex-1" onClick={() => navigate(topicKey === "anchorwork"
                 ? anchorTheoryRoute(passed ? anchorReturnTopic : anchorQuizRemediationTopic(questions.map(({ id }) => id), answers, questions.map(({ correctAnswer }) => correctAnswer)), "quiz")
-                : quizParent.route)}>
+                : topicKey === "victualling" && !passed
+                  ? victuallingQuizRemediationRoute(questions.map(({ id }) => id), answers, questions.map(({ correctAnswer }) => correctAnswer))
+                  : quizParent.route)}>
                 <ArrowLeft className="w-4 h-4 mr-2" />
-                {topicKey === "anchorwork" && !passed ? "Review missed anchorwork skill" : `Return to ${quizParent.label}`}
+                {topicKey === "anchorwork" && !passed ? "Review missed anchorwork skill"
+                  : topicKey === "victualling" && !passed ? "Review missed Victualling skill"
+                    : `Return to ${quizParent.label}`}
               </Button>
               <Button
                 className="flex-1 bg-secondary text-secondary-foreground"
@@ -609,6 +614,7 @@ const Quiz = () => {
                   {selectedAnswer === question.correctAnswer ? "Correct" : "Incorrect"}
                 </h3>
                 <p className="text-muted-foreground break-words [overflow-wrap:anywhere]">{question.explanation}</p>
+                {topicKey === "victualling" && selectedAnswer !== question.correctAnswer && <Button variant="link" className="h-auto px-0 pt-2" onClick={() => navigate(victuallingTheoryRoute(question.id))}>Review this objective in Victualling theory</Button>}
               </div>
             )}
 
