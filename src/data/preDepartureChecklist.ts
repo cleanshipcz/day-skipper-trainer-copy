@@ -1,8 +1,9 @@
 export interface ChecklistItem { id: string; category: string; label: string; why: string }
 export const preDepartureChecklist: readonly ChecklistItem[] = [
   { id: "crew-roles", category: "Crew brief", label: "Brief roles, route and emergency actions", why: "Everyone must know what is expected before workload rises." },
-  { id: "crew-ppe", category: "Crew brief", label: "Fit lifejackets and harnesses", why: "Correctly fitted equipment is effective immediately." },
-  { id: "lifesaving", category: "Safety equipment", label: "Locate liferaft, flares and grab bag", why: "Emergency equipment must be accessible and in date." },
+  { id: "crew-ppe", category: "Crew brief", label: "Check crew clothing, sun protection, lifejackets and harnesses", why: "Fit choices to each person, expected conditions, manufacturer instructions and vessel procedures." },
+  { id: "crew-medical", category: "Crew brief", label: "Confirm first aid and crew medication plan", why: "Contents and quantities must fit the crew and passage, with professional medical advice where needed." },
+  { id: "lifesaving", category: "Safety equipment", label: "Check liferaft, pyrotechnics and grab bag", why: "Confirm accessibility and condition; pyrotechnic carriage, type, service life and disposal must follow vessel requirements, manufacturer instructions and applicable rules." },
   { id: "vhf", category: "Communications", label: "Test fixed and handheld VHF", why: "Reliable communications are essential for forecasts and distress." },
   { id: "forecast", category: "Weather", label: "Obtain and record the latest forecast", why: "The go/no-go decision needs current information." },
   { id: "engine", category: "Engine", label: "Check fuel, oil, coolant and raw-water flow", why: "Early checks prevent avoidable propulsion failures." },

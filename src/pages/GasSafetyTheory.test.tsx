@@ -17,6 +17,7 @@ vi.mock("@/hooks/useProgress", () => ({
 // Mock react-router-dom to avoid needing a Router context
 vi.mock("react-router-dom", () => ({
   useNavigate: () => vi.fn(),
+  useSearchParams: () => [new URLSearchParams()],
 }));
 
 describe("GasSafetyTheory", () => {

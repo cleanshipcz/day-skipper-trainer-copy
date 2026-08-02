@@ -114,4 +114,15 @@ describe("gasSafety data", () => {
     // then
     expect(gasSafetyTopics.length).toBe(6);
   });
+
+  it("keeps every learner summary qualified and free of unsafe generic actions", async () => {
+    const { gasSafetyTopics } = await import("./gasSafety");
+    const rendered = gasSafetyTopics.flatMap(({ keyPoints }) => keyPoints).join("\n");
+
+    expect(rendered).not.toMatch(/sniff the bilge|open(?:ing)? all hatches|daily routine/i);
+    expect(rendered).not.toMatch(/cylinders stored upright|must have an overboard drain/i);
+    expect(rendered).not.toMatch(/mount low|head height|near the cooker/i);
+    expect(rendered).toMatch(/manufacturer's exact placement instructions/i);
+    expect(rendered).toMatch(/vessel emergency procedure/i);
+  });
 });
