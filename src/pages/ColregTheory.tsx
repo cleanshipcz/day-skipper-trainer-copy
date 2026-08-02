@@ -1,314 +1,123 @@
+import { useEffect } from "react";
 import { useNavigate } from "react-router-dom";
+import { ArrowLeft, Compass, AlertTriangle } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { ArrowLeft, Compass, AlertTriangle, Wind, Ship } from "lucide-react";
-import { useEffect } from "react";
 import { useTheoryCompletionGate } from "@/features/progress/useTheoryCompletionGate";
 import { TOPIC_IDS } from "@/constants/topicRegistry";
 
+export type ColregRule = { rule: number; title: string; scope: string; points: string[] };
+
+/** Learning summaries, not substitutes for the Regulations' operative text. */
+// eslint-disable-next-line react-refresh/only-export-components
+export const COLREG_RULES: ColregRule[] = [
+  { rule: 5, title: "Look-out", scope: "All vessels, at all times", points: [
+    "Maintain a proper look-out by sight, hearing and every available means appropriate to the circumstances and conditions.",
+    "The purpose is a full appraisal of the situation and risk of collision.",
+  ] },
+  { rule: 6, title: "Safe speed", scope: "All vessels, at all times", points: [
+    "Proceed at a safe speed so effective avoiding action can be taken and the vessel can be stopped within an appropriate distance.",
+    "Consider visibility, traffic density, manoeuvrability (including stopping and turning), background light, wind/sea/current, hazards and draught; radar-equipped vessels also consider radar limitations, scale, clutter, detection range and radar-derived assessments.",
+  ] },
+  { rule: 7, title: "Risk of collision", scope: "All vessels, at all times", points: [
+    "Use all available means appropriate to the circumstances; if there is any doubt, deem risk to exist.",
+    "Use radar properly when fitted, including long-range scanning and plotting or equivalent systematic observation; do not rely on scanty information.",
+    "A bearing that does not appreciably change is a warning, but risk can exist despite bearing change, especially with a large vessel, tow or at close range.",
+  ] },
+  { rule: 8, title: "Action to avoid collision", scope: "All vessels, at all times", points: [
+    "Action must comply with these Rules, be positive, made in ample time and show good seamanship; course or speed changes should be large enough to be readily apparent and avoid successive small alterations.",
+    "If there is room, a course alteration alone may be most effective if made in good time, substantial and not creating another close-quarters situation.",
+    "Pass at a safe distance and check the action's effectiveness until the other vessel is finally past and clear; slacken speed, stop or reverse if necessary.",
+    "A vessel required not to impede must take early action to allow sufficient sea-room. That duty remains when collision risk develops, while the other vessel still complies with the applicable Part B rules.",
+  ] },
+  { rule: 9, title: "Narrow channels", scope: "All visibility; channels and fairways", points: [
+    "A vessel proceeding along a narrow channel or fairway keeps as near the starboard outer limit as is safe and practicable.",
+    "A vessel under 20 m or sailing vessel must not impede a vessel that can safely navigate only within the channel; a fishing vessel must not impede any vessel navigating within it.",
+    "Do not cross if that would impede such a channel-bound vessel. Overtaking requires agreement where the vessel ahead must act; near a bend or obstruction navigate with particular alertness and caution. Avoid anchoring where circumstances allow.",
+  ] },
+  { rule: 10, title: "Traffic separation schemes", scope: "All visibility; IMO-adopted TSS", points: [
+    "Use the correct lane in its traffic-flow direction, keep clear of separation lines/zones, and normally join or leave at lane ends or at as small an angle as practicable.",
+    "Avoid crossing; if obliged, cross on a heading as nearly as practicable at right angles to the traffic flow. Inshore traffic zones have limited permitted uses.",
+    "Fishing vessels, vessels under 20 m and sailing vessels must not impede a power-driven vessel following a lane. A vessel not using the scheme avoids it by as wide a margin as practicable.",
+    "Rule 10 does not relieve any vessel of obligations under any other Rule.",
+  ] },
+  { rule: 12, title: "Sailing vessels", scope: "Vessels in sight; two sailing vessels", points: [
+    "Different sides: the vessel with wind on the port side keeps out of the way.",
+    "Same side: the windward vessel keeps out of the way of the leeward vessel.",
+    "If a port-wind vessel sees a vessel to windward and cannot determine whether the other has wind on port or starboard, she keeps out of the way. For this rule, windward side is opposite the mainsail side (or largest fore-and-aft sail).",
+  ] },
+  { rule: 13, title: "Overtaking", scope: "Vessels in sight; any vessel overtaking any other", points: [
+    "The overtaking vessel keeps out of the way, despite anything in Rules 4–18.",
+    "Overtaking means approaching from more than 22.5° abaft the beam (at night, only the sternlight visible). If in doubt, assume overtaking.",
+    "A later bearing change does not turn the overtaker into a crossing vessel or end the duty until finally past and clear.",
+  ] },
+  { rule: 14, title: "Head-on", scope: "Vessels in sight; two power-driven vessels", points: [
+    "When meeting on reciprocal or nearly reciprocal courses with risk of collision, each alters to starboard and passes port-to-port.",
+    "The situation exists when seen ahead or nearly ahead with the prescribed night aspect or corresponding day aspect. If in doubt, assume it exists.",
+  ] },
+  { rule: 15, title: "Crossing", scope: "Vessels in sight; two power-driven vessels", points: [
+    "When crossing with risk of collision, the vessel with the other on her starboard side keeps out of the way.",
+    "If circumstances admit, the give-way vessel avoids crossing ahead.",
+  ] },
+  { rule: 16, title: "Give-way vessel", scope: "Vessels in sight", points: [
+    "Take early and substantial action to keep well clear.",
+  ] },
+  { rule: 17, title: "Stand-on vessel", scope: "Vessels in sight", points: [
+    "Initially keep course and speed while continuing the Rules 5, 7 and 8 assessment.",
+    "You may act by your manoeuvre alone as soon as it becomes apparent that the give-way vessel is not taking appropriate action.",
+    "When so close that the give-way vessel's action alone cannot avoid collision, you must take the action that will best aid avoidance.",
+    "In a power-driven crossing situation, a stand-on vessel acting under the may-act stage should, if circumstances admit, not alter to port for a vessel on her own port side. The give-way vessel is not relieved of her duty.",
+  ] },
+];
+
+// eslint-disable-next-line react-refresh/only-export-components
+export const RULE_18_DECISIONS = [
+  "First apply Rules 9, 10 and 13: narrow-channel, TSS and overtaking duties can control before Rule 18.",
+  "Except where Rules 9, 10 and 13 otherwise require, a power-driven vessel underway keeps out of the way of NUC, RAM, fishing and sailing vessels.",
+  "A sailing vessel underway keeps out of NUC, RAM and fishing vessels; a fishing vessel underway, so far as possible, keeps out of NUC and RAM vessels.",
+  "Any vessel other than NUC or RAM should, if circumstances permit, avoid impeding the safe passage of a vessel constrained by her draught exhibiting Rule 28 signals; the CBD vessel navigates with particular caution.",
+  "A seaplane generally keeps well clear of all vessels and avoids impeding navigation, but follows Part B when collision risk exists.",
+  "A WIG craft taking off, landing or flying near the surface keeps well clear and avoids impeding all other vessels; when operating on the surface it follows Part B as a power-driven vessel.",
+];
+
 const ColregTheory = () => {
   const navigate = useNavigate();
-  const { canComplete, markCompleted, markSectionVisited } = useTheoryCompletionGate({
-    topicId: TOPIC_IDS.COLREGS_THEORY,
-    requiredSectionIds: ["read-content"],
-    pointsOnComplete: 10,
-  });
-
+  const { canComplete, markCompleted, markSectionVisited } = useTheoryCompletionGate({ topicId: TOPIC_IDS.COLREGS_THEORY, requiredSectionIds: ["read-content"], pointsOnComplete: 10 });
   useEffect(() => {
-    const onScroll = () => {
-      const viewportBottom = window.scrollY + window.innerHeight;
-      const docHeight = document.documentElement.scrollHeight;
-      if (docHeight <= 0) return;
-
-      const scrollPercent = (viewportBottom / docHeight) * 100;
-      if (scrollPercent >= 80) {
-        void markSectionVisited("read-content");
-      }
-    };
-
-    onScroll();
-    window.addEventListener("scroll", onScroll, { passive: true });
-    return () => window.removeEventListener("scroll", onScroll);
+    const onScroll = () => { const h = document.documentElement.scrollHeight; if (h > 0 && ((window.scrollY + window.innerHeight) / h) * 100 >= 80) void markSectionVisited("read-content"); };
+    onScroll(); window.addEventListener("scroll", onScroll, { passive: true }); return () => window.removeEventListener("scroll", onScroll);
   }, [markSectionVisited]);
 
-  return (
-    <div className="min-h-screen bg-gradient-to-br from-background via-ocean-light/10 to-background pb-20">
-      {/* Header */}
-      <header className="border-b border-border bg-card/50 backdrop-blur-sm sticky top-0 z-40">
-        <div className="container mx-auto px-4 py-4">
-          <div className="flex items-center gap-3">
-            <Button variant="ghost" size="icon" onClick={() => navigate("/rules-of-the-road")}>
-              <ArrowLeft className="w-5 h-5" />
-            </Button>
-            <div>
-              <h1 className="text-xl font-bold">Steering & Sailing Rules</h1>
-              <p className="text-sm text-muted-foreground">Part B - Rules 4-19</p>
-            </div>
-          </div>
+  return <div className="min-h-screen bg-gradient-to-br from-background via-ocean-light/10 to-background pb-20">
+    <header className="border-b border-border bg-card/50 backdrop-blur-sm sticky top-0 z-40"><div className="container mx-auto px-4 py-4 flex items-center gap-3">
+      <Button variant="ghost" size="icon" onClick={() => navigate("/rules-of-the-road")}><ArrowLeft className="w-5 h-5" /></Button>
+      <div><h1 className="text-xl font-bold">Steering &amp; Sailing Rules</h1><p className="text-sm text-muted-foreground">COLREG Part B — Rules 4–19</p></div>
+    </div></header>
+    <main className="container mx-auto px-4 py-8 max-w-4xl space-y-8">
+      <section className="space-y-3"><h2 className="text-2xl font-semibold flex gap-2"><Compass />How Part B works</h2>
+        <p>Rule 2 frames every decision: nothing in the Rules excuses neglect of the Rules, ordinary seamanlike precautions or special circumstances. In immediate danger, a departure may be necessary to avoid that danger.</p>
+        <div className="grid md:grid-cols-3 gap-3">
+          <Card><CardContent className="pt-6"><Badge>Section I</Badge><h3 className="font-bold mt-2">Rules 4–10</h3><p className="text-sm text-muted-foreground">Conduct of vessels in any condition of visibility.</p></CardContent></Card>
+          <Card><CardContent className="pt-6"><Badge>Section II</Badge><h3 className="font-bold mt-2">Rules 11–18</h3><p className="text-sm text-muted-foreground">Applies only when vessels are in sight of one another. Rule 11 establishes that scope.</p></CardContent></Card>
+          <Card><CardContent className="pt-6"><Badge>Section III</Badge><h3 className="font-bold mt-2">Rule 19</h3><p className="text-sm text-muted-foreground">Conduct in restricted visibility when vessels are not in sight of one another.</p></CardContent></Card>
         </div>
-      </header>
-
-      <main className="container mx-auto px-4 py-8 max-w-4xl space-y-8">
-        {/* Intro */}
-        <section>
-          <div className="prose dark:prose-invert max-w-none">
-            <p className="text-lg leading-relaxed">
-              The Steering and Sailing Rules are the core of collision avoidance. They define who is the "Stand-on"
-              vessel (maintains course and speed) and who is the "Give-way" vessel (takes action to avoid collision).
-            </p>
-          </div>
-        </section>
-
-        {/* General Rules */}
-        <section className="space-y-4">
-          <h2 className="text-2xl font-semibold flex items-center gap-2">
-            <Compass className="w-6 h-6 text-primary" />
-            General Rules
-          </h2>
-
-          <div className="grid md:grid-cols-2 gap-4">
-            <Card>
-              <CardContent className="pt-6">
-                <h3 className="font-bold text-lg mb-2">Rule 5: Look-out</h3>
-                <p className="text-muted-foreground">
-                  Every vessel must at all times maintain a proper look-out by sight and hearing as well as by all
-                  available means appropriate to make a full appraisal of the situation.
-                </p>
-              </CardContent>
-            </Card>
-
-            <Card>
-              <CardContent className="pt-6">
-                <h3 className="font-bold text-lg mb-2">Rule 6: Safe Speed</h3>
-                <p className="text-muted-foreground">
-                  Every vessel must proceed at a safe speed so that she can take proper and effective action to avoid
-                  collision and stop within a distance appropriate to the circumstances.
-                </p>
-              </CardContent>
-            </Card>
-
-            <Card>
-              <CardContent className="pt-6">
-                <h3 className="font-bold text-lg mb-2">Rule 7: Risk of Collision</h3>
-                <p className="text-muted-foreground">
-                  Use all available means to determine if risk of collision exists. If there is any doubt, such risk
-                  shall be deemed to exist.
-                  <br />
-                  <span className="italic text-primary">Warning sign: Constant bearing, decreasing range.</span>
-                </p>
-              </CardContent>
-            </Card>
-
-            <Card>
-              <CardContent className="pt-6">
-                <h3 className="font-bold text-lg mb-2">Rule 8: Action to Avoid Collision</h3>
-                <p className="text-muted-foreground">
-                  Action must be positive, made in ample time, and with due regard to good seamanship. Alteration of
-                  course should be large enough to be readily apparent.
-                </p>
-              </CardContent>
-            </Card>
-
-            <Card>
-              <CardContent className="pt-6">
-                <h3 className="font-bold text-lg mb-2">Rule 9: Narrow Channels</h3>
-                <p className="text-muted-foreground">
-                  Keep as near to the outer limit of the channel on your STARBOARD side as is safe. Small vessels
-                  (&lt;20m) and sailing vessels implies must not impede safe passage.
-                </p>
-              </CardContent>
-            </Card>
-
-            <Card>
-              <CardContent className="pt-6">
-                <h3 className="font-bold text-lg mb-2">Rule 10: TSS</h3>
-                <p className="text-muted-foreground">
-                  Proceed in the general direction of traffic flow. Keep clear of the separation zone. Join/leave at the
-                  termination or at a shallow angle. Cross at right angles.
-                </p>
-              </CardContent>
-            </Card>
-          </div>
-        </section>
-
-        {/* Sailing Rules */}
-        <section className="space-y-4">
-          <h2 className="text-2xl font-semibold flex items-center gap-2">
-            <Wind className="w-6 h-6 text-blue-500" />
-            Rule 12: Sailing Vessels
-          </h2>
-          <Card className="overflow-hidden">
-            <div className="grid md:grid-cols-2">
-              <div className="p-6 flex flex-col justify-center">
-                <ul className="space-y-4">
-                  <li className="flex gap-3">
-                    <Badge variant="outline" className="h-fit mt-1">
-                      1
-                    </Badge>
-                    <div>
-                      <span className="font-bold">Wind on different sides:</span>
-                      <p className="text-muted-foreground">The vessel with wind on the PORT side gives way.</p>
-                      <p className="text-sm italic text-blue-500 mt-1">"Port gives way to Starboard"</p>
-                    </div>
-                  </li>
-                  <li className="flex gap-3">
-                    <Badge variant="outline" className="h-fit mt-1">
-                      2
-                    </Badge>
-                    <div>
-                      <span className="font-bold">Wind on same side:</span>
-                      <p className="text-muted-foreground">The vessel to WINDWARD gives way.</p>
-                      <p className="text-sm italic text-blue-500 mt-1">"Windward gives way to Leeward"</p>
-                    </div>
-                  </li>
-                </ul>
-              </div>
-              <div className="bg-muted/30 p-6 flex items-center justify-center border-l border-border">
-                <img
-                  src="/images/colregs/sailing.png"
-                  alt="Sailing Rules"
-                  className="max-w-full h-auto rounded-lg shadow-sm"
-                />
-              </div>
-            </div>
-          </Card>
-        </section>
-
-        {/* Power Driven Rules */}
-        <section className="space-y-4">
-          <h2 className="text-2xl font-semibold flex items-center gap-2">
-            <Ship className="w-6 h-6 text-red-500" />
-            Power-Driven Vessels
-          </h2>
-
-          <div className="space-y-6">
-            {/* Overtaking */}
-            <Card>
-              <div className="grid md:grid-cols-2">
-                <div className="p-6">
-                  <h3 className="font-bold text-lg mb-2">Rule 13: Overtaking</h3>
-                  <p className="text-muted-foreground mb-4">
-                    Any vessel overtaking any other shall keep out of the way of the vessel being overtaken.
-                  </p>
-                  <div className="p-4 bg-yellow-500/10 rounded-lg border border-yellow-500/20">
-                    <p className="text-sm text-yellow-600 dark:text-yellow-400 font-medium">
-                      An overtaking vessel is always the give-way vessel, regardless of sail vs power.
-                    </p>
-                  </div>
-                </div>
-                <div className="bg-muted/30 p-6 flex items-center justify-center border-l border-border">
-                  <img src="/images/colregs/quiz_overtaking.png" alt="Overtaking" className="max-w-[200px] h-auto" />
-                </div>
-              </div>
-            </Card>
-
-            {/* Head-on */}
-            <Card>
-              <div className="grid md:grid-cols-2">
-                <div className="p-6">
-                  <h3 className="font-bold text-lg mb-2">Rule 14: Head-on Situation</h3>
-                  <p className="text-muted-foreground">
-                    When two power-driven vessels are meeting on reciprocal courses involving risk of collision, each
-                    shall alter her course to STARBOARD so that each shall pass on the port side of the other.
-                  </p>
-                </div>
-                <div className="bg-muted/30 p-6 flex items-center justify-center border-l border-border">
-                  <img src="/images/colregs/headon.png" alt="Head On" className="max-w-[200px] h-auto" />
-                </div>
-              </div>
-            </Card>
-
-            {/* Crossing */}
-            <Card>
-              <div className="grid md:grid-cols-2">
-                <div className="p-6">
-                  <h3 className="font-bold text-lg mb-2">Rule 15: Crossing Situation</h3>
-                  <p className="text-muted-foreground mb-4">
-                    When two power-driven vessels are crossing, the vessel which has the other on her own STARBOARD side
-                    shall keep out of the way.
-                  </p>
-                  <p className="font-medium italic">"If it's on your right, it's in the right!" (You give way)</p>
-                </div>
-                <div className="bg-muted/30 p-6 flex items-center justify-center border-l border-border">
-                  <img src="/images/colregs/crossing.png" alt="Crossing" className="max-w-[200px] h-auto" />
-                </div>
-              </div>
-            </Card>
-          </div>
-        </section>
-
-        {/* Actions */}
-        <section className="space-y-4">
-          <h2 className="text-2xl font-semibold flex items-center gap-2">
-            <AlertTriangle className="w-6 h-6 text-green-500" />
-            Action to Take
-          </h2>
-          <div className="grid md:grid-cols-2 gap-4">
-            <Card>
-              <CardContent className="pt-6">
-                <h3 className="font-bold text-lg mb-2">Rule 16: Give-way Vessel</h3>
-                <p className="text-muted-foreground">
-                  Take <span className="font-semibold text-primary">early and substantial action</span> to keep well
-                  clear.
-                </p>
-              </CardContent>
-            </Card>
-            <Card>
-              <CardContent className="pt-6">
-                <h3 className="font-bold text-lg mb-2">Rule 17: Stand-on Vessel</h3>
-                <p className="text-muted-foreground">
-                  Keep your course and speed.
-                  <br />
-                  <span className="text-sm italic">
-                    Exception: You MAY take action if they aren't, and MUST take action if collision is inevitable.
-                  </span>
-                </p>
-              </CardContent>
-            </Card>
-          </div>
-        </section>
-
-        {/* Hierarchy */}
-        <section className="space-y-4">
-          <h2 className="text-2xl font-semibold flex items-center gap-2">
-            <AlertTriangle className="w-6 h-6 text-amber-500" />
-            Rule 18: Hierarchy
-          </h2>
-          <Card>
-            <CardContent className="pt-6">
-              <p className="mb-4">Order of priority (Stand-on over vessels below):</p>
-              <ol className="space-y-2 list-decimal list-inside font-medium bg-muted/50 p-4 rounded-lg">
-                <li className="text-red-500">Not Under Command (NUC) - Highest Priority</li>
-                <li className="text-orange-500">Restricted in Ability to Maneuver (RAM)</li>
-                <li className="text-amber-500">Constrained by Draft (CBD)</li>
-                <li className="text-yellow-500">Fishing (engaged in fishing)</li>
-                <li className="text-blue-500">Sailing</li>
-                <li className="text-gray-500">Power-driven vessels</li>
-                <li className="text-gray-400">Seaplanes / WIG craft</li>
-              </ol>
-              <p className="mt-4 text-sm text-muted-foreground text-center italic">
-                Mnemonic: "New Reels Catch Fish So Quick"
-              </p>
-            </CardContent>
-          </Card>
-        </section>
-
-        <div className="flex justify-center pt-8">
-          <Button
-            size="lg"
-            disabled={!canComplete}
-            onClick={async () => {
-              await markCompleted();
-              navigate("/rules-of-the-road");
-            }}
-          >
-            {canComplete ? "Complete Module" : "Scroll through module to complete"}
-          </Button>
-        </div>
-      </main>
-    </div>
-  );
+      </section>
+      <section className="space-y-4"><h2 className="text-2xl font-semibold">Rules 5–17: decision essentials</h2><div className="grid md:grid-cols-2 gap-4">
+        {COLREG_RULES.map(({ rule, title, scope, points }) => <Card key={rule}><CardContent className="pt-6"><h3 className="font-bold text-lg">Rule {rule}: {title}</h3><p className="text-xs font-medium text-primary mb-3">{scope}</p><ul className="list-disc pl-5 space-y-2 text-sm text-muted-foreground">{points.map(point => <li key={point}>{point}</li>)}</ul></CardContent></Card>)}
+      </div></section>
+      <section className="space-y-3"><h2 className="text-2xl font-semibold flex gap-2"><AlertTriangle />Rule 18: responsibilities, not a ladder</h2>
+        <Card><CardContent className="pt-6"><p className="mb-3">Identify the encounter and special waterway duties first; then apply the relevant responsibility:</p><ol className="list-decimal pl-5 space-y-2 text-sm text-muted-foreground">{RULE_18_DECISIONS.map(x => <li key={x}>{x}</li>)}</ol></CardContent></Card>
+      </section>
+      <section className="space-y-3"><h2 className="text-2xl font-semibold">Rule 19: restricted visibility</h2><Card><CardContent className="pt-6 space-y-3 text-sm text-muted-foreground">
+        <p>Rule 19 applies to vessels not in sight of one another when navigating in or near restricted visibility. Proceed at a safe speed adapted to the conditions; a power-driven vessel has engines ready for immediate manoeuvre. Apply Rules 5–10 with due regard to the restricted conditions.</p>
+        <p>For a vessel detected by radar alone, determine whether close quarters or collision risk is developing and act in ample time. If altering course, so far as possible avoid port for a vessel forward of the beam (unless overtaking) and avoid altering toward a vessel abeam or abaft the beam.</p>
+        <p>Except where satisfied no risk exists, a vessel hearing apparently forward of her beam another vessel's fog signal—or unable to avoid close quarters forward of the beam—reduces to the minimum speed at which she can keep course, takes all way off if necessary, and navigates with extreme caution until danger is over.</p>
+      </CardContent></Card></section>
+      <aside className="rounded-lg border p-4 text-sm"><p><strong>Source and version:</strong> Convention on the International Regulations for Preventing Collisions at Sea, 1972 (COLREGs), as amended, consolidated in the U.S. Coast Guard <em>Navigation Rules and Regulations Handbook</em>, August 2014, Rules 2 and 4–19. These are learning summaries, not quoted rule text. Informal phrases and mnemonics are memory aids only and have no legal force.</p></aside>
+      <div className="flex justify-center pt-8"><Button size="lg" disabled={!canComplete} onClick={async () => { await markCompleted(); navigate("/rules-of-the-road"); }}>{canComplete ? "Complete Module" : "Scroll through module to complete"}</Button></div>
+    </main>
+  </div>;
 };
 
 export default ColregTheory;
