@@ -31,8 +31,9 @@ const EngineTheory = () => {
   const ownerRef = useRef(user?.id ?? null);
   const revisionRef = useRef(0);
   const completionHeadingRef = useRef<HTMLHeadingElement>(null);
-  const wasCompleteRef = useRef(false);
-  const recoveryFocusRef = useRef(false);
+  const userCompletionRef = useRef(false);
+  const lastChangedIdRef = useRef<string | null>(null);
+  const recoveryTargetRef = useRef<string | "first" | null>(null);
   ownerRef.current = user?.id ?? null;
 
   useEffect(() => {
@@ -120,6 +121,8 @@ const EngineTheory = () => {
     if (!validIds.has(id) || ["loading", "saving", "conflict", "failed"].includes(status)) return;
     const next = new Set(checkedIds);
     if (checked) next.add(id); else next.delete(id);
+    lastChangedIdRef.current = id;
+    userCompletionRef.current = checked && total > 0 && next.size === total;
     setCheckedIds(next);
     void persist(catalogue.filter(({ id }) => next.has(id)).map(({ id }) => id));
   };
@@ -129,14 +132,15 @@ const EngineTheory = () => {
   const interactive = !["loading", "saving", "conflict", "failed"].includes(status);
 
   useEffect(() => {
-    if (complete && !wasCompleteRef.current) completionHeadingRef.current?.focus({ preventScroll: true });
-    wasCompleteRef.current = complete;
+    if (complete && userCompletionRef.current) completionHeadingRef.current?.focus({ preventScroll: true });
+    userCompletionRef.current = false;
   }, [complete]);
 
   useEffect(() => {
-    if (!interactive || !recoveryFocusRef.current || catalogue.length === 0) return;
-    recoveryFocusRef.current = false;
-    document.getElementById(`engine-${catalogue[0].id}`)?.focus({ preventScroll: true });
+    if (!interactive || !recoveryTargetRef.current || catalogue.length === 0) return;
+    const targetId = recoveryTargetRef.current === "first" ? catalogue[0].id : recoveryTargetRef.current;
+    recoveryTargetRef.current = null;
+    document.getElementById(`engine-${targetId}`)?.focus({ preventScroll: true });
   }, [catalogue, interactive, status]);
 
   return <div className="min-h-screen bg-gradient-to-br from-background via-ocean-light/10 to-background motion-reduce:scroll-auto">
@@ -145,8 +149,8 @@ const EngineTheory = () => {
       <p className="mb-4 text-sm text-muted-foreground">This reversible checklist is a private practice and planning aid, not an attestation that an engine was inspected, maintained, safe, or ready. It awards no points and never marks the Engine topic complete. Authenticated progress belongs to your account; anonymous progress stays only in this browser session and expires after 24 hours.</p>
       <div className="mb-4 text-sm break-words [overflow-wrap:anywhere]" role={status === "failed" || status === "conflict" ? "alert" : "status"} aria-live={status === "failed" || status === "conflict" ? "assertive" : "polite"} aria-atomic="true">
         {status === "loading" && "Loading saved checklist…"}{status === "saving" && "Saving checklist…"}{status === "saved" && "Checklist saved."}{status === "queued" && "Checklist saved offline and queued to sync; it is not yet confirmed on the server."}{status === "anonymous" && "Checklist saved for this browser session. Sign in to keep it across devices."}
-        {status === "conflict" && <span>Checklist changed elsewhere; your change was not saved. <Button size="sm" variant="outline" onClick={() => { recoveryFocusRef.current = true; setLoadAttempt((n) => n + 1); }}>Reload checklist</Button></span>}
-        {status === "failed" && <span>{pendingIds ? "Your latest change was not saved." : "Saved progress could not be loaded; editing is paused to protect it."} <Button size="sm" variant="outline" onClick={() => { recoveryFocusRef.current = true; if (pendingIds) void persist(pendingIds); else setLoadAttempt((n) => n + 1); }}>{pendingIds ? "Retry save" : "Retry load"}</Button></span>}
+        {status === "conflict" && <span>Checklist changed elsewhere; your change was not saved. <Button size="sm" variant="outline" onClick={() => { recoveryTargetRef.current = lastChangedIdRef.current ?? "first"; setLoadAttempt((n) => n + 1); }}>Reload checklist</Button></span>}
+        {status === "failed" && <span>{pendingIds ? "Your latest change was not saved." : "Saved progress could not be loaded; editing is paused to protect it."} <Button size="sm" variant="outline" onClick={() => { recoveryTargetRef.current = pendingIds ? lastChangedIdRef.current ?? "first" : "first"; if (pendingIds) void persist(pendingIds); else setLoadAttempt((n) => n + 1); }}>{pendingIds ? "Retry save" : "Retry load"}</Button></span>}
       </div>
       <Card className="mb-6 min-w-0"><CardContent className="pt-6"><div className="flex flex-wrap justify-between gap-2 mb-2"><span id="engine-progress-label" className="font-semibold">Practice checklist progress</span><span>{percentage}%</span></div><Progress value={percentage} aria-labelledby="engine-progress-label" aria-valuemin={0} aria-valuemax={100} aria-valuenow={percentage} aria-valuetext={`${count} of ${total} practice checks selected; no points awarded`} /></CardContent></Card>
       <Card className="mb-6 border-2 border-accent bg-accent/5"><CardContent className="pt-6 flex gap-3"><AlertTriangle className="w-6 h-6 text-accent shrink-0" /><div><h3 className="font-bold mb-2">Use the vessel instructions</h3><p className="text-sm text-muted-foreground">Isolate machinery and follow the engine and vessel manufacturers’ procedures. Ventilation, fuel-vapour checks and pre-start routines depend on the installation; do not treat this training list as authority to operate or maintain equipment.</p></div></CardContent></Card>
@@ -189,7 +193,7 @@ const EngineTheory = () => {
       <section aria-labelledby="engine-preparation" className="mb-6"><Card><CardHeader><CardTitle id="engine-preparation" tabIndex={-1}>Prepare the actual inspection</CardTitle></CardHeader><CardContent className="grid gap-4 text-sm md:grid-cols-2"><div><h3 className="font-semibold">Tools, PPE and controls</h3><ul className="mt-2 list-disc space-y-1 pl-5 text-muted-foreground"><li>Current engine, drive and vessel manuals; service schedule; hours and previous defect/service records</li><li>Only specified tools, test equipment and PPE; remove jewellery and control keys/starting energy</li><li>Correct labelled fluids, filters, belts, impeller, seals and other vessel-specific spares—never substitute by appearance</li></ul></div><div><h3 className="font-semibold">Spill, waste and handover</h3><ul className="mt-2 list-disc space-y-1 pl-5 text-muted-foreground"><li>Absorbents, containers, plugs and fire controls ready before opening a system</li><li>Capture used fluid, filters, contaminated fuel and absorbents; store and dispose under marina/local rules—never discharge to bilge or water</li><li>Record date, hours, evidence, measurements, specification/batch, parts, work performed, next due point and competent person; retain invoices/service reports</li></ul></div></CardContent></Card></section>
       <Card className="mb-6"><CardHeader><CardTitle className="flex items-center gap-2"><Wrench className="w-5 h-5" />Maintenance practice checklist</CardTitle></CardHeader><CardContent className="space-y-3">
         {total === 0 && <p role="status">No valid engine checklist items are currently available. The quiz remains available below.</p>}
-        {catalogue.map((check) => <div key={check.id} className={`min-w-0 p-3 sm:p-4 rounded-lg border-2 ${checkedIds.has(check.id) ? "border-success/30 bg-success/5" : "border-border"}`}><div className="flex min-w-0 items-start gap-3"><Checkbox id={`engine-${check.id}`} aria-describedby={`engine-${check.id}-description`} checked={checkedIds.has(check.id)} disabled={!interactive} onCheckedChange={(value) => toggle(check.id, value === true)} className="mt-1 size-11 shrink-0" /><label htmlFor={`engine-${check.id}`} className="min-w-0 cursor-pointer flex-1 break-words [overflow-wrap:anywhere]"><div className="flex flex-wrap items-start justify-between gap-2"><h3 className="min-w-0 font-semibold">{check.task}</h3><Badge variant="outline" className="max-w-full whitespace-normal text-left">{check.frequency}</Badge></div><p id={`engine-${check.id}-description`} className="text-sm text-muted-foreground mt-2">{check.description}</p><span className="sr-only">{checkedIds.has(check.id) ? "Selected" : "Not selected"}</span></label></div></div>)}
+        {catalogue.map((check) => <div key={check.id} className={`min-w-0 p-3 sm:p-4 rounded-lg border-2 ${checkedIds.has(check.id) ? "border-success/30 bg-success/5" : "border-border"}`}><div className="flex min-w-0 items-start gap-3"><Checkbox id={`engine-${check.id}`} aria-labelledby={`engine-${check.id}-task`} aria-describedby={`engine-${check.id}-description engine-${check.id}-frequency`} checked={checkedIds.has(check.id)} disabled={!interactive} onCheckedChange={(value) => toggle(check.id, value === true)} className="mt-1 size-11 shrink-0" /><label htmlFor={`engine-${check.id}`} className="min-w-0 cursor-pointer flex-1 break-words [overflow-wrap:anywhere]"><div className="flex flex-wrap items-start justify-between gap-2"><h3 id={`engine-${check.id}-task`} className="min-w-0 font-semibold">{check.task}</h3><Badge id={`engine-${check.id}-frequency`} variant="outline" className="max-w-full whitespace-normal text-left">{check.frequency}</Badge></div><p id={`engine-${check.id}-description`} className="text-sm text-muted-foreground mt-2">{check.description}</p></label></div></div>)}
       </CardContent></Card>
       <Card className="mb-6 min-w-0"><CardHeader><CardTitle>Sources and vessel-specific follow-up</CardTitle></CardHeader><CardContent><p className="text-sm text-muted-foreground mb-3">Checked 2 August 2026. These sources support the general safety principles; they do not replace the current manuals, service bulletins and legal requirements for the fitted vessel and engine.</p><ul className="list-disc pl-5 space-y-2 text-sm">{engineSources.map(({ label, href }) => <li key={href} className="break-words [overflow-wrap:anywhere]"><a className="text-primary underline underline-offset-4" href={href} target="_blank" rel="noreferrer">{label}</a></li>)}</ul></CardContent></Card>
       <Card className="min-w-0 border-2 border-accent bg-accent/5"><CardContent className="pt-6 flex min-w-0 flex-col sm:flex-row gap-4 justify-between sm:items-center"><div className="min-w-0 break-words [overflow-wrap:anywhere]"><h2 ref={completionHeadingRef} tabIndex={-1} className="text-xl font-bold focus:outline-none">{complete ? "Practice checklist complete" : "Engine quiz practice is available"}</h2><p className="text-muted-foreground">The quiz is intentionally available at any time. Checklist ticks are reversible planning notes; only the quiz provides learning assessment.</p></div><Button size="lg" className="w-full shrink-0 sm:w-auto" onClick={() => navigate("/quiz/engine")}>{complete ? "Take Engine Quiz" : "Practise Engine Quiz"}</Button></CardContent></Card>

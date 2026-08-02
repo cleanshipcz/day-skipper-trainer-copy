@@ -6,8 +6,9 @@ import EngineTheory from "./EngineTheory";
 const loadProgressDetailed = vi.fn();
 const saveProgressDetailed = vi.fn();
 const scrollIntoView = vi.fn();
+const auth = { user: null as { id: string } | null };
 
-vi.mock("@/contexts/AuthHooks", () => ({ useAuth: () => ({ user: null }) }));
+vi.mock("@/contexts/AuthHooks", () => ({ useAuth: () => auth }));
 vi.mock("@/hooks/useProgress", () => ({
   useProgress: () => ({ loadProgressDetailed, saveProgressDetailed }),
 }));
@@ -17,6 +18,7 @@ describe("EngineTheory practical lesson", () => {
     Object.defineProperty(HTMLElement.prototype, "scrollIntoView", { configurable: true, value: scrollIntoView });
     scrollIntoView.mockReset();
     sessionStorage.clear();
+    auth.user = null;
     loadProgressDetailed.mockReset().mockResolvedValue({ status: "anonymous" });
     saveProgressDetailed.mockReset();
   });
@@ -75,6 +77,41 @@ describe("EngineTheory practical lesson", () => {
     await waitFor(() => expect(document.activeElement).toBe(completion));
     expect(screen.getByText("10 of 10 practice checks selected.")).toBeTruthy();
     expect(screen.getByRole("button", { name: "Take Engine Quiz" })).toBeTruthy();
+  });
+
+  it("does not move focus when a complete catalogue is restored", async () => {
+    loadProgressDetailed.mockResolvedValue({
+      status: "remote",
+      record: { answers_history: { version: 2, catalogueId: "engine-maintenance-v2", checkedItemIds: ["oil", "coolant", "fuel", "seacock", "belt", "impeller", "filters", "anodes", "exhaust", "battery"], revision: 3 } },
+    });
+    render(<MemoryRouter><EngineTheory /></MemoryRouter>);
+    expect(await screen.findByRole("heading", { name: "Practice checklist complete" })).toBeTruthy();
+    expect(document.activeElement).toBe(document.body);
+  });
+
+  it("uses the task as the concise name and exposes details once as description", async () => {
+    render(<MemoryRouter><EngineTheory /></MemoryRouter>);
+    const oil = await screen.findByRole("checkbox", {
+      name: "Inspect oil, coolant and bilge",
+      description: /With the engine stopped.*Before start \/ manual interval/i,
+    });
+    expect(oil.getAttribute("aria-labelledby")).toBe("engine-oil-task");
+    expect(oil.getAttribute("aria-describedby")).toBe("engine-oil-description engine-oil-frequency");
+    expect(oil.getAttribute("aria-checked")).toBe("false");
+  });
+
+  it("returns focus to the exact failed item after retry", async () => {
+    auth.user = { id: "engine-user" };
+    loadProgressDetailed.mockResolvedValue({ status: "missing" });
+    saveProgressDetailed.mockResolvedValueOnce("failed").mockResolvedValueOnce("remote");
+    render(<MemoryRouter><EngineTheory /></MemoryRouter>);
+    const checks = await screen.findAllByRole("checkbox");
+    fireEvent.click(checks[7]);
+    const alert = await screen.findByRole("alert");
+    expect(alert.textContent).toContain("Your latest change was not saved");
+    fireEvent.click(within(alert).getByRole("button", { name: "Retry save" }));
+    await waitFor(() => expect(document.activeElement).toBe(checks[7]));
+    expect(screen.queryByRole("alert")).toBeNull();
   });
 
   it("supports keyboard-sized native choices and gives remediation without gating", async () => {
