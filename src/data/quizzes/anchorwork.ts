@@ -1,132 +1,45 @@
 import type { Question } from "./types";
 
+export const anchorworkOutcomes = {
+  plan: "Select an anchoring position, anchor and rode from vessel, seabed, conditions, local constraints and safe room",
+  scope: "Calculate scope from maximum bow-to-seabed depth and state units and assumptions",
+  clearance: "Estimate swinging clearance and reject a plan that exceeds safe room",
+  deploy: "Brief, deploy, set and load the anchor progressively using safe communication and strong points",
+  verify: "Verify holding and maintain an anchor watch using repeated observations",
+  rules: "Apply anchor signals, lookout duties and current local or environmental rules",
+  dragging: "Respond to dragging according to hazards, room and the need to regain control or reset",
+  recover: "Weigh, inspect and secure the anchor and rode without unsafe windlass or loaded-line use",
+  equipment: "Explain chain, trip-line, kedge and strong-point uses and limitations",
+} as const;
+
+export type AnchorworkOutcomeId = keyof typeof anchorworkOutcomes;
+
+export const anchorworkOutcomeSources: Readonly<Record<AnchorworkOutcomeId, readonly string[]>> = {
+  plan: ["types"], scope: ["scope"], clearance: ["scope", "swinging-room"],
+  deploy: ["procedure"], verify: ["procedure", "swinging-room"],
+  rules: ["swinging-room"], dragging: ["procedure"], recover: ["weighing"],
+  equipment: ["types", "scope", "procedure", "weighing"],
+};
+
+export const anchorworkAssessmentCoverage: Readonly<Record<string, readonly AnchorworkOutcomeId[]>> = {
+  a1: ["scope"], a2: ["deploy"], a3: ["clearance"], a4: ["verify"],
+  a5: ["plan"], a6: ["equipment"], a7: ["equipment"], a8: ["dragging"],
+  a9: ["rules", "verify"], a10: ["deploy"], a11: ["equipment"], a12: ["recover", "equipment"],
+};
+
 const anchorworkQuestions: readonly Question[] = [
-  {
-    id: "a1",
-    question: "How should you choose rode length for an anchoring plan?",
-    options: ["Always use 4:1", "Always use 7:1", "Use depth alone", "Consider rode, anchor/vessel, seabed, conditions, tide, room and current manufacturer/local guidance"],
-    correctAnswer: 3,
-    explanation: "Scope is one input, not a universal verdict. Use the full bow-to-seabed depth and adapt rode to the equipment, vessel, seabed, forecast load, available room, and current manufacturer or local guidance.",
-  },
-  {
-    id: "a2",
-    question: "What should you do after anchoring to check if the anchor is holding?",
-    options: ["Wait 1 hour", "Note transit bearings", "Rev engine hard", "Drop a second anchor"],
-    correctAnswer: 1,
-    explanation: "Take transit bearings on fixed objects ashore to monitor if the anchor is dragging.",
-  },
-  {
-    id: "a3",
-    question: "When calculating anchor scope, what must you include?",
-    options: ["Only water depth", "Depth + tidal range + bow height", "Just the chart depth", "Water depth × 2"],
-    correctAnswer: 1,
-    explanation: "Scope calculation must include water depth, tidal range, and height of bow above water.",
-  },
-  {
-    id: "a4",
-    question: "What is swinging room?",
-    options: [
-      "Room for crew to work",
-      "Circle your boat traces at anchor",
-      "Space in the anchor locker",
-      "Distance between anchors",
-    ],
-    correctAnswer: 1,
-    explanation: "Swinging room is the circular area your boat will cover as it swings with wind and tide changes.",
-  },
-  {
-    id: "a5",
-    question: "What establishes whether an anchor is suitable for a sandy anchorage?",
-    options: ["Its familiar type name alone", "Its colour", "Suitability for the vessel, anchor design/size, seabed and expected load under manufacturer guidance", "The shortest available rode"],
-    correctAnswer: 2,
-    explanation: "No type label guarantees suitability. Check the particular anchor and rode against the vessel, seabed, expected load, and manufacturer guidance.",
-  },
-  {
-    id: "a6",
-    question: "What is the purpose of an anchor trip line?",
-    options: [
-      "To measure water depth",
-      "To help retrieve a fouled anchor",
-      "To attach a second anchor",
-      "To signal other boats",
-    ],
-    correctAnswer: 1,
-    explanation:
-      "A trip line, attached to the crown of the anchor and marked with a buoy, allows you to pull the anchor out backwards if it becomes fouled.",
-  },
-  {
-    id: "a7",
-    question: "Why should you add chain between the anchor and the rode?",
-    options: [
-      "To make the anchor heavier",
-      "The weight keeps the pull angle low and absorbs shock loads",
-      "Chain is cheaper than rope",
-      "To prevent tangling",
-    ],
-    correctAnswer: 1,
-    explanation:
-      "Chain at the anchor end lowers the angle of pull (improving holding), resists abrasion on the seabed, and its weight absorbs shock loads.",
-  },
-  {
-    id: "a8",
-    question: "What action should you take if your anchor starts dragging?",
-    options: [
-      "Pay out more cable and re-check bearings",
-      "Ignore it — anchors always move a little",
-      "Cut the anchor line immediately",
-      "Reverse at full throttle",
-    ],
-    correctAnswer: 0,
-    explanation:
-      "Pay out more suitable cable only where safe swinging room permits, then verify holding again. If room is insufficient or dragging continues, start the engine as appropriate, recover the anchor, and reset elsewhere.",
-  },
-  {
-    id: "a9",
-    question: "Why can paying out more rode be unsafe even when it increases scope?",
-    options: ["It always weakens the anchor", "It can make the vessel's possible swing exceed safe room", "It reduces tidal range", "It changes the seabed"],
-    correctAnswer: 1,
-    explanation:
-      "More rode increases possible swing. Do not exceed safe room; recover and reset elsewhere if suitable rode cannot be used without losing clearance.",
-  },
-  {
-    id: "a10",
-    question: "How should you approach the anchoring spot?",
-    options: [
-      "At full speed downwind",
-      "Slowly, head to wind or tide (whichever is stronger)",
-      "Beam-on to the waves",
-      "Under full sail with no engine",
-    ],
-    correctAnswer: 1,
-    explanation:
-      "Approach slowly, heading into the strongest element (wind or tide) so the boat stops naturally and the anchor can be lowered under control.",
-  },
-  {
-    id: "a11",
-    question: "What is a kedge anchor primarily used for?",
-    options: [
-      "Main anchoring only",
-      "A lighter secondary anchor for temporary use or warping off",
-      "Decoration on the bow",
-      "Mooring in a marina",
-    ],
-    correctAnswer: 1,
-    explanation:
-      "A kedge is a lighter secondary anchor used for temporary stops, preventing swinging in a crowded anchorage, or laying out by dinghy to warp off if aground.",
-  },
-  {
-    id: "a12",
-    question: "Why should you never make the anchor cable fast to a deck cleat alone?",
-    options: [
-      "It will scratch the cleat",
-      "Shock loads can rip the cleat from the deck; use the bow roller and a strong point",
-      "It is bad seamanship etiquette",
-      "The cable will chafe through faster",
-    ],
-    correctAnswer: 1,
-    explanation:
-      "Anchor loads can be very high in gusts or waves. Secure the cable through the bow roller and to a strong point (samson post or deck cleat backed through the deck).",
-  },
+  { id: "a1", question: "At high water the depth will be 6 m and the bow roller is 1 m above the water. With 35 m of rode, what scope is planned?", options: ["35 ÷ 6 = 5.8:1", "35 ÷ 7 = 5:1", "(35 + 1) ÷ 6 = 6:1", "7 ÷ 35 = 0.2:1"], correctAnswer: 1, explanation: "Maximum vertical depth is 6 m + 1 m = 7 m, so scope is 35 m ÷ 7 m = 5:1. This stated ratio is an input, not proof that the plan is safe or that the anchor will hold." },
+  { id: "a2", question: "The anchor is on the seabed and the vessel is moving astern. Which action best completes a controlled set?", options: ["Pile the remaining rode over the anchor", "Apply full astern immediately", "Pay out without standing in a bight, snub on the designed strong point, then increase load progressively while checking position", "Make the rode fast to the windlass and stop watching it"], correctAnswer: 2, explanation: "Controlled payout, an engineered strong point, progressive load and repeated position checks establish the set without exposing crew or equipment to avoidable shock and entanglement hazards." },
+  { id: "a3", question: "Assume a straight, unstretched 35 m rode, 7 m maximum vertical depth and 10 m from bow roller to the vessel's furthest point. The approximate swing radius is 44.3 m. A charted hazard is 40 m from the anchor. What follows?", options: ["The plan has about 4.3 m spare room", "The vessel clears because 40 m exceeds the water depth", "The simplified swing already exceeds the limit by about 4.3 m, so choose a safer plan with margin", "The hazard can be ignored once the anchor sets"], correctAnswer: 2, explanation: "34.3 m horizontal rode reach plus 10 m vessel allowance gives about 44.3 m. That exceeds the 40 m safe-room limit before adding uncertainty, yaw, stretch, changing conditions or dragging." },
+  { id: "a4", question: "After the anchor appears to hold, which watch plan is dependable?", options: ["Record one GPS position and sleep", "Repeatedly compare transits/position and depth trends while monitoring weather, tide/current, traffic, rode and clearance", "Check only whether the engine is off", "Wait for another vessel to report movement"], correctAnswer: 1, explanation: "Holding and clearance require a continuing watch using multiple observations. No single transit, alarm or GPS fix replaces lookout and repeated checks as conditions change." },
+  { id: "a5", question: "A forecast wind shift will put a protected area inside the possible swing. What is the best planning decision?", options: ["Use a familiar anchor type and proceed", "Shorten the rode regardless of equipment guidance", "Choose another position or plan that keeps safe clearance and follows current local/environmental guidance", "Proceed because the anchor position itself is outside the area"], correctAnswer: 2, explanation: "The whole possible swing and changing conditions belong in the plan. Anchor/rode suitability, hazards, protected seabed, escape room and current local guidance must all be reconciled before committing." },
+  { id: "a6", question: "When may a buoyed trip line be appropriate?", options: ["At every anchorage", "Under a considered recovery plan where its line and buoy will not foul the vessel, propeller or other traffic", "Whenever the anchor cable is too short", "As a substitute for an anchor watch"], correctAnswer: 1, explanation: "A crown trip line can help recover a fouled anchor, but its loose line and buoy create fouling and traffic hazards. Use one only where the vessel's plan and local conditions support it." },
+  { id: "a7", question: "Which statement correctly distinguishes chain from a snubber or bridle?", options: ["Chain remains elastic at every load", "Chain mainly resists abrasion and lowers pull; catenary may soften load until it straightens, while an approved nylon snubber/bridle supplies deliberate elasticity", "A snubber replaces the need for a strong point", "Chain guarantees holding on every seabed"], correctAnswer: 1, explanation: "Chain contributes abrasion resistance, weight and pull geometry, but catenary reduces as load rises. The vessel's approved elastic snubber/bridle arrangement and engineered strong points manage load; chain alone does not prove holding." },
+  { id: "a8", question: "The anchor starts dragging toward traffic with little safe room. What should the skipper do first?", options: ["Always pay out more rode", "Ignore small position changes", "Regain control using the prepared engine/crew plan as appropriate, warn or signal as needed, and recover/reset rather than spending unavailable room", "Cut the rode immediately in every case"], correctAnswer: 2, explanation: "Dragging response is scenario-dependent. With hazards and little room, control and a safe reset take priority. More rode is an option only when suitable rode and safe swing room actually exist." },
+  { id: "a9", question: "Which statement covers duties after anchoring?", options: ["A GPS alarm replaces lookout", "Only commercial vessels need signals", "Maintain a proper lookout and watch, display the Rule 30 light/day shape applicable to the vessel and circumstances, and comply with current local rules", "Signals are optional if a transit looks steady"], correctAnswer: 2, explanation: "An anchored vessel still needs an appropriate watch and lookout. Applicable anchor lights/day shapes and current harbour, environmental or local rules remain part of the operation." },
+  { id: "a10", question: "Before entering a confined anchorage, what briefing best supports safe deployment?", options: ["The foredeck crew acts independently", "Agree the position, dominant wind/current, helm–foredeck signals, strong point, setting checks and abort route", "Plan to throw the anchor at speed", "Use engine noise as the only signal"], correctAnswer: 1, explanation: "A shared plan and unambiguous communication let the team stop for risk, deploy under control, verify the set and abort while room remains." },
+  { id: "a11", question: "Which is a safe description of kedge use?", options: ["It is a routine way to prevent all swinging", "It is a secondary-anchor operation for a vessel-specific temporary or warping plan, requiring control of tender, crew, crossing rodes and loads", "It should always be carried out by one person in a dinghy", "It removes the need to check local traffic"], correctAnswer: 1, explanation: "Kedging can support a planned temporary or warping operation, but tender stability, communication, changing conditions, other rodes and loaded-line hazards must be assessed rather than treating it as a simple cure." },
+  { id: "a12", question: "The anchor is aweigh after a muddy recovery. What sequence completes the operation?", options: ["Motor across the loaded rode, then leave it on the windlass", "Keep pulling with the windlass if it fouls", "Coordinate helm and foredeck, take in slack without pulling the vessel on the windlass, confirm clear, inspect/clean rode and fittings, then mechanically secure for sea", "Secure only to the bow roller"], correctAnswer: 2, explanation: "Recovery keeps people clear of loaded lines and avoids using the windlass to pull the vessel. Inspect for chafe, damage, contamination and insecure attachment, then stow and mechanically secure the anchor and controls." },
 ] as const;
 
 export default anchorworkQuestions;
