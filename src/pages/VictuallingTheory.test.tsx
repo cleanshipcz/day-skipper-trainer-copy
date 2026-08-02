@@ -126,10 +126,12 @@ describe("VictuallingTheory durable checklist", () => {
     renderPage();
     expect(await screen.findByLabelText(/Crew \(people\)/)).toBeTruthy();
     expect(screen.getByText(/Water arithmetic:/).closest("p")?.textContent).toContain("92 L");
-    expect(screen.getByText(/Cooking-fuel shortfall:/).closest("p")?.textContent).toContain("0.4 units");
+    expect(screen.getByLabelText(/Measured LPG consumption \(kg LPG\/day\)/)).toBeTruthy();
+    expect(screen.getByLabelText(/Usable compatible LPG capacity \(kg LPG\)/)).toBeTruthy();
+    expect(screen.getByText(/Cooking-fuel shortfall:/).closest("p")?.textContent).toContain("0.4 kg LPG");
     const capacity = screen.getByLabelText(/Installed water capacity/);
     await user.clear(capacity);
     await user.type(capacity, "50");
-    expect(screen.getByText(/Water capacity shortfall:/).closest("p")?.textContent).toContain("47 L");
+    expect(screen.getByText(/Water capacity shortfall:/).closest("p")?.textContent).toContain("27 L");
   });
 });

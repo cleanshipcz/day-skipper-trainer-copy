@@ -7,6 +7,7 @@ export interface ProvisioningInputs {
   cookingLitresPerPersonDay: number;
   hygieneLitresPerPersonDay: number;
   emergencyReserveLitres: number;
+  emergencyReserveCapacityLitres: number;
   tankCapacityLitres: number;
   unusableTankLitres: number;
   fuelPerDay: number;
@@ -18,8 +19,10 @@ export interface ProvisioningPlan {
   drinkingLitres: number;
   cookingLitres: number;
   hygieneLitres: number;
+  mainTankDemandLitres: number;
   totalWaterLitres: number;
   usableWaterCapacityLitres: number;
+  reserveShortfallLitres: number;
   waterShortfallLitres: number;
   fuelRequired: number;
   fuelShortfall: number;
@@ -41,15 +44,17 @@ export const calculateProvisioningPlan = (input: ProvisioningInputs): Provisioni
   const drinkingLitres = input.crew * plannedDays * input.drinkingLitresPerPersonDay * input.activityClimateMultiplier;
   const cookingLitres = input.crew * plannedDays * input.cookingLitresPerPersonDay;
   const hygieneLitres = input.crew * plannedDays * input.hygieneLitresPerPersonDay;
-  const totalWaterLitres = drinkingLitres + cookingLitres + hygieneLitres + input.emergencyReserveLitres;
+  const mainTankDemandLitres = drinkingLitres + cookingLitres + hygieneLitres;
+  const totalWaterLitres = mainTankDemandLitres + input.emergencyReserveLitres;
   const usableWaterCapacityLitres = Math.max(0, input.tankCapacityLitres - input.unusableTankLitres);
   const fuelRequired = plannedDays * input.fuelPerDay;
-  const values = { plannedDays, drinkingLitres, cookingLitres, hygieneLitres, totalWaterLitres, usableWaterCapacityLitres, fuelRequired };
+  const values = { plannedDays, drinkingLitres, cookingLitres, hygieneLitres, mainTankDemandLitres, totalWaterLitres, usableWaterCapacityLitres, fuelRequired };
   if (Object.values(values).some((value) => !Number.isFinite(value))) throw new RangeError("calculated requirement exceeds supported range");
 
   return {
     ...Object.fromEntries(Object.entries(values).map(([key, value]) => [key, round(value)])) as typeof values,
-    waterShortfallLitres: round(Math.max(0, totalWaterLitres - usableWaterCapacityLitres)),
+    reserveShortfallLitres: round(Math.max(0, input.emergencyReserveLitres - input.emergencyReserveCapacityLitres)),
+    waterShortfallLitres: round(Math.max(0, mainTankDemandLitres - usableWaterCapacityLitres) + Math.max(0, input.emergencyReserveLitres - input.emergencyReserveCapacityLitres)),
     fuelShortfall: round(Math.max(0, fuelRequired - input.fuelCapacity)),
   };
 };
