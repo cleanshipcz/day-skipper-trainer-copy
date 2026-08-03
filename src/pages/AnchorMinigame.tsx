@@ -155,7 +155,8 @@ const AnchorMinigame = () => {
   const targetRode = getTargetRode(scenario);
   const requiredScope = targetRode / maximumVerticalDistance;
   const bowTipX = game.boatX + BOAT_LENGTH;
-  const scope = game.rode > 0 ? game.rode / maximumVerticalDistance : 0;
+  const highWaterScope = game.rode > 0 ? game.rode / maximumVerticalDistance : 0;
+  const currentScope = game.rode > 0 ? game.rode / currentVerticalDistance : 0;
   const plannedSwingRadius = getPlannedSwingRadius(game.rode, scenario);
   const sweptRadius = getSweptRadius(game.rode, scenario);
   const planMaximumExtent = Math.max(
@@ -294,11 +295,12 @@ const AnchorMinigame = () => {
   }, [changeRode, checkPlacement, moveBoat]);
 
   const {
-    viewWidth, viewHeight, surfaceY, seabedY, boatTopY, boatBottomY, anchorPoint, chainPath, boatPath, toX,
+    viewWidth, viewHeight, surfaceY, seabedY, boatTopY, boatBottomY, anchorPoint, bowAttachment,
+    horizontalDistance, straightLineDistance, slack, chainPath, boatPath, toX,
   } = useMemo(() => calculateSceneGeometry(game, scenario), [game, scenario]);
 
   const scopeColor =
-    scope >= requiredScope ? "text-success" : scenario.condition === "strong" ? "text-destructive" : "text-accent";
+    highWaterScope >= requiredScope ? "text-success" : scenario.condition === "strong" ? "text-destructive" : "text-accent";
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-background via-ocean-light/10 to-background">
@@ -375,7 +377,7 @@ const AnchorMinigame = () => {
                 <Compass className="w-4 h-4 text-ocean" />
                 Live readout
               </CardTitle>
-              <CardDescription>Stay within the swinging circle.</CardDescription>
+              <CardDescription>Side-profile reach is not a swinging circle; use the plan view below for all-direction clearance.</CardDescription>
             </CardHeader>
             <CardContent className="space-y-2">
               <div className="flex items-center justify-between">
@@ -383,8 +385,8 @@ const AnchorMinigame = () => {
                 <span className="font-semibold">{game.rode.toFixed(1)} m</span>
               </div>
               <div className="flex items-center justify-between">
-                <span className="text-sm text-muted-foreground">Scope</span>
-                <span className={`font-semibold ${scopeColor}`}>{scope.toFixed(1)} : 1</span>
+                <span className="text-sm text-muted-foreground">Forecast high-water scope</span>
+                <span className={`font-semibold ${scopeColor}`}>{highWaterScope.toFixed(1)} : 1</span>
               </div>
               <div className="flex items-center justify-between">
                 <span className="text-sm text-muted-foreground">Anchor position</span>
@@ -414,7 +416,7 @@ const AnchorMinigame = () => {
             <div>
               <CardTitle className="flex items-center gap-2">
                 <Waves className="w-4 h-4 text-ocean" />
-                Side profile — keep the anchor ahead
+                Side-profile schematic — bow to anchor
               </CardTitle>
               <CardDescription>{lastStatus}</CardDescription>
             </div>
@@ -432,7 +434,9 @@ const AnchorMinigame = () => {
 
           <CardContent className="space-y-4">
             <AnchorScene onMove={moveBoat} onChangeRode={changeRode} rodeStep={RODE_STEP}>
-              <svg aria-label="Anchoring side profile" viewBox={`0 0 ${viewWidth} ${viewHeight}`} className="w-full h-full">
+              <svg aria-label="Anchoring side profile" role="img" viewBox={`0 0 ${viewWidth} ${viewHeight}`} className="block w-full h-auto" preserveAspectRatio="xMidYMid meet">
+                <title>Side-profile anchoring geometry</title>
+                <desc>Boat, waterline, seabed, bow roller, anchor and rode. Measurements are repeated as accessible text below.</desc>
                 <defs>
                   <linearGradient id="water" x1="0" x2="0" y1="0" y2="1">
                     <stop offset="0%" stopColor="hsl(var(--ocean-light))" stopOpacity="0.4" />
@@ -459,11 +463,11 @@ const AnchorMinigame = () => {
                   strokeWidth="2"
                   strokeDasharray="10 6"
                 />
-                <text x="10" y={surfaceY - 8} fontSize="12" fill="hsl(var(--ocean))">
-                  Surface
+                <text className="hidden sm:block" x="10" y={surfaceY - 8} fontSize="16" fill="hsl(var(--ocean))">
+                  Water surface
                 </text>
-                <text x="10" y={seabedY - 6} fontSize="12" fill="hsl(var(--muted-foreground))">
-                  Seabed ({currentVerticalDistance.toFixed(1)} m from bow now)
+                <text className="hidden sm:block" x="10" y={seabedY - 6} fontSize="16" fill="hsl(var(--muted-foreground))">
+                  Seabed — water depth {scenario.depth.toFixed(1)} m
                 </text>
 
                 {/* Wind indicator */}
@@ -473,13 +477,16 @@ const AnchorMinigame = () => {
                     color="hsl(var(--primary))"
                     style={{ opacity: 0.6 }}
                   />
-                  <text x="22" y="10" fontSize="12" fill="hsl(var(--foreground))">
+                  <text className="hidden sm:block" x="22" y="10" fontSize="16" fill="hsl(var(--foreground))">
                     Wind from ahead
                   </text>
                 </g>
 
                 {/* Anchor rode */}
                 <path d={chainPath} stroke="hsl(var(--rope))" strokeWidth="3" strokeLinecap="round" fill="none" />
+                <text className="hidden sm:block" x={(bowAttachment.x + anchorPoint.x) / 2} y={Math.max(surfaceY + 22, (bowAttachment.y + anchorPoint.y) / 2 - 10)} fontSize="16" fontWeight="600" fill="hsl(var(--foreground))" textAnchor="middle">
+                  Rode {game.rode.toFixed(1)} m
+                </text>
 
                 {/* Anchor */}
                 <g transform={`translate(${anchorPoint.x}, ${anchorPoint.y})`}>
@@ -509,9 +516,11 @@ const AnchorMinigame = () => {
                   stroke="hsl(var(--primary))"
                   strokeWidth="2"
                 />
-                <text x={toX(game.boatX + BOAT_LENGTH / 2)} y={boatBottomY + 22} fontSize="12" fill="hsl(var(--foreground))" textAnchor="middle">
+                <text className="hidden sm:block" x={toX(game.boatX + BOAT_LENGTH / 2)} y={boatBottomY + 24} fontSize="16" fill="hsl(var(--foreground))" textAnchor="middle">
                   Bow →
                 </text>
+                <circle cx={bowAttachment.x} cy={bowAttachment.y} r="4" fill="hsl(var(--accent))" />
+                <text className="hidden sm:block" x={bowAttachment.x - 7} y={bowAttachment.y - 8} fontSize="16" fill="hsl(var(--foreground))" textAnchor="end">Bow roller</text>
 
                 {/* Depth scale */}
                 <line
@@ -526,12 +535,15 @@ const AnchorMinigame = () => {
                 <text
                   x={toX(game.cameraOrigin + 1)}
                   y={surfaceY + (seabedY - surfaceY) / 2}
-                  fontSize="12"
+                  fontSize="16"
+                  className="hidden sm:block"
                   fill="hsl(var(--secondary))"
                   textAnchor="start"
                 >
-                  {currentVerticalDistance.toFixed(1)} m
+                  Water {scenario.depth.toFixed(1)} m
                 </text>
+                <line x1={toX(game.cameraOrigin + 4)} y1={bowAttachment.y} x2={toX(game.cameraOrigin + 4)} y2={surfaceY} stroke="hsl(var(--accent))" strokeWidth="1.5" />
+                <text className="hidden sm:block" x={toX(game.cameraOrigin + 4) + 5} y={(bowAttachment.y + surfaceY) / 2} fontSize="16" fill="hsl(var(--foreground))">Bow {scenario.bowHeight.toFixed(1)} m</text>
               </svg>
               {resultOverlay && (
                 <div className="absolute inset-0 z-10">
@@ -550,6 +562,20 @@ const AnchorMinigame = () => {
                 </div>
               )}
             </AnchorScene>
+
+            <div data-testid="scene-labels" className="grid gap-2 text-sm sm:grid-cols-2 lg:grid-cols-4" aria-label="Side-profile geometry values">
+              <p className="rounded-md border p-2"><strong>Water depth:</strong> {scenario.depth.toFixed(1)} m.</p>
+              <p className="rounded-md border p-2"><strong>Bow roller height:</strong> {scenario.bowHeight.toFixed(1)} m above water.</p>
+              <p className="rounded-md border p-2"><strong>Total vertical depth now:</strong> {currentVerticalDistance.toFixed(1)} m.</p>
+              <p className="rounded-md border p-2"><strong>Horizontal separation:</strong> {horizontalDistance.toFixed(1)} m.</p>
+              <p className="rounded-md border p-2"><strong>Straight-line distance:</strong> {straightLineDistance.toFixed(1)} m.</p>
+              <p className="rounded-md border p-2"><strong>Rode paid out:</strong> {game.rode.toFixed(1)} m.</p>
+              <p className="rounded-md border p-2"><strong>Slack:</strong> {slack.toFixed(1)} m.</p>
+              <p className="rounded-md border p-2"><strong>Scope now:</strong> {currentScope.toFixed(1)} : 1. <strong>Forecast high-water:</strong> {highWaterScope.toFixed(1)} : 1.</p>
+            </div>
+            <p className="sr-only" role="status" aria-live="polite">
+              {scenario.title}. Anchor {game.anchorOnBottom ? "in contact with the seabed" : "not in contact with the seabed"}. Rode {game.rode.toFixed(1)} metres; current scope {currentScope.toFixed(1)} to 1; forecast high-water scope {highWaterScope.toFixed(1)} to 1; straight-line distance {straightLineDistance.toFixed(1)} metres; slack {slack.toFixed(1)} metres. {game.dragging ? "Holding check detected dragging." : game.setLoadSteps >= scenario.minimumSetLoadSteps ? "Progressive load applied; continue holding checks." : "Holding is not yet verified."} Plan-view hazards: {scenario.hazards.map(({ label }) => label).join(", ")}; neighbours: {scenario.neighbours.map(({ label }) => label).join(", ")}.
+            </p>
 
             <div className="grid gap-3 md:grid-cols-3">
               <div className="rounded-lg border border-border p-3">
@@ -585,7 +611,7 @@ const AnchorMinigame = () => {
         <Card>
           <CardHeader>
             <CardTitle>Plan view — worst-case swept area</CardTitle>
-            <CardDescription>Full circle assumes any wind/current direction after the forecast change.</CardDescription>
+            <CardDescription id="plan-view-clearance">Use this plan view—not the side-profile reach—to assess clearance. The full circle assumes any wind/current direction after the forecast change.</CardDescription>
           </CardHeader>
           <CardContent className="space-y-3">
             <svg aria-label="Anchoring swept-area plan" viewBox="0 0 520 360" className="w-full max-h-96 rounded-lg border bg-muted/20">

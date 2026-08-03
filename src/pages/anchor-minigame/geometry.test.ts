@@ -14,11 +14,35 @@ const scenario: AnchorScenario = {
 describe("anchor scene geometry", () => {
   it("maps the world to a stable responsive SVG coordinate system", () => {
     const geometry = calculateSceneGeometry(createInitialState(), scenario);
-    expect([geometry.viewWidth, geometry.viewHeight, geometry.surfaceY]).toEqual([760, 360, 70]);
+    expect([geometry.viewWidth, geometry.viewHeight, geometry.surfaceY]).toEqual([760, 400, 82]);
     expect(geometry.toX(0)).toBe(28);
     expect(geometry.toX(42)).toBe(732);
     expect(geometry.chainPath.split("L")).toHaveLength(19);
     expect(geometry.boatPath).toContain("Z");
+    expect(geometry.boatTopY).toBe(geometry.bowAttachment.y);
+  });
+
+  it("keeps physical distance invariants independent of camera movement", () => {
+    const state = { ...createInitialState(), boatX: 8, cameraOrigin: -4, rode: 40, anchorOnBottom: true, anchorX: 28 };
+    const first = calculateSceneGeometry(state, scenario);
+    const shifted = calculateSceneGeometry({ ...state, cameraOrigin: 9 }, scenario);
+    expect(first.horizontalDistance).toBeCloseTo(12.3, 6);
+    expect(first.straightLineDistance).toBeCloseTo(Math.hypot(12.3, 10.8), 6);
+    expect(first.slack).toBeCloseTo(40 - Math.hypot(12.3, 10.8), 6);
+    expect(shifted.horizontalDistance).toBeCloseTo(first.horizontalDistance, 10);
+    expect(shifted.straightLineDistance).toBeCloseTo(first.straightLineDistance, 10);
+    expect(shifted.slack).toBeCloseTo(first.slack, 10);
+  });
+
+  it.each([
+    { depth: 1, bowHeight: 0.5, rode: 0, anchorOnBottom: false },
+    { depth: 20, bowHeight: 3, rode: 120, anchorOnBottom: true },
+  ])("keeps extreme scene geometry finite and bounded %#", (extreme) => {
+    const geometry = calculateSceneGeometry({ ...createInitialState(), rode: extreme.rode, anchorOnBottom: extreme.anchorOnBottom, anchorX: extreme.anchorOnBottom ? 30 : null }, { ...scenario, depth: extreme.depth, bowHeight: extreme.bowHeight });
+    expect([geometry.surfaceY, geometry.seabedY, geometry.anchorPoint.x, geometry.anchorPoint.y, geometry.straightLineDistance, geometry.slack].every(Number.isFinite)).toBe(true);
+    expect(geometry.seabedY).toBeLessThan(geometry.viewHeight);
+    expect(geometry.anchorPoint.y).toBeLessThanOrEqual(geometry.seabedY);
+    expect(geometry.slack).toBeGreaterThanOrEqual(0);
   });
 
   it("keeps a slack grounded chain at or above the seabed", () => {
