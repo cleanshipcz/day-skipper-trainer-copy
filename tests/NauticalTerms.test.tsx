@@ -329,4 +329,25 @@ describe("NauticalTerms progress writes", () => {
     expect(sideViewSvg?.classList.contains("min-w-[550px]")).toBe(true);
     expect(backViewSvg?.classList.contains("min-w-[400px]")).toBe(true);
   });
+
+  it("keeps the jib luff aligned with the forestay while pointing to each part distinctly", () => {
+    loadProgressMock.mockReturnValueOnce(new Promise(() => undefined));
+    const { container } = render(
+      <TestRouter>
+        <NauticalTerms />
+      </TestRouter>
+    );
+
+    const jibMarker = container.querySelector('[data-marker-id="jib"]');
+    const forestayMarker = container.querySelector('[data-marker-id="forestay"]');
+    const sideView = jibMarker?.closest("svg");
+
+    expect(sideView?.querySelector('[data-geometry="jib"]')?.getAttribute("d")).toBe("M278,46 L490,190 L355,176 Z");
+    expect(sideView?.querySelector('[data-geometry="forestay"]')).not.toBeNull();
+    expect(sideView?.querySelector('[data-geometry="forestay"]')?.getAttribute("x2")).toBe("520");
+    expect(jibMarker?.querySelector("line")?.getAttribute("x2")).toBe("385");
+    expect(jibMarker?.querySelector("line")?.getAttribute("y2")).toBe("145");
+    expect(forestayMarker?.querySelector("line")?.getAttribute("x2")).toBe("505");
+    expect(forestayMarker?.querySelector("line")?.getAttribute("y2")).toBe("200");
+  });
 });
