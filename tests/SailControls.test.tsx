@@ -17,7 +17,7 @@ vi.mock("sonner", () => ({
 }));
 
 const answerForCurrentQuestion = () => {
-  const clue = screen.getByText(/What control line does this describe/).nextElementSibling?.textContent ?? "";
+  const clue = screen.getByText(/Which sail control or rig adjustment has this purpose/).nextElementSibling?.textContent ?? "";
   const answers: [string, string][] = [
     ["Raises and lowers the mainsail", "Main Halyard"], ["Raises and lowers the headsail", "Jib Halyard"],
     ["mainsail angle", "Mainsheet"], ["angle of the jib", "Jib Sheet"], ["boom from rising", "Boom Vang"],
@@ -32,7 +32,7 @@ const answerForCurrentQuestion = () => {
 
 describe("SailControls schematic geometry", () => {
   it("preserves safety-critical taxonomy and trim guidance", () => {
-    render(<TestRouter><SailControls /></TestRouter>);
+    const { container } = render(<TestRouter><SailControls /></TestRouter>);
 
     expect(screen.getAllByText("Deck hardware")).toHaveLength(2);
     expect(screen.getAllByText("Standing-rigging adjustment")).toHaveLength(1);
@@ -209,7 +209,7 @@ describe("SailControls schematic geometry", () => {
     fireEvent.click(screen.getByRole("button", { name: "Start Quiz" }));
 
     const answerCurrentQuestion = () => {
-      const clue = screen.getByText(/What control line does this describe/).nextElementSibling?.textContent ?? "";
+      const clue = screen.getByText(/Which sail control or rig adjustment has this purpose/).nextElementSibling?.textContent ?? "";
       const answer = [...answersByPurpose].find(([purpose]) => clue.includes(purpose))?.[1];
       expect(answer).toBeTruthy();
       fireEvent.click(screen.getByRole("button", { name: answer! }));
@@ -300,6 +300,29 @@ describe("SailControls schematic geometry", () => {
     fireEvent.click(button);
     expect(screen.getByLabelText("Score: 10 points")).toBeTruthy();
     expect(vi.getTimerCount()).toBe(1);
+    vi.useRealTimers();
+  });
+
+  it("assesses purpose-to-name recall across all 12 questions without revealing labels in a diagram", () => {
+    vi.useFakeTimers();
+    const { container } = render(<TestRouter><SailControls /></TestRouter>);
+    fireEvent.click(screen.getByRole("button", { name: "Start Quiz" }));
+
+    expect(screen.getByText("Match each purpose to the correct sail control or rig adjustment")).toBeTruthy();
+    expect(container.querySelector("[data-control-id]")).toBeNull();
+
+    const seenPurposes = new Set<string>();
+    for (let question = 1; question <= 12; question += 1) {
+      const prompt = screen.getByText("Which sail control or rig adjustment has this purpose?");
+      const purpose = prompt.nextElementSibling?.textContent?.replaceAll('"', "") ?? "";
+      expect(purpose).toBeTruthy();
+      seenPurposes.add(purpose);
+      fireEvent.click(answerForCurrentQuestion());
+      act(() => vi.advanceTimersByTime(1000));
+    }
+
+    expect(seenPurposes.size).toBe(12);
+    expect(screen.getByRole("heading", { name: "Quiz Complete!" })).toBeTruthy();
     vi.useRealTimers();
   });
 });
