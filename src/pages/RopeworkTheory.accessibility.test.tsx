@@ -101,4 +101,54 @@ describe("RopeworkTheory accessible knot discovery", () => {
     await user.click(screen.getByRole("button", { name: "Back to Home" }));
     expect(await screen.findByText("Current path: /")).toBeTruthy();
   });
+
+  it("keeps a complete accessible lesson when the optional tutorial is unavailable", async () => {
+    const user = userEvent.setup();
+    renderPage();
+    await screen.findByText(/Sign in to save/);
+    await user.click(screen.getByRole("button", { name: knots[0].name }));
+
+    expect(screen.getByRole("img", { name: new RegExp(`${knots[0].name} final-form diagram`) })).toBeTruthy();
+    expect(screen.getByText(knots[0].visualDescription)).toBeTruthy();
+    const link = screen.getByRole("link", { name: /optional external tutorial/i });
+    expect(link.getAttribute("target")).toBe("_blank");
+    expect(link.getAttribute("rel")).toBe("noopener noreferrer");
+    expect(screen.getByText(/may be blocked, offline, moved, or unavailable/i)).toBeTruthy();
+    await user.click(link);
+    expect(screen.getByRole("status").textContent).toContain("new tab");
+  });
+
+  it("exposes a continuous, bridged, text-equivalent diagram for every knot", async () => {
+    const user = userEvent.setup();
+    renderPage();
+    await screen.findByText(/Sign in to save/);
+
+    for (const knot of knots) {
+      await user.click(screen.getByRole("button", { name: knot.name }));
+      const figure = document.querySelector(`figure[data-knot-diagram="${knot.id}"]`);
+      const image = figure?.querySelector('[role="img"]');
+      expect(image?.getAttribute("aria-label")).toContain(`${knot.name} final-form diagram`);
+      expect(figure?.getAttribute("data-knot-diagram")).toBe(knot.id);
+      expect(Number(figure?.getAttribute("data-rope-count"))).toBe(knot.id === "reef-knot" || knot.id === "sheet-bend" || knot.id === "rolling-hitch" ? 2 : 1);
+      expect(Number(figure?.getAttribute("data-bridge-count"))).toBeGreaterThan(0);
+      expect(image!.querySelectorAll('[data-rope-path="continuous"]')).toHaveLength(Number(figure?.getAttribute("data-rope-count")));
+      expect(image!.querySelectorAll("[data-crossing-bridge]")).toHaveLength(Number(figure?.getAttribute("data-bridge-count")));
+      expect(image!.textContent).toContain("working end");
+      expect(image!.textContent).toContain("standing part / load");
+      if (knot.id === "reef-knot" || knot.id === "sheet-bend") {
+        const roles = [...image!.querySelectorAll("[data-endpoint-role]")];
+        expect(roles.map((node) => node.getAttribute("data-endpoint-role"))).toEqual(["standing-a", "working-a", "standing-b", "working-b"]);
+        expect(roles.every((node) => Number.isFinite(Number(node.getAttribute("data-x"))) && Number.isFinite(Number(node.getAttribute("data-y"))))).toBe(true);
+      }
+      if (knot.id === "sheet-bend") {
+        const workingSides = [...image!.querySelectorAll('[data-endpoint-role^="working-"]')].map((node) => node.getAttribute("data-endpoint-side"));
+        expect(workingSides).toEqual(["left", "left"]);
+      }
+      if (knot.id === "reef-knot") {
+        const endpointSides = Object.fromEntries([...image!.querySelectorAll("[data-endpoint-role]")].map((node) => [node.getAttribute("data-endpoint-role"), node.getAttribute("data-endpoint-side")]));
+        expect(endpointSides).toEqual({ "standing-a": "left", "working-a": "left", "standing-b": "right", "working-b": "right" });
+      }
+      expect(screen.getByText(knot.visualDescription)).toBeTruthy();
+    }
+  });
 });

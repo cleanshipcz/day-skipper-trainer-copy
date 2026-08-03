@@ -112,6 +112,25 @@ try {
     throw new Error(`Initial ropework semantics missing: ${JSON.stringify(semantics)}`);
   }
 
+  const expectedRopes = { "bowline": 1, "clove-hitch": 1, "reef-knot": 2, "figure-eight": 1, "round-turn": 1, "sheet-bend": 2, "rolling-hitch": 2 };
+  for (const [knotId, ropeCount] of Object.entries(expectedRopes)) {
+    await evaluate(`document.querySelector('button[aria-labelledby="${knotId}-name"]').click()`);
+    await waitFor(() => evaluate(`document.querySelector('figure[data-knot-diagram="${knotId}"]') !== null`), `${knotId} diagram`);
+    const diagram = await evaluate(`(() => { const figure = document.querySelector('figure[data-knot-diagram="${knotId}"]'); const svg = figure.querySelector('svg'); return { ropes: svg.querySelectorAll('[data-rope-path=continuous]').length, bridges: svg.querySelectorAll('[data-crossing-bridge]').length, name: svg.getAttribute('aria-label'), labels: svg.textContent }; })()`);
+    if (diagram.ropes !== ropeCount || diagram.bridges < 1 || !diagram.name.includes("final-form diagram") || !diagram.labels.includes("working end") || !diagram.labels.includes("standing part / load")) {
+      throw new Error(`${knotId} topology/accessibility metadata failed: ${JSON.stringify(diagram)}`);
+    }
+    if (knotId === "sheet-bend" || knotId === "reef-knot") {
+      const endpoints = await evaluate(`Object.fromEntries([...document.querySelectorAll('figure[data-knot-diagram="${knotId}"] [data-endpoint-role]')].map((node) => [node.dataset.endpointRole, { side: node.dataset.endpointSide, x: Number(node.dataset.x), y: Number(node.dataset.y) }]))`);
+      if (Object.keys(endpoints).length !== 4 || Object.values(endpoints).some(({ x, y }) => !Number.isFinite(x) || !Number.isFinite(y))) throw new Error(`${knotId} endpoint roles missing: ${JSON.stringify(endpoints)}`);
+      if (knotId === "sheet-bend" && (endpoints["working-a"].side !== "left" || endpoints["working-b"].side !== "left" || endpoints["working-a"].x >= 100 || endpoints["working-b"].x >= 100)) throw new Error(`Sheet Bend tails are not together on the left: ${JSON.stringify(endpoints)}`);
+      if (knotId === "reef-knot" && (endpoints["standing-a"].side !== endpoints["working-a"].side || endpoints["standing-b"].side !== endpoints["working-b"].side || endpoints["standing-a"].side === endpoints["standing-b"].side)) throw new Error(`Reef Knot endpoint pairs contradict caption: ${JSON.stringify(endpoints)}`);
+    }
+    await waitFor(() => evaluate("!document.querySelector('button[aria-pressed]').disabled"), `${knotId} save`);
+  }
+  await send("Page.navigate", { url: `http://127.0.0.1:${port}/ropework` });
+  await waitFor(() => evaluate("document.querySelectorAll('button[aria-pressed]').length === 7"), "reset knot cards");
+
   await key("Tab");
   await key("Tab");
   const firstFocus = await evaluate(`(() => {
@@ -126,6 +145,18 @@ try {
     const state = await evaluate("({ active: document.activeElement.outerHTML, pressed: document.querySelector('button[aria-labelledby=bowline-name]').getAttribute('aria-pressed') })");
     throw new Error(`${error.message}: ${JSON.stringify(state)}`);
   }
+  for (const width of [375, 768, 1280]) {
+    await send("Emulation.setDeviceMetricsOverride", { width, height: 900, deviceScaleFactor: 1, mobile: width === 375 });
+    const layout = await evaluate(`(() => ({
+      overflow: document.documentElement.scrollWidth > document.documentElement.clientWidth,
+      diagramWidth: document.querySelector('figure svg')?.getBoundingClientRect().width ?? 0,
+      viewport: document.documentElement.clientWidth,
+    }))()`);
+    if (layout.overflow || layout.diagramWidth <= 0 || layout.diagramWidth > layout.viewport) {
+      throw new Error(`Ropework diagram layout failed at ${width}px: ${JSON.stringify(layout)}`);
+    }
+  }
+  await send("Emulation.clearDeviceMetricsOverride");
   await key("Tab");
   await key("Tab");
   if (!await evaluate("document.activeElement.textContent.includes('Back to Bowline in knot list')")) throw new Error("Details controls are not in predictable order.");
@@ -160,7 +191,7 @@ try {
 
   await send("Browser.close");
   socket.close();
-  console.log("Ropework browser accessibility passed: native card semantics, visible keyboard focus, Enter/Space activation, focus restoration, announcements, and completion CTA order.");
+  console.log("Ropework browser accessibility passed: all seven diagram topologies, 375/768/1280 layouts, native semantics, keyboard focus, Enter/Space activation, announcements, and completion CTA order.");
 } finally {
   for (const child of children.reverse()) {
     if (child.exitCode === null) child.kill("SIGTERM");

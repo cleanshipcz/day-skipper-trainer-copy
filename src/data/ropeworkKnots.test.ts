@@ -26,6 +26,15 @@ describe("ropework knot safety guidance", () => {
       expect(entry.steps.join(" ")).toMatch(/dress|snug/i);
       expect(entry.steps.join(" ")).toMatch(/inspect/i);
       expect(entry.steps.join(" ")).toMatch(/tail/i);
+      expect(entry.visualDescription).toMatch(/final/i);
+      expect(entry.visualDescription).toMatch(/standing part/i);
+      expect(entry.visualDescription).toMatch(/working end/i);
+      expect(entry.visualDescription).toMatch(/load/i);
+      expect(entry.visualDescription).toMatch(/dress/i);
+      const tutorial = new URL(entry.tutorialUrl);
+      expect(tutorial.protocol).toBe("https:");
+      expect(tutorial.hostname).toBe("www.animatedknots.com");
+      expect(tutorial.pathname).toContain(entry.id === "reef-knot" ? "square-knot" : entry.id === "figure-eight" ? "figure-8-knot" : entry.id.replace("round-turn", "round-turn-two-half-hitches"));
     }
   });
 
@@ -36,6 +45,11 @@ describe("ropework knot safety guidance", () => {
     expect(knot("reef-knot").steps).toContain(
       "Use only as a binding knot; choose a suitable bend, such as a correctly tied Sheet Bend, for joining ropes under load",
     );
+    expect(knot("reef-knot").visualDescription).toContain("each working end lies beside its own standing part on the same side");
+    expect(knot("reef-knot").steps).toContain(
+      "Dress the knot flat so each working end (tail) lies beside its own standing part on the same side, with the two rope pairs leaving opposite sides",
+    );
+    expect(knot("reef-knot").steps.join(" ")).not.toMatch(/standing parts leave together|tails leave together/i);
   });
 
   it("qualifies the Clove Hitch for changing and directional loads", () => {
