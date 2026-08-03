@@ -16,6 +16,20 @@ vi.mock("sonner", () => ({
   toast: { success: vi.fn(), error: vi.fn() },
 }));
 
+const answerForCurrentQuestion = () => {
+  const clue = screen.getByText(/What control line does this describe/).nextElementSibling?.textContent ?? "";
+  const answers: [string, string][] = [
+    ["Raises and lowers the mainsail", "Main Halyard"], ["Raises and lowers the headsail", "Jib Halyard"],
+    ["angle of the mainsail", "Mainsheet"], ["angle of the jib", "Jib Sheet"], ["boom from rising", "Boom Vang"],
+    ["lower mainsail", "Outhaul"], ["Moves draft forward", "Cunningham"], ["Supports the boom", "Topping Lift"],
+    ["Reduces mainsail area", "Reefing Lines"], ["boom angle independently", "Mainsheet Traveller"],
+    ["angle of pull", "Jib Fairlead"], ["Bends mast", "Backstay Adjuster"],
+  ];
+  const answer = answers.find(([purpose]) => clue.includes(purpose))?.[1];
+  expect(answer).toBeTruthy();
+  return screen.getByRole("button", { name: answer! });
+};
+
 describe("SailControls schematic geometry", () => {
   it("aligns the jib luff, halyard, and aft-running sheet/fairlead route with the forestay", () => {
     const { container } = render(
@@ -196,6 +210,72 @@ describe("SailControls schematic geometry", () => {
     expect(screen.getByRole("status").textContent).toMatch(/Quiz complete\. Final score:/);
     expect(toast.success).not.toHaveBeenCalled();
     expect(toast.error).not.toHaveBeenCalled();
+
+    fireEvent.click(screen.getByRole("button", { name: "Review Controls" }));
+    expect(screen.getByRole("button", { name: "Start Quiz" })).toBeTruthy();
+    fireEvent.click(screen.getByRole("button", { name: "Start Quiz" }));
+    expect(screen.getByRole("heading", { name: "Question 1 of 12" })).toBeTruthy();
+    vi.useRealTimers();
+  });
+
+  it("invalidates a correct-answer transition across reset and restart", () => {
+    vi.useFakeTimers();
+    render(
+      <TestRouter>
+        <SailControls />
+      </TestRouter>
+    );
+
+    fireEvent.click(screen.getByRole("button", { name: "Start Quiz" }));
+    fireEvent.click(answerForCurrentQuestion());
+    expect(screen.getByLabelText("Score: 10 points")).toBeTruthy();
+
+    fireEvent.click(screen.getByRole("button", { name: "Reset" }));
+    fireEvent.click(screen.getByRole("button", { name: "Start Quiz" }));
+    act(() => vi.advanceTimersByTime(1000));
+
+    expect(screen.getByRole("heading", { name: "Question 1 of 12" })).toBeTruthy();
+    expect(screen.getByLabelText("Score: 0 points")).toBeTruthy();
+    expect(vi.getTimerCount()).toBe(0);
+    vi.useRealTimers();
+  });
+
+  it("cancels a pending transition on navigation and unmount", () => {
+    vi.useFakeTimers();
+    const first = render(
+      <TestRouter>
+        <SailControls />
+      </TestRouter>
+    );
+    fireEvent.click(screen.getByRole("button", { name: "Start Quiz" }));
+    fireEvent.click(answerForCurrentQuestion());
+    expect(vi.getTimerCount()).toBe(1);
+    fireEvent.click(screen.getByRole("button", { name: "Back to nautical terms" }));
+    expect(vi.getTimerCount()).toBe(0);
+    first.unmount();
+
+    const second = render(
+      <TestRouter>
+        <SailControls />
+      </TestRouter>
+    );
+    fireEvent.click(screen.getByRole("button", { name: "Start Quiz" }));
+    fireEvent.click(answerForCurrentQuestion());
+    expect(vi.getTimerCount()).toBe(1);
+    second.unmount();
+    expect(vi.getTimerCount()).toBe(0);
+    vi.useRealTimers();
+  });
+
+  it("scores and schedules only once for repeated correct activation", () => {
+    vi.useFakeTimers();
+    render(<TestRouter><SailControls /></TestRouter>);
+    fireEvent.click(screen.getByRole("button", { name: "Start Quiz" }));
+    const button = answerForCurrentQuestion();
+    fireEvent.click(button);
+    fireEvent.click(button);
+    expect(screen.getByLabelText("Score: 10 points")).toBeTruthy();
+    expect(vi.getTimerCount()).toBe(1);
     vi.useRealTimers();
   });
 });
