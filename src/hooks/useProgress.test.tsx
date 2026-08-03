@@ -10,6 +10,7 @@ const mocks = vi.hoisted(() => ({
   deleteProgressRecord: vi.fn(),
   queueProgress: vi.fn(),
   retryable: false,
+  maybeSingle: vi.fn(),
 }));
 
 vi.mock("@/contexts/AuthHooks", () => ({
@@ -35,7 +36,17 @@ vi.mock("@/features/offline/progressQueue", () => ({
 }));
 
 vi.mock("@/integrations/supabase/client", () => ({
-  supabase: { tag: "mock-supabase" },
+  supabase: {
+    tag: "mock-supabase",
+    from: () => {
+      const query = {
+        select: () => query,
+        eq: () => query,
+        maybeSingle: mocks.maybeSingle,
+      };
+      return query;
+    },
+  },
 }));
 
 import { useProgress } from "./useProgress";
@@ -52,6 +63,8 @@ describe("useProgress", () => {
     mocks.queueProgress.mockReset();
     mocks.queueProgress.mockResolvedValue({});
     mocks.retryable = false;
+    mocks.maybeSingle.mockReset();
+    mocks.maybeSingle.mockResolvedValue({ data: null, error: null });
   });
 
   it("does nothing for save/reset when no authenticated user exists", async () => {
@@ -65,6 +78,14 @@ describe("useProgress", () => {
     expect(mocks.deleteProgressRecord).not.toHaveBeenCalled();
     expect(mocks.toastSuccess).not.toHaveBeenCalled();
     expect(mocks.toastError).not.toHaveBeenCalled();
+  });
+
+  it("distinguishes a failed load from a missing durable record", async () => {
+    const { result } = renderHook(() => useProgress());
+    mocks.maybeSingle.mockResolvedValueOnce({ data: null, error: new Error("network") });
+
+    expect(await result.current.loadProgressDetailed("topic-a")).toEqual({ status: "failed", record: null });
+    expect(await result.current.loadProgressDetailed("topic-a")).toEqual({ status: "missing", record: null });
   });
 
   it("surfaces success toasts when save succeeds with points and completion", async () => {
@@ -108,6 +129,30 @@ describe("useProgress", () => {
       completed: true,
     }));
     expect(mocks.toastError).not.toHaveBeenCalled();
+  });
+
+  it("exposes confirmed, queued, and failed outcomes without changing the boolean API", async () => {
+    const { result } = renderHook(() => useProgress());
+
+    expect(await result.current.saveProgressDetailed("topic-a", false)).toBe("remote");
+
+    mocks.retryable = true;
+    mocks.saveProgressRecord.mockRejectedValueOnce(new Error("offline"));
+    expect(await result.current.saveProgressDetailed("topic-a", false)).toBe("queued");
+
+    mocks.retryable = false;
+    mocks.saveProgressRecord.mockRejectedValueOnce(new Error("invalid"));
+    expect(await result.current.saveProgressDetailed("topic-a", false)).toBe("failed");
+  });
+
+  it("reports a failed outcome when the offline queue also fails", async () => {
+    mocks.retryable = true;
+    mocks.saveProgressRecord.mockRejectedValueOnce(new Error("offline"));
+    mocks.queueProgress.mockRejectedValueOnce(new Error("queue unavailable"));
+    const { result } = renderHook(() => useProgress());
+
+    expect(await result.current.saveProgressDetailed("topic-a", true)).toBe("failed");
+    expect(mocks.toastError).toHaveBeenCalledWith("Failed to save progress");
   });
 
   it("does not show points toast when persistence reports no new award", async () => {

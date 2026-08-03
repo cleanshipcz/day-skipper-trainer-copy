@@ -6,7 +6,7 @@ import { Badge } from "@/components/ui/badge";
 import { ArrowLeft, Trophy, RotateCcw, HelpCircle, ChevronRight, X } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { toast } from "sonner";
-import { useProgress } from "@/hooks/useProgress";
+import { useProgress, type ProgressSaveResult } from "@/hooks/useProgress";
 import { useAuth } from "@/contexts/AuthHooks";
 import { TOPIC_IDS } from "@/constants/topicRegistry";
 
@@ -28,6 +28,41 @@ interface PartProgress {
   state: PartState;
   attempts: number;
 }
+
+type DurableStatus =
+  | "anonymous"
+  | "loading"
+  | "ready"
+  | "saving"
+  | "queued"
+  | "remote"
+  | "failed";
+type DurableCompletionKnowledge = "absent" | "existing" | "unknown";
+type RemoteSaveSemantics = "new" | "preserved" | "unknown";
+
+interface SailControlsProgressPayload {
+  module: "sail-controls";
+  version: 1;
+  score: number;
+}
+
+const isSavedPayload = (value: unknown): value is SailControlsProgressPayload => {
+  if (!value || typeof value !== "object" || Array.isArray(value)) return false;
+  const candidate = value as Record<string, unknown>;
+  return candidate.module === "sail-controls" && candidate.version === 1 &&
+    typeof candidate.score === "number" && Number.isFinite(candidate.score) &&
+    candidate.score >= 0 && candidate.score <= sailControls.length * POINTS_FIRST_TRY;
+};
+
+const isDurableCompletionRecord = (value: unknown, ownerId: string) => {
+  if (!value || typeof value !== "object" || Array.isArray(value)) return false;
+  const candidate = value as Record<string, unknown>;
+  return candidate.user_id === ownerId &&
+    candidate.topic_id === TOPIC_IDS.NAUTICAL_TERMS_SAIL_CONTROLS &&
+    candidate.completed === true &&
+    typeof candidate.score === "number" && Number.isFinite(candidate.score) &&
+    candidate.score >= 0 && candidate.score <= 100;
+};
 
 const sailControls: SailControl[] = [
   {
@@ -526,7 +561,7 @@ const SchematicDiagram = ({
 const SailControls = () => {
   const navigate = useNavigate();
   const { user } = useAuth();
-  const { saveProgress } = useProgress();
+  const { loadProgressDetailed, saveProgressDetailed } = useProgress();
   const [mode, setMode] = useState<"learn" | "quiz">("learn");
   const [partProgress, setPartProgress] = useState<Record<string, PartProgress>>(() => {
     const initial: Record<string, PartProgress> = {};
@@ -548,6 +583,100 @@ const SailControls = () => {
   const transitionTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const quizGenerationRef = useRef(0);
   const answerLockedRef = useRef(false);
+  const ownerRef = useRef(user?.id ?? null);
+  ownerRef.current = user?.id ?? null;
+  const [durableStatus, setDurableStatus] = useState<DurableStatus>(user ? "loading" : "anonymous");
+  const [pendingCompletion, setPendingCompletion] = useState<{ percentage: number; score: number } | null>(null);
+  const [loadRevision, setLoadRevision] = useState(0);
+  const [durableCompletionKnowledge, setDurableCompletionKnowledge] = useState<DurableCompletionKnowledge>(
+    user ? "unknown" : "absent"
+  );
+  const [remoteSaveSemantics, setRemoteSaveSemantics] = useState<RemoteSaveSemantics>("new");
+
+  const persistCompletion = useCallback(async (percentage: number, finalScore: number) => {
+    if (!user) {
+      setDurableStatus("anonymous");
+      return;
+    }
+    const ownerId = user.id;
+    const knowledgeBeforeSave = durableCompletionKnowledge;
+    setDurableStatus("saving");
+    setPendingCompletion({ percentage, score: finalScore });
+    const payload: SailControlsProgressPayload = { module: "sail-controls", version: 1, score: finalScore };
+    let result: ProgressSaveResult;
+    try {
+      result = await saveProgressDetailed(
+        TOPIC_IDS.NAUTICAL_TERMS_SAIL_CONTROLS,
+        true,
+        percentage,
+        finalScore,
+        payload as unknown as Record<string, unknown>
+      );
+    } catch (error) {
+      console.error("Error saving Sail Controls completion:", error);
+      result = "failed";
+    }
+    if (ownerRef.current !== ownerId) return;
+    if (result === "remote") {
+      setRemoteSaveSemantics(
+        knowledgeBeforeSave === "absent" ? "new" : knowledgeBeforeSave === "existing" ? "preserved" : "unknown"
+      );
+      setDurableCompletionKnowledge("existing");
+    } else if (result === "queued") {
+      // Replay can make this durable at any point, so a later save cannot
+      // safely be described as the first remote record.
+      setDurableCompletionKnowledge("unknown");
+    }
+    setDurableStatus(result === "remote" ? "remote" : result === "queued" ? "queued" : result === "anonymous" ? "anonymous" : "failed");
+  }, [durableCompletionKnowledge, saveProgressDetailed, user]);
+
+  useEffect(() => {
+    let cancelled = false;
+    const ownerId = user?.id ?? null;
+    setPendingCompletion(null);
+    if (!ownerId) {
+      setDurableStatus("anonymous");
+      return () => { cancelled = true; };
+    }
+
+    setDurableStatus("loading");
+    void loadProgressDetailed(TOPIC_IDS.NAUTICAL_TERMS_SAIL_CONTROLS).then((loadResult) => {
+      if (cancelled || ownerRef.current !== ownerId) return;
+      if (loadResult.status === "failed") {
+        setDurableCompletionKnowledge("unknown");
+        setDurableStatus("failed");
+        return;
+      }
+      const record = loadResult.record;
+      let payload: unknown = record?.answers_history;
+      if (typeof payload === "string") {
+        try { payload = JSON.parse(payload); } catch { payload = null; }
+      }
+      if (isDurableCompletionRecord(record, ownerId)) {
+        const restoredScore = isSavedPayload(payload)
+          ? payload.score
+          : Math.round(((record?.score ?? 0) / 100) * sailControls.length * POINTS_FIRST_TRY);
+        setScore(restoredScore);
+        setMode("quiz");
+        setQuizQueue([...sailControls]);
+        setCurrentQuizIndex(sailControls.length - 1);
+        setActivePart(null);
+        setPartProgress(Object.fromEntries(sailControls.map((part) => [part.id, { state: "correct", attempts: 1 }] as const)));
+        setPendingCompletion({ percentage: record?.score ?? 0, score: restoredScore });
+        setDurableCompletionKnowledge("existing");
+        setRemoteSaveSemantics("preserved");
+        setDurableStatus("remote");
+      } else {
+        setDurableCompletionKnowledge("absent");
+        setRemoteSaveSemantics("new");
+        setDurableStatus("ready");
+      }
+    }).catch((error) => {
+      console.error("Error loading Sail Controls progress:", error);
+      if (!cancelled && ownerRef.current === ownerId) setDurableStatus("failed");
+    });
+    return () => { cancelled = true; };
+  }, [loadProgressDetailed, loadRevision, user?.id]);
 
   const invalidatePendingTransition = useCallback(() => {
     quizGenerationRef.current += 1;
@@ -631,12 +760,10 @@ const SailControls = () => {
           } else {
             setActivePart(null);
 
-            if (user) {
-              const finalScore = score + points;
-              const maxScore = sailControls.length * POINTS_FIRST_TRY;
-              const percentage = Math.round((finalScore / maxScore) * 100);
-              saveProgress(TOPIC_IDS.NAUTICAL_TERMS_SAIL_CONTROLS, true, percentage, finalScore);
-            }
+            const finalScore = score + points;
+            const maxScore = sailControls.length * POINTS_FIRST_TRY;
+            const percentage = Math.round((finalScore / maxScore) * 100);
+            void persistCompletion(percentage, finalScore);
           }
         }, 1000);
       } else {
@@ -652,7 +779,7 @@ const SailControls = () => {
         setQuizAnnouncement(`Incorrect. ${selectedOption.name} is not the answer. Try again.`);
       }
     },
-    [activePart, partProgress, currentQuizIndex, quizQueue, score, saveProgress, user]
+    [activePart, partProgress, currentQuizIndex, quizQueue, score, persistCompletion]
   );
 
   const resetQuiz = useCallback(() => {
@@ -729,8 +856,8 @@ const SailControls = () => {
                   </Badge>
                 </>
               ) : (
-                <Button onClick={startQuiz}>
-                  Start Quiz
+                <Button onClick={startQuiz} disabled={durableStatus === "loading"}>
+                  {durableStatus === "loading" ? "Loading progress…" : "Start Quiz"}
                   <ChevronRight className="w-4 h-4 ml-2" />
                 </Button>
               )}
@@ -740,6 +867,16 @@ const SailControls = () => {
       </header>
 
       <main className="container mx-auto px-4 py-6">
+        {durableStatus === "failed" && !pendingCompletion && user && (
+          <Card className="mb-6 border-orange-500" role="alert">
+            <CardContent className="flex flex-wrap items-center justify-between gap-3 pt-6">
+              <p>Saved progress could not be loaded. You can continue locally or retry.</p>
+              <Button variant="outline" onClick={() => setLoadRevision((revision) => revision + 1)}>
+                Retry loading progress
+              </Button>
+            </CardContent>
+          </Card>
+        )}
         <div className="sr-only" role="status" aria-live="polite" aria-atomic="true">
           {quizAnnouncement}
         </div>
@@ -993,6 +1130,25 @@ const SailControls = () => {
                     <p className="text-muted-foreground">
                       You identified {correctCount} out of {sailControls.length} sail controls.
                     </p>
+                    <div className="text-sm" data-testid="durable-status" aria-live="polite">
+                      {durableStatus === "anonymous" && "Completed on this device. Sign in to save your progress."}
+                      {durableStatus === "saving" && "Saving completion…"}
+                      {durableStatus === "queued" && "Completion saved offline and queued to sync."}
+                      {durableStatus === "remote" && remoteSaveSemantics === "new" && "Completion saved to your account."}
+                      {durableStatus === "remote" && remoteSaveSemantics === "preserved" &&
+                        "A completion is saved to your account. Retakes do not replace that durable record."}
+                      {durableStatus === "remote" && remoteSaveSemantics === "unknown" &&
+                        "A completion is saved to your account. Because earlier progress may already exist or have synced, this may be the previously saved record."}
+                      {durableStatus === "failed" && "Completion is still available here, but could not be saved."}
+                    </div>
+                    {durableStatus === "failed" && pendingCompletion && user && (
+                      <Button
+                        variant="outline"
+                        onClick={() => void persistCompletion(pendingCompletion.percentage, pendingCompletion.score)}
+                      >
+                        Retry saving
+                      </Button>
+                    )}
                     <div className="flex gap-3 justify-center pt-4">
                       <Button
                         variant="outline"
