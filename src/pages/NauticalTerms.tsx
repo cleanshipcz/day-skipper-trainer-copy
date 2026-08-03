@@ -9,6 +9,7 @@ import { useProgress } from "@/hooks/useProgress";
 import { useAuth } from "@/contexts/AuthHooks";
 import { supabase } from "@/integrations/supabase/client";
 import { TOPIC_IDS } from "@/constants/topicRegistry";
+import { configurationAwareBoatPartDescriptions } from "@/data/boatPartDescriptions";
 import type { KeyboardEvent } from "react";
 
 interface BoatPart {
@@ -58,7 +59,7 @@ const sideViewParts: BoatPart[] = [
   {
     id: "stern",
     name: "Stern",
-    description: "The rear end of the boat. The stern houses the rudder and is where the helmsman typically sits.",
+    description: configurationAwareBoatPartDescriptions.stern,
     partX: 90,
     partY: 235,
     labelX: 35,
@@ -100,8 +101,7 @@ const sideViewParts: BoatPart[] = [
   {
     id: "boom",
     name: "Boom",
-    description:
-      "The horizontal pole attached to the mast that holds the foot (bottom edge) of the mainsail. Watch your head - it swings during tacks and gybes!",
+    description: configurationAwareBoatPartDescriptions.boom,
     partX: 210,
     partY: 160,
     labelX: 150,
@@ -111,8 +111,7 @@ const sideViewParts: BoatPart[] = [
   {
     id: "mainsail",
     name: "Mainsail",
-    description:
-      "The principal and largest sail, set behind the mast. It provides the main driving force when sailing.",
+    description: configurationAwareBoatPartDescriptions.mainsail,
     partX: 230,
     partY: 105,
     labelX: 175,
@@ -133,8 +132,7 @@ const sideViewParts: BoatPart[] = [
   {
     id: "forestay",
     name: "Forestay",
-    description:
-      "A wire running from the mast top to the bow. It supports the mast from the front and the jib is often attached to it.",
+    description: configurationAwareBoatPartDescriptions.forestay,
     partX: 505,
     partY: 200,
     labelX: 550,
@@ -144,8 +142,7 @@ const sideViewParts: BoatPart[] = [
   {
     id: "backstay",
     name: "Backstay",
-    description:
-      "A wire running from the mast top to the stern. It supports the mast from behind and can be tensioned to control mast bend.",
+    description: configurationAwareBoatPartDescriptions.backstay,
     partX: 150,
     partY: 150,
     labelX: 90,
@@ -177,8 +174,7 @@ const sideViewParts: BoatPart[] = [
   {
     id: "keel",
     name: "Keel",
-    description:
-      "A heavy underwater fin that prevents sideways drift and provides stability. The weight at the bottom keeps the boat upright.",
+    description: configurationAwareBoatPartDescriptions.keel,
     partX: 300,
     partY: 330,
     labelX: 370,

@@ -2,6 +2,7 @@ import { describe, it, expect, vi, beforeEach } from "vitest";
 import { render, screen, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import NauticalTerms from "../src/pages/NauticalTerms";
+import { configurationAwareBoatPartDescriptions } from "../src/data/boatPartDescriptions";
 import TestRouter from "./TestRouter";
 
 const saveProgressMock = vi.fn();
@@ -34,6 +35,17 @@ vi.mock("sonner", () => ({
 }));
 
 describe("NauticalTerms progress writes", () => {
+  it("qualifies configuration-dependent Boat Parts descriptions", () => {
+    const descriptions = configurationAwareBoatPartDescriptions;
+
+    expect(descriptions.stern).toContain("arrangement varies");
+    expect(descriptions.keel).toContain("keel form and contribution to stability vary");
+    expect(descriptions.boom).toContain("loose-footed");
+    expect(descriptions.mainsail).toContain("depend on the boat and sail plan");
+    expect(descriptions.forestay).toContain("attachment points vary by rig");
+    expect(descriptions.backstay).toContain("no backstay");
+  });
+
   beforeEach(() => {
     saveProgressMock.mockReset().mockResolvedValue(true);
     saveProgressAccountBMock.mockReset().mockResolvedValue(true);
