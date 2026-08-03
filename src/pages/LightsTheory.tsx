@@ -1,13 +1,13 @@
 import { useLocation, useNavigate, useSearchParams } from "react-router-dom";
 import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
-import { Badge } from "@/components/ui/badge";
+import { Card } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { ArrowLeft, Lightbulb, AlertTriangle, Volume2, Flame, Ship, Anchor, Wind } from "lucide-react";
+import { ArrowLeft, Lightbulb, AlertTriangle, Volume2, Flame } from "lucide-react";
 import { useEffect } from "react";
 import { useTheoryCompletionGate } from "@/features/progress/useTheoryCompletionGate";
 import { TOPIC_IDS } from "@/constants/topicRegistry";
 import { PartCLights, PartCShapes } from "@/components/colregs/PartCLightsShapes";
+import { PartDSoundSignals } from "@/components/colregs/PartDSoundSignals";
 
 const LightsTheory = () => {
   const navigate = useNavigate();
@@ -27,7 +27,7 @@ const LightsTheory = () => {
 
   useEffect(() => {
     const targetId = location.hash.slice(1);
-    if (!/^rule-(?:23|25|27|30|34|35)$/.test(targetId)) return;
+    if (!/^rule-(?:23|25|27|30|32|33|34|35|36)$/.test(targetId)) return;
     const target = document.getElementById(targetId);
     target?.scrollIntoView({ block: "start" });
     target?.focus({ preventScroll: true });
@@ -304,73 +304,7 @@ const LightsTheory = () => {
               </h2>
             </div>
 
-            <div className="space-y-6">
-              <Card id="rule-34" tabIndex={-1} className="scroll-mt-28 focus:outline-none">
-                <CardHeader>
-                  <CardTitle>Maneuvering & Warning (Rule 34)</CardTitle>
-                  <CardDescription>Only when vessels are in sight of one another</CardDescription>
-                </CardHeader>
-                <CardContent className="grid gap-4">
-                  <div className="grid grid-cols-[auto_1fr] gap-4 items-center">
-                    <Badge className="w-16 justify-center">1 Short</Badge>
-                    <span>
-                      I am altering my course to <strong>STARBOARD</strong>
-                    </span>
-
-                    <Badge className="w-16 justify-center">2 Short</Badge>
-                    <span>
-                      I am altering my course to <strong>PORT</strong>
-                    </span>
-
-                    <Badge className="w-16 justify-center">3 Short</Badge>
-                    <span>
-                      I am operating <strong>ASTERN</strong> propulsion
-                    </span>
-
-                    <Badge variant="destructive" className="w-16 justify-center">
-                      5 Short
-                    </Badge>
-                    <span>
-                      <strong>DANGER</strong> / Doubt signal
-                    </span>
-                  </div>
-                </CardContent>
-              </Card>
-
-              <Card id="rule-35" tabIndex={-1} className="scroll-mt-28 focus:outline-none">
-                <CardHeader>
-                  <CardTitle>Restricted Visibility (Rule 35)</CardTitle>
-                  <CardDescription>Tests use "Prolonged" (4-6s) and "Short" (1s) blasts</CardDescription>
-                </CardHeader>
-                <CardContent className="grid gap-4">
-                  <div className="grid grid-cols-[auto_1fr] gap-4 items-center">
-                    <Badge variant="secondary" className="w-24 justify-center">
-                      1 Pro
-                    </Badge>
-                    <span>
-                      Power-driven vessel <strong>making way</strong> (every 2m)
-                    </span>
-
-                    <Badge variant="secondary" className="w-24 justify-center">
-                      2 Pro
-                    </Badge>
-                    <span>
-                      Power-driven vessel <strong>stopped</strong> (every 2m)
-                    </span>
-
-                    <Badge variant="secondary" className="w-24 justify-center text-xs">
-                      1 Pro, 2 Short
-                    </Badge>
-                    <span>NUC, RAM, CBD, Sailing, Fishing, Towing (The "Everything Else" signal)</span>
-
-                    <Badge variant="secondary" className="w-24 justify-center text-xs">
-                      1 Pro, 3 Short
-                    </Badge>
-                    <span>Towed vessel (if manned)</span>
-                  </div>
-                </CardContent>
-              </Card>
-            </div>
+            <PartDSoundSignals />
           </TabsContent>
 
           {/* DISTRESS TAB */}
