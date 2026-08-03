@@ -36,8 +36,7 @@ interface QuizWorkflow {
   readonly scoreSaved: boolean;
   readonly startedAt?: string;
   readonly completion?: {
-    readonly answers: readonly (number | null)[];
-    readonly currentQuestion: number;
+    readonly session: ReturnType<typeof buildQuizSessionProgress>;
     readonly correctAnswers: number;
     readonly percentage: number;
     readonly passed: boolean;
@@ -63,16 +62,13 @@ const readQuizWorkflow = (owner: string | undefined, topic: string): QuizWorkflo
       removeStored(localStorage, key);
       return null;
     }
-    const completion = parsed.completion
-      && Array.isArray(parsed.completion.answers)
-      && typeof parsed.completion.currentQuestion === "number"
-      && typeof parsed.completion.correctAnswers === "number"
-      && typeof parsed.completion.percentage === "number"
-      && typeof parsed.completion.passed === "boolean"
-      && typeof parsed.completion.pointsEarned === "number"
-      ? parsed.completion as QuizWorkflow["completion"]
-      : undefined;
-    return { attemptId: parsed.attemptId, scoreSaved, startedAt, completion };
+    if (scoreSaved) {
+      // localStorage is attacker-controlled and cannot prove that the score RPC
+      // succeeded. Never let it skip authoritative submission or promote data.
+      removeStored(localStorage, key);
+      return null;
+    }
+    return { attemptId: parsed.attemptId, scoreSaved: false, startedAt };
   } catch { return null; }
 };
 
@@ -120,22 +116,25 @@ const Quiz = () => {
   const quizParent = resolveQuizParentDestination(topicKey);
 
   const [workflow, setWorkflow] = useState<QuizWorkflow | null>(() => readQuizWorkflow(user?.id, topicKey));
-  const [currentQuestion, setCurrentQuestion] = useState(() => workflow?.completion?.currentQuestion ?? 0);
-  const [answers, setAnswers] = useState<(number | null)[]>(() => workflow?.completion ? [...workflow.completion.answers] : []);
+  const [currentQuestion, setCurrentQuestion] = useState(0);
+  const [answers, setAnswers] = useState<(number | null)[]>([]);
   const [showExplanation, setShowExplanation] = useState(false);
-  const [isComplete, setIsComplete] = useState(() => Boolean(workflow?.scoreSaved && workflow.completion));
+  const [isComplete, setIsComplete] = useState(false);
   const [seedStatus, setSeedStatus] = useState<"idle" | "saving" | "saved" | "failed">("idle");
   const [completionSaveError, setCompletionSaveError] = useState(() => Boolean(workflow?.scoreSaved && workflow.completion));
   const [attemptCycle, setAttemptCycle] = useState(0);
   const questionHeadingRef = useRef<HTMLHeadingElement>(null);
   const completionHeadingRef = useRef<HTMLHeadingElement>(null);
   const focusQuestionAfterAdvanceRef = useRef(false);
+  const suppressNextProgressLoadRef = useRef(false);
+  const verifiedScoreAttemptRef = useRef<string | null>(null);
   const seedOwnerRef = useRef(user?.id ?? null);
   const seedGenerationRef = useRef(0);
   const currentSeedOwner = user?.id ?? null;
   if (seedOwnerRef.current !== currentSeedOwner) {
     seedOwnerRef.current = currentSeedOwner;
     seedGenerationRef.current += 1;
+    verifiedScoreAttemptRef.current = null;
   }
 
   const seedReviews = useCallback(async (owner: string, generation: number) => {
@@ -158,15 +157,14 @@ const Quiz = () => {
     if (!sourceQuestions) return;
     const initQuiz = async () => {
       const recovery = readQuizWorkflow(user?.id, topicKey);
-      if (recovery?.scoreSaved && recovery.completion) {
-        setAnswers([...recovery.completion.answers]);
-        setCurrentQuestion(recovery.completion.currentQuestion);
-        setIsComplete(true);
-        setCompletionSaveError(true);
-        return;
-      }
       setIsComplete(false);
       setCompletionSaveError(false);
+      if (suppressNextProgressLoadRef.current) {
+        suppressNextProgressLoadRef.current = false;
+        setAnswers(createEmptyQuizAnswers(questions.length));
+        setCurrentQuestion(0);
+        return;
+      }
       const owner = seedOwnerRef.current;
       const generation = seedGenerationRef.current;
       const canonicalKey = canonicalQuizProgressKey(topicKey);
@@ -186,7 +184,7 @@ const Quiz = () => {
               ? JSON.parse(savedData.answers_history)
               : savedData.answers_history;
 
-          const saved = parseSavedQuizSession(savedRaw, questions.length, Boolean(savedData.completed));
+          const saved = parseSavedQuizSession(savedRaw, questions, Boolean(savedData.completed));
           if (saved) {
             setAnswers(saved.answers);
             setCurrentQuestion(saved.currentQuestion);
@@ -197,7 +195,7 @@ const Quiz = () => {
                 savedData.completed ?? false,
                 savedData.score ?? 0,
                 0,
-                buildQuizSessionProgress(saved.answers, saved.currentQuestion)
+                buildQuizSessionProgress(saved.answers, saved.currentQuestion, questions)
               );
               if (seedOwnerRef.current !== owner || seedGenerationRef.current !== generation) return;
               await resetProgress(topicKey);
@@ -212,7 +210,7 @@ const Quiz = () => {
       setAnswers(createEmptyQuizAnswers(questions.length));
     };
     initQuiz();
-  }, [sourceQuestions, questions.length, topicKey, user?.id, loadProgress, saveProgress, resetProgress, seedReviews]);
+  }, [sourceQuestions, questions, topicKey, user?.id, loadProgress, saveProgress, resetProgress, seedReviews]);
 
   useEffect(() => {
     const owner = user?.id;
@@ -248,7 +246,7 @@ const Quiz = () => {
       isAuthenticated: Boolean(user),
       topicKey,
       saveProgress,
-      progress: buildQuizSessionProgress(nextAnswers, nextQuestion),
+      progress: buildQuizSessionProgress(nextAnswers, nextQuestion, questions),
     });
   };
 
@@ -339,17 +337,17 @@ const Quiz = () => {
     setCompletionSaveError(false);
 
     const calculatedCompletion = quizCompletionOutcome(correctAnswers, questions.length);
-    const completion = activeWorkflow.completion ?? {
-      answers: [...answers],
-      currentQuestion,
+    const completion = {
+      session: buildQuizSessionProgress([...answers], currentQuestion, questions),
       correctAnswers,
       ...calculatedCompletion,
     };
     const { percentage, passed, pointsEarned } = completion;
+    const verificationKey = `${owner}:${topicKey}:${activeWorkflow.attemptId}`;
 
     try {
       // Save quiz score
-      if (!activeWorkflow.scoreSaved) {
+      if (verifiedScoreAttemptRef.current !== verificationKey) {
         const { error: scoreError } = await supabase.rpc("submit_quiz_score", {
           p_attempt_id: activeWorkflow.attemptId,
           p_topic_id: topicKey,
@@ -358,8 +356,9 @@ const Quiz = () => {
         });
         if (scoreError) throw scoreError;
         if (seedOwnerRef.current !== owner || seedGenerationRef.current !== generation) return;
+        verifiedScoreAttemptRef.current = verificationKey;
         const scoreSavedWorkflow = { ...activeWorkflow, scoreSaved: true, completion };
-        writeStored(localStorage, quizAttemptKey(owner, topicKey), { ...scoreSavedWorkflow, version: 1 });
+        removeStored(localStorage, quizAttemptKey(owner, topicKey));
         setWorkflow(scoreSavedWorkflow);
       }
 
@@ -370,7 +369,7 @@ const Quiz = () => {
         percentage,
         pointsEarned,
         {
-          ...buildQuizSessionProgress([...completion.answers], completion.currentQuestion),
+          ...completion.session,
           completed: true,
         }
       );
@@ -412,7 +411,9 @@ const Quiz = () => {
     setIsComplete(false);
     setSeed((n) => n + 1);
     setWorkflow(null);
+    verifiedScoreAttemptRef.current = null;
     setCompletionSaveError(false);
+    suppressNextProgressLoadRef.current = true;
     setAttemptCycle((value) => value + 1);
   };
 
