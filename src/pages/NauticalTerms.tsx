@@ -1,4 +1,4 @@
-import { useState, useMemo, useCallback, useEffect, useRef } from "react";
+import { useState, useMemo, useCallback, useEffect, useLayoutEffect, useRef } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -29,6 +29,17 @@ type PartState = "hidden" | "guessing" | "correct" | "wrong";
 interface PartProgress {
   state: PartState;
   attempts: number;
+}
+
+interface ProgressSnapshot {
+  ownerId: string;
+  ownerEpoch: number;
+  completed: boolean;
+  scorePercentage: number;
+  data: {
+    partProgress: Record<string, PartProgress>;
+    score: number;
+  };
 }
 
 // Side view parts - coordinates are in SVG viewBox units (0-600 x 0-400)
@@ -263,6 +274,41 @@ const partMarkerNumbers = new Map(allParts.map((part, index) => [part.id, index 
 
 const POINTS_FIRST_TRY = 10;
 const POINTS_SECOND_TRY = 5;
+const MAX_SCORE = allParts.length * POINTS_FIRST_TRY;
+
+const createInitialPartProgress = (): Record<string, PartProgress> =>
+  Object.fromEntries(allParts.map((part) => [part.id, { state: "hidden", attempts: 0 }]));
+
+const isRecord = (value: unknown): value is Record<string, unknown> =>
+  typeof value === "object" && value !== null && !Array.isArray(value);
+
+const normalizePartProgress = (value: unknown): Record<string, PartProgress> => {
+  const savedProgress = isRecord(value) ? value : {};
+
+  return Object.fromEntries(
+    allParts.map((part) => {
+      const candidate = savedProgress[part.id];
+      if (!isRecord(candidate)) return [part.id, { state: "hidden", attempts: 0 }];
+
+      const state = candidate.state;
+      if (state !== "hidden" && state !== "guessing" && state !== "correct" && state !== "wrong") {
+        return [part.id, { state: "hidden", attempts: 0 }];
+      }
+
+      const rawAttempts = candidate.attempts;
+      const attempts =
+        typeof rawAttempts === "number" && Number.isFinite(rawAttempts)
+          ? Math.max(0, Math.min(Number.MAX_SAFE_INTEGER, Math.floor(rawAttempts)))
+          : 0;
+      const minimumAttempts = state === "correct" || state === "wrong" ? 1 : 0;
+
+      return [part.id, { state, attempts: Math.max(attempts, minimumAttempts) }];
+    })
+  );
+};
+
+const normalizeScore = (value: unknown): number =>
+  typeof value === "number" && Number.isFinite(value) ? Math.max(0, Math.min(MAX_SCORE, Math.round(value))) : 0;
 
 function shuffleArray<T>(array: T[]): T[] {
   const shuffled = [...array];
@@ -507,19 +553,64 @@ const NauticalTerms = () => {
   const navigate = useNavigate();
   const { user } = useAuth();
   const { loadProgress, saveProgress } = useProgress();
-  const [partProgress, setPartProgress] = useState<Record<string, PartProgress>>(() => {
-    const initial: Record<string, PartProgress> = {};
-    allParts.forEach((part) => {
-      initial[part.id] = { state: "hidden", attempts: 0 };
-    });
-    return initial;
-  });
+  const ownerId = user?.id ?? null;
+  const [partProgress, setPartProgress] = useState<Record<string, PartProgress>>(createInitialPartProgress);
   const [activePart, setActivePart] = useState<BoatPart | null>(null);
   const [selectedPart, setSelectedPart] = useState<BoatPart | null>(null);
   const [score, setScore] = useState(0);
   const [wrongAnswer, setWrongAnswer] = useState<string | null>(null);
   const answerHeadingRef = useRef<HTMLHeadingElement>(null);
   const originatingMarkerIdRef = useRef<string | null>(null);
+  const [hydratedOwnerId, setHydratedOwnerId] = useState<string | null>(null);
+  const progressDirtyRef = useRef(false);
+  const pendingSaveRef = useRef<ProgressSnapshot | null>(null);
+  const activeFlushEpochRef = useRef<number | null>(null);
+  const ownerRef = useRef<string | null>(ownerId);
+  const ownerEpochRef = useRef(0);
+  const [progressRevision, setProgressRevision] = useState(0);
+  const hydrationComplete = ownerId !== null && hydratedOwnerId === ownerId;
+
+  useLayoutEffect(() => {
+    if (ownerRef.current === ownerId) return;
+    ownerRef.current = ownerId;
+    ownerEpochRef.current += 1;
+    pendingSaveRef.current = null;
+    activeFlushEpochRef.current = null;
+    progressDirtyRef.current = false;
+  }, [ownerId]);
+
+  const markProgressDirty = useCallback(() => {
+    progressDirtyRef.current = true;
+    setProgressRevision((revision) => revision + 1);
+  }, []);
+
+  const flushProgressSaves = useCallback(async () => {
+    const flushOwnerId = ownerRef.current;
+    const flushEpoch = ownerEpochRef.current;
+    if (!flushOwnerId || activeFlushEpochRef.current === flushEpoch) return;
+    activeFlushEpochRef.current = flushEpoch;
+
+    try {
+      while (ownerRef.current === flushOwnerId && ownerEpochRef.current === flushEpoch) {
+        const snapshot = pendingSaveRef.current;
+        if (!snapshot || snapshot.ownerId !== flushOwnerId || snapshot.ownerEpoch !== flushEpoch) break;
+        pendingSaveRef.current = null;
+        try {
+          await saveProgress(
+            TOPIC_IDS.NAUTICAL_TERMS_BOAT_PARTS,
+            snapshot.completed,
+            snapshot.scorePercentage,
+            0,
+            snapshot.data
+          );
+        } catch (error) {
+          console.error("Unexpected error saving boat parts progress:", error);
+        }
+      }
+    } finally {
+      if (activeFlushEpochRef.current === flushEpoch) activeFlushEpochRef.current = null;
+    }
+  }, [saveProgress]);
 
   // Generate 4 options for the active part (including the correct answer)
   const options = useMemo(() => {
@@ -532,6 +623,7 @@ const NauticalTerms = () => {
 
   const handlePartClick = useCallback(
     (part: BoatPart) => {
+      if (!hydrationComplete) return;
       const progress = partProgress[part.id];
       setSelectedPart(part);
       if (progress.state === "correct") {
@@ -556,8 +648,9 @@ const NauticalTerms = () => {
         }
         return next;
       });
+      markProgressDirty();
     },
-    [activePart, partProgress]
+    [activePart, hydrationComplete, markProgressDirty, partProgress]
   );
 
   const handleOptionSelect = useCallback(
@@ -590,8 +683,9 @@ const NauticalTerms = () => {
           description: `That's not it. Give it another try!`,
         });
       }
+      markProgressDirty();
     },
-    [activePart, partProgress]
+    [activePart, markProgressDirty, partProgress]
   );
 
   const handleCloseOptions = useCallback(() => {
@@ -604,7 +698,8 @@ const NauticalTerms = () => {
     }
     setActivePart(null);
     setWrongAnswer(null);
-  }, [activePart]);
+    markProgressDirty();
+  }, [activePart, markProgressDirty]);
 
   useEffect(() => {
     if (activePart) {
@@ -620,18 +715,15 @@ const NauticalTerms = () => {
   }, [activePart]);
 
   const resetGame = useCallback(() => {
-    const initial: Record<string, PartProgress> = {};
-    allParts.forEach((part) => {
-      initial[part.id] = { state: "hidden", attempts: 0 };
-    });
-    setPartProgress(initial);
+    setPartProgress(createInitialPartProgress());
     setScore(0);
     originatingMarkerIdRef.current = null;
     setActivePart(null);
     setSelectedPart(null);
     setWrongAnswer(null);
+    markProgressDirty();
     toast.success("Game reset! Good luck!");
-  }, []);
+  }, [markProgressDirty]);
 
   const partsById = useMemo(() => {
     const partsMap: Record<string, BoatPart> = {};
@@ -650,38 +742,63 @@ const NauticalTerms = () => {
 
   // Load saved progress on mount
   useEffect(() => {
+    let cancelled = false;
+    const loadOwnerId = ownerId;
+    const loadOwnerEpoch = ownerEpochRef.current;
+
+    setHydratedOwnerId(null);
+    setPartProgress(createInitialPartProgress());
+    setScore(0);
+    setActivePart(null);
+    setSelectedPart(null);
+    setWrongAnswer(null);
+
+    if (!loadOwnerId) return () => undefined;
+
     const loadSavedProgress = async () => {
-      const savedData = await loadProgress("nautical-terms-boat-parts");
-      if (savedData?.answers_history) {
-        try {
+      try {
+        const savedData = await loadProgress(TOPIC_IDS.NAUTICAL_TERMS_BOAT_PARTS);
+        if (cancelled || ownerRef.current !== loadOwnerId || ownerEpochRef.current !== loadOwnerEpoch) return;
+
+        if (savedData?.answers_history) {
           const saved =
             typeof savedData.answers_history === "string"
               ? JSON.parse(savedData.answers_history)
               : savedData.answers_history;
-          if (saved.partProgress) {
-            setPartProgress(saved.partProgress);
+          if (isRecord(saved)) {
+            setPartProgress(normalizePartProgress(saved.partProgress));
+            setScore(normalizeScore(saved.score));
           }
-          if (saved.score !== undefined) {
-            setScore(saved.score);
-          }
-        } catch (error) {
-          console.error("Error parsing saved progress:", error);
+        }
+      } catch (error) {
+        console.error("Error loading boat parts progress:", error);
+      } finally {
+        if (!cancelled && ownerRef.current === loadOwnerId && ownerEpochRef.current === loadOwnerEpoch) {
+          setHydratedOwnerId(loadOwnerId);
         }
       }
     };
-    loadSavedProgress();
-  }, [loadProgress]);
+    void loadSavedProgress();
+
+    return () => {
+      cancelled = true;
+    };
+  }, [loadProgress, ownerId]);
 
   // Save progress whenever it changes
   useEffect(() => {
-    if (user) {
-      const progressData = { partProgress, score };
-      const completed = correctCount === allParts.length;
-      const scorePercentage = Math.round((score / (allParts.length * 10)) * 100);
-
-      saveProgress(TOPIC_IDS.NAUTICAL_TERMS_BOAT_PARTS, completed, scorePercentage, 0, progressData);
+    if (ownerId && hydrationComplete && progressDirtyRef.current) {
+      progressDirtyRef.current = false;
+      pendingSaveRef.current = {
+        ownerId,
+        ownerEpoch: ownerEpochRef.current,
+        completed: correctCount === allParts.length,
+        scorePercentage: Math.round((score / MAX_SCORE) * 100),
+        data: { partProgress, score },
+      };
+      void flushProgressSaves();
     }
-  }, [partProgress, score, user, correctCount, saveProgress]);
+  }, [partProgress, score, ownerId, correctCount, progressRevision, hydrationComplete, flushProgressSaves]);
 
   const getMarkerColor = (part: BoatPart) => {
     const progress = partProgress[part.id];
@@ -815,7 +932,7 @@ const NauticalTerms = () => {
               </div>
             </div>
             <div className="flex items-center gap-4">
-              <Button variant="outline" size="sm" onClick={resetGame}>
+              <Button variant="outline" size="sm" onClick={resetGame} disabled={!hydrationComplete}>
                 <RotateCcw className="w-4 h-4 mr-2" />
                 Reset
               </Button>
