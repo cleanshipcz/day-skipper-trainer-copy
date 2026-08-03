@@ -1,5 +1,10 @@
 export interface AnchorScenario {
   id: number;
+  identity: string;
+  seed: number;
+  cycle: number;
+  family: AnchorScenarioFamily;
+  windDirection: string;
   title: string;
   condition: "mild" | "moderate" | "strong";
   depth: number;
@@ -21,6 +26,69 @@ export interface AnchorScenario {
   guidance: string;
   basis: readonly string[];
 }
+
+export type AnchorScenarioFamily = "sheltered" | "harbour" | "exposed" | "tidal";
+
+export type AnchorScenarioTemplate = Omit<AnchorScenario, "id" | "identity" | "seed" | "cycle">;
+
+const hashSeed = (value: string) => {
+  let hash = 2166136261;
+  for (const character of value) {
+    hash ^= character.charCodeAt(0);
+    hash = Math.imul(hash, 16777619);
+  }
+  return hash >>> 0;
+};
+
+export const normaliseScenarioSeed = (value: string | null | undefined) => {
+  if (!value) return 1;
+  const numeric = Number(value);
+  return Number.isSafeInteger(numeric) && numeric >= 0 ? numeric >>> 0 : hashSeed(value);
+};
+
+const seededValue = (seed: number, index: number) => {
+  let value = (seed + Math.imul(index + 1, 0x9e3779b1)) >>> 0;
+  value ^= value >>> 16;
+  value = Math.imul(value, 0x21f0aaad);
+  value ^= value >>> 15;
+  value = Math.imul(value, 0x735a2d97);
+  return (value ^ (value >>> 15)) >>> 0;
+};
+
+const getShuffledScenarioFamilies = (seed: number, cycle: number) => {
+  const families: AnchorScenarioFamily[] = ["sheltered", "harbour", "exposed", "tidal"];
+  // Seed zero is the documented baseline fixture used by examples and browser characterization.
+  if (seed === 0 && cycle === 0) return families;
+  for (let index = families.length - 1; index > 0; index -= 1) {
+    const swap = seededValue(seed, cycle * families.length + index) % (index + 1);
+    [families[index], families[swap]] = [families[swap], families[index]];
+  }
+  return families;
+};
+
+export const getScenarioFamilyOrder = (seed: number, cycle: number): AnchorScenarioFamily[] => {
+  const families = getShuffledScenarioFamilies(seed, cycle);
+  if (cycle > 0) {
+    // Boundary correction only swaps the first two entries, so it never changes
+    // the previous cycle's last entry. Reading its raw shuffle avoids recursion.
+    const previousLast = getShuffledScenarioFamilies(seed, cycle - 1).at(-1);
+    if (families[0] === previousLast) [families[0], families[1]] = [families[1], families[0]];
+  }
+  return families;
+};
+
+export const createScenario = (
+  templates: readonly AnchorScenarioTemplate[], seed: number, sequenceIndex: number,
+): AnchorScenario => {
+  if (templates.length === 0) throw new Error("At least one anchor scenario template is required");
+  const cycle = Math.floor(sequenceIndex / templates.length);
+  const position = sequenceIndex % templates.length;
+  const family = getScenarioFamilyOrder(seed, cycle)[position];
+  const template = templates.find((candidate) => candidate.family === family);
+  if (!template) throw new Error(`Missing anchor scenario family: ${family}`);
+  const identity = `anchor-${seed.toString(36)}-${cycle + 1}-${position + 1}-${family}`;
+  return { ...template, seed, cycle: cycle + 1, identity, id: hashSeed(identity) };
+};
 
 export interface AnchorGameState {
   boatX: number;

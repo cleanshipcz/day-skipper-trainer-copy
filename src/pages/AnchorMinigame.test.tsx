@@ -89,6 +89,21 @@ describe("AnchorMinigame", () => {
     expect(screen.getByText(/Simplified: the circular worst-case sweep/)).toBeTruthy();
     expect(screen.getByLabelText("Anchoring swept-area plan")).toBeTruthy();
     expect(screen.getByText(/Differently swinging neighbours:/)).toBeTruthy();
+    expect(screen.getByText(/Modeled condition effects:/)).toBeTruthy();
+    expect(screen.getByText(/exact wind\/current vectors/)).toBeTruthy();
+  });
+
+  it("reproduces a setup from URL identity and advances without a boundary repeat", async () => {
+    const user = userEvent.setup();
+    render(<MemoryRouter initialEntries={["/?scenarioSeed=0&scenarioIndex=3"]}><AnchorMinigame /></MemoryRouter>);
+
+    expect(screen.getByText("Tidal river bend")).toBeTruthy();
+    expect(screen.getByText(/anchor-0-1-4-tidal/)).toBeTruthy();
+    expect(screen.getByText(/Family 4\/4/)).toBeTruthy();
+    await user.click(screen.getByRole("button", { name: "New setup" }));
+    expect(screen.queryByText("Tidal river bend")).toBeNull();
+    expect(screen.getByText(/Cycle 2/)).toBeTruthy();
+    expect(screen.getByText(/Tidal river bend \(changed, anchor-0-1-4-tidal\)/)).toBeTruthy();
   });
 
   it("draws an unsafe swept area beyond the room boundary", async () => {
@@ -146,6 +161,25 @@ describe("AnchorMinigame", () => {
     expect(localSetItem).not.toHaveBeenCalled();
     expect(sessionSetItem).not.toHaveBeenCalled();
     expect(indexedDbOpen).not.toHaveBeenCalled();
+    now.mockRestore();
+  });
+
+  it("preserves a passed history outcome when continuing to the next setup", () => {
+    const now = vi.spyOn(Date, "now").mockReturnValue(1_000);
+    render(<MemoryRouter initialEntries={["/?scenarioSeed=0&scenarioIndex=0"]}><AnchorMinigame /></MemoryRouter>);
+    for (let index = 0; index < 32; index += 1) fireEvent.keyDown(window, { key: "ArrowDown" });
+    for (let index = 0; index < 10; index += 1) fireEvent.keyDown(window, { key: "ArrowLeft" });
+    for (let index = 0; index < 3; index += 1) fireEvent.click(screen.getByRole("button", { name: "Apply setting load" }));
+    fireEvent.keyDown(window, { key: "Enter" });
+    fireEvent.click(screen.getByRole("button", { name: "Close" }));
+    now.mockReturnValue(6_000);
+    fireEvent.click(screen.getByRole("button", { name: "Apply wind/tide change" }));
+    fireEvent.click(screen.getByRole("button", { name: "Run anchor watch" }));
+    fireEvent.keyDown(window, { key: "Enter" });
+    fireEvent.click(screen.getByRole("button", { name: "Next setup" }));
+
+    expect(screen.getByText(/Sheltered cove \(passed, anchor-0-1-1-sheltered\)/)).toBeTruthy();
+    expect(screen.queryByText(/Sheltered cove \(changed, anchor-0-1-1-sheltered\)/)).toBeNull();
     now.mockRestore();
   });
 
