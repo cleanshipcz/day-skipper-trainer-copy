@@ -82,7 +82,6 @@ const LightsTheory = () => {
       <main className="container mx-auto px-4 py-8 max-w-4xl">
         <Tabs value={activeSection} className="space-y-6" onValueChange={(value) => {
           setSearchParams({ section: value });
-          void markSectionVisited(value);
         }}>
           <TabsList className="grid w-full grid-cols-2 md:grid-cols-4 h-auto">
             <TabsTrigger value="lights" className="py-2">
@@ -394,10 +393,10 @@ const LightsTheory = () => {
             Take the Quiz
           </Button>
           <p className="w-full text-center text-sm" role="status" aria-live="polite">
-            {saveState === "saved" && "Completion saved to the server."}
-            {saveState === "queued" && "Completion is durably queued on this device and will sync when you reconnect."}
-            {saveState === "local" && "Completion saved on this device. Sign in to save it across devices."}
-            {saveState === "failed" && "Completion could not be saved. Retry when ready."}
+            {saveState === "saved" && "Progress saved to the server."}
+            {saveState === "queued" && "Progress is durably queued on this device and will sync when you reconnect."}
+            {saveState === "local" && "Progress saved on this device. Sign in to save it across devices."}
+            {saveState === "failed" && "Progress could not be saved. Retry when ready."}
           </p>
         </div>
       </main>

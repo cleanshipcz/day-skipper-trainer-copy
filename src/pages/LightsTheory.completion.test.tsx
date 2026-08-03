@@ -41,17 +41,18 @@ describe("LightsTheory evidence-based completion", () => {
   });
 
   it("does not record evidence from tab activation and requires review plus a correct recognition", async () => {
+    const user = userEvent.setup();
     renderPage();
-    fireEvent.click(screen.getByRole("tab", { name: "Sounds" }));
+    await user.click(screen.getByRole("tab", { name: "Sounds" }));
     expect(mocks.markSectionVisited).not.toHaveBeenCalled();
 
     const fieldset = screen.getByRole("group", { name: "Part C lights and shapes" });
     const record = fieldset.querySelector("button")!;
-    fireEvent.click(fieldset.querySelector("input[type='checkbox']")!);
-    fireEvent.click(screen.getByLabelText("A pilot vessel"));
+    await user.click(fieldset.querySelector("input[type='checkbox']")!);
+    await user.click(screen.getByLabelText("A pilot vessel"));
     expect(record.hasAttribute("disabled")).toBe(true);
-    fireEvent.click(screen.getByLabelText("A vessel fishing other than trawling"));
-    fireEvent.click(record);
+    await user.click(screen.getByLabelText("A vessel fishing other than trawling"));
+    await user.click(record);
     expect(mocks.markSectionVisited).toHaveBeenCalledWith("part-c-recognition");
   });
 
@@ -85,10 +86,10 @@ describe("LightsTheory evidence-based completion", () => {
   });
 
   it.each([
-    ["saved", "Completion saved to the server."],
-    ["queued", "Completion is durably queued on this device and will sync when you reconnect."],
-    ["local", "Completion saved on this device. Sign in to save it across devices."],
-    ["failed", "Completion could not be saved. Retry when ready."],
+    ["saved", "Progress saved to the server."],
+    ["queued", "Progress is durably queued on this device and will sync when you reconnect."],
+    ["local", "Progress saved on this device. Sign in to save it across devices."],
+    ["failed", "Progress could not be saved. Retry when ready."],
   ])("reports the %s persistence outcome truthfully", (state, message) => {
     mocks.saveState = state;
     renderPage();
