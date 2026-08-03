@@ -125,6 +125,9 @@ const Quiz = () => {
   const [seedStatus, setSeedStatus] = useState<"idle" | "saving" | "saved" | "failed">("idle");
   const [completionSaveError, setCompletionSaveError] = useState(() => Boolean(workflow?.scoreSaved && workflow.completion));
   const [attemptCycle, setAttemptCycle] = useState(0);
+  const questionHeadingRef = useRef<HTMLHeadingElement>(null);
+  const completionHeadingRef = useRef<HTMLHeadingElement>(null);
+  const focusQuestionAfterAdvanceRef = useRef(false);
   const seedOwnerRef = useRef(user?.id ?? null);
   const seedGenerationRef = useRef(0);
   const currentSeedOwner = user?.id ?? null;
@@ -227,6 +230,17 @@ const Quiz = () => {
   const selectedAnswer = answers[currentQuestion] ?? null;
   const correctAnswers = countCorrectAnswers(answers, questions);
 
+  useEffect(() => {
+    if (!isComplete || !completionHeadingRef.current) return;
+    completionHeadingRef.current.focus();
+  }, [isComplete]);
+
+  useEffect(() => {
+    if (!focusQuestionAfterAdvanceRef.current || isComplete) return;
+    focusQuestionAfterAdvanceRef.current = false;
+    questionHeadingRef.current?.focus();
+  }, [currentQuestion, isComplete]);
+
   const persistSession = async (nextAnswers: Array<number | null>, nextQuestion: number) => {
     await persistQuizSessionProgress({
       isAuthenticated: Boolean(user),
@@ -285,20 +299,10 @@ const Quiz = () => {
     if (selectedAnswer === null) return;
 
     setShowExplanation(true);
-    const isCorrect = selectedAnswer === question.correctAnswer;
-
-    if (isCorrect) {
-      toast.success("Correct!", {
-        description: question.explanation,
-      });
-    } else {
-      toast.error("Incorrect", {
-        description: question.explanation,
-      });
-    }
   };
 
   const handleNext = async () => {
+    focusQuestionAfterAdvanceRef.current = currentQuestion < questions.length - 1;
     const newQuestion = currentQuestion < questions.length - 1 ? currentQuestion + 1 : currentQuestion;
     setCurrentQuestion(newQuestion);
     setShowExplanation(false);
@@ -306,12 +310,13 @@ const Quiz = () => {
     await persistSession(answers, newQuestion);
 
     if (currentQuestion >= questions.length - 1) {
-      handleComplete();
+      await handleComplete();
     }
   };
 
   const handlePrevious = async () => {
     if (currentQuestion > 0) {
+      focusQuestionAfterAdvanceRef.current = true;
       const newQuestion = currentQuestion - 1;
       setCurrentQuestion(newQuestion);
       setShowExplanation(false);
@@ -401,6 +406,7 @@ const Quiz = () => {
     if (user && !workflow?.scoreSaved) {
       removeStored(localStorage, quizAttemptKey(user.id, topicKey));
     }
+    focusQuestionAfterAdvanceRef.current = true;
     setCurrentQuestion(0);
     setAnswers(createEmptyQuizAnswers(questions.length));
     setShowExplanation(false);
@@ -417,17 +423,17 @@ const Quiz = () => {
     const passed = workflow?.completion?.passed ?? percentage >= 70;
 
     return (
-      <div className="min-h-screen bg-gradient-to-br from-background via-ocean-light/10 to-background flex items-center justify-center p-4">
+      <div className="min-h-screen bg-gradient-to-br from-background via-ocean-light/10 to-background flex items-center justify-center p-3 sm:p-4">
         <Card className="max-w-2xl w-full border-2">
           <CardHeader className="text-center">
             <div
-              className={`w-20 h-20 mx-auto mb-4 rounded-full flex items-center justify-center ${
+              className={`w-20 h-20 mx-auto mb-4 rounded-full flex items-center justify-center motion-reduce:animate-none ${
                 passed ? "bg-success/20" : "bg-accent/20"
               }`}
             >
               <Trophy className={`w-10 h-10 ${passed ? "text-success" : "text-accent"}`} />
             </div>
-            <CardTitle className="text-3xl">Quiz Complete!</CardTitle>
+            <CardTitle ref={completionHeadingRef} tabIndex={-1} className="text-3xl break-words [overflow-wrap:anywhere] focus:outline-none">Quiz Complete!</CardTitle>
           </CardHeader>
           <CardContent className="space-y-6">
             <div className="text-center">
@@ -449,7 +455,7 @@ const Quiz = () => {
               </div>
             )}
 
-            <div className="flex gap-3">
+            <div className="flex flex-col gap-3 sm:flex-row">
               <Button variant="outline" className="flex-1" onClick={() => navigate("/")}>
                 <ArrowLeft className="w-4 h-4 mr-2" />
                 Home
@@ -482,30 +488,41 @@ const Quiz = () => {
   return (
     <div className="min-h-screen bg-gradient-to-br from-background via-ocean-light/10 to-background">
       <header className="border-b border-border bg-card/50 backdrop-blur-sm sticky top-0 z-10">
-        <div className="container mx-auto px-4 py-4">
-          <div className="flex items-center justify-between">
-            <div className="flex items-center gap-3">
-              <Button variant="ghost" size="icon" onClick={() => navigate("/")}>
-                <ArrowLeft className="w-5 h-5" />
+        <div className="container mx-auto px-3 py-4 sm:px-4">
+          <div className="flex flex-wrap items-start justify-between gap-3">
+            <div className="flex min-w-0 flex-1 items-start gap-2 sm:gap-3">
+              <Button variant="ghost" size="icon" aria-label={`Back to home from ${meta.title}`} className="shrink-0" onClick={() => navigate("/")}>
+                <ArrowLeft className="w-5 h-5" aria-hidden="true" />
               </Button>
-              <div>
-                <h1 className="text-xl font-bold">{meta.title}</h1>
-                <p className="text-sm text-muted-foreground">
+              <div className="min-w-0">
+                <h1 className="text-xl font-bold break-words [overflow-wrap:anywhere]">{meta.title}</h1>
+                <p className="text-sm text-muted-foreground break-words [overflow-wrap:anywhere]">
                   {meta.subtitle} • Question {currentQuestion + 1} of {questions.length}
                 </p>
               </div>
             </div>
-            <Badge variant="secondary">
+            <Badge variant="secondary" className="shrink-0">
               Score: {correctAnswers}/{questions.length}
             </Badge>
           </div>
           <div className="mt-4">
-            <Progress value={progress} className="h-2" />
+            <p id="quiz-progress-label" className="mb-1 text-sm font-medium">
+              Progress: question {currentQuestion + 1} of {questions.length} ({Math.round(progress)}%)
+            </p>
+            <Progress
+              value={progress}
+              className="h-2"
+              aria-labelledby="quiz-progress-label"
+              aria-valuemin={0}
+              aria-valuemax={100}
+              aria-valuenow={Math.round(progress)}
+              aria-valuetext={`Question ${currentQuestion + 1} of ${questions.length}`}
+            />
           </div>
         </div>
       </header>
 
-      <main className="container mx-auto px-4 py-8 max-w-3xl">
+      <main className="container mx-auto max-w-3xl px-3 py-5 sm:px-4 sm:py-8">
         <Card className="border-2">
           <CardHeader>
             {question.image && (
@@ -517,10 +534,12 @@ const Quiz = () => {
                 />
               </div>
             )}
-            <CardTitle className="text-2xl">{question.question}</CardTitle>
+            <CardTitle ref={questionHeadingRef} tabIndex={-1} className="text-2xl break-words [overflow-wrap:anywhere] focus:outline-none">{question.question}</CardTitle>
           </CardHeader>
           <CardContent className="space-y-4">
-            <div className="grid gap-3">
+            <fieldset className="min-w-0">
+              <legend className="sr-only">Choose one answer</legend>
+              <div className="grid gap-3" role="radiogroup" aria-label={`Answers for question ${currentQuestion + 1}`}>
               {question.options.map((option, index) => {
                 const isSelected = selectedAnswer === index;
                 const isCorrect = index === question.correctAnswer;
@@ -528,11 +547,9 @@ const Quiz = () => {
                 const showIncorrect = showExplanation && isSelected && !isCorrect;
 
                 return (
-                  <button
+                  <label
                     key={index}
-                    onClick={() => handleAnswerSelect(index)}
-                    disabled={showExplanation}
-                    className={`p-4 rounded-lg border-2 text-left transition-all hover:scale-[1.02] ${
+                    className={`block min-w-0 p-4 rounded-lg border-2 text-left transition-all hover:scale-[1.02] focus-within:ring-2 focus-within:ring-ring focus-within:ring-offset-2 motion-reduce:!transition-none motion-reduce:hover:scale-100 ${
                       showCorrect
                         ? "border-success bg-success/10"
                         : showIncorrect
@@ -542,27 +559,39 @@ const Quiz = () => {
                         : "border-border bg-card hover:border-secondary/50"
                     } ${showExplanation ? "cursor-not-allowed" : "cursor-pointer"}`}
                   >
-                    <div className="flex items-center justify-between">
-                      <span className="font-medium">{option}</span>
-                      {showCorrect && <CheckCircle2 className="w-5 h-5 text-success" />}
-                      {showIncorrect && <XCircle className="w-5 h-5 text-destructive" />}
+                    <input
+                      type="radio"
+                      name={`quiz-question-${currentQuestion}`}
+                      value={index}
+                      checked={isSelected}
+                      disabled={showExplanation}
+                      onChange={() => void handleAnswerSelect(index)}
+                      className="sr-only"
+                    />
+                    <div className="flex min-w-0 items-start justify-between gap-3">
+                      <span className="min-w-0 font-medium break-words [overflow-wrap:anywhere]">{option}</span>
+                      {showCorrect && <CheckCircle2 className="w-5 h-5 shrink-0 text-success" aria-hidden="true" />}
+                      {showIncorrect && <XCircle className="w-5 h-5 shrink-0 text-destructive" aria-hidden="true" />}
                     </div>
-                  </button>
+                  </label>
                 );
               })}
-            </div>
+              </div>
+            </fieldset>
 
             {showExplanation && (
-              <div className="mt-6 p-4 bg-muted rounded-lg border-2 border-border animate-in fade-in slide-in-from-bottom-4 duration-500">
+              <div role="status" aria-live="polite" aria-atomic="true" className="mt-6 p-4 bg-muted rounded-lg border-2 border-border animate-in fade-in slide-in-from-bottom-4 duration-500 motion-reduce:!animate-none motion-reduce:!transition-none">
                 <h3 className="font-semibold mb-2 flex items-center gap-2">
-                  <CheckCircle2 className="w-5 h-5 text-secondary" />
-                  Explanation
+                  {selectedAnswer === question.correctAnswer
+                    ? <CheckCircle2 className="w-5 h-5 text-success" aria-hidden="true" />
+                    : <XCircle className="w-5 h-5 text-destructive" aria-hidden="true" />}
+                  {selectedAnswer === question.correctAnswer ? "Correct" : "Incorrect"}
                 </h3>
-                <p className="text-muted-foreground">{question.explanation}</p>
+                <p className="text-muted-foreground break-words [overflow-wrap:anywhere]">{question.explanation}</p>
               </div>
             )}
 
-            <div className="flex gap-3 pt-4">
+            <div className="flex flex-col gap-3 pt-4 sm:flex-row">
               {currentQuestion > 0 && !showExplanation && (
                 <Button variant="outline" onClick={handlePrevious}>
                   <ChevronLeft className="w-4 h-4 mr-2" />

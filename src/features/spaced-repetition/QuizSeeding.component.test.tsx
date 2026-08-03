@@ -75,7 +75,7 @@ describe("quiz review seeding identity isolation", () => {
       ? new Promise((resolve) => { resolveInsert = resolve; })
       : Promise.resolve({ data: { attempt_id: "issued-attempt", started_at: new Date().toISOString() }, error: null }));
     const view = renderQuiz();
-    fireEvent.click(await screen.findByRole("button", { name: "Right" }));
+    fireEvent.click(await screen.findByRole("radio", { name: "Right" }));
     fireEvent.click(screen.getByRole("button", { name: "Submit Answer" }));
     fireEvent.click(screen.getByRole("button", { name: "View Results" }));
     await waitFor(() => expect(mocks.rpc).toHaveBeenCalledWith("submit_quiz_score", expect.any(Object)));
@@ -90,7 +90,7 @@ describe("quiz review seeding identity isolation", () => {
   test("should reuse the issued attempt when score succeeds but final progress needs retry", async () => {
     mocks.saveProgress.mockImplementation((_topic: string, completed: boolean) => Promise.resolve(!completed));
     renderQuiz();
-    fireEvent.click(await screen.findByRole("button", { name: "Right" }));
+    fireEvent.click(await screen.findByRole("radio", { name: "Right" }));
     fireEvent.click(screen.getByRole("button", { name: "Submit Answer" }));
     fireEvent.click(screen.getByRole("button", { name: "View Results" }));
     expect(await screen.findByRole("button", { name: "Retry completion save" })).toBeTruthy();
@@ -104,7 +104,7 @@ describe("quiz review seeding identity isolation", () => {
   test("should prevent restarting on score evidence whose progress still needs recovery", async () => {
     mocks.saveProgress.mockImplementation((_topic: string, completed: boolean) => Promise.resolve(!completed));
     renderQuiz();
-    fireEvent.click(await screen.findByRole("button", { name: "Right" }));
+    fireEvent.click(await screen.findByRole("radio", { name: "Right" }));
     fireEvent.click(screen.getByRole("button", { name: "Submit Answer" }));
     fireEvent.click(screen.getByRole("button", { name: "View Results" }));
 
@@ -131,7 +131,7 @@ describe("quiz review seeding identity isolation", () => {
     }));
 
     const firstView = renderQuiz();
-    fireEvent.click(await screen.findByRole("button", { name: "Right" }));
+    fireEvent.click(await screen.findByRole("radio", { name: "Right" }));
     fireEvent.click(screen.getByRole("button", { name: "Submit Answer" }));
     fireEvent.click(screen.getByRole("button", { name: "View Results" }));
     await screen.findByRole("button", { name: "Retry completion save" });
@@ -143,7 +143,7 @@ describe("quiz review seeding identity isolation", () => {
     expect(await screen.findByText("Quiz Complete!")).toBeTruthy();
     expect(screen.getByText("100%")).toBeTruthy();
     expect((screen.getByRole("button", { name: "Finish saving first" }) as HTMLButtonElement).disabled).toBe(true);
-    expect(screen.queryByRole("button", { name: "Right" })).toBeNull();
+    expect(screen.queryByRole("radio", { name: "Right" })).toBeNull();
 
     completedSaveSucceeds = true;
     fireEvent.click(screen.getByRole("button", { name: "Retry completion save" }));
@@ -183,7 +183,7 @@ describe("quiz review seeding identity isolation", () => {
     mocks.auth.user = { id: "b" };
     view.rerender(<MemoryRouter initialEntries={["/quiz/test"]}><Routes><Route path="/quiz/:topicId" element={<Quiz />} /></Routes></MemoryRouter>);
 
-    expect(await screen.findByRole("button", { name: "Right" })).toBeTruthy();
+    expect(await screen.findByRole("radio", { name: "Right" })).toBeTruthy();
     expect(screen.queryByText("Quiz Complete!")).toBeNull();
     expect(screen.queryByRole("button", { name: "Finish saving first" })).toBeNull();
     await waitFor(() => expect(localStorage.getItem("quiz-attempt:b:test")).toContain("issued-attempt"));
@@ -214,7 +214,7 @@ describe("quiz review seeding identity isolation", () => {
     }));
     renderQuiz();
     await waitFor(() => expect(localStorage.getItem("quiz-attempt:a:test")).toContain("issued-attempt"));
-    fireEvent.click(screen.getByRole("button", { name: "Right" }));
+    fireEvent.click(screen.getByRole("radio", { name: "Right" }));
     fireEvent.click(screen.getByRole("button", { name: "Submit Answer" }));
     fireEvent.click(screen.getByRole("button", { name: "View Results" }));
     await screen.findByRole("button", { name: "Retry Quiz" });
