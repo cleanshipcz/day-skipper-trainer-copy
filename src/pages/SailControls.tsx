@@ -1,4 +1,5 @@
-import { useState, useMemo, useCallback } from "react";
+import { useState, useMemo, useCallback, useEffect, useRef } from "react";
+import type { KeyboardEvent as ReactKeyboardEvent } from "react";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -166,6 +167,31 @@ function shuffleArray<T>(array: T[]): T[] {
   return shuffled;
 }
 
+function getDiagramControlProps(
+  id: string,
+  name: string,
+  onClick?: (id: string) => void,
+  onHover?: (id: string | null) => void
+) {
+  if (!onClick) return {};
+
+  return {
+    role: "button",
+    tabIndex: 0,
+    "aria-label": `Show ${name} details from diagram`,
+    className:
+      "focus:outline-none focus-visible:[&>rect[data-touch-target]]:stroke-primary focus-visible:[&>rect[data-touch-target]]:stroke-[4]",
+    onFocus: () => onHover?.(id),
+    onBlur: () => onHover?.(null),
+    onKeyDown: (event: ReactKeyboardEvent<SVGGElement>) => {
+      if (event.key === "Enter" || event.key === " ") {
+        event.preventDefault();
+        onClick(id);
+      }
+    },
+  };
+}
+
 // Simple schematic diagram showing where controls are - with clickable areas
 const SchematicDiagram = ({
   highlightId,
@@ -176,7 +202,7 @@ const SchematicDiagram = ({
   onHover?: (id: string | null) => void;
   onClick?: (id: string) => void;
 }) => (
-  <svg viewBox="0 0 600 700" className="h-auto w-full min-w-[600px]">
+  <svg viewBox="0 0 600 700" className="h-auto w-full min-w-[600px]" aria-label="Sail controls diagram">
     <defs>
       <linearGradient id="sailGradient2" x1="0%" y1="0%" x2="100%" y2="0%">
         <stop offset="0%" stopColor="#fef3c7" />
@@ -247,6 +273,7 @@ const SchematicDiagram = ({
 
     {/* Main Halyard */}
     <g
+      {...getDiagramControlProps("main-halyard", "Main Halyard", onClick, onHover)}
       style={{ cursor: "pointer" }}
       opacity={highlightId === "main-halyard" || !highlightId ? 1 : 0.4}
       filter={highlightId === "main-halyard" ? "url(#glow)" : undefined}
@@ -266,6 +293,7 @@ const SchematicDiagram = ({
 
     {/* Jib Halyard */}
     <g
+      {...getDiagramControlProps("jib-halyard", "Jib Halyard", onClick, onHover)}
       data-control-id="jib-halyard"
       style={{ cursor: "pointer" }}
       opacity={highlightId === "jib-halyard" || !highlightId ? 1 : 0.4}
@@ -286,6 +314,7 @@ const SchematicDiagram = ({
 
     {/* Mainsheet */}
     <g
+      {...getDiagramControlProps("mainsheet", "Mainsheet", onClick, onHover)}
       style={{ cursor: "pointer" }}
       opacity={highlightId === "mainsheet" || !highlightId ? 1 : 0.4}
       filter={highlightId === "mainsheet" ? "url(#glow)" : undefined}
@@ -305,6 +334,7 @@ const SchematicDiagram = ({
 
     {/* Jib Sheet */}
     <g
+      {...getDiagramControlProps("jib-sheet", "Jib Sheet", onClick, onHover)}
       data-control-id="jib-sheet"
       style={{ cursor: "pointer" }}
       opacity={highlightId === "jib-sheet" || !highlightId ? 1 : 0.4}
@@ -324,6 +354,7 @@ const SchematicDiagram = ({
 
     {/* Boom Vang */}
     <g
+      {...getDiagramControlProps("boom-vang", "Boom Vang", onClick, onHover)}
       style={{ cursor: "pointer" }}
       opacity={highlightId === "boom-vang" || !highlightId ? 1 : 0.4}
       filter={highlightId === "boom-vang" ? "url(#glow)" : undefined}
@@ -343,6 +374,7 @@ const SchematicDiagram = ({
 
     {/* Outhaul */}
     <g
+      {...getDiagramControlProps("outhaul", "Outhaul", onClick, onHover)}
       style={{ cursor: "pointer" }}
       opacity={highlightId === "outhaul" || !highlightId ? 1 : 0.4}
       filter={highlightId === "outhaul" ? "url(#glow)" : undefined}
@@ -361,6 +393,7 @@ const SchematicDiagram = ({
 
     {/* Cunningham */}
     <g
+      {...getDiagramControlProps("cunningham", "Cunningham", onClick, onHover)}
       style={{ cursor: "pointer" }}
       opacity={highlightId === "cunningham" || !highlightId ? 1 : 0.4}
       filter={highlightId === "cunningham" ? "url(#glow)" : undefined}
@@ -380,6 +413,7 @@ const SchematicDiagram = ({
 
     {/* Topping Lift */}
     <g
+      {...getDiagramControlProps("topping-lift", "Topping Lift", onClick, onHover)}
       style={{ cursor: "pointer" }}
       opacity={highlightId === "topping-lift" || !highlightId ? 1 : 0.4}
       filter={highlightId === "topping-lift" ? "url(#glow)" : undefined}
@@ -397,6 +431,7 @@ const SchematicDiagram = ({
 
     {/* Reefing points */}
     <g
+      {...getDiagramControlProps("reefing-lines", "Reefing Lines", onClick, onHover)}
       style={{ cursor: "pointer" }}
       opacity={highlightId === "reefing-lines" || !highlightId ? 1 : 0.4}
       filter={highlightId === "reefing-lines" ? "url(#glow)" : undefined}
@@ -419,6 +454,7 @@ const SchematicDiagram = ({
 
     {/* Traveller */}
     <g
+      {...getDiagramControlProps("traveller", "Mainsheet Traveller", onClick, onHover)}
       style={{ cursor: "pointer" }}
       opacity={highlightId === "traveller" || !highlightId ? 1 : 0.4}
       filter={highlightId === "traveller" ? "url(#glow)" : undefined}
@@ -437,6 +473,7 @@ const SchematicDiagram = ({
 
     {/* Jib Fairlead */}
     <g
+      {...getDiagramControlProps("jib-fairlead", "Jib Fairlead", onClick, onHover)}
       data-control-id="jib-fairlead"
       style={{ cursor: "pointer" }}
       opacity={highlightId === "jib-fairlead" || !highlightId ? 1 : 0.4}
@@ -456,6 +493,7 @@ const SchematicDiagram = ({
 
     {/* Backstay Adjuster */}
     <g
+      {...getDiagramControlProps("backstay-adjuster", "Backstay Adjuster", onClick, onHover)}
       style={{ cursor: "pointer" }}
       opacity={highlightId === "backstay-adjuster" || !highlightId ? 1 : 0.4}
       filter={highlightId === "backstay-adjuster" ? "url(#glow)" : undefined}
@@ -492,6 +530,18 @@ const SailControls = () => {
   const [wrongAnswer, setWrongAnswer] = useState<string | null>(null);
   const [quizQueue, setQuizQueue] = useState<SailControl[]>([]);
   const [currentQuizIndex, setCurrentQuizIndex] = useState(0);
+  const [quizAnnouncement, setQuizAnnouncement] = useState("");
+  const questionHeadingRef = useRef<HTMLHeadingElement>(null);
+  const completionHeadingRef = useRef<HTMLHeadingElement>(null);
+
+  useEffect(() => {
+    if (mode !== "quiz") return;
+    if (activePart) {
+      questionHeadingRef.current?.focus();
+    } else if (quizQueue.length > 0) {
+      completionHeadingRef.current?.focus();
+    }
+  }, [mode, activePart, currentQuizIndex, quizQueue.length]);
 
   // The highlighted part is either hovered or selected (hovered takes visual priority for diagram)
   const highlightedId = hoveredPart?.id || selectedPart?.id;
@@ -509,6 +559,7 @@ const SailControls = () => {
     });
     setPartProgress(initial);
     setScore(0);
+    setQuizAnnouncement(`Quiz started. Question 1 of ${sailControls.length}.`);
   }, []);
 
   const options = useMemo(() => {
@@ -530,7 +581,12 @@ const SailControls = () => {
           ...prev,
           [activePart.id]: { state: "correct", attempts: attempts + 1 },
         }));
-        toast.success(`+${points} points! Correct: ${activePart.name}`);
+        const isLastQuestion = currentQuizIndex === quizQueue.length - 1;
+        setQuizAnnouncement(
+          isLastQuestion
+            ? `Correct. ${points} points. Quiz complete. Final score: ${score + points} points.`
+            : `Correct. ${points} points. Next: question ${currentQuizIndex + 2} of ${quizQueue.length}.`
+        );
         setWrongAnswer(null);
 
         setTimeout(() => {
@@ -541,9 +597,6 @@ const SailControls = () => {
             setSelectedPart(null);
           } else {
             setActivePart(null);
-            toast.success("Quiz Complete! 🎉", {
-              description: `Final score: ${score + points} points`,
-            });
 
             if (user) {
               const finalScore = score + points;
@@ -563,7 +616,7 @@ const SailControls = () => {
             attempts: prev[activePart.id].attempts + 1,
           },
         }));
-        toast.error("Wrong! Try again");
+        setQuizAnnouncement(`Incorrect. ${selectedOption.name} is not the answer. Try again.`);
       }
     },
     [activePart, partProgress, currentQuizIndex, quizQueue, score, saveProgress, user]
@@ -580,6 +633,7 @@ const SailControls = () => {
     setSelectedPart(null);
     setWrongAnswer(null);
     setMode("learn");
+    setQuizAnnouncement("");
     toast.success("Reset! Ready to learn.");
   }, []);
 
@@ -605,7 +659,7 @@ const SailControls = () => {
         <div className="container mx-auto px-4 py-4">
           <div className="flex items-center justify-between flex-wrap gap-2">
             <div className="flex items-center gap-3">
-              <Button variant="ghost" size="icon" onClick={() => navigate("/nautical-terms")}>
+              <Button variant="ghost" size="icon" aria-label="Back to nautical terms" onClick={() => navigate("/nautical-terms")}>
                 <ArrowLeft className="w-5 h-5" />
               </Button>
               <div>
@@ -622,11 +676,11 @@ const SailControls = () => {
                     <RotateCcw className="w-4 h-4 mr-2" />
                     Reset
                   </Button>
-                  <div className="flex items-center gap-2">
+                  <div className="flex items-center gap-2" aria-label={`Score: ${score} points`}>
                     <Trophy className="w-5 h-5 text-accent" />
                     <span className="font-bold text-lg">{score}</span>
                   </div>
-                  <Badge variant="secondary">
+                  <Badge variant="secondary" aria-label={`${correctCount} of ${sailControls.length} answers correct`}>
                     {correctCount}/{sailControls.length}
                   </Badge>
                 </>
@@ -642,8 +696,19 @@ const SailControls = () => {
       </header>
 
       <main className="container mx-auto px-4 py-6">
+        <div className="sr-only" role="status" aria-live="polite" aria-atomic="true">
+          {quizAnnouncement}
+        </div>
         {mode === "quiz" && (
-          <div className="w-full bg-muted rounded-full h-3 mb-6">
+          <div
+            className="w-full bg-muted rounded-full h-3 mb-6"
+            role="progressbar"
+            aria-label="Quiz progress"
+            aria-valuemin={0}
+            aria-valuemax={sailControls.length}
+            aria-valuenow={correctCount}
+            aria-valuetext={`${correctCount} of ${sailControls.length} questions completed`}
+          >
             <div
               className="bg-green-500 h-3 rounded-full transition-all duration-500"
               style={{ width: `${progressPercent}%` }}
@@ -698,6 +763,7 @@ const SailControls = () => {
                                 variant="ghost"
                                 size="icon"
                                 className="h-6 w-6 -mt-1 -mr-2"
+                                aria-label={`Close ${selectedPart.name} details`}
                                 onClick={() => setSelectedPart(null)}
                               >
                                 <X className="w-4 h-4" />
@@ -737,7 +803,7 @@ const SailControls = () => {
                           <CardContent className="py-3 px-4 flex items-center gap-2">
                             <HelpCircle className="w-5 h-5 text-muted-foreground" />
                             <span className="text-sm text-muted-foreground">
-                              Click on any control line to learn more
+                              Click or use the diagram controls to learn more
                             </span>
                           </CardContent>
                         </Card>
@@ -763,11 +829,21 @@ const SailControls = () => {
               {sailControls.map((control) => (
                 <Card
                   key={control.id}
-                  className={`cursor-pointer hover:shadow-md transition-all border-l-4 ${
+                  role="button"
+                  tabIndex={0}
+                  aria-label={`Show ${control.name} details from control list`}
+                  aria-pressed={selectedPart?.id === control.id}
+                  className={`cursor-pointer hover:shadow-md transition-all border-l-4 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 ${
                     selectedPart?.id === control.id ? "ring-2 ring-primary shadow-lg" : ""
                   } ${hoveredPart?.id === control.id && selectedPart?.id !== control.id ? "shadow-md" : ""}`}
                   style={{ borderLeftColor: control.color }}
                   onClick={() => setSelectedPart(selectedPart?.id === control.id ? null : control)}
+                  onKeyDown={(event) => {
+                    if (event.key === "Enter" || event.key === " ") {
+                      event.preventDefault();
+                      setSelectedPart(selectedPart?.id === control.id ? null : control);
+                    }
+                  }}
                   onMouseEnter={() => setHoveredPart(control)}
                   onMouseLeave={() => setHoveredPart(null)}
                 >
@@ -810,7 +886,12 @@ const SailControls = () => {
                 <div className="space-y-4">
                   <Card className="border-2 border-primary">
                     <CardHeader>
-                      <CardTitle className="text-center">
+                      <CardTitle
+                        ref={questionHeadingRef}
+                        className="text-center focus:outline-none"
+                        id="sail-controls-question"
+                        tabIndex={-1}
+                      >
                         Question {currentQuizIndex + 1} of {quizQueue.length}
                       </CardTitle>
                     </CardHeader>
@@ -820,7 +901,7 @@ const SailControls = () => {
                         <p className="text-muted-foreground italic">"{activePart.purpose}"</p>
                       </div>
 
-                      <div className="grid grid-cols-2 gap-3">
+                      <div className="grid grid-cols-2 gap-3" role="group" aria-labelledby="sail-controls-question">
                         {options.map((option) => {
                           const isWrong = wrongAnswer === option.id;
                           const isCorrect =
@@ -877,7 +958,9 @@ const SailControls = () => {
                 <Card className="border-2 border-green-500">
                   <CardContent className="pt-6 text-center space-y-4">
                     <Trophy className="w-16 h-16 mx-auto text-yellow-500" />
-                    <h2 className="text-2xl font-bold">Quiz Complete!</h2>
+                    <h2 ref={completionHeadingRef} className="text-2xl font-bold focus:outline-none" tabIndex={-1}>
+                      Quiz Complete!
+                    </h2>
                     <p className="text-xl">
                       Final Score: <span className="text-green-600 font-bold">{score}</span> points
                     </p>

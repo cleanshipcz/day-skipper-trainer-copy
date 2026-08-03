@@ -1,5 +1,6 @@
-import { fireEvent, render, screen } from "@testing-library/react";
+import { act, fireEvent, render, screen } from "@testing-library/react";
 import { describe, expect, it, vi } from "vitest";
+import { toast } from "sonner";
 import SailControls from "../src/pages/SailControls";
 import TestRouter from "./TestRouter";
 
@@ -95,5 +96,106 @@ describe("SailControls schematic geometry", () => {
     fireEvent.mouseLeave(jibSheet!);
     fireEvent.click(fairleadTarget!);
     expect(screen.getByText("Sets the angle of pull on the jib sheet")).toBeTruthy();
+  });
+
+  it("exposes distinct keyboard controls for the diagram and control list", () => {
+    render(
+      <TestRouter>
+        <SailControls />
+      </TestRouter>
+    );
+
+    const diagramControls = screen.getAllByRole("button", { name: /details from diagram/i });
+    const listControls = screen.getAllByRole("button", { name: /details from control list/i });
+    expect(diagramControls).toHaveLength(12);
+    expect(listControls).toHaveLength(12);
+
+    const mainHalyard = screen.getByRole("button", { name: "Show Main Halyard details from diagram" });
+    fireEvent.focus(mainHalyard);
+    fireEvent.keyDown(mainHalyard, { key: "Enter" });
+    expect(screen.getByText("Raises and lowers the mainsail")).toBeTruthy();
+    expect(screen.getByRole("button", { name: "Close Main Halyard details" })).toBeTruthy();
+
+    fireEvent.click(screen.getByRole("button", { name: "Close Main Halyard details" }));
+    const jibHalyard = screen.getByRole("button", { name: "Show Jib Halyard details from control list" });
+    fireEvent.keyDown(jibHalyard, { key: " " });
+    expect(screen.getByText("Raises and lowers the headsail (jib/genoa)")).toBeTruthy();
+  });
+
+  it("provides named navigation and programmatic quiz progress and feedback", () => {
+    render(
+      <TestRouter>
+        <SailControls />
+      </TestRouter>
+    );
+
+    expect(screen.getByRole("button", { name: "Back to nautical terms" })).toBeTruthy();
+    fireEvent.click(screen.getByRole("button", { name: "Start Quiz" }));
+
+    const progress = screen.getByRole("progressbar", { name: "Quiz progress" });
+    expect(progress.getAttribute("aria-valuenow")).toBe("0");
+    expect(progress.getAttribute("aria-valuetext")).toBe("0 of 12 questions completed");
+    expect(screen.getByRole("status").textContent).toContain("Question 1 of 12");
+
+    const answers = screen.getAllByRole("button").filter((button) =>
+      ["Main Halyard", "Jib Halyard", "Mainsheet", "Jib Sheet", "Boom Vang", "Outhaul", "Cunningham", "Topping Lift", "Reefing Lines", "Mainsheet Traveller", "Jib Fairlead", "Backstay Adjuster"].includes(button.textContent ?? "")
+    );
+    fireEvent.click(answers[0]);
+    expect(screen.getByRole("status").textContent).toMatch(/Correct|Incorrect/);
+  });
+
+  it("moves focus across timed quiz transitions and uses one accessible feedback channel", () => {
+    vi.useFakeTimers();
+    vi.clearAllMocks();
+
+    const answersByPurpose = new Map([
+      ["Raises and lowers the mainsail", "Main Halyard"],
+      ["Raises and lowers the headsail (jib/genoa)", "Jib Halyard"],
+      ["Controls the angle of the mainsail to the wind", "Mainsheet"],
+      ["Controls the angle of the jib/genoa", "Jib Sheet"],
+      ["Prevents boom from rising, controls sail twist", "Boom Vang"],
+      ["Flattens or adds fullness to lower mainsail", "Outhaul"],
+      ["Moves draft forward, tensions luff", "Cunningham"],
+      ["Supports the boom when mainsail is down", "Topping Lift"],
+      ["Reduces mainsail area for heavy weather", "Reefing Lines"],
+      ["Adjusts boom angle independently of sheet tension", "Mainsheet Traveller"],
+      ["Sets the angle of pull on the jib sheet", "Jib Fairlead"],
+      ["Bends mast to flatten mainsail, tightens forestay", "Backstay Adjuster"],
+    ]);
+
+    render(
+      <TestRouter>
+        <SailControls />
+      </TestRouter>
+    );
+    fireEvent.click(screen.getByRole("button", { name: "Start Quiz" }));
+
+    const answerCurrentQuestion = () => {
+      const clue = screen.getByText(/What control line does this describe/).nextElementSibling?.textContent ?? "";
+      const answer = [...answersByPurpose].find(([purpose]) => clue.includes(purpose))?.[1];
+      expect(answer).toBeTruthy();
+      fireEvent.click(screen.getByRole("button", { name: answer! }));
+    };
+
+    expect(document.activeElement).toBe(screen.getByRole("heading", { name: "Question 1 of 12" }));
+    answerCurrentQuestion();
+    expect(screen.getByRole("status").textContent).toContain("Next: question 2 of 12");
+    expect(toast.success).not.toHaveBeenCalled();
+    expect(toast.error).not.toHaveBeenCalled();
+
+    act(() => vi.advanceTimersByTime(1000));
+    expect(document.activeElement).toBe(screen.getByRole("heading", { name: "Question 2 of 12" }));
+
+    for (let question = 2; question <= 12; question += 1) {
+      answerCurrentQuestion();
+      act(() => vi.advanceTimersByTime(1000));
+    }
+
+    const completionHeading = screen.getByRole("heading", { name: "Quiz Complete!" });
+    expect(document.activeElement).toBe(completionHeading);
+    expect(screen.getByRole("status").textContent).toMatch(/Quiz complete\. Final score:/);
+    expect(toast.success).not.toHaveBeenCalled();
+    expect(toast.error).not.toHaveBeenCalled();
+    vi.useRealTimers();
   });
 });
