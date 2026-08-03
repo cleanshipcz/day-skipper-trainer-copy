@@ -3,7 +3,7 @@ import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/com
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { ArrowLeft, Anchor, CheckCircle2, Trophy } from "lucide-react";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, useSearchParams } from "react-router-dom";
 import { toast } from "sonner";
 
 import { anchorSources, topics, Topic } from "@/data/anchorTopics";
@@ -12,15 +12,20 @@ import { useProgress, type ProgressSaveResult } from "@/hooks/useProgress";
 import { useAuth } from "@/contexts/AuthHooks";
 import { ANCHOR_PROGRESS_VERSION, isValidAnchorCatalogue, parseAnchorProgress } from "@/features/progress/anchorProgress";
 import { AnchorGeometryVisuals } from "@/components/anchorwork/AnchorGeometryVisuals";
+import { anchorPracticePrerequisites, anchorPracticeSkills } from "@/features/anchorwork/learningPath";
 
 const POINTS_PER_TOPIC = 20;
 const ANCHOR_CATALOGUE_VALID = isValidAnchorCatalogue(topics);
 
 const AnchorTheorySession = () => {
   const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
   const { loadProgressDetailed, saveProgressDetailed } = useProgress();
   const [topicList, setTopicList] = useState<Topic[]>(ANCHOR_CATALOGUE_VALID ? topics : []);
-  const [selectedTopicId, setSelectedTopicId] = useState<string | null>(ANCHOR_CATALOGUE_VALID ? topics[0].id : null);
+  const [readinessTopicIds, setReadinessTopicIds] = useState<string[]>([]);
+  const requestedTopic = searchParams.get("topic");
+  const initialTopic = topics.some(({ id }) => id === requestedTopic) ? requestedTopic : topics[0]?.id;
+  const [selectedTopicId, setSelectedTopicId] = useState<string | null>(ANCHOR_CATALOGUE_VALID ? initialTopic : null);
   const [tipChecks, setTipChecks] = useState<number[]>([]);
   const [persistenceStatus, setPersistenceStatus] = useState<"loading" | "ready" | "saving" | "saved" | "anonymous" | "failed">("loading");
   const [pendingCompletedIds, setPendingCompletedIds] = useState<string[] | null>(null);
@@ -41,6 +46,7 @@ const AnchorTheorySession = () => {
   useEffect(() => {
     let cancelled = false;
     setPendingCompletedIds(null);
+    setReadinessTopicIds([]);
     if (!ANCHOR_CATALOGUE_VALID) {
       setPersistenceStatus("failed");
       return () => { cancelled = true; };
@@ -55,6 +61,7 @@ const AnchorTheorySession = () => {
           return;
         }
         const completed = new Set(completedIds);
+        setReadinessTopicIds(completedIds);
         setTopicList(topics.map((topic) => ({ ...topic, completed: completed.has(topic.id) })));
         setPersistenceStatus("ready");
         return;
@@ -87,6 +94,7 @@ const AnchorTheorySession = () => {
     setPendingCompletedIds(null);
     setPendingCompletionTitle(null);
     setPersistenceStatus(result === "anonymous" ? "anonymous" : "saved");
+    setReadinessTopicIds(completedIds);
     announce(result === "anonymous"
       ? "Completion recorded for this visit. Sign in to save it across devices."
       : result === "queued"
@@ -124,6 +132,8 @@ const AnchorTheorySession = () => {
 
   const completedCount = topicList.filter((t) => t.completed).length;
   const score = completedCount * POINTS_PER_TOPIC;
+  const quizReady = readinessTopicIds.length === topicList.length && topicList.length > 0;
+  const practiceReady = anchorPracticePrerequisites.every((id) => readinessTopicIds.includes(id));
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-background via-ocean-light/10 to-background">
@@ -333,13 +343,21 @@ const AnchorTheorySession = () => {
                         <CardTitle>Anchoring Diagram</CardTitle>
                         <CardDescription>Understanding scope and swinging room</CardDescription>
                       </div>
-                      <Button variant="secondary" size="sm" onClick={() => navigate("/anchor-minigame")}>
+                      <Button variant="secondary" size="sm" disabled={!practiceReady} onClick={() => navigate(`/anchor-minigame?returnTopic=${selectedTopic.id}`)}>
                         <span aria-hidden="true">🎮 </span>Try Minigame
                       </Button>
                     </div>
                   </CardHeader>
                   <CardContent>
                     <AnchorGeometryVisuals />
+                    <div className="mt-4 rounded-lg border p-3 text-sm">
+                      <p className="font-semibold">Practice assessment</p>
+                      <p className="text-muted-foreground">Prerequisites: Prepare the Operation and Deploy, Set and Verify.</p>
+                      <ul className="mt-2 list-disc pl-5 text-muted-foreground">
+                        {anchorPracticeSkills.map((skill) => <li key={skill}>{skill}</li>)}
+                      </ul>
+                      {!practiceReady && <p className="mt-2">Complete both prerequisite study checks to unlock this practice.</p>}
+                    </div>
                   </CardContent>
                 </Card>
               </>
@@ -347,22 +365,24 @@ const AnchorTheorySession = () => {
           </div>
         </div>
 
-        {ANCHOR_CATALOGUE_VALID && topicList.length > 0 && completedCount === topicList.length && (
+        {ANCHOR_CATALOGUE_VALID && topicList.length > 0 && (
           <Card className="mt-6 border-2 border-accent bg-accent/5">
             <CardContent className="pt-6">
               <div className="flex flex-col md:flex-row items-center justify-between gap-4">
                 <div>
-                  <h3 className="text-xl font-bold mb-2"><span aria-hidden="true">🎉 </span>All topics completed!</h3>
-                  <p className="text-muted-foreground">Test your knowledge or practice with the minigame</p>
+                  <h3 className="text-xl font-bold mb-2">{quizReady ? <><span aria-hidden="true">🎉 </span>Quiz ready</> : "Build quiz readiness"}</h3>
+                  <p className="text-muted-foreground">The quiz unlocks after all five study checks are confirmed saved or queued—not from merely opening lessons.</p>
+                  {persistenceStatus === "anonymous" && <p className="text-sm text-muted-foreground">Anonymous readiness lasts for this session only; sign in to keep it across devices.</p>}
                 </div>
                 <div className="flex gap-3">
-                  <Button size="lg" variant="outline" onClick={() => navigate("/anchor-minigame")}>
+                  <Button size="lg" variant="outline" disabled={!practiceReady} onClick={() => navigate(`/anchor-minigame?returnTopic=${selectedTopicId ?? "scope"}`)}>
                     <span aria-hidden="true">🎮 </span>Play Minigame
                   </Button>
                   <Button
                     size="lg"
                     className="bg-accent text-accent-foreground hover:bg-accent/90"
-                    onClick={() => navigate("/quiz/anchorwork")}
+                    disabled={!quizReady}
+                    onClick={() => navigate(`/quiz/anchorwork?returnTopic=${selectedTopicId ?? "scope"}`)}
                   >
                     Take Quiz
                   </Button>

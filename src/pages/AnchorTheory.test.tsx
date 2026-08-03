@@ -1,5 +1,5 @@
 import { act, fireEvent, render, screen, waitFor } from "@testing-library/react";
-import { MemoryRouter } from "react-router-dom";
+import { MemoryRouter, Route, Routes, useLocation } from "react-router-dom";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
 const mocks = vi.hoisted(() => ({
@@ -34,6 +34,11 @@ const completeVisibleStudyCheck = async () => {
 const emittedAnnouncements = () => [...screen.getByTestId("anchorwork-announcements").children]
   .map((element) => element.textContent);
 
+const LocationProbe = () => {
+  const location = useLocation();
+  return <p>Route: {location.pathname}{location.search}</p>;
+};
+
 describe("AnchorTheory durable completion", () => {
   beforeEach(() => {
     mocks.user = { id: "user-a" };
@@ -41,6 +46,53 @@ describe("AnchorTheory durable completion", () => {
     mocks.loadProgressDetailed.mockResolvedValue({ status: "missing", record: null });
     mocks.saveProgressDetailed.mockReset();
     mocks.saveProgressDetailed.mockResolvedValue("remote");
+  });
+
+  it("keeps practice locked at the final prerequisite boundary until its save is confirmed", async () => {
+    mocks.loadProgressDetailed.mockResolvedValue({ status: "remote", record: { answers_history: { version: 1, completedTopicIds: ["scope"] } } });
+    let resolveSave: (result: "failed" | "remote") => void = () => undefined;
+    mocks.saveProgressDetailed.mockReturnValue(new Promise((resolve) => { resolveSave = resolve; }));
+    render(<MemoryRouter initialEntries={["/anchorwork?topic=procedure"]}><AnchorTheory /></MemoryRouter>);
+    await completeVisibleStudyCheck();
+    expect(screen.getAllByRole("button", { name: /Try Minigame|Play Minigame/ }).every((button) => button.hasAttribute("disabled"))).toBe(true);
+    await act(async () => resolveSave("failed"));
+    expect(screen.getAllByRole("button", { name: /Try Minigame|Play Minigame/ }).every((button) => button.hasAttribute("disabled"))).toBe(true);
+  });
+
+  it("unlocks practice when the final prerequisite save is confirmed", async () => {
+    mocks.loadProgressDetailed.mockResolvedValue({ status: "remote", record: { answers_history: { version: 1, completedTopicIds: ["scope"] } } });
+    let resolveSave: (result: "remote") => void = () => undefined;
+    mocks.saveProgressDetailed.mockReturnValue(new Promise((resolve) => { resolveSave = resolve; }));
+    render(<MemoryRouter initialEntries={["/anchorwork?topic=procedure"]}><AnchorTheory /></MemoryRouter>);
+    await completeVisibleStudyCheck();
+    expect(screen.getAllByRole("button", { name: /Try Minigame|Play Minigame/ }).every((button) => button.hasAttribute("disabled"))).toBe(true);
+    await act(async () => resolveSave("remote"));
+    await waitFor(() => expect(screen.getAllByRole("button", { name: /Try Minigame|Play Minigame/ }).some((button) => !button.hasAttribute("disabled"))).toBe(true));
+  });
+
+  it("keeps quiz locked at the final topic boundary until queued persistence succeeds", async () => {
+    mocks.loadProgressDetailed.mockResolvedValue({ status: "remote", record: { answers_history: { version: 1, completedTopicIds: ["types", "scope", "procedure", "swinging-room"] } } });
+    let resolveSave: (result: "queued") => void = () => undefined;
+    mocks.saveProgressDetailed.mockReturnValue(new Promise((resolve) => { resolveSave = resolve; }));
+    render(<MemoryRouter initialEntries={["/anchorwork?topic=weighing"]}><AnchorTheory /></MemoryRouter>);
+    await completeVisibleStudyCheck();
+    expect(screen.getByRole("button", { name: "Take Quiz" }).hasAttribute("disabled")).toBe(true);
+    await act(async () => resolveSave("queued"));
+    await waitFor(() => expect(screen.getByRole("button", { name: "Take Quiz" }).hasAttribute("disabled")).toBe(false));
+  });
+
+  it("routes confirmed theory readiness into practice and preserves return context", async () => {
+    mocks.loadProgressDetailed.mockResolvedValue({ status: "remote", record: { answers_history: { version: 1, completedTopicIds: ["scope", "procedure"] } } });
+    render(<MemoryRouter initialEntries={["/anchorwork?topic=scope"]}><Routes><Route path="/anchorwork" element={<AnchorTheory />} /><Route path="*" element={<LocationProbe />} /></Routes></MemoryRouter>);
+    fireEvent.click(await screen.findByRole("button", { name: "Try Minigame" }));
+    expect(await screen.findByText("Route: /anchor-minigame?returnTopic=scope")).toBeTruthy();
+  });
+
+  it("routes fully confirmed theory readiness into the anchorwork quiz", async () => {
+    mocks.loadProgressDetailed.mockResolvedValue({ status: "remote", record: { answers_history: { version: 1, completedTopicIds: ["types", "scope", "procedure", "swinging-room", "weighing"] } } });
+    render(<MemoryRouter initialEntries={["/anchorwork?topic=procedure"]}><Routes><Route path="/anchorwork" element={<AnchorTheory />} /><Route path="*" element={<LocationProbe />} /></Routes></MemoryRouter>);
+    fireEvent.click(await screen.findByRole("button", { name: "Take Quiz" }));
+    expect(await screen.findByText("Route: /quiz/anchorwork?returnTopic=procedure")).toBeTruthy();
   });
 
   it("persists first completion by stable topic ID with proportional scoring", async () => {
