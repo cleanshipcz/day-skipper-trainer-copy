@@ -1,4 +1,4 @@
-import { useState, useMemo, useCallback, useEffect } from "react";
+import { useState, useMemo, useCallback, useEffect, useRef } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -9,6 +9,7 @@ import { useProgress } from "@/hooks/useProgress";
 import { useAuth } from "@/contexts/AuthHooks";
 import { supabase } from "@/integrations/supabase/client";
 import { TOPIC_IDS } from "@/constants/topicRegistry";
+import type { KeyboardEvent } from "react";
 
 interface BoatPart {
   id: string;
@@ -258,6 +259,7 @@ const frontViewParts: BoatPart[] = [
 ];
 
 const allParts = [...sideViewParts, ...frontViewParts];
+const partMarkerNumbers = new Map(allParts.map((part, index) => [part.id, index + 1]));
 
 const POINTS_FIRST_TRY = 10;
 const POINTS_SECOND_TRY = 5;
@@ -516,6 +518,8 @@ const NauticalTerms = () => {
   const [selectedPart, setSelectedPart] = useState<BoatPart | null>(null);
   const [score, setScore] = useState(0);
   const [wrongAnswer, setWrongAnswer] = useState<string | null>(null);
+  const answerHeadingRef = useRef<HTMLHeadingElement>(null);
+  const originatingMarkerIdRef = useRef<string | null>(null);
 
   // Generate 4 options for the active part (including the correct answer)
   const options = useMemo(() => {
@@ -533,16 +537,27 @@ const NauticalTerms = () => {
       if (progress.state === "correct") {
         return;
       }
+      originatingMarkerIdRef.current = part.id;
       setActivePart(part);
       setWrongAnswer(null);
-      if (progress.state === "hidden") {
-        setPartProgress((prev) => ({
-          ...prev,
-          [part.id]: { ...prev[part.id], state: "guessing" },
-        }));
-      }
+      setPartProgress((prev) => {
+        let next = prev;
+        if (activePart && activePart.id !== part.id && prev[activePart.id].state === "guessing") {
+          next = {
+            ...next,
+            [activePart.id]: { ...prev[activePart.id], state: "hidden" },
+          };
+        }
+        if (prev[part.id].state === "hidden") {
+          next = {
+            ...next,
+            [part.id]: { ...prev[part.id], state: "guessing" },
+          };
+        }
+        return next;
+      });
     },
-    [partProgress]
+    [activePart, partProgress]
   );
 
   const handleOptionSelect = useCallback(
@@ -580,9 +595,29 @@ const NauticalTerms = () => {
   );
 
   const handleCloseOptions = useCallback(() => {
+    if (activePart) {
+      setPartProgress((prev) =>
+        prev[activePart.id].state === "guessing"
+          ? { ...prev, [activePart.id]: { ...prev[activePart.id], state: "hidden" } }
+          : prev
+      );
+    }
     setActivePart(null);
     setWrongAnswer(null);
-  }, []);
+  }, [activePart]);
+
+  useEffect(() => {
+    if (activePart) {
+      answerHeadingRef.current?.focus();
+      return;
+    }
+
+    const markerId = originatingMarkerIdRef.current;
+    if (markerId) {
+      document.querySelector<SVGGElement>(`[data-marker-id="${markerId}"]`)?.focus();
+      originatingMarkerIdRef.current = null;
+    }
+  }, [activePart]);
 
   const resetGame = useCallback(() => {
     const initial: Record<string, PartProgress> = {};
@@ -591,6 +626,7 @@ const NauticalTerms = () => {
     });
     setPartProgress(initial);
     setScore(0);
+    originatingMarkerIdRef.current = null;
     setActivePart(null);
     setSelectedPart(null);
     setWrongAnswer(null);
@@ -658,9 +694,37 @@ const NauticalTerms = () => {
   const renderPartMarker = (part: BoatPart, isActive: boolean) => {
     const progress = partProgress[part.id];
     const color = getMarkerColor(part);
+    const markerNumber = partMarkerNumbers.get(part.id);
+    const markerState = isActive
+      ? progress.state === "wrong"
+        ? "wrong, selected for another guess"
+        : "guessing"
+      : progress.state === "hidden"
+        ? "undiscovered"
+        : progress.state;
+    const handleMarkerKeyDown = (event: KeyboardEvent<SVGGElement>) => {
+      if (event.key === "Enter" || event.key === " ") {
+        event.preventDefault();
+        handlePartClick(part);
+      }
+    };
 
     return (
-      <g key={part.id} style={{ cursor: "pointer" }} onClick={() => handlePartClick(part)}>
+      <g
+        key={part.id}
+        role="button"
+        tabIndex={0}
+        aria-label={`Marker ${markerNumber}, ${markerState}. Activate to identify this boat part.`}
+        aria-describedby="boat-parts-instructions"
+        data-marker-state={markerState}
+        data-marker-id={part.id}
+        style={{ cursor: "pointer" }}
+        onClick={() => handlePartClick(part)}
+        onKeyDown={handleMarkerKeyDown}
+        className="focus:outline-none focus-visible:[&_.marker-focus-ring]:stroke-ring focus-visible:[&_.marker-focus-ring]:stroke-[4]"
+      >
+        {/* Transparent hit area and minimum SVG scale preserve a 44px+ touch target. */}
+        <circle cx={part.labelX} cy={part.labelY} r="28" fill="transparent" className="pointer-events-all" />
         {/* Connection line from label to part */}
         <line
           x1={part.labelX}
@@ -686,6 +750,14 @@ const NauticalTerms = () => {
             stroke="#fff"
             strokeWidth="3"
             className={progress.state === "hidden" ? "animate-pulse" : ""}
+          />
+          <circle
+            cx={part.labelX}
+            cy={part.labelY}
+            r="20"
+            fill="none"
+            stroke="transparent"
+            className="marker-focus-ring pointer-events-none"
           />
           {progress.state === "correct" ? (
             <text x={part.labelX} y={part.labelY + 5} textAnchor="middle" fill="#fff" fontSize="14" fontWeight="bold">
@@ -727,12 +799,19 @@ const NauticalTerms = () => {
         <div className="container mx-auto px-4 py-4">
           <div className="flex items-center justify-between flex-wrap gap-2">
             <div className="flex items-center gap-3">
-              <Button variant="ghost" size="icon" onClick={() => navigate("/nautical-terms")}>
+              <Button
+                variant="ghost"
+                size="icon"
+                aria-label="Back to nautical terms"
+                onClick={() => navigate("/nautical-terms")}
+              >
                 <ArrowLeft className="w-5 h-5" />
               </Button>
               <div>
                 <h1 className="text-xl font-bold">Nautical Terms Quiz</h1>
-                <p className="text-sm text-muted-foreground">Click markers to identify each part</p>
+                <p id="boat-parts-instructions" className="text-sm text-muted-foreground">
+                  Select a numbered marker to identify the boat part. Use Enter or Space with a keyboard.
+                </p>
               </div>
             </div>
             <div className="flex items-center gap-4">
@@ -754,7 +833,15 @@ const NauticalTerms = () => {
 
       <main className="container mx-auto px-4 py-6">
         {/* Progress bar */}
-        <div className="w-full bg-muted rounded-full h-3 mb-6">
+        <div
+          className="w-full bg-muted rounded-full h-3 mb-6"
+          role="progressbar"
+          aria-label="Boat parts identified"
+          aria-valuemin={0}
+          aria-valuemax={allParts.length}
+          aria-valuenow={correctCount}
+          aria-valuetext={`${correctCount} of ${allParts.length} boat parts identified`}
+        >
           <div
             className="bg-green-500 h-3 rounded-full transition-all duration-500"
             style={{ width: `${progressPercent}%` }}
@@ -771,8 +858,8 @@ const NauticalTerms = () => {
               </CardTitle>
             </CardHeader>
             <CardContent>
-              <div className="relative rounded-lg border-2 border-slate-200 overflow-hidden">
-                <svg viewBox="0 0 600 400" className="w-full h-auto">
+              <div className="relative overflow-x-auto overflow-y-hidden rounded-lg border-2 border-slate-200">
+                <svg viewBox="0 0 600 400" className="h-auto w-full min-w-[550px]">
                   <SideViewBoat />
                   {sideViewParts.map((part) => renderPartMarker(part, activePart?.id === part.id))}
                 </svg>
@@ -789,8 +876,8 @@ const NauticalTerms = () => {
               </CardTitle>
             </CardHeader>
             <CardContent>
-              <div className="relative rounded-lg border-2 border-slate-200 overflow-hidden">
-                <svg viewBox="0 0 400 400" className="w-full h-auto">
+              <div className="relative overflow-x-auto overflow-y-hidden rounded-lg border-2 border-slate-200">
+                <svg viewBox="0 0 400 400" className="h-auto w-full min-w-[400px]">
                   <BackViewBoat />
                   {frontViewParts.map((part) => renderPartMarker(part, activePart?.id === part.id))}
                 </svg>
@@ -803,8 +890,10 @@ const NauticalTerms = () => {
             <Card className="lg:col-span-3 border-2 border-primary">
               <CardContent className="pt-6">
                 <div className="flex items-center justify-between mb-4">
-                  <h3 className="font-semibold text-lg">What is this part?</h3>
-                  <Button variant="ghost" size="icon" onClick={handleCloseOptions}>
+                  <h3 ref={answerHeadingRef} tabIndex={-1} className="font-semibold text-lg focus:outline-none">
+                    What is this part?
+                  </h3>
+                  <Button variant="ghost" size="icon" aria-label="Close answer choices" onClick={handleCloseOptions}>
                     <X className="w-5 h-5" />
                   </Button>
                 </div>
