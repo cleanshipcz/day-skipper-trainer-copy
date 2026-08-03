@@ -165,6 +165,7 @@ const AnchorMinigame = () => {
   const [attempts, setAttempts] = useState(0);
   const [lastStatus, setLastStatus] = useState("Tap ↓ to lower the anchor. Drift back with ←.");
   const [resultOverlay, setResultOverlay] = useState<AnchorResult | null>(null);
+  const resultReturnFocusRef = useRef<HTMLElement | null>(null);
 
   useEffect(() => {
     if (searchParams.get("scenarioSeed") === String(scenarioSeed)
@@ -245,6 +246,7 @@ const AnchorMinigame = () => {
   );
 
   const checkPlacement = useCallback(() => {
+    resultReturnFocusRef.current = document.activeElement instanceof HTMLElement ? document.activeElement : null;
     setAttempts((value) => value + 1);
     const result = evaluatePlacement(game, scenario);
     if (result.type === "failure"
@@ -268,6 +270,11 @@ const AnchorMinigame = () => {
       setResultOverlay(result);
     }
   }, [game, scenario]);
+
+  const dismissResult = useCallback(() => {
+    setResultOverlay(null);
+    requestAnimationFrame(() => resultReturnFocusRef.current?.focus());
+  }, []);
 
   const applyLoad = useCallback(() => {
     const result = applySettingLoad(game, scenario);
@@ -294,43 +301,6 @@ const AnchorMinigame = () => {
     setResultOverlay(null);
   }, [game]);
 
-  useEffect(() => {
-    const onKey = (event: KeyboardEvent) => {
-      const target = event.target;
-      if (
-        target instanceof HTMLElement
-        && target.closest("button, a, input, select, textarea, [role='button'], [contenteditable='true']")
-      ) {
-        return;
-      }
-
-      if (["ArrowLeft", "ArrowRight", "ArrowUp", "ArrowDown", "Enter"].includes(event.key)) {
-        event.preventDefault();
-      }
-      switch (event.key) {
-        case "ArrowLeft":
-          moveBoat(-1);
-          break;
-        case "ArrowRight":
-          moveBoat(1);
-          break;
-        case "ArrowUp":
-          changeRode(-RODE_STEP);
-          break;
-        case "ArrowDown":
-          changeRode(RODE_STEP);
-          break;
-        case "Enter":
-          checkPlacement();
-          break;
-        default:
-      }
-    };
-
-    window.addEventListener("keydown", onKey);
-    return () => window.removeEventListener("keydown", onKey);
-  }, [changeRode, checkPlacement, moveBoat]);
-
   const {
     viewWidth, viewHeight, surfaceY, seabedY, boatTopY, boatBottomY, anchorPoint, bowAttachment,
     horizontalDistance, straightLineDistance, slack, chainPath, boatPath, toX,
@@ -344,7 +314,7 @@ const AnchorMinigame = () => {
       <header className="border-b border-border/80 bg-card/70 backdrop-blur-sm sticky top-0 z-10">
         <div className="container mx-auto px-4 py-4 flex flex-col items-start justify-between gap-4 sm:flex-row sm:items-center">
           <div className="flex min-w-0 items-center gap-3">
-            <Button variant="ghost" size="icon" aria-label="Return to anchorwork theory" onClick={() => navigate(anchorTheoryRoute(returnTopic, "practice"))}>
+            <Button disabled={resultOverlay !== null} variant="ghost" size="icon" aria-label="Back to anchorwork theory" onClick={() => navigate(anchorTheoryRoute(returnTopic, "practice"))}>
               <ArrowLeft className="w-5 h-5" />
             </Button>
             <div>
@@ -359,7 +329,7 @@ const AnchorMinigame = () => {
               Attempted {attempts} time{attempts === 1 ? "" : "s"}
             </Badge>
             <Badge variant="outline" className="text-sm">Family {sequenceIndex % scenarioPool.length + 1}/{scenarioPool.length} • Cycle {scenario.cycle}</Badge>
-            <Button variant="outline" onClick={rollScenario}>
+            <Button disabled={resultOverlay !== null} variant="outline" onClick={rollScenario}>
               <RefreshCcw className="w-4 h-4 mr-2" />
               New setup
             </Button>
@@ -424,7 +394,7 @@ const AnchorMinigame = () => {
               </div>
               <div className="flex items-center justify-between">
                 <span className="text-sm text-muted-foreground">Forecast high-water scope</span>
-                <span className={`font-semibold ${scopeColor}`}>{highWaterScope.toFixed(1)} : 1</span>
+                <span className={`font-semibold ${scopeColor}`}>{highWaterScope.toFixed(1)} : 1 — {highWaterScope >= requiredScope ? "requirement met" : "more rode needed"}</span>
               </div>
               <div className="flex items-center justify-between">
                 <span className="text-sm text-muted-foreground">Anchor position</span>
@@ -481,11 +451,12 @@ const AnchorMinigame = () => {
               onWatch={watchAnchor}
               onRecover={recover}
               rodeStep={RODE_STEP}
+              disabled={resultOverlay !== null}
             />
           </CardHeader>
 
           <CardContent className="space-y-4">
-            <AnchorScene onMove={moveBoat} onChangeRode={changeRode} rodeStep={RODE_STEP}>
+            <AnchorScene onMove={moveBoat} onChangeRode={changeRode} onCheck={checkPlacement} rodeStep={RODE_STEP} disabled={resultOverlay !== null}>
               <svg aria-label="Anchoring side profile" role="img" viewBox={`0 0 ${viewWidth} ${viewHeight}`} className="block w-full h-auto" preserveAspectRatio="xMidYMid meet">
                 <title>Side-profile anchoring geometry</title>
                 <desc>Boat, waterline, seabed, bow roller, anchor and rode. Measurements are repeated as accessible text below.</desc>
@@ -603,13 +574,14 @@ const AnchorMinigame = () => {
                     result={resultOverlay}
                     onContinue={() => {
                       if (resultOverlay.type === "success") rollScenario();
-                      setResultOverlay(null);
+                      dismissResult();
                     }}
-                    onReset={resetPosition}
+                    onReset={() => { resetPosition(); requestAnimationFrame(() => resultReturnFocusRef.current?.focus()); }}
                     onRemediate={() => navigate(anchorTheoryRoute(resultOverlay.type === "success"
                       ? returnTopic
                       : resultOverlay.issues?.includes("procedure") ? "procedure"
                       : resultOverlay.issues?.includes("watch") ? "swinging-room" : "scope", "practice"))}
+                    onDismiss={dismissResult}
                   />
                 </div>
               )}
@@ -625,9 +597,7 @@ const AnchorMinigame = () => {
               <p className="rounded-md border p-2"><strong>Slack:</strong> {slack.toFixed(1)} m.</p>
               <p className="rounded-md border p-2"><strong>Scope now:</strong> {currentScope.toFixed(1)} : 1. <strong>Forecast high-water:</strong> {highWaterScope.toFixed(1)} : 1.</p>
             </div>
-            <p className="sr-only" role="status" aria-live="polite">
-              {scenario.title}. Anchor {game.anchorOnBottom ? "in contact with the seabed" : "not in contact with the seabed"}. Rode {game.rode.toFixed(1)} metres; current scope {currentScope.toFixed(1)} to 1; forecast high-water scope {highWaterScope.toFixed(1)} to 1; straight-line distance {straightLineDistance.toFixed(1)} metres; slack {slack.toFixed(1)} metres. {game.dragging ? "Holding check detected dragging." : game.setLoadSteps >= scenario.minimumSetLoadSteps ? "Progressive load applied; continue holding checks." : "Holding is not yet verified."} Plan-view hazards: {scenario.hazards.map(({ label }) => label).join(", ")}; neighbours: {scenario.neighbours.map(({ label }) => label).join(", ")}.
-            </p>
+            <p className="sr-only" role="status" aria-live="polite">{lastStatus}</p>
 
             <div className="grid gap-3 md:grid-cols-3">
               <div className="rounded-lg border border-border p-3">

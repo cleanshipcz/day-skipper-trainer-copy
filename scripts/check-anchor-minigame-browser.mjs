@@ -177,11 +177,12 @@ try {
     }
   };
   const blurFocus = () => evaluate("document.activeElement?.blur()");
-  const key = async (keyName, times = 1) => {
-    const virtualKeyCode = { Enter: 13, ArrowLeft: 37, ArrowUp: 38, ArrowRight: 39, ArrowDown: 40 }[keyName];
+  const focusManipulationSurface = () => evaluate(`document.querySelector('[role="application"][aria-label^="Anchor manipulation surface"]')?.focus()`);
+  const key = async (keyName, times = 1, modifiers = 0) => {
+    const virtualKeyCode = { Tab: 9, Enter: 13, Escape: 27, ArrowLeft: 37, ArrowUp: 38, ArrowRight: 39, ArrowDown: 40 }[keyName];
     for (let index = 0; index < times; index += 1) {
-      await send("Input.dispatchKeyEvent", { type: "keyDown", key: keyName, code: keyName, windowsVirtualKeyCode: virtualKeyCode });
-      await send("Input.dispatchKeyEvent", { type: "keyUp", key: keyName, code: keyName, windowsVirtualKeyCode: virtualKeyCode });
+      await send("Input.dispatchKeyEvent", { type: "keyDown", key: keyName, code: keyName, windowsVirtualKeyCode: virtualKeyCode, modifiers });
+      await send("Input.dispatchKeyEvent", { type: "keyUp", key: keyName, code: keyName, windowsVirtualKeyCode: virtualKeyCode, modifiers });
       await delay(75);
     }
   };
@@ -227,7 +228,7 @@ try {
     const layout = await readLearningLabels();
     const labelText = layout.labels.map(({ text }) => text).join(" ");
     const requiredGeometry = ["Water depth", "Bow roller height", "Total vertical depth now", "Horizontal separation", "Straight-line distance", "Rode paid out", "Slack", "Scope now", "Forecast high-water"];
-    const requiredStatus = ["Anchor", "Rode", "current scope", "forecast high-water scope", "straight-line distance", "slack", "Holding", "Plan-view hazards", "neighbours"];
+    const requiredStatus = ["Tap ↓ to lower the anchor"];
     if (layout.labels.length !== 8
       || layout.scrollWidth > layout.viewport
       || !layout.svg || layout.svg.left < 0 || layout.svg.right > layout.viewport
@@ -378,7 +379,38 @@ try {
     await clickButton("← Left", workflow.astern);
     await clickButton("Enter (check)");
     await waitForText("progressive setting load not completed");
-    await clickButton("Close");
+    const modalState = await evaluate(`(() => {
+      const dialog = document.querySelector('[role="dialog"]');
+      const labelledBy = dialog?.getAttribute('aria-labelledby');
+      const payOut = [...document.querySelectorAll('button')].find((button) => button.textContent.trim() === '↓ Down (pay out)');
+      const before = [...document.querySelectorAll('span')].find((element) => element.textContent.trim() === 'Rode out')?.parentElement?.querySelector('span:last-child')?.textContent?.trim();
+      payOut?.click();
+      const after = [...document.querySelectorAll('span')].find((element) => element.textContent.trim() === 'Rode out')?.parentElement?.querySelector('span:last-child')?.textContent?.trim();
+      return {
+        modal: dialog?.getAttribute('aria-modal'),
+        name: labelledBy ? document.getElementById(labelledBy)?.textContent?.trim() : '',
+        backgroundHidden: document.querySelector('header')?.getAttribute('aria-hidden'),
+        controlDisabled: payOut?.disabled,
+        before,
+        after,
+      };
+    })()`);
+    if (modalState.modal !== "true" || modalState.name !== "Checks not passed" || modalState.backgroundHidden !== "true"
+      || !modalState.controlDisabled || modalState.before !== modalState.after) {
+      throw new Error(`${width}px result dialog did not isolate background: ${JSON.stringify(modalState)}`);
+    }
+    await key("Tab");
+    const tabEnd = await evaluate(`({ text: document.activeElement?.textContent?.trim(), closeIcon: document.activeElement?.classList.contains('absolute') })`);
+    await key("Tab");
+    const tabWrapped = await evaluate(`document.activeElement?.textContent?.trim()`);
+    await key("Tab", 1, 8);
+    const shiftWrapped = await evaluate(`({ text: document.activeElement?.textContent?.trim(), closeIcon: document.activeElement?.classList.contains('absolute') })`);
+    if (tabEnd.text !== "Close" || !tabEnd.closeIcon || tabWrapped !== "Review procedure lesson"
+      || shiftWrapped.text !== "Close" || !shiftWrapped.closeIcon) {
+      throw new Error(`${width}px result dialog focus did not wrap: ${JSON.stringify({ tabEnd, tabWrapped, shiftWrapped })}`);
+    }
+    await key("Escape");
+    await waitFor(async () => evaluate(`!document.querySelector('[role="dialog"]') && document.activeElement?.textContent?.trim() === 'Enter (check)'`), "dialog Escape and focus restoration");
     await clickButton("↓ Down (pay out)", workflow.overRoomRode - workflow.rode);
     await clickButton("Enter (check)");
     await waitForText("full swept area conflicts");
@@ -416,10 +448,13 @@ try {
     await waitForText("Anchor not set");
 
     await blurFocus();
+    await key("ArrowDown");
+    await waitForRode("0.0 m");
+    await focusManipulationSurface();
     await key("ArrowDown", workflow.rode);
     await key("ArrowLeft", workflow.astern);
     await clickButton("Apply setting load", workflow.settingLoads);
-    await blurFocus();
+    await focusManipulationSurface();
     await key("Enter");
     await waitForText("holding observation");
     await clickButton("Close");
@@ -429,18 +464,18 @@ try {
     if (workflow.title === "Tidal river bend") {
       await waitForText("detected dragging");
       await clickButton("Safe recovery", 2);
-      await blurFocus();
+      await focusManipulationSurface();
       await key("ArrowDown", workflow.rode);
       await key("ArrowLeft", workflow.astern);
       await clickButton("Apply setting load", workflow.settingLoads);
-      await blurFocus();
+      await focusManipulationSurface();
       await key("Enter");
       await clickButton("Close");
       await delay(5_100);
       await clickButton("Apply wind/tide change");
       await clickButton("Run anchor watch");
     }
-    await blurFocus();
+    await focusManipulationSurface();
     await key("Enter");
     try {
       await waitForText("Modeled checks passed");

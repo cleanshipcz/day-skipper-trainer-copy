@@ -9,6 +9,7 @@ export interface AnchorControlsProps {
   onWatch: () => void;
   onRecover: () => void;
   rodeStep: number;
+  disabled?: boolean;
 }
 
 export const AnchorControls = ({
@@ -20,24 +21,25 @@ export const AnchorControls = ({
   onWatch,
   onRecover,
   rodeStep,
+  disabled = false,
 }: AnchorControlsProps) => (
   <div className="flex flex-wrap gap-2">
-    <Button variant="secondary" onClick={() => onMove(-1)}>
+    <Button disabled={disabled} variant="secondary" onClick={() => onMove(-1)}>
       ← Left
     </Button>
-    <Button variant="secondary" onClick={() => onMove(1)}>
+    <Button disabled={disabled} variant="secondary" onClick={() => onMove(1)}>
       → Right
     </Button>
-    <Button variant="secondary" onClick={() => onChangeRode(rodeStep)}>
+    <Button disabled={disabled} variant="secondary" onClick={() => onChangeRode(rodeStep)}>
       ↓ Down (pay out)
     </Button>
-    <Button variant="secondary" onClick={() => onChangeRode(-rodeStep)}>
+    <Button disabled={disabled} variant="secondary" onClick={() => onChangeRode(-rodeStep)}>
       ↑ Up (heave)
     </Button>
-    <Button variant="secondary" onClick={onApplyLoad}>Apply setting load</Button>
-    <Button variant="secondary" onClick={onApplyChange}>Apply wind/tide change</Button>
-    <Button variant="secondary" onClick={onWatch}>Run anchor watch</Button>
-    <Button variant="outline" onClick={onRecover}>Safe recovery</Button>
-    <Button onClick={onCheck}>Enter (check)</Button>
+    <Button disabled={disabled} variant="secondary" onClick={onApplyLoad}>Apply setting load</Button>
+    <Button disabled={disabled} variant="secondary" onClick={onApplyChange}>Apply wind/tide change</Button>
+    <Button disabled={disabled} variant="secondary" onClick={onWatch}>Run anchor watch</Button>
+    <Button disabled={disabled} variant="outline" onClick={onRecover}>Safe recovery</Button>
+    <Button disabled={disabled} onClick={onCheck}>Enter (check)</Button>
   </div>
 );
