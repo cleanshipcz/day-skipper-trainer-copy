@@ -79,7 +79,7 @@ jobs:
       - name: Boat Parts asset lifecycle guard
         run: npm run guard:boat-parts-assets
 
-      - name: Install pinned Chromium for anchor browser checks
+      - name: Install pinned Chromium for browser checks
         run: npm run setup:anchor-browser
 
       - name: Anchor minigame browser characterization
@@ -89,6 +89,13 @@ jobs:
         env:
           CHROMIUM_NO_SANDBOX: "1"
         run: npm run test:anchor-browser
+
+      - name: Sail Controls responsive browser characterization
+        # Match the scoped sandbox opt-out above: this test uses an isolated
+        # profile and a loopback-only Vite preview.
+        env:
+          CHROMIUM_NO_SANDBOX: "1"
+        run: npm run test:sail-controls-browser
 
       - name: Build budget
         run: npm run test:build-budget
