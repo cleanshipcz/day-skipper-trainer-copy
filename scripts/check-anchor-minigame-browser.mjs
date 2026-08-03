@@ -223,7 +223,7 @@ try {
     const layout = await evaluate(`(() => {
       const svg = document.querySelector('svg[aria-label="Anchoring side profile"]');
       const controls = [...document.querySelectorAll("button")].filter((button) =>
-        ["← Left", "→ Right", "↓ Down (pay out)", "↑ Up (heave)", "Apply setting load", "Enter (check)"].includes(button.textContent.trim()));
+        ["← Left", "→ Right", "↓ Down (pay out)", "↑ Up (heave)", "Apply setting load", "Apply wind/tide change", "Run anchor watch", "Safe recovery", "Enter (check)"].includes(button.textContent.trim()));
       return {
         viewport: document.documentElement.clientWidth,
         scrollWidth: document.documentElement.scrollWidth,
@@ -234,7 +234,7 @@ try {
     if (layout.viewport > width || layout.viewport < width - 20 || layout.scrollWidth > layout.viewport || !layout.svg || layout.svg.width > layout.viewport) {
       throw new Error(`${width}px layout overflows: ${JSON.stringify(layout)}`);
     }
-    if (layout.controls.length !== 6 || layout.controls.some(({ left, right, width: controlWidth }) =>
+    if (layout.controls.length !== 9 || layout.controls.some(({ left, right, width: controlWidth }) =>
       left < 0 || right > layout.viewport || controlWidth < 44)) {
       throw new Error(`${width}px controls are clipped or undersized: ${JSON.stringify(layout.controls)}`);
     }
@@ -254,7 +254,7 @@ try {
     await clickButton("Close");
     await clickButton("↓ Down (pay out)", workflow.overRoomRode - workflow.rode);
     await clickButton("Enter (check)");
-    await waitForText("planned swing exceeds safe room");
+    await waitForText("full swept area conflicts");
     await clickButton("Try again here");
     await waitForText("Anchor not set");
 
@@ -265,6 +265,20 @@ try {
     await waitForText("holding observation");
     await clickButton("Close");
     await delay(5_100);
+    await clickButton("Apply wind/tide change");
+    await clickButton("Run anchor watch");
+    if (workflow.title === "Tidal river bend") {
+      await waitForText("detected dragging");
+      await clickButton("Safe recovery", 2);
+      await clickButton("↓ Down (pay out)", workflow.rode);
+      await clickButton("← Left", workflow.astern);
+      await clickButton("Apply setting load", workflow.settingLoads);
+      await clickButton("Enter (check)");
+      await clickButton("Close");
+      await delay(5_100);
+      await clickButton("Apply wind/tide change");
+      await clickButton("Run anchor watch");
+    }
     await clickButton("Enter (check)");
     try {
       await waitForText("Modeled checks passed");
@@ -283,6 +297,22 @@ try {
     await waitForText("holding observation");
     await clickButton("Close");
     await delay(5_100);
+    await clickButton("Apply wind/tide change");
+    await clickButton("Run anchor watch");
+    if (workflow.title === "Tidal river bend") {
+      await waitForText("detected dragging");
+      await clickButton("Safe recovery", 2);
+      await blurFocus();
+      await key("ArrowDown", workflow.rode);
+      await key("ArrowLeft", workflow.astern);
+      await clickButton("Apply setting load", workflow.settingLoads);
+      await blurFocus();
+      await key("Enter");
+      await clickButton("Close");
+      await delay(5_100);
+      await clickButton("Apply wind/tide change");
+      await clickButton("Run anchor watch");
+    }
     await blurFocus();
     await key("Enter");
     try {

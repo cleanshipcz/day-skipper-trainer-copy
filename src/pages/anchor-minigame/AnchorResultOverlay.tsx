@@ -4,7 +4,7 @@ import { Button } from "@/components/ui/button";
 export interface AnchorResult {
   type: "success" | "failure";
   message: string;
-  issues?: readonly ("procedure" | "scope" | "verification")[];
+  issues?: readonly ("procedure" | "scope" | "verification" | "watch")[];
 }
 
 export interface AnchorResultOverlayProps {
@@ -46,6 +46,8 @@ export const AnchorResultOverlay = ({ result, onContinue, onReset, onRemediate }
           ? "Return to theory"
           : result.issues?.includes("procedure")
             ? "Review procedure lesson"
+            : result.issues?.includes("watch")
+              ? "Review anchor-watch lesson"
             : "Review scope lesson"}
       </Button>
     </div>

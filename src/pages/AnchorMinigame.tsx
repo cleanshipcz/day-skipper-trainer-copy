@@ -21,6 +21,7 @@ import {
   BOAT_LENGTH,
   RODE_STEP,
   applySettingLoad,
+  applyWindTideChange,
   changeRode as transitionRode,
   checkPlacement as evaluatePlacement,
   createInitialState,
@@ -28,7 +29,10 @@ import {
   getCurrentVerticalDistance,
   getMaximumVerticalDistance,
   getPlannedSwingRadius,
+  getSweptRadius,
   moveBoat as transitionBoat,
+  recoverSafely,
+  runAnchorWatch,
   startHoldingObservation,
   type AnchorScenario,
 } from "@/pages/anchor-minigame/state";
@@ -48,6 +52,10 @@ const scenarioPool: Omit<AnchorScenario, "id">[] = [
     minimumRode: 32,
     availableSwingRadius: 50,
     vesselExtent: 8,
+    safetyAllowance: 3,
+    hazards: [{ label: "shoal", distance: 55, clearance: 5, bearing: 55 }],
+    neighbours: [{ label: "yacht on chain", distance: 75, swingRadius: 20, bearing: 210 }],
+    weakHolding: false,
     minimumSetDistance: 3,
     minimumSetLoadSteps: 3,
     guidance: "Use 32–42 m for this fixture, set progressively astern, then verify holding.",
@@ -66,6 +74,10 @@ const scenarioPool: Omit<AnchorScenario, "id">[] = [
     minimumRode: 48,
     availableSwingRadius: 66,
     vesselExtent: 8,
+    safetyAllowance: 4,
+    hazards: [{ label: "harbour wall", distance: 70, clearance: 6, bearing: 90 }],
+    neighbours: [{ label: "motor cruiser", distance: 90, swingRadius: 25, bearing: 245 }],
+    weakHolding: false,
     minimumSetDistance: 4,
     minimumSetLoadSteps: 4,
     guidance: "Use 48–58 m for the forecast load and available room; verify the set after ferry wash.",
@@ -84,6 +96,10 @@ const scenarioPool: Omit<AnchorScenario, "id">[] = [
     minimumRode: 78,
     availableSwingRadius: 96,
     vesselExtent: 8,
+    safetyAllowance: 6,
+    hazards: [{ label: "lee-shore safety zone", distance: 105, clearance: 8, bearing: 140 }],
+    neighbours: [{ label: "yacht on mixed rode", distance: 130, swingRadius: 30, bearing: 300 }],
+    weakHolding: false,
     minimumSetDistance: 5,
     minimumSetLoadSteps: 5,
     guidance: "Use 78–88 m for this exposed fixture and confirm holding under progressive load.",
@@ -102,6 +118,10 @@ const scenarioPool: Omit<AnchorScenario, "id">[] = [
     minimumRode: 46,
     availableSwingRadius: 60,
     vesselExtent: 8,
+    safetyAllowance: 5,
+    hazards: [{ label: "outside of bend", distance: 68, clearance: 8, bearing: 35 }],
+    neighbours: [{ label: "barge with short chain", distance: 95, swingRadius: 28, bearing: 190 }],
+    weakHolding: true,
     minimumSetDistance: 4,
     minimumSetLoadSteps: 4,
     guidance: "Use 46–52 m; the upper bound preserves clearance when the current reverses.",
@@ -134,6 +154,14 @@ const AnchorMinigame = () => {
   const bowTipX = game.boatX + BOAT_LENGTH;
   const scope = game.rode > 0 ? game.rode / maximumVerticalDistance : 0;
   const plannedSwingRadius = getPlannedSwingRadius(game.rode, scenario);
+  const sweptRadius = getSweptRadius(game.rode, scenario);
+  const planMaximumExtent = Math.max(
+    scenario.availableSwingRadius,
+    sweptRadius,
+    ...scenario.hazards.map(({ distance, clearance }) => distance + clearance),
+    ...scenario.neighbours.map(({ distance, swingRadius }) => distance + swingRadius),
+  );
+  const planScale = 150 / planMaximumExtent;
   const anchorAheadBy = game.anchorOnBottom && game.anchorX !== null ? game.anchorX - bowTipX : 0;
 
   const resetPosition = () => {
@@ -176,7 +204,10 @@ const AnchorMinigame = () => {
   const checkPlacement = useCallback(() => {
     setAttempts((value) => value + 1);
     const result = evaluatePlacement(game, scenario);
-    if (result.type === "failure" && result.issues.length === 1 && result.issues[0] === "verification") {
+    if (result.type === "failure"
+      && result.issues.includes("verification")
+      && !result.issues.includes("procedure")
+      && !result.issues.includes("scope")) {
       setGame(startHoldingObservation(game));
       setLastStatus("Fixed-position observation started. Hold the progressive setting load and re-check after 5 seconds without moving or changing rode.");
     }
@@ -198,6 +229,25 @@ const AnchorMinigame = () => {
     setGame(result.state);
     setLastStatus(result.status);
   }, [game, scenario]);
+
+  const applyChange = useCallback(() => {
+    const result = applyWindTideChange(game, scenario);
+    setGame(result.state);
+    setLastStatus(result.status);
+  }, [game, scenario]);
+
+  const watchAnchor = useCallback(() => {
+    const result = runAnchorWatch(game, scenario);
+    setGame(result.state);
+    setLastStatus(result.status);
+  }, [game, scenario]);
+
+  const recover = useCallback(() => {
+    const result = recoverSafely(game);
+    setGame(result.state);
+    setLastStatus(result.status);
+    setResultOverlay(null);
+  }, [game]);
 
   useEffect(() => {
     const onKey = (event: KeyboardEvent) => {
@@ -366,6 +416,9 @@ const AnchorMinigame = () => {
               onChangeRode={changeRode}
               onCheck={checkPlacement}
               onApplyLoad={applyLoad}
+              onApplyChange={applyChange}
+              onWatch={watchAnchor}
+              onRecover={recover}
               rodeStep={RODE_STEP}
             />
           </CardHeader>
@@ -483,7 +536,8 @@ const AnchorMinigame = () => {
                   onReset={resetPosition}
                   onRemediate={() => navigate(anchorTheoryRoute(resultOverlay.type === "success"
                     ? returnTopic
-                    : resultOverlay.issues?.includes("procedure") ? "procedure" : "scope", "practice"))}
+                    : resultOverlay.issues?.includes("procedure") ? "procedure"
+                    : resultOverlay.issues?.includes("watch") ? "swinging-room" : "scope", "practice"))}
                 />
               )}
             </div>
@@ -504,7 +558,7 @@ const AnchorMinigame = () => {
                   Controls
                 </div>
                 <p className="text-xs text-muted-foreground mt-1">
-                  ← / → move boat • ↓ pay out • ↑ heave in • Apply setting load progressively • Enter starts/checks a 5-second fixed-position observation.
+                  Deploy and set, start the timed observation, apply the wind/tide change, then run the anchor watch. Use safe recovery if dragging is detected.
                 </p>
               </div>
               <div className="rounded-lg border border-border p-3">
@@ -513,10 +567,39 @@ const AnchorMinigame = () => {
                   Tip
                 </div>
                 <p className="text-xs text-muted-foreground mt-1">
-                  {scenario.guidance} Unmodeled: actual holding, equipment condition, yaw, traffic and later weather/tide changes.
+                  {scenario.guidance} Simplified: the circular worst-case sweep uses straight-line rode geometry and fixed fixture positions. Actual catenary, yaw, traffic, equipment condition and neighbour response remain unmodeled.
                 </p>
               </div>
             </div>
+          </CardContent>
+        </Card>
+        <Card>
+          <CardHeader>
+            <CardTitle>Plan view — worst-case swept area</CardTitle>
+            <CardDescription>Full circle assumes any wind/current direction after the forecast change.</CardDescription>
+          </CardHeader>
+          <CardContent className="space-y-3">
+            <svg aria-label="Anchoring swept-area plan" viewBox="0 0 520 360" className="w-full max-h-96 rounded-lg border bg-muted/20">
+              <circle data-testid="room-boundary" cx="260" cy="180" r={scenario.availableSwingRadius * planScale} fill="none" stroke="hsl(var(--border))" strokeWidth="3" />
+              <circle data-testid="swept-area" cx="260" cy="180" r={sweptRadius * planScale} fill="hsl(var(--ocean-light))" fillOpacity="0.25" stroke={sweptRadius > scenario.availableSwingRadius ? "hsl(var(--destructive))" : "hsl(var(--ocean))"} strokeWidth="3" strokeDasharray="8 5" />
+              <circle cx="260" cy="180" r="5" fill="hsl(var(--primary))" />
+              <text x="268" y="174" fontSize="12">Anchor</text>
+              {scenario.hazards.map((hazard) => {
+                const radians = hazard.bearing * Math.PI / 180;
+                const scale = planScale;
+                const x = 260 + Math.sin(radians) * hazard.distance * scale;
+                const y = 180 - Math.cos(radians) * hazard.distance * scale;
+                return <g key={hazard.label}><circle cx={x} cy={y} r={hazard.clearance * scale} fill="hsl(var(--destructive))" fillOpacity="0.3" /><text x={x + 6} y={y} fontSize="11">{hazard.label}</text></g>;
+              })}
+              {scenario.neighbours.map((neighbour) => {
+                const radians = neighbour.bearing * Math.PI / 180;
+                const scale = planScale;
+                const x = 260 + Math.sin(radians) * neighbour.distance * scale;
+                const y = 180 - Math.cos(radians) * neighbour.distance * scale;
+                return <g key={neighbour.label}><circle cx={x} cy={y} r={neighbour.swingRadius * scale} fill="hsl(var(--accent))" fillOpacity="0.25" stroke="hsl(var(--accent))" /><text x={x + 6} y={y} fontSize="11">{neighbour.label}</text></g>;
+              })}
+            </svg>
+            <p className="text-sm text-muted-foreground">Rode reach + vessel extent = {plannedSwingRadius.toFixed(1)}m; safety allowance = {scenario.safetyAllowance.toFixed(1)}m; full swept radius = {sweptRadius.toFixed(1)}m within {scenario.availableSwingRadius.toFixed(1)}m scenario room.</p>
           </CardContent>
         </Card>
         <Card>
@@ -525,7 +608,9 @@ const AnchorMinigame = () => {
             <p><strong className="text-foreground">Rode:</strong> {scenario.rode}</p>
             <p><strong className="text-foreground">Anchor/vessel:</strong> {scenario.anchorAndVessel}</p>
             <p><strong className="text-foreground">Seabed/local guidance:</strong> {scenario.seabed}</p>
-            <p><strong className="text-foreground">Modeled room:</strong> {scenario.availableSwingRadius.toFixed(1)}m available radius from the anchor, including {scenario.vesselExtent.toFixed(1)}m vessel extent. Current plan uses {plannedSwingRadius.toFixed(1)}m.</p>
+            <p><strong className="text-foreground">Modeled room:</strong> {scenario.availableSwingRadius.toFixed(1)}m radius; the full swept area includes {scenario.vesselExtent.toFixed(1)}m vessel extent and {scenario.safetyAllowance.toFixed(1)}m safety allowance.</p>
+            <p><strong className="text-foreground">Hazards:</strong> {scenario.hazards.map(({ label, distance, clearance }) => `${label} at ${distance}m with ${clearance}m exclusion`).join("; ")}.</p>
+            <p><strong className="text-foreground">Differently swinging neighbours:</strong> {scenario.neighbours.map(({ label, distance, swingRadius }) => `${label} at ${distance}m, ${swingRadius}m radius`).join("; ")}.</p>
             <p><strong className="text-foreground">Basis:</strong> {scenario.basis.join("; ")}. These sources support the factors and checks; the numeric exercise bounds are conservative training fixtures, not universal recommendations.</p>
           </CardContent>
         </Card>

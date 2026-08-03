@@ -3,14 +3,18 @@ import {
   BOAT_LENGTH,
   MAX_RODE,
   applySettingLoad,
+  applyWindTideChange,
   changeRode,
   checkPlacement,
   createInitialState,
   getHorizontalAllowance,
   getMaximumVerticalDistance,
+  getClearanceFailures,
   getPlannedSwingRadius,
   getTargetRode,
   moveBoat,
+  recoverSafely,
+  runAnchorWatch,
   type AnchorScenario,
 } from "./state";
 
@@ -28,6 +32,10 @@ const scenario: AnchorScenario = {
   minimumRode: 32,
   availableSwingRadius: 50,
   vesselExtent: 8,
+  safetyAllowance: 3,
+  hazards: [{ label: "shoal", distance: 55, clearance: 5, bearing: 45 }],
+  neighbours: [{ label: "neighbour", distance: 72, swingRadius: 20, bearing: 180 }],
+  weakHolding: false,
   minimumSetDistance: 3,
   minimumSetLoadSteps: 3,
   guidance: "fixture guidance",
@@ -45,6 +53,11 @@ describe("anchor minigame transitions", () => {
       setLoadSteps: 0,
       holdingObservationStartedAt: null,
       holdingReferenceBowX: null,
+      conditionsChanged: false,
+      anchorWatchComplete: false,
+      dragging: false,
+      holdingRemediated: false,
+      recoveryStage: "none",
     });
   });
 
@@ -106,6 +119,8 @@ describe("anchor minigame transitions", () => {
       setLoadSteps: 3,
       holdingObservationStartedAt: 0,
       holdingReferenceBowX: 10,
+      conditionsChanged: true,
+      anchorWatchComplete: true,
     }, scenario, 5_000)).toEqual({
       type: "success",
       message: `Modeled checks passed at 4.0:1 at maximum tide with ${target.toFixed(1)}m out. Continue real holding and anchor-watch checks.`,
@@ -116,15 +131,17 @@ describe("anchor minigame transitions", () => {
 
   it("requires a holding check and rejects rode beyond the scenario's safe room", () => {
     const placed = {
-      ...createInitialState(), boatX: 10, rode: 40, anchorOnBottom: true, anchorX: 24,
+      ...createInitialState(), boatX: 10, rode: 39, anchorOnBottom: true, anchorX: 24,
     };
-    expect(checkPlacement({ ...placed, setLoadSteps: 3 }, scenario, 5_000).issues).toEqual(["verification"]);
+    expect(checkPlacement({ ...placed, setLoadSteps: 3 }, scenario, 5_000).issues).toEqual(["verification", "watch"]);
     expect(checkPlacement({
       ...placed,
       rode: 43,
       setLoadSteps: 3,
       holdingObservationStartedAt: 0,
       holdingReferenceBowX: 10,
+      conditionsChanged: true,
+      anchorWatchComplete: true,
     }, scenario, 5_000)).toMatchObject({
       type: "failure",
       issues: ["scope"],
@@ -139,8 +156,9 @@ describe("anchor minigame transitions", () => {
 
   it("requires progressive loading and a timed fixed-position observation", () => {
     const placed = {
-      ...createInitialState(), boatX: 10, rode: 40, anchorOnBottom: true, anchorX: 24, setLoadSteps: 3,
+      ...createInitialState(), boatX: 10, rode: 39, anchorOnBottom: true, anchorX: 24, setLoadSteps: 3,
       holdingObservationStartedAt: 1_000, holdingReferenceBowX: 10,
+      conditionsChanged: true, anchorWatchComplete: true,
     };
     expect(checkPlacement(placed, scenario, 5_999).issues).toEqual(["verification"]);
     expect(checkPlacement(placed, scenario, 6_000).type).toBe("success");
@@ -148,9 +166,52 @@ describe("anchor minigame transitions", () => {
     expect(checkPlacement({ ...placed, setLoadSteps: 2 }, scenario, 6_000).issues).toContain("procedure");
   });
 
+  it("rejects full swept-area conflicts with boundaries, hazards and differently swinging neighbours", () => {
+    expect(getClearanceFailures(32, scenario)).toEqual([]);
+    expect(getClearanceFailures(43, scenario)).toEqual(expect.arrayContaining([
+      expect.stringContaining("room boundary"),
+      expect.stringContaining("shoal safety zone"),
+      expect.stringContaining("neighbour swing envelope"),
+    ]));
+  });
+
+  it("requires a post-change anchor watch and detects weak holding", () => {
+    const observed = {
+      ...createInitialState(), boatX: 10, rode: 32, anchorOnBottom: true, anchorX: 24, setLoadSteps: 3,
+      holdingObservationStartedAt: 0, holdingReferenceBowX: 10,
+    };
+    expect(runAnchorWatch(observed, scenario, 5_000).status).toContain("wind/tide change");
+    const changed = applyWindTideChange(observed, scenario, 5_000).state;
+    expect(runAnchorWatch(changed, scenario, 5_000).state.anchorWatchComplete).toBe(true);
+    const weak = runAnchorWatch(changed, { ...scenario, weakHolding: true }, 5_000);
+    expect(weak.state.dragging).toBe(true);
+    expect(weak.status).toContain("detected dragging");
+  });
+
+  it("cannot apply the condition change before setting and observation, and invalidates it on later changes", () => {
+    expect(applyWindTideChange(createInitialState(), scenario, 5_000).state.conditionsChanged).toBe(false);
+    const eligible = {
+      ...createInitialState(), anchorOnBottom: true, anchorX: 24, boatX: 10, rode: 32, setLoadSteps: 3,
+      holdingObservationStartedAt: 0, holdingReferenceBowX: 10,
+    };
+    const changed = applyWindTideChange(eligible, scenario, 5_000).state;
+    expect(changed.conditionsChanged).toBe(true);
+    expect(moveBoat(changed, -1, 6.6).state.conditionsChanged).toBe(false);
+    expect(changeRode(changed, 1, 6.6).state.conditionsChanged).toBe(false);
+    expect(applySettingLoad(changed, scenario).state.conditionsChanged).toBe(false);
+  });
+
+  it("requires engine support before recovery and preserves a safer re-anchor path", () => {
+    const dragging = { ...createInitialState(), dragging: true, anchorOnBottom: true, anchorX: 24, rode: 32 };
+    const supported = recoverSafely(dragging);
+    expect(supported.state.recoveryStage).toBe("engine-support");
+    const recovered = recoverSafely(supported.state);
+    expect(recovered.state).toMatchObject({ anchorOnBottom: false, rode: 0, recoveryStage: "recovered", holdingRemediated: true });
+  });
+
   it("only records progressive setting load after geometry, rode and room checks pass", () => {
     expect(applySettingLoad(createInitialState(), scenario).state.setLoadSteps).toBe(0);
-    const ready = { ...createInitialState(), boatX: 10, rode: 40, anchorOnBottom: true, anchorX: 24 };
+    const ready = { ...createInitialState(), boatX: 10, rode: 39, anchorOnBottom: true, anchorX: 24 };
     expect(applySettingLoad(ready, scenario).state.setLoadSteps).toBe(1);
     expect(applySettingLoad({ ...ready, rode: 43 }, scenario).state.setLoadSteps).toBe(0);
   });

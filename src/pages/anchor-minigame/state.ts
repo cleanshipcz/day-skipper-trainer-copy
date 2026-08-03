@@ -12,6 +12,10 @@ export interface AnchorScenario {
   minimumRode: number;
   availableSwingRadius: number;
   vesselExtent: number;
+  safetyAllowance: number;
+  hazards: readonly { label: string; distance: number; clearance: number; bearing: number }[];
+  neighbours: readonly { label: string; distance: number; swingRadius: number; bearing: number }[];
+  weakHolding: boolean;
   minimumSetDistance: number;
   minimumSetLoadSteps: number;
   guidance: string;
@@ -27,6 +31,11 @@ export interface AnchorGameState {
   setLoadSteps: number;
   holdingObservationStartedAt: number | null;
   holdingReferenceBowX: number | null;
+  conditionsChanged: boolean;
+  anchorWatchComplete: boolean;
+  dragging: boolean;
+  holdingRemediated: boolean;
+  recoveryStage: "none" | "engine-support" | "recovered";
 }
 
 export const WORLD_LENGTH = 42;
@@ -48,6 +57,11 @@ export const createInitialState = (): AnchorGameState => {
     setLoadSteps: 0,
     holdingObservationStartedAt: null,
     holdingReferenceBowX: null,
+    conditionsChanged: false,
+    anchorWatchComplete: false,
+    dragging: false,
+    holdingRemediated: false,
+    recoveryStage: "none",
   };
 };
 
@@ -61,6 +75,24 @@ export const getPlannedSwingRadius = (rode: number, scenario: AnchorScenario) =>
   const maximumDepth = getMaximumVerticalDistance(scenario);
   const horizontalReach = rode >= maximumDepth ? Math.sqrt(rode ** 2 - maximumDepth ** 2) : 0;
   return horizontalReach + scenario.vesselExtent;
+};
+
+export const getSweptRadius = (rode: number, scenario: AnchorScenario) =>
+  getPlannedSwingRadius(rode, scenario) + scenario.safetyAllowance;
+
+export const getClearanceFailures = (rode: number, scenario: AnchorScenario) => {
+  const sweptRadius = getSweptRadius(rode, scenario);
+  const failures: string[] = [];
+  if (sweptRadius > scenario.availableSwingRadius) failures.push(`room boundary by ${(sweptRadius - scenario.availableSwingRadius).toFixed(1)}m`);
+  for (const hazard of scenario.hazards) {
+    const available = hazard.distance - hazard.clearance;
+    if (sweptRadius > available) failures.push(`${hazard.label} safety zone by ${(sweptRadius - available).toFixed(1)}m`);
+  }
+  for (const neighbour of scenario.neighbours) {
+    const required = sweptRadius + neighbour.swingRadius;
+    if (required > neighbour.distance) failures.push(`${neighbour.label} swing envelope by ${(required - neighbour.distance).toFixed(1)}m`);
+  }
+  return failures;
 };
 
 export const getTargetRode = (scenario: AnchorScenario) => scenario.minimumRode;
@@ -111,6 +143,8 @@ export const moveBoat = (
       setLoadSteps: 0,
       holdingObservationStartedAt: null,
       holdingReferenceBowX: null,
+      anchorWatchComplete: false,
+      conditionsChanged: false,
     },
     status: direction === -1 ? "Drifting back from the anchor" : "Motoring ahead over the anchor",
   };
@@ -127,12 +161,12 @@ export const changeRode = (
   if (!state.anchorOnBottom) {
     if (proposed >= totalDepth) {
       return {
-        state: { ...state, rode: proposed, anchorOnBottom: true, anchorX: bowAttachX, setLoadSteps: 0, holdingObservationStartedAt: null, holdingReferenceBowX: null },
+        state: { ...state, rode: proposed, anchorOnBottom: true, anchorX: bowAttachX, setLoadSteps: 0, holdingObservationStartedAt: null, holdingReferenceBowX: null, anchorWatchComplete: false, conditionsChanged: false },
         status: "Anchor just touched the seabed — it will stay put now.",
         event: "anchor-bottom",
       };
     }
-    return { state: { ...state, rode: proposed, setLoadSteps: 0, holdingObservationStartedAt: null, holdingReferenceBowX: null }, status: "" };
+    return { state: { ...state, rode: proposed, setLoadSteps: 0, holdingObservationStartedAt: null, holdingReferenceBowX: null, anchorWatchComplete: false, conditionsChanged: false }, status: "" };
   }
 
   if (state.anchorX !== null) {
@@ -140,7 +174,7 @@ export const changeRode = (
     const minRode = Math.hypot(totalDepth, horizontal);
     if (proposed < minRode && horizontal > 0.6) {
       return {
-        state: { ...state, rode: minRode, setLoadSteps: 0, holdingObservationStartedAt: null, holdingReferenceBowX: null },
+        state: { ...state, rode: minRode, setLoadSteps: 0, holdingObservationStartedAt: null, holdingReferenceBowX: null, anchorWatchComplete: false, conditionsChanged: false },
         status: "Rode is taut — move the bow toward the anchor before heaving more.",
       };
     }
@@ -154,12 +188,14 @@ export const changeRode = (
           setLoadSteps: 0,
           holdingObservationStartedAt: null,
           holdingReferenceBowX: null,
+          anchorWatchComplete: false,
+          conditionsChanged: false,
         },
         status: "Anchor coming up — keep heaving.",
       };
     }
   }
-  return { state: { ...state, rode: proposed, setLoadSteps: 0, holdingObservationStartedAt: null, holdingReferenceBowX: null }, status: "" };
+  return { state: { ...state, rode: proposed, setLoadSteps: 0, holdingObservationStartedAt: null, holdingReferenceBowX: null, anchorWatchComplete: false, conditionsChanged: false }, status: "" };
 };
 
 export const applySettingLoad = (state: AnchorGameState, scenario: AnchorScenario): TransitionResult => {
@@ -168,11 +204,11 @@ export const applySettingLoad = (state: AnchorGameState, scenario: AnchorScenari
     && state.anchorX !== null
     && state.anchorX - bowTipX >= scenario.minimumSetDistance
     && state.rode >= scenario.minimumRode
-    && getPlannedSwingRadius(state.rode, scenario) <= scenario.availableSwingRadius;
+    && getClearanceFailures(state.rode, scenario).length === 0;
   if (!geometryReady) return { state, status: "Lay out suitable rode within safe room and move astern before applying setting load." };
   const setLoadSteps = Math.min(state.setLoadSteps + 1, scenario.minimumSetLoadSteps);
   return {
-    state: { ...state, setLoadSteps, holdingObservationStartedAt: null, holdingReferenceBowX: null },
+    state: { ...state, setLoadSteps, holdingObservationStartedAt: null, holdingReferenceBowX: null, anchorWatchComplete: false, conditionsChanged: false },
     status: `Progressive setting load ${setLoadSteps} of ${scenario.minimumSetLoadSteps} applied within the fixture's equipment limits.`,
   };
 };
@@ -181,7 +217,7 @@ export interface PlacementResult {
   type: "success" | "failure";
   message: string;
   status: string;
-  issues: readonly ("procedure" | "scope" | "verification")[];
+  issues: readonly ("procedure" | "scope" | "verification" | "watch")[];
 }
 
 export const checkPlacement = (state: AnchorGameState, scenario: AnchorScenario, now = Date.now()): PlacementResult => {
@@ -189,7 +225,7 @@ export const checkPlacement = (state: AnchorGameState, scenario: AnchorScenario,
   const bowTipX = state.boatX + BOAT_LENGTH;
   const targetRode = getTargetRode(scenario);
   const maximumDepth = getMaximumVerticalDistance(scenario);
-  const plannedSwingRadius = getPlannedSwingRadius(state.rode, scenario);
+  const clearanceFailures = getClearanceFailures(state.rode, scenario);
 
   if (!state.anchorOnBottom || state.anchorX === null) issues.push("anchor never made it to the seabed");
   if (state.anchorOnBottom && state.anchorX !== null && state.anchorX - bowTipX <= 0.5) {
@@ -200,13 +236,15 @@ export const checkPlacement = (state: AnchorGameState, scenario: AnchorScenario,
   }
   if (state.setLoadSteps < scenario.minimumSetLoadSteps) issues.push("progressive setting load not completed");
   if (state.rode < targetRode) issues.push(`scope short by ${(targetRode - state.rode).toFixed(1)}m`);
-  if (plannedSwingRadius > scenario.availableSwingRadius) issues.push(`planned swing exceeds safe room by ${(plannedSwingRadius - scenario.availableSwingRadius).toFixed(1)}m`);
+  if (clearanceFailures.length) issues.push(`full swept area conflicts with ${clearanceFailures.join(", ")}`);
   const observationComplete = state.holdingObservationStartedAt !== null
     && state.holdingReferenceBowX === state.boatX
     && now - state.holdingObservationStartedAt >= HOLDING_OBSERVATION_MS;
   if (!observationComplete) issues.push(state.holdingObservationStartedAt === null
     ? "timed fixed-position holding observation not started"
     : "holding observation still in progress");
+  if (!state.conditionsChanged) issues.push("forecast wind/tide change not yet applied");
+  if (!state.anchorWatchComplete) issues.push(state.dragging ? "anchor watch detected dragging" : "post-change anchor watch not completed");
 
   if (issues.length === 0) {
     return {
@@ -222,8 +260,9 @@ export const checkPlacement = (state: AnchorGameState, scenario: AnchorScenario,
     status: "Adjust and try again — use controlled deployment and the scenario's rode limits.",
     issues: [
       ...(!state.anchorOnBottom || state.anchorX === null || state.anchorX - bowTipX < scenario.minimumSetDistance || state.setLoadSteps < scenario.minimumSetLoadSteps ? ["procedure" as const] : []),
-      ...(state.rode < targetRode || plannedSwingRadius > scenario.availableSwingRadius ? ["scope" as const] : []),
+      ...(state.rode < targetRode || clearanceFailures.length ? ["scope" as const] : []),
       ...(!observationComplete ? ["verification" as const] : []),
+      ...(!state.conditionsChanged || !state.anchorWatchComplete ? ["watch" as const] : []),
     ],
   };
 };
@@ -233,3 +272,54 @@ export const startHoldingObservation = (state: AnchorGameState, now = Date.now()
   holdingObservationStartedAt: now,
   holdingReferenceBowX: state.boatX,
 });
+
+export const applyWindTideChange = (state: AnchorGameState, scenario: AnchorScenario, now = Date.now()): TransitionResult => {
+  const observationComplete = state.holdingObservationStartedAt !== null
+    && state.holdingReferenceBowX === state.boatX
+    && now - state.holdingObservationStartedAt >= HOLDING_OBSERVATION_MS;
+  const settingComplete = state.anchorOnBottom && state.setLoadSteps >= scenario.minimumSetLoadSteps;
+  if (!settingComplete || !observationComplete) {
+    return { state, status: "Complete the controlled set and timed holding observation before applying the forecast change." };
+  }
+  return {
+    state: { ...state, conditionsChanged: true, anchorWatchComplete: false },
+    status: "Wind/tide change applied — repeat transit, position, depth, load and clearance checks.",
+  };
+};
+
+export const runAnchorWatch = (state: AnchorGameState, scenario: AnchorScenario, now = Date.now()): TransitionResult => {
+  const observationComplete = state.holdingObservationStartedAt !== null
+    && state.holdingReferenceBowX === state.boatX
+    && now - state.holdingObservationStartedAt >= HOLDING_OBSERVATION_MS;
+  if (!state.conditionsChanged || !observationComplete) {
+    return { state, status: "Complete the fixed-position observation and apply the wind/tide change before the anchor watch." };
+  }
+  if (scenario.weakHolding && !state.holdingRemediated) {
+    return {
+      state: { ...state, dragging: true, anchorWatchComplete: false, anchorX: state.anchorX === null ? null : state.anchorX + 2 },
+      status: "Anchor watch detected dragging on weak holding ground — start the engine and recover under control.",
+    };
+  }
+  return {
+    state: { ...state, dragging: false, anchorWatchComplete: true },
+    status: "Anchor watch complete: modeled transit, position, depth, load and swept clearance remain stable.",
+  };
+};
+
+export const recoverSafely = (state: AnchorGameState): TransitionResult => {
+  if (!state.dragging) return { state, status: "Safe recovery is available when holding is lost or the plan is aborted." };
+  if (state.recoveryStage !== "engine-support") {
+    return {
+      state: { ...state, recoveryStage: "engine-support" },
+      status: "Engine support established; coordinate helm and foredeck and take in slack without pulling the vessel on the windlass.",
+    };
+  }
+  return {
+    state: {
+      ...createInitialState(),
+      holdingRemediated: true,
+      recoveryStage: "recovered",
+    },
+    status: "Anchor recovered under control. Re-select the position and complete a fresh deployment, set and watch.",
+  };
+};
