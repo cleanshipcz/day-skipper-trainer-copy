@@ -36,6 +36,34 @@ const buildSupabaseMock = () => {
 };
 
 describe("saveProgressRecord", () => {
+  it("routes Anchorwork snapshots through the server-validated monotonic RPC", async () => {
+    const { client, rpc } = buildSupabaseMock();
+    await saveProgressRecord({
+      supabaseClient: client as never,
+      userId: "user-1",
+      topicId: "anchorwork",
+      completed: true,
+      score: 100,
+      pointsEarned: 999,
+      answersHistory: { version: 1, completedTopicIds: ["types", "scope"] },
+    });
+    expect(rpc).toHaveBeenCalledWith("save_anchorwork_progress", {
+      p_completed_topic_ids: ["types", "scope"],
+    });
+  });
+
+  it("rejects malformed Anchorwork snapshots before persistence", async () => {
+    const { client, rpc } = buildSupabaseMock();
+    await expect(saveProgressRecord({
+      supabaseClient: client as never,
+      userId: "user-1",
+      topicId: "anchorwork",
+      completed: true,
+      answersHistory: { completedTopicIds: ["types", 1] },
+    })).rejects.toThrow("canonical completed topic IDs");
+    expect(rpc).not.toHaveBeenCalled();
+  });
+
   it("uses one authenticated atomic RPC without sending a user ID", async () => {
     const { client, rpc } = buildSupabaseMock();
 

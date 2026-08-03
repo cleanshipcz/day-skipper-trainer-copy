@@ -58,6 +58,7 @@ export const useProgress = () => {
       answersHistory?: Record<string, unknown>
     ) => {
       if (!user) return "anonymous" as const;
+      if (ownerRef.current !== user.id) return "failed" as const;
 
       try {
         const { pointsAwarded, completionAwarded, awardedPoints } = await saveProgressRecord({

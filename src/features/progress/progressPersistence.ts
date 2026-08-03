@@ -29,13 +29,21 @@ export const saveProgressRecord = async ({
   // deliberately not sent to the database function and remains here only for
   // the separate RLS-scoped delete operation/API compatibility.
   void userId;
-  const { data, error } = await supabaseClient.rpc("save_topic_progress", {
-    p_topic_id: topicId,
-    p_completed: completed,
-    p_score: score,
-    p_points: pointsEarned,
-    p_answers_history: answersHistory ?? null,
-  });
+  const anchorworkIds = topicId === "anchorwork"
+    ? (answersHistory as { completedTopicIds?: unknown } | undefined)?.completedTopicIds
+    : null;
+  if (topicId === "anchorwork" && (!Array.isArray(anchorworkIds) || anchorworkIds.some((id) => typeof id !== "string"))) {
+    throw new Error("Anchorwork progress requires canonical completed topic IDs");
+  }
+  const { data, error } = topicId === "anchorwork"
+    ? await supabaseClient.rpc("save_anchorwork_progress", { p_completed_topic_ids: anchorworkIds as string[] })
+    : await supabaseClient.rpc("save_topic_progress", {
+      p_topic_id: topicId,
+      p_completed: completed,
+      p_score: score,
+      p_points: pointsEarned,
+      p_answers_history: answersHistory ?? null,
+    });
   if (error) throw error;
   const outcome = Array.isArray(data) ? data[0] : data;
   if (!outcome) throw new Error("Progress RPC returned no outcome");
