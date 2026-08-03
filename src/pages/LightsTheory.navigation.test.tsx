@@ -7,7 +7,7 @@ const markSectionVisited = vi.fn().mockResolvedValue(undefined);
 const scrollIntoView = vi.fn();
 
 vi.mock("@/features/progress/useTheoryCompletionGate", () => ({
-  useTheoryCompletionGate: () => ({ canComplete: false, markCompleted: vi.fn(), markSectionVisited }),
+  useTheoryCompletionGate: () => ({ canComplete: false, markCompleted: vi.fn(), markSectionVisited, visitedSectionIds: [], saveState: "idle" }),
 }));
 
 describe("LightsTheory remediation navigation", () => {
@@ -22,7 +22,7 @@ describe("LightsTheory remediation navigation", () => {
     const heading = await screen.findByRole("heading", { name: "Restricted Visibility (Rule 35)" });
     const target = heading.closest("div[id='rule-35']");
     expect(screen.getByRole("tab", { name: "Sounds" }).getAttribute("data-state")).toBe("active");
-    expect(markSectionVisited).toHaveBeenCalledWith("sounds");
+    expect(markSectionVisited).not.toHaveBeenCalled();
     expect(scrollIntoView).toHaveBeenCalledWith({ block: "start" });
     expect(document.activeElement).toBe(target);
   });
@@ -33,7 +33,7 @@ describe("LightsTheory remediation navigation", () => {
     const target = heading.closest("div[id='rule-30']");
     expect(target).not.toBeNull();
     expect(screen.getByRole("tab", { name: "Shapes" }).getAttribute("data-state")).toBe("active");
-    expect(markSectionVisited).toHaveBeenCalledWith("shapes");
+    expect(markSectionVisited).not.toHaveBeenCalled();
     expect(scrollIntoView).toHaveBeenCalledWith({ block: "start" });
     expect(document.activeElement).toBe(target);
   });
@@ -44,7 +44,7 @@ describe("LightsTheory remediation navigation", () => {
     const target = heading.closest("section[id='rule-37']");
     expect(target).not.toBeNull();
     expect(screen.getByRole("tab", { name: "Distress" }).getAttribute("data-state")).toBe("active");
-    expect(markSectionVisited).toHaveBeenCalledWith("distress");
+    expect(markSectionVisited).not.toHaveBeenCalled();
     expect(scrollIntoView).toHaveBeenCalledWith({ block: "start" });
     expect(document.activeElement).toBe(target);
   });

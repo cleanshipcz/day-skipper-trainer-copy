@@ -24,6 +24,10 @@ export interface QueuedProgress {
 
 type ProgressPayload = Omit<QueuedProgress, "id" | "updatedAt" | "revision" | "attempts" | "status" | "lastError">;
 
+const lightsCatalogueRevision = (progress?: ProgressPayload | QueuedProgress) =>
+  (progress?.answersHistory as { catalogueRevision?: unknown } | undefined)?.catalogueRevision;
+const CURRENT_LIGHTS_CATALOGUE_REVISION = "colregs-parts-c-d-annex-iv-v1";
+
 const errorMessage = (error: unknown): string =>
   error instanceof Error ? error.message : String((error as { message?: unknown })?.message ?? error);
 
@@ -83,8 +87,21 @@ export const queueProgress = async (
     /* v8 ignore next -- platform callback only forwards IndexedDB's request error */
     existingRequest.onerror = () => reject(existingRequest.error);
   });
+  const payload = progress.topicId === "lights-theory"
+    && existing?.completed === true
+    && progress.completed === false
+    && (lightsCatalogueRevision(existing) === lightsCatalogueRevision(progress)
+      || lightsCatalogueRevision(existing) === CURRENT_LIGHTS_CATALOGUE_REVISION)
+    ? {
+      ...progress,
+      completed: true,
+      score: existing.score,
+      pointsEarned: existing.pointsEarned,
+      answersHistory: existing.answersHistory,
+    }
+    : progress;
   const entry: QueuedProgress = {
-    ...progress,
+    ...payload,
     id,
     updatedAt: Math.max(updatedAt, existing?.updatedAt ?? 0),
     revision: (existing?.revision ?? 0) + 1,

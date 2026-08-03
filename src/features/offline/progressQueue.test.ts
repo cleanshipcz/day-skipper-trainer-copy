@@ -18,6 +18,41 @@ describe("offline progress queue", () => {
     ]);
   });
 
+  it("keeps current-revision queued Lights completion monotonic and permits migration from an old revision", async () => {
+    const full = {
+      catalogueRevision: "colregs-parts-c-d-annex-iv-v1", completionState: "completed",
+      visitedSectionIds: ["part-c-recognition", "part-d-recognition", "distress-recognition"],
+    };
+    await queueProgress({ userId: "lights-monotonic", topicId: "lights-theory", completed: true, score: 100, pointsEarned: 10, answersHistory: full }, 10);
+    await queueProgress({
+      userId: "lights-monotonic", topicId: "lights-theory", completed: false, score: 33, pointsEarned: 0,
+      answersHistory: { catalogueRevision: "colregs-parts-c-d-annex-iv-v1", completionState: "in_progress", visitedSectionIds: ["part-c-recognition"] },
+    }, 20);
+    expect(await getQueuedProgress("lights-monotonic")).toEqual([
+      expect.objectContaining({ completed: true, score: 100, answersHistory: full, updatedAt: 20, revision: 2 }),
+    ]);
+
+    await queueProgress({
+      userId: "lights-monotonic", topicId: "lights-theory", completed: false, score: 0, pointsEarned: 0,
+      answersHistory: { catalogueRevision: "stale-v0", completionState: "in_progress", visitedSectionIds: [] },
+    }, 30);
+    expect(await getQueuedProgress("lights-monotonic")).toEqual([
+      expect.objectContaining({ completed: true, score: 100, answersHistory: full, revision: 3 }),
+    ]);
+
+    await queueProgress({
+      userId: "lights-upgrade", topicId: "lights-theory", completed: true, score: 100, pointsEarned: 10,
+      answersHistory: { ...full, catalogueRevision: "stale-v0" },
+    }, 10);
+    await queueProgress({
+      userId: "lights-upgrade", topicId: "lights-theory", completed: false, score: 0, pointsEarned: 0,
+      answersHistory: { catalogueRevision: "colregs-parts-c-d-annex-iv-v1", completionState: "in_progress", visitedSectionIds: [] },
+    }, 20);
+    expect(await getQueuedProgress("lights-upgrade")).toEqual([
+      expect.objectContaining({ completed: false, answersHistory: expect.objectContaining({ catalogueRevision: "colregs-parts-c-d-annex-iv-v1" }) }),
+    ]);
+  });
+
   it("replays queued progress and removes successful entries", async () => {
     await queueProgress({ userId: "replay-user", topicId: "ropework", completed: true, score: 80, pointsEarned: 10 });
     const rpc = vi.fn().mockResolvedValue({

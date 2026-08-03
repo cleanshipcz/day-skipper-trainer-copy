@@ -26,8 +26,28 @@ export const useTheoryCompletionGate = ({
   const hydrationGenerationRef = useRef(0);
   const pendingSaveRef = useRef<{ generation: number; ids: string[] } | null>(null);
   const saveWorkerRef = useRef<{ generation: number; promise: Promise<void> } | null>(null);
-  const [saveState, setSaveState] = useState<"idle" | "saving" | "saved" | "queued" | "failed">("idle");
+  const localDurableRef = useRef(true);
+  const [saveState, setSaveState] = useState<"idle" | "saving" | "saved" | "local" | "queued" | "failed">("idle");
   const storageKey = catalogueRevision ? `theory-gate:${ownerId ?? "anonymous"}:${topicId}:${catalogueRevision}` : null;
+  const completionStorageKey = storageKey ? `${storageKey}:completion` : null;
+
+  const writeBrowserEvidence = useCallback((ids: readonly string[], completed = false, completionOutcome?: "saved" | "queued" | "local") => {
+    if (!storageKey) return true;
+    try {
+      localStorage.setItem(storageKey, JSON.stringify({ catalogueRevision, visitedSectionIds: ids, completed, completionOutcome }));
+      if (completed && completionStorageKey) {
+        // Separate monotonic marker: incomplete writes from another tab never
+        // touch this key, so they cannot race a durable completion backwards.
+        localStorage.setItem(completionStorageKey, JSON.stringify({ catalogueRevision, visitedSectionIds: ids, completionOutcome }));
+      }
+      localDurableRef.current = true;
+      return true;
+    } catch {
+      localDurableRef.current = false;
+      setSaveState("failed");
+      return false;
+    }
+  }, [catalogueRevision, completionStorageKey, storageKey]);
 
   const enqueueInProgressSave = useCallback((ids: string[], generation = hydrationGenerationRef.current) => {
     pendingSaveRef.current = { generation, ids };
@@ -38,12 +58,17 @@ export const useTheoryCompletionGate = ({
         const snapshot = pendingSaveRef.current;
         pendingSaveRef.current = null;
         const score = deriveCompletionGateDecision({ visitedSectionIds: snapshot.ids, requiredSectionIds }).score;
-        await saveProgress(topicId, false, score, 0, { completionState: "in_progress", catalogueRevision, visitedSectionIds: snapshot.ids });
+        setSaveState("saving");
+        const result = saveProgressDetailed
+          ? await saveProgressDetailed(topicId, false, score, 0, { completionState: "in_progress", catalogueRevision, visitedSectionIds: snapshot.ids })
+          : await saveProgress(topicId, false, score, 0, { completionState: "in_progress", catalogueRevision, visitedSectionIds: snapshot.ids });
+        const ok = result !== false && result !== "failed" && result !== "conflict";
+        setSaveState(result === "queued" ? "queued" : result === "anonymous" ? localDurableRef.current ? "local" : "failed" : ok ? "saved" : "failed");
       }
     })().finally(() => { if (saveWorkerRef.current === worker) saveWorkerRef.current = null; });
     saveWorkerRef.current = worker;
     return worker.promise;
-  }, [catalogueRevision, requiredSectionIds, saveProgress, topicId]);
+  }, [catalogueRevision, requiredSectionIds, saveProgress, saveProgressDetailed, topicId]);
 
   useEffect(() => {
     if (!storageKey) return;
@@ -56,12 +81,28 @@ export const useTheoryCompletionGate = ({
     const generation = ++hydrationGenerationRef.current;
     const restore = async () => {
       let restored: string[] = [];
+      let locallyCompleted = false;
+      let localCompletionOutcome: "saved" | "queued" | "local" | undefined;
       try {
-        const parsed = JSON.parse(localStorage.getItem(storageKey) ?? "null") as { visitedSectionIds?: unknown } | null;
+        const parsed = JSON.parse(localStorage.getItem(storageKey) ?? "null") as { visitedSectionIds?: unknown; completed?: unknown; completionOutcome?: unknown } | null;
         if (parsed && Array.isArray(parsed.visitedSectionIds)) restored = parsed.visitedSectionIds.filter((id): id is string => typeof id === "string" && requiredSectionIds.includes(id));
+        locallyCompleted = parsed?.completed === true;
+        if (parsed?.completionOutcome === "saved" || parsed?.completionOutcome === "queued" || parsed?.completionOutcome === "local") localCompletionOutcome = parsed.completionOutcome;
+        const marker = completionStorageKey
+          ? JSON.parse(localStorage.getItem(completionStorageKey) ?? "null") as { catalogueRevision?: unknown; visitedSectionIds?: unknown; completionOutcome?: unknown } | null
+          : null;
+        if (marker?.catalogueRevision === catalogueRevision && Array.isArray(marker.visitedSectionIds)) {
+          const markerIds = marker.visitedSectionIds.filter((id): id is string => typeof id === "string" && requiredSectionIds.includes(id));
+          if (requiredSectionIds.every((id) => markerIds.includes(id))) {
+            locallyCompleted = true;
+            restored = [...new Set([...restored, ...markerIds])];
+            if (marker.completionOutcome === "saved" || marker.completionOutcome === "queued" || marker.completionOutcome === "local") localCompletionOutcome = marker.completionOutcome;
+          }
+        }
       } catch { /* Ignore corrupt legacy browser state. */ }
       const load = loadProgressDetailed ? await loadProgressDetailed(topicId) : null;
       const remoteHistory = load?.status === "remote" ? load.record.answers_history as { catalogueRevision?: string; visitedSectionIds?: unknown } | null : null;
+      const remotelyCompleted = load?.status === "remote" && load.record.completed === true && remoteHistory?.catalogueRevision === catalogueRevision;
       if (remoteHistory?.catalogueRevision === catalogueRevision && Array.isArray(remoteHistory.visitedSectionIds)) {
         restored = [...new Set([...restored, ...remoteHistory.visitedSectionIds.filter((id): id is string => typeof id === "string" && requiredSectionIds.includes(id))])];
       }
@@ -70,11 +111,14 @@ export const useTheoryCompletionGate = ({
       visitedRef.current = merged;
       setVisitedSectionIds(merged);
       inProgressPersistedRef.current = merged.length > 0;
-      localStorage.setItem(storageKey, JSON.stringify({ catalogueRevision, visitedSectionIds: merged }));
-      if (merged.length > 0) await enqueueInProgressSave(merged, generation);
+      const completed = (locallyCompleted || remotelyCompleted) && merged.length === requiredSectionIds.length;
+      const outcome = remotelyCompleted ? "saved" : localCompletionOutcome ?? "local";
+      const browserSaved = writeBrowserEvidence(merged, completed, completed ? outcome : undefined);
+      if (completed) setSaveState(browserSaved ? outcome : remotelyCompleted ? "saved" : "failed");
+      else if (merged.length > 0) await enqueueInProgressSave(merged, generation);
     };
     void restore();
-  }, [catalogueRevision, enqueueInProgressSave, loadProgressDetailed, ownerId, requiredSectionIds, storageKey, topicId]);
+  }, [catalogueRevision, completionStorageKey, enqueueInProgressSave, loadProgressDetailed, ownerId, requiredSectionIds, storageKey, topicId, writeBrowserEvidence]);
 
   const decision = useMemo(
     () => deriveCompletionGateDecision({ visitedSectionIds, requiredSectionIds }),
@@ -87,14 +131,17 @@ export const useTheoryCompletionGate = ({
 
       inProgressPersistedRef.current = true;
       if (catalogueRevision) await enqueueInProgressSave(nextVisitedSectionIds);
-      else await saveProgress(topicId, false, score, 0, { completionState: "in_progress", visitedSectionIds: nextVisitedSectionIds });
+      else {
+        const saved = await saveProgress(topicId, false, score, 0, { completionState: "in_progress", visitedSectionIds: nextVisitedSectionIds });
+        if (saved === false) setSaveState("failed");
+      }
     },
     [catalogueRevision, enqueueInProgressSave, saveProgress, topicId]
   );
 
   const markSectionVisited = useCallback(
     async (sectionId: string) => {
-      if (!sectionId) return;
+      if (!sectionId || !requiredSectionIds.includes(sectionId)) return;
 
       /**
        * Read the latest visited list from a ref rather than relying on
@@ -109,7 +156,7 @@ export const useTheoryCompletionGate = ({
       const nextVisitedSectionIds = [...prev, sectionId];
       visitedRef.current = nextVisitedSectionIds;
       setVisitedSectionIds(nextVisitedSectionIds);
-      if (storageKey) localStorage.setItem(storageKey, JSON.stringify({ catalogueRevision, visitedSectionIds: nextVisitedSectionIds }));
+      writeBrowserEvidence(nextVisitedSectionIds);
 
       const nextDecision = deriveCompletionGateDecision({
         visitedSectionIds: nextVisitedSectionIds,
@@ -117,7 +164,7 @@ export const useTheoryCompletionGate = ({
       });
       await persistInProgressIfNeeded(nextDecision.state, nextDecision.score, nextVisitedSectionIds);
     },
-    [catalogueRevision, persistInProgressIfNeeded, requiredSectionIds, storageKey]
+    [persistInProgressIfNeeded, requiredSectionIds, writeBrowserEvidence]
   );
 
   const markCompleted = useCallback(async () => {
@@ -126,13 +173,20 @@ export const useTheoryCompletionGate = ({
     const attempt = (async () => {
       setSaveState("saving");
       try {
+        // Revisioned evidence writes share one topic row/queue key with the
+        // completion write. Drain them first so an older in-progress snapshot
+        // can never overwrite a completed remote or queued snapshot.
+        await saveWorkerRef.current?.promise;
         const history = { completionState: "completed", catalogueRevision, visitedSectionIds: visitedRef.current };
         const result = catalogueRevision && saveProgressDetailed
           ? await saveProgressDetailed(topicId, true, 100, pointsOnComplete, history)
           : await saveProgress(topicId, true, 100, pointsOnComplete, history);
         // Legacy saveProgress mocks/consumers historically resolved void on success.
-        const ok = result !== false && result !== "failed" && result !== "conflict";
-        setSaveState(result === "queued" ? "queued" : ok ? "saved" : "failed");
+        let ok = result !== false && result !== "failed" && result !== "conflict";
+        if (result === "anonymous") ok = writeBrowserEvidence(visitedRef.current, true, "local");
+        else if (result === "queued") ok = writeBrowserEvidence(visitedRef.current, true, "queued");
+        else if (ok) writeBrowserEvidence(visitedRef.current, true, "saved");
+        setSaveState(result === "queued" ? "queued" : result === "anonymous" ? ok ? "local" : "failed" : ok ? "saved" : "failed");
         return ok;
       } catch {
         setSaveState("failed");
@@ -141,7 +195,7 @@ export const useTheoryCompletionGate = ({
     })();
     completionPromiseRef.current = attempt;
     return attempt;
-  }, [catalogueRevision, decision.canComplete, pointsOnComplete, saveProgress, saveProgressDetailed, topicId]);
+  }, [catalogueRevision, decision.canComplete, pointsOnComplete, saveProgress, saveProgressDetailed, topicId, writeBrowserEvidence]);
 
   return {
     completionState: decision.state,

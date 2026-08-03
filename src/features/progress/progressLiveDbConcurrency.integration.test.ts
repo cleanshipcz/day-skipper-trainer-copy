@@ -77,6 +77,48 @@ describeLiveDb("live DB concurrency stress — progress integrity", () => {
       expect(ledgerError).toBeNull();
       expect(count).toBe(topics.length);
 
+      const fullLightsEvidence = {
+        catalogueRevision: "colregs-parts-c-d-annex-iv-v1",
+        completionState: "completed",
+        visitedSectionIds: ["part-c-recognition", "part-d-recognition", "distress-recognition"],
+      };
+      const directGenericLights = await userClient.rpc("save_topic_progress", {
+        p_topic_id: "lights-theory", p_completed: true, p_score: 100, p_points: 10, p_answers_history: fullLightsEvidence,
+      });
+      expect(directGenericLights.error).not.toBeNull();
+
+      for (const invalid of [
+        { p_completed: null, p_score: 100, p_answers_history: fullLightsEvidence },
+        { p_completed: true, p_score: null, p_answers_history: fullLightsEvidence },
+        { p_completed: true, p_score: 100, p_answers_history: null },
+        { p_completed: true, p_score: 67, p_answers_history: fullLightsEvidence },
+      ]) {
+        const outcome = await userClient.rpc("save_lights_theory_progress", invalid as never);
+        expect(outcome.error).not.toBeNull();
+      }
+
+      const completedLights = await userClient.rpc("save_lights_theory_progress", {
+        p_completed: true, p_score: 100, p_answers_history: fullLightsEvidence,
+      });
+      expect(completedLights.error).toBeNull();
+      const delayedIncompleteLights = await userClient.rpc("save_lights_theory_progress", {
+        p_completed: false,
+        p_score: 33,
+        p_answers_history: {
+          catalogueRevision: "colregs-parts-c-d-annex-iv-v1",
+          completionState: "in_progress",
+          visitedSectionIds: ["part-c-recognition"],
+        },
+      });
+      expect(delayedIncompleteLights.error).toBeNull();
+      const { data: lightsRow, error: lightsReadError } = await admin.from("user_progress")
+        .select("completed, score, answers_history")
+        .eq("user_id", userId).eq("topic_id", "lights-theory").single();
+      expect(lightsReadError).toBeNull();
+      expect(lightsRow?.completed).toBe(true);
+      expect(lightsRow?.score).toBe(100);
+      expect(lightsRow?.answers_history).toEqual(fullLightsEvidence);
+
       const checkpoint = (sequenceIndex: number, attempts: number, families = ["sheltered", "harbour", "exposed", "tidal"]) => ({
         version: 1, completedFamilies: families, attempts, failedChecks: Math.min(2, attempts),
         scenarioSeed: 7, sequenceIndex,

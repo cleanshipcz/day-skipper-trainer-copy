@@ -1,4 +1,4 @@
-import { renderHook, act } from "@testing-library/react";
+import { renderHook, act, waitFor } from "@testing-library/react";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
 const mocks = vi.hoisted(() => ({
@@ -244,7 +244,7 @@ describe("useTheoryCompletionGate", () => {
     expect(result.current.visitedSectionIds).toEqual(["s1", "s2"]);
     expect(mocks.loadProgressDetailed).toHaveBeenCalledTimes(1);
     expect(JSON.parse(localStorage.getItem(`theory-gate:anonymous:${topicId}:v1`)!).visitedSectionIds).toEqual(["s1", "s2"]);
-    expect(mocks.saveProgress).toHaveBeenLastCalledWith(topicId, false, 67, 0, expect.objectContaining({ visitedSectionIds: ["s1", "s2"] }));
+    expect(mocks.saveProgressDetailed).toHaveBeenLastCalledWith(topicId, false, 67, 0, expect.objectContaining({ visitedSectionIds: ["s1", "s2"] }));
   });
 
   it("isolates browser evidence by owner", async () => {
@@ -262,6 +262,7 @@ describe("useTheoryCompletionGate", () => {
   it("distinguishes failed saves and permits a single-flight retry", async () => {
     const { result } = renderHook(() => useTheoryCompletionGate({ topicId, requiredSectionIds: ["s1"], catalogueRevision: "v1" }));
     await act(async () => { await result.current.markSectionVisited("s1"); });
+    mocks.saveProgressDetailed.mockClear();
     mocks.saveProgressDetailed.mockResolvedValueOnce("failed").mockResolvedValueOnce("remote");
     await act(async () => { expect(await result.current.markCompleted()).toBe(false); });
     expect(result.current.saveState).toBe("failed");
@@ -269,16 +270,124 @@ describe("useTheoryCompletionGate", () => {
     expect(mocks.saveProgressDetailed).toHaveBeenCalledTimes(2);
   });
 
+  it("treats the legacy saveProgress Boolean false result as a completion failure", async () => {
+    const { result } = renderHook(() => useTheoryCompletionGate({ topicId, requiredSectionIds: ["s1"] }));
+    await act(async () => { await result.current.markSectionVisited("s1"); });
+    mocks.saveProgress.mockResolvedValueOnce(false);
+    await act(async () => { expect(await result.current.markCompleted()).toBe(false); });
+    expect(result.current.saveState).toBe("failed");
+  });
+
   it("serializes rapid evidence saves and writes the latest snapshot last", async () => {
     let releaseFirst!: () => void;
-    mocks.saveProgress.mockImplementationOnce(() => new Promise<void>(resolve => { releaseFirst = resolve; })).mockResolvedValue(true);
     const { result } = renderHook(() => useTheoryCompletionGate({ topicId, requiredSectionIds, catalogueRevision: "v1" }));
-    await act(async () => {});
+    await waitFor(() => expect(localStorage.getItem(`theory-gate:anonymous:${topicId}:v1`)).not.toBeNull());
+    mocks.saveProgressDetailed.mockClear();
+    mocks.saveProgressDetailed.mockImplementationOnce(() => new Promise(resolve => { releaseFirst = () => resolve("remote"); })).mockResolvedValue("remote");
     let first!: Promise<void>; let second!: Promise<void>;
     act(() => { first = result.current.markSectionVisited("s1"); second = result.current.markSectionVisited("s2"); });
-    expect(mocks.saveProgress).toHaveBeenCalledTimes(1);
+    expect(mocks.saveProgressDetailed).toHaveBeenCalledTimes(1);
     await act(async () => { releaseFirst(); await Promise.all([first, second]); });
-    expect(mocks.saveProgress).toHaveBeenCalledTimes(2);
-    expect(mocks.saveProgress).toHaveBeenLastCalledWith(topicId, false, 67, 0, expect.objectContaining({ visitedSectionIds: ["s1", "s2"] }));
+    expect(mocks.saveProgressDetailed).toHaveBeenCalledTimes(2);
+    expect(mocks.saveProgressDetailed).toHaveBeenLastCalledWith(topicId, false, 67, 0, expect.objectContaining({ visitedSectionIds: ["s1", "s2"] }));
+  });
+
+  it("ignores non-catalogue section IDs without producing evidence or a save", async () => {
+    const { result } = renderHook(() => useTheoryCompletionGate({ topicId, requiredSectionIds, catalogueRevision: "v1" }));
+    await act(async () => {});
+    mocks.saveProgressDetailed.mockClear();
+    await act(async () => { await result.current.markSectionVisited("sounds-tab"); });
+    expect(result.current.visitedSectionIds).toEqual([]);
+    expect(mocks.saveProgressDetailed).not.toHaveBeenCalled();
+  });
+
+  it("stores anonymous completion durably and restores that outcome after reload", async () => {
+    mocks.saveProgressDetailed.mockResolvedValue("anonymous");
+    const first = renderHook(() => useTheoryCompletionGate({ topicId, requiredSectionIds: ["s1"], catalogueRevision: "v1" }));
+    await act(async () => { await first.result.current.markSectionVisited("s1"); });
+    await act(async () => { expect(await first.result.current.markCompleted()).toBe(true); });
+    expect(first.result.current.saveState).toBe("local");
+    expect(JSON.parse(localStorage.getItem(`theory-gate:anonymous:${topicId}:v1`)!).completed).toBe(true);
+    first.unmount();
+
+    mocks.saveProgressDetailed.mockClear();
+    const resumed = renderHook(() => useTheoryCompletionGate({ topicId, requiredSectionIds: ["s1"], catalogueRevision: "v1" }));
+    await act(async () => {});
+    expect(resumed.result.current.visitedSectionIds).toEqual(["s1"]);
+    expect(resumed.result.current.saveState).toBe("local");
+    expect(mocks.saveProgressDetailed).not.toHaveBeenCalled();
+  });
+
+  it("does not confirm anonymous completion when browser durability is unavailable", async () => {
+    mocks.saveProgressDetailed.mockResolvedValue("anonymous");
+    const setItem = vi.spyOn(localStorage, "setItem").mockImplementation(() => { throw new Error("storage unavailable"); });
+    const { result } = renderHook(() => useTheoryCompletionGate({ topicId, requiredSectionIds: ["s1"], catalogueRevision: "v1" }));
+    await act(async () => { await result.current.markSectionVisited("s1"); });
+    await act(async () => { expect(await result.current.markCompleted()).toBe(false); });
+    expect(result.current.saveState).toBe("failed");
+    setItem.mockRestore();
+  });
+
+  it("restores a queued completion without enqueueing an older incomplete snapshot", async () => {
+    mocks.ownerId = "owner-a";
+    mocks.loadProgressDetailed.mockResolvedValue({ status: "failed", record: null });
+    mocks.saveProgressDetailed.mockResolvedValue("queued");
+    const first = renderHook(() => useTheoryCompletionGate({ topicId, requiredSectionIds: ["s1"], catalogueRevision: "v1" }));
+    await act(async () => { await first.result.current.markSectionVisited("s1"); });
+    await act(async () => { expect(await first.result.current.markCompleted()).toBe(true); });
+    expect(first.result.current.saveState).toBe("queued");
+    first.unmount();
+
+    mocks.saveProgressDetailed.mockClear();
+    const resumed = renderHook(() => useTheoryCompletionGate({ topicId, requiredSectionIds: ["s1"], catalogueRevision: "v1" }));
+    await act(async () => {});
+    expect(resumed.result.current.saveState).toBe("queued");
+    expect(mocks.saveProgressDetailed).not.toHaveBeenCalled();
+  });
+
+  it("keeps completion monotonic when a stale second hook writes incomplete evidence", async () => {
+    mocks.ownerId = "owner-tabs";
+    mocks.loadProgressDetailed.mockResolvedValue({ status: "failed", record: null });
+    mocks.saveProgressDetailed.mockResolvedValue("queued");
+    const args = { topicId, requiredSectionIds, catalogueRevision: "v1" };
+    const completedTab = renderHook(() => useTheoryCompletionGate(args));
+    const staleTab = renderHook(() => useTheoryCompletionGate(args));
+    await act(async () => {});
+    for (const id of requiredSectionIds) await act(async () => { await completedTab.result.current.markSectionVisited(id); });
+    await act(async () => { expect(await completedTab.result.current.markCompleted()).toBe(true); });
+    await act(async () => { await staleTab.result.current.markSectionVisited("s1"); });
+    expect(JSON.parse(localStorage.getItem(`theory-gate:owner-tabs:${topicId}:v1:completion`)!).completionOutcome).toBe("queued");
+    completedTab.unmount();
+    staleTab.unmount();
+
+    mocks.saveProgressDetailed.mockClear();
+    const resumed = renderHook(() => useTheoryCompletionGate(args));
+    await act(async () => {});
+    expect(resumed.result.current.visitedSectionIds).toEqual(requiredSectionIds);
+    expect(resumed.result.current.saveState).toBe("queued");
+    expect(mocks.saveProgressDetailed).not.toHaveBeenCalled();
+  });
+
+  it("drains a pending evidence write before queueing the completed snapshot", async () => {
+    let releaseEvidence!: () => void;
+    const { result } = renderHook(() => useTheoryCompletionGate({ topicId, requiredSectionIds: ["s1", "s2"], catalogueRevision: "v1" }));
+    await waitFor(() => expect(localStorage.getItem(`theory-gate:anonymous:${topicId}:v1`)).not.toBeNull());
+    mocks.saveProgressDetailed.mockClear();
+    mocks.saveProgressDetailed
+      .mockImplementationOnce(() => new Promise(resolve => { releaseEvidence = () => resolve("queued"); }))
+      .mockResolvedValue("queued");
+    let firstEvidence!: Promise<void>;
+    let finalEvidence!: Promise<void>;
+    let completion!: Promise<boolean>;
+    act(() => { firstEvidence = result.current.markSectionVisited("s1"); });
+    await waitFor(() => expect(mocks.saveProgressDetailed).toHaveBeenCalledTimes(1));
+    act(() => { finalEvidence = result.current.markSectionVisited("s2"); });
+    act(() => { completion = result.current.markCompleted(); });
+    expect(mocks.saveProgressDetailed.mock.calls[0][1]).toBe(false);
+    await act(async () => { releaseEvidence(); await Promise.all([firstEvidence, finalEvidence]); });
+    await act(async () => { expect(await completion).toBe(true); });
+    expect(mocks.saveProgressDetailed).toHaveBeenCalledTimes(2);
+    expect(mocks.saveProgressDetailed.mock.calls.map((call) => call[1])).toEqual([false, true]);
+    expect(mocks.saveProgressDetailed.mock.calls[1][4]).toEqual(expect.objectContaining({ completionState: "completed", visitedSectionIds: ["s1", "s2"] }));
   });
 });
