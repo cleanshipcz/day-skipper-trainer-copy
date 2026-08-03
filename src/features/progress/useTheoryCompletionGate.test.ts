@@ -345,6 +345,29 @@ describe("useTheoryCompletionGate", () => {
     expect(mocks.saveProgressDetailed).not.toHaveBeenCalled();
   });
 
+  it("keeps completion monotonic when a stale second hook writes incomplete evidence", async () => {
+    mocks.ownerId = "owner-tabs";
+    mocks.loadProgressDetailed.mockResolvedValue({ status: "failed", record: null });
+    mocks.saveProgressDetailed.mockResolvedValue("queued");
+    const args = { topicId, requiredSectionIds, catalogueRevision: "v1" };
+    const completedTab = renderHook(() => useTheoryCompletionGate(args));
+    const staleTab = renderHook(() => useTheoryCompletionGate(args));
+    await act(async () => {});
+    for (const id of requiredSectionIds) await act(async () => { await completedTab.result.current.markSectionVisited(id); });
+    await act(async () => { expect(await completedTab.result.current.markCompleted()).toBe(true); });
+    await act(async () => { await staleTab.result.current.markSectionVisited("s1"); });
+    expect(JSON.parse(localStorage.getItem(`theory-gate:owner-tabs:${topicId}:v1:completion`)!).completionOutcome).toBe("queued");
+    completedTab.unmount();
+    staleTab.unmount();
+
+    mocks.saveProgressDetailed.mockClear();
+    const resumed = renderHook(() => useTheoryCompletionGate(args));
+    await act(async () => {});
+    expect(resumed.result.current.visitedSectionIds).toEqual(requiredSectionIds);
+    expect(resumed.result.current.saveState).toBe("queued");
+    expect(mocks.saveProgressDetailed).not.toHaveBeenCalled();
+  });
+
   it("drains a pending evidence write before queueing the completed snapshot", async () => {
     let releaseEvidence!: () => void;
     const { result } = renderHook(() => useTheoryCompletionGate({ topicId, requiredSectionIds: ["s1", "s2"], catalogueRevision: "v1" }));

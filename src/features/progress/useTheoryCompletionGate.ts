@@ -29,11 +29,17 @@ export const useTheoryCompletionGate = ({
   const localDurableRef = useRef(true);
   const [saveState, setSaveState] = useState<"idle" | "saving" | "saved" | "local" | "queued" | "failed">("idle");
   const storageKey = catalogueRevision ? `theory-gate:${ownerId ?? "anonymous"}:${topicId}:${catalogueRevision}` : null;
+  const completionStorageKey = storageKey ? `${storageKey}:completion` : null;
 
   const writeBrowserEvidence = useCallback((ids: readonly string[], completed = false, completionOutcome?: "saved" | "queued" | "local") => {
     if (!storageKey) return true;
     try {
       localStorage.setItem(storageKey, JSON.stringify({ catalogueRevision, visitedSectionIds: ids, completed, completionOutcome }));
+      if (completed && completionStorageKey) {
+        // Separate monotonic marker: incomplete writes from another tab never
+        // touch this key, so they cannot race a durable completion backwards.
+        localStorage.setItem(completionStorageKey, JSON.stringify({ catalogueRevision, visitedSectionIds: ids, completionOutcome }));
+      }
       localDurableRef.current = true;
       return true;
     } catch {
@@ -41,7 +47,7 @@ export const useTheoryCompletionGate = ({
       setSaveState("failed");
       return false;
     }
-  }, [catalogueRevision, storageKey]);
+  }, [catalogueRevision, completionStorageKey, storageKey]);
 
   const enqueueInProgressSave = useCallback((ids: string[], generation = hydrationGenerationRef.current) => {
     pendingSaveRef.current = { generation, ids };
@@ -82,6 +88,17 @@ export const useTheoryCompletionGate = ({
         if (parsed && Array.isArray(parsed.visitedSectionIds)) restored = parsed.visitedSectionIds.filter((id): id is string => typeof id === "string" && requiredSectionIds.includes(id));
         locallyCompleted = parsed?.completed === true;
         if (parsed?.completionOutcome === "saved" || parsed?.completionOutcome === "queued" || parsed?.completionOutcome === "local") localCompletionOutcome = parsed.completionOutcome;
+        const marker = completionStorageKey
+          ? JSON.parse(localStorage.getItem(completionStorageKey) ?? "null") as { catalogueRevision?: unknown; visitedSectionIds?: unknown; completionOutcome?: unknown } | null
+          : null;
+        if (marker?.catalogueRevision === catalogueRevision && Array.isArray(marker.visitedSectionIds)) {
+          const markerIds = marker.visitedSectionIds.filter((id): id is string => typeof id === "string" && requiredSectionIds.includes(id));
+          if (requiredSectionIds.every((id) => markerIds.includes(id))) {
+            locallyCompleted = true;
+            restored = [...new Set([...restored, ...markerIds])];
+            if (marker.completionOutcome === "saved" || marker.completionOutcome === "queued" || marker.completionOutcome === "local") localCompletionOutcome = marker.completionOutcome;
+          }
+        }
       } catch { /* Ignore corrupt legacy browser state. */ }
       const load = loadProgressDetailed ? await loadProgressDetailed(topicId) : null;
       const remoteHistory = load?.status === "remote" ? load.record.answers_history as { catalogueRevision?: string; visitedSectionIds?: unknown } | null : null;
@@ -101,7 +118,7 @@ export const useTheoryCompletionGate = ({
       else if (merged.length > 0) await enqueueInProgressSave(merged, generation);
     };
     void restore();
-  }, [catalogueRevision, enqueueInProgressSave, loadProgressDetailed, ownerId, requiredSectionIds, storageKey, topicId, writeBrowserEvidence]);
+  }, [catalogueRevision, completionStorageKey, enqueueInProgressSave, loadProgressDetailed, ownerId, requiredSectionIds, storageKey, topicId, writeBrowserEvidence]);
 
   const decision = useMemo(
     () => deriveCompletionGateDecision({ visitedSectionIds, requiredSectionIds }),
