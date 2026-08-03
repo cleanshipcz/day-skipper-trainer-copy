@@ -140,6 +140,46 @@ describe("Ropework taught-to-assessed coverage", () => {
 
     expect([...cataloguedIds].sort()).toEqual(questions.map((question) => question.id).sort());
   });
+
+  it("preserves the reviewed safety qualifications and excludes removed untaught handling advice", async () => {
+    const { default: questions } = await import("./ropework");
+    const byId = new Map(questions.map((question) => [question.id, question]));
+    const correctOption = (id: string) => {
+      const question = byId.get(id);
+      expect(question, `Missing safety-critical question ${id}`).toBeDefined();
+      return question!.options[question!.correctAnswer];
+    };
+    const assessmentCopy = questions
+      .flatMap((question) => [question.question, ...question.options, question.explanation])
+      .join(" ");
+
+    expect(byId.get("r1")?.correctAnswer).toBe(1);
+    expect(correctOption("r1")).toContain("backup protection against cyclic slack loading");
+    expect(correctOption("r1")).toContain("must release under load");
+    expect(byId.get("r1")?.explanation).toContain("cyclic loading or shaking while slack can work it loose");
+    expect(byId.get("r1")?.explanation).toContain("cannot be released while loaded");
+
+    expect(byId.get("r2")?.correctAnswer).toBe(2);
+    expect(correctOption("r2")).toContain("fender attachment");
+    expect(correctOption("r2")).toContain("can bind after heavy loading");
+    expect(byId.get("r2")?.explanation).toContain("not a sole critical mooring attachment");
+    expect(byId.get("r2")?.explanation).toContain("does not guarantee ready release");
+
+    expect(byId.get("r5")?.correctAnswer).toBe(1);
+    expect(correctOption("r5")).toBe("Reef Knot");
+    expect(byId.get("r5")?.explanation).toContain("binding knot");
+    expect(byId.get("r5")?.explanation).toContain("can spill, capsize, or pull undone");
+
+    expect(byId.get("r6")?.correctAnswer).toBe(1);
+    expect(correctOption("r6")).toContain("round turn controlling the strain");
+    expect(correctOption("r6")).toContain("two same-direction half hitches");
+    expect(byId.get("r6")?.explanation).toContain("can tighten or jam after heavy or sustained loading");
+    expect(byId.get("r6")?.explanation).toContain("not a promise of ready release under load");
+
+    expect(assessmentCopy).not.toMatch(
+      /coil|flak(?:e|ing)|clockwise|counterclockwise|rope lay|laid rope|braided line|heat|thermal|melt|seal(?:ing)?|hot knife|flame|burn|fume|ventilat|synthetic (?:fibre|fiber|rope)|whip(?:ping)?|cleat|locking turn/i,
+    );
+  });
 });
 
 describe("Quiz data registry", () => {
