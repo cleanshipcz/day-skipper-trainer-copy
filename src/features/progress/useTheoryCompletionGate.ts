@@ -26,7 +26,7 @@ export const useTheoryCompletionGate = ({
   const hydrationGenerationRef = useRef(0);
   const pendingSaveRef = useRef<{ generation: number; ids: string[] } | null>(null);
   const saveWorkerRef = useRef<{ generation: number; promise: Promise<void> } | null>(null);
-  const [saveState, setSaveState] = useState<"idle" | "saving" | "saved" | "queued" | "failed">("idle");
+  const [saveState, setSaveState] = useState<"idle" | "saving" | "saved" | "local" | "queued" | "failed">("idle");
   const storageKey = catalogueRevision ? `theory-gate:${ownerId ?? "anonymous"}:${topicId}:${catalogueRevision}` : null;
 
   const enqueueInProgressSave = useCallback((ids: string[], generation = hydrationGenerationRef.current) => {
@@ -38,7 +38,8 @@ export const useTheoryCompletionGate = ({
         const snapshot = pendingSaveRef.current;
         pendingSaveRef.current = null;
         const score = deriveCompletionGateDecision({ visitedSectionIds: snapshot.ids, requiredSectionIds }).score;
-        await saveProgress(topicId, false, score, 0, { completionState: "in_progress", catalogueRevision, visitedSectionIds: snapshot.ids });
+        const saved = await saveProgress(topicId, false, score, 0, { completionState: "in_progress", catalogueRevision, visitedSectionIds: snapshot.ids });
+        if (saved === false) setSaveState("failed");
       }
     })().finally(() => { if (saveWorkerRef.current === worker) saveWorkerRef.current = null; });
     saveWorkerRef.current = worker;
@@ -87,7 +88,10 @@ export const useTheoryCompletionGate = ({
 
       inProgressPersistedRef.current = true;
       if (catalogueRevision) await enqueueInProgressSave(nextVisitedSectionIds);
-      else await saveProgress(topicId, false, score, 0, { completionState: "in_progress", visitedSectionIds: nextVisitedSectionIds });
+      else {
+        const saved = await saveProgress(topicId, false, score, 0, { completionState: "in_progress", visitedSectionIds: nextVisitedSectionIds });
+        if (saved === false) setSaveState("failed");
+      }
     },
     [catalogueRevision, enqueueInProgressSave, saveProgress, topicId]
   );
@@ -132,7 +136,7 @@ export const useTheoryCompletionGate = ({
           : await saveProgress(topicId, true, 100, pointsOnComplete, history);
         // Legacy saveProgress mocks/consumers historically resolved void on success.
         const ok = result !== false && result !== "failed" && result !== "conflict";
-        setSaveState(result === "queued" ? "queued" : ok ? "saved" : "failed");
+        setSaveState(result === "queued" ? "queued" : result === "anonymous" ? "local" : ok ? "saved" : "failed");
         return ok;
       } catch {
         setSaveState("failed");

@@ -3,12 +3,40 @@ import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { ArrowLeft, Lightbulb, AlertTriangle, Volume2, Flame } from "lucide-react";
-import { useEffect } from "react";
+import { useEffect, useState } from "react";
 import { useTheoryCompletionGate } from "@/features/progress/useTheoryCompletionGate";
 import { TOPIC_IDS } from "@/constants/topicRegistry";
 import { PartCLights, PartCShapes } from "@/components/colregs/PartCLightsShapes";
 import { PartDSoundSignals } from "@/components/colregs/PartDSoundSignals";
 import { AnnexIVDistressSignals } from "@/components/colregs/AnnexIVDistressSignals";
+
+const LIGHTS_CATALOGUE_REVISION = "colregs-parts-c-d-annex-iv-v1";
+const objectives = [
+  {
+    id: "part-c-recognition",
+    title: "Part C lights and shapes",
+    review: "I reviewed how vessel status, aspect and operating condition change the required Part C display.",
+    question: "At night you see red over white all-round lights. What is the supported recognition?",
+    options: ["A vessel fishing other than trawling", "A pilot vessel", "A vessel not under command"],
+    answer: "A vessel fishing other than trawling",
+  },
+  {
+    id: "part-d-recognition",
+    title: "Part D sound signals",
+    review: "I reviewed manoeuvring, warning and restricted-visibility signals and their conditions of use.",
+    question: "In restricted visibility, what does one prolonged blast at intervals of no more than two minutes identify?",
+    options: ["A power-driven vessel making way", "A vessel at anchor", "A vessel being overtaken"],
+    answer: "A power-driven vessel making way",
+  },
+  {
+    id: "distress-recognition",
+    title: "Rule 37 and Annex IV distress",
+    review: "I reviewed the Annex IV signals, their prohibition on other use, and the receiving vessel's duty to respond.",
+    question: "You observe orange smoke from a vessel. What should you conclude?",
+    options: ["It is an Annex IV distress signal requiring assistance", "It marks a routine course alteration", "It permits a training demonstration"],
+    answer: "It is an Annex IV distress signal requiring assistance",
+  },
+] as const;
 
 const LightsTheory = () => {
   const navigate = useNavigate();
@@ -17,15 +45,14 @@ const LightsTheory = () => {
   const requestedSection = searchParams.get("section");
   const hashSection = location.hash === "#rule-37" ? "distress" : undefined;
   const activeSection = hashSection ?? (["lights", "shapes", "sounds", "distress"].includes(requestedSection ?? "") ? requestedSection! : "lights");
-  const { canComplete, markCompleted, markSectionVisited } = useTheoryCompletionGate({
+  const { canComplete, markCompleted, markSectionVisited, saveState, visitedSectionIds } = useTheoryCompletionGate({
     topicId: TOPIC_IDS.LIGHTS_THEORY,
-    requiredSectionIds: ["lights", "shapes", "sounds", "distress"],
+    requiredSectionIds: objectives.map(({ id }) => id),
     pointsOnComplete: 10,
+    catalogueRevision: LIGHTS_CATALOGUE_REVISION,
   });
-
-  useEffect(() => {
-    void markSectionVisited(activeSection);
-  }, [activeSection, markSectionVisited]);
+  const [reviewed, setReviewed] = useState<Record<string, boolean>>({});
+  const [answers, setAnswers] = useState<Record<string, string>>({});
 
   useEffect(() => {
     const targetId = location.hash.slice(1);
@@ -321,26 +348,57 @@ const LightsTheory = () => {
           </TabsContent>
         </Tabs>
 
-        <div className="flex justify-center pt-12 pb-8">
+        <Card className="mt-8 space-y-6 p-6" aria-labelledby="completion-evidence-heading">
+          <div>
+            <h2 id="completion-evidence-heading" className="text-xl font-bold">Completion evidence</h2>
+            <p className="text-sm text-muted-foreground">Complete each review confirmation and applied recognition check. Opening a tab alone does not count.</p>
+          </div>
+          {objectives.map((objective) => {
+            const complete = visitedSectionIds.includes(objective.id);
+            return <fieldset key={objective.id} className="space-y-3 rounded-md border p-4" disabled={complete}>
+              <legend className="px-1 font-semibold">{objective.title}{complete ? " — complete" : ""}</legend>
+              <label className="flex min-h-11 items-start gap-3">
+                <input type="checkbox" checked={reviewed[objective.id] ?? complete} onChange={(event) => setReviewed((current) => ({ ...current, [objective.id]: event.target.checked }))} />
+                <span>{objective.review}</span>
+              </label>
+              <p>{objective.question}</p>
+              {objective.options.map((option) => <label key={option} className="flex min-h-11 items-start gap-3">
+                <input type="radio" name={objective.id} value={option} checked={answers[objective.id] === option || (complete && option === objective.answer)} onChange={() => setAnswers((current) => ({ ...current, [objective.id]: option }))} />
+                <span>{option}</span>
+              </label>)}
+              {!complete && answers[objective.id] && answers[objective.id] !== objective.answer && <p role="alert" className="text-sm text-destructive">Review the lesson and try this recognition check again.</p>}
+              <Button type="button" variant="outline" disabled={!reviewed[objective.id] || answers[objective.id] !== objective.answer} onClick={() => void markSectionVisited(objective.id)}>
+                {complete ? "Evidence recorded" : "Record objective evidence"}
+              </Button>
+            </fieldset>;
+          })}
+        </Card>
+
+        <div className="flex flex-wrap justify-center gap-4 pt-12 pb-8">
           <Button
             size="lg"
             className="w-full md:w-auto"
-            disabled={!canComplete}
+            disabled={!canComplete || saveState === "saving"}
             onClick={async () => {
-              await markCompleted();
-              navigate("/rules/lights");
+              if (await markCompleted()) navigate("/rules/lights");
             }}
           >
-            {canComplete ? "Complete Module" : "Explore all sections to complete"}
+            {saveState === "saving" ? "Saving…" : canComplete ? saveState === "failed" ? "Retry save" : "Complete Module" : "Complete the evidence checks"}
           </Button>
           <Button
             size="lg"
             variant="secondary"
-            className="w-full md:w-auto ml-4"
+            className="w-full md:w-auto"
             onClick={() => navigate("/quiz/lights-signals")}
           >
             Take the Quiz
           </Button>
+          <p className="w-full text-center text-sm" role="status" aria-live="polite">
+            {saveState === "saved" && "Completion saved to the server."}
+            {saveState === "queued" && "Completion is durably queued on this device and will sync when you reconnect."}
+            {saveState === "local" && "Completion saved on this device. Sign in to save it across devices."}
+            {saveState === "failed" && "Completion could not be saved. Retry when ready."}
+          </p>
         </div>
       </main>
     </div>

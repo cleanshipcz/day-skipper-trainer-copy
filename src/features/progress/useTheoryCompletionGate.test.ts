@@ -269,6 +269,14 @@ describe("useTheoryCompletionGate", () => {
     expect(mocks.saveProgressDetailed).toHaveBeenCalledTimes(2);
   });
 
+  it("treats the legacy saveProgress Boolean false result as a completion failure", async () => {
+    const { result } = renderHook(() => useTheoryCompletionGate({ topicId, requiredSectionIds: ["s1"] }));
+    await act(async () => { await result.current.markSectionVisited("s1"); });
+    mocks.saveProgress.mockResolvedValueOnce(false);
+    await act(async () => { expect(await result.current.markCompleted()).toBe(false); });
+    expect(result.current.saveState).toBe("failed");
+  });
+
   it("serializes rapid evidence saves and writes the latest snapshot last", async () => {
     let releaseFirst!: () => void;
     mocks.saveProgress.mockImplementationOnce(() => new Promise<void>(resolve => { releaseFirst = resolve; })).mockResolvedValue(true);
