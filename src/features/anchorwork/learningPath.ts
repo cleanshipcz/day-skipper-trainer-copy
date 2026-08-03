@@ -1,7 +1,7 @@
 export const anchorPracticeSkills = [
   "Calculate scope from total bow-to-seabed depth",
   "Lay out rode while moving astern",
-  "Verify the anchor is ahead of the bow with enough scope",
+  "Apply a controlled set, verify holding, and keep the planned swing within safe room",
 ] as const;
 
 export const anchorPracticePrerequisites = ["scope", "procedure"] as const;
