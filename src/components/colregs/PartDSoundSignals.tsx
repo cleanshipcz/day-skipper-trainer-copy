@@ -2,25 +2,40 @@ import { useEffect, useRef, useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Square, Volume2 } from "lucide-react";
-import { SOUND_EXERCISES, SOUND_SIGNALS, type Blast, type SoundSignal } from "./partDSoundSignalsData";
+import { scheduleSignal, SOUND_EXERCISES, SOUND_SIGNALS, type Blast, type SoundSignal } from "./partDSoundSignalsData";
 
 const duration = (blast: Blast) => blast === "short" ? 1 : 4;
 
 function Player({ signal }: { signal: SoundSignal }) {
   const nodes = useRef<OscillatorNode[]>([]);
   const context = useRef<AudioContext | null>(null);
+  const completionTimer = useRef<number | null>(null);
   const [playing,setPlaying] = useState(false);
-  const stop = () => { nodes.current.forEach(node => { try { node.stop(); } catch { /* ended */ } }); nodes.current=[]; setPlaying(false); };
-  useEffect(() => stop, []);
+  const stop = () => {
+    if (completionTimer.current !== null) window.clearTimeout(completionTimer.current);
+    completionTimer.current = null;
+    nodes.current.forEach(node => { try { node.stop(); } catch { /* ended */ } });
+    nodes.current=[];
+    setPlaying(false);
+  };
+  useEffect(() => () => {
+    if (completionTimer.current !== null) window.clearTimeout(completionTimer.current);
+    nodes.current.forEach(node => { try { node.stop(); } catch { /* ended */ } });
+    nodes.current=[];
+    if (context.current) void context.current.close();
+    context.current=null;
+  }, []);
   const play = () => {
     stop();
     if (!window.AudioContext) return;
     const audio = context.current ?? new AudioContext();
     context.current=audio;
-    let at=audio.currentTime+.05;
-    signal.pattern.forEach(blast => { const oscillator=audio.createOscillator(); const gain=audio.createGain(); oscillator.frequency.value=440; gain.gain.value=.08; oscillator.connect(gain).connect(audio.destination); oscillator.start(at); oscillator.stop(at+duration(blast)); nodes.current.push(oscillator); at += duration(blast)+.45; });
+    const schedule=scheduleSignal(signal);
+    schedule.forEach(({start,duration:blastDuration}) => { const oscillator=audio.createOscillator(); const gain=audio.createGain(); oscillator.frequency.value=440; gain.gain.value=.08; oscillator.connect(gain).connect(audio.destination); oscillator.start(audio.currentTime+start); oscillator.stop(audio.currentTime+start+blastDuration); nodes.current.push(oscillator); });
     setPlaying(true);
-    window.setTimeout(() => setPlaying(false), (at-audio.currentTime)*1000);
+    const last=schedule.at(-1);
+    const playbackSeconds=last ? last.start+last.duration : 0;
+    completionTimer.current=window.setTimeout(() => { nodes.current=[]; completionTimer.current=null; setPlaying(false); }, playbackSeconds*1000);
   };
   return <div className="flex flex-wrap gap-2"><Button type="button" variant="outline" className="min-h-11" onClick={play} aria-label={"Play "+signal.title+" signal"}><Volume2 className="mr-2 h-4 w-4" aria-hidden />{playing?"Playing…":"Play signal"}</Button><Button type="button" variant="ghost" className="min-h-11" onClick={stop} disabled={!playing}><Square className="mr-2 h-4 w-4" aria-hidden />Stop</Button></div>;
 }
@@ -35,7 +50,7 @@ function Exercise(){
 export function PartDSoundSignals(){
   return <div className="space-y-6">
     <Card id="rule-32" tabIndex={-1} className="scroll-mt-28"><CardHeader><CardTitle>Rule 32: definitions</CardTitle></CardHeader><CardContent className="space-y-2 text-sm"><p><strong>Short blast:</strong> about 1 second. <strong>Prolonged blast:</strong> 4–6 seconds.</p><p>A whistle is the prescribed appliance. “Underway” means not at anchor, made fast to shore or aground; “making way” means moving through the water.</p></CardContent></Card>
-    <Card id="rule-33" tabIndex={-1} className="scroll-mt-28"><CardHeader><CardTitle>Rule 33: equipment</CardTitle></CardHeader><CardContent className="space-y-2 text-sm"><p>Vessels 12 m or more carry a whistle; vessels 20 m or more also carry a bell; vessels 100 m or more additionally carry a gong whose tone cannot be confused with the bell. Equivalent sound characteristics are permitted.</p><p>Under 12 m, another means of making an efficient sound signal may replace the prescribed appliances.</p></CardContent></Card>
+    <Card id="rule-33" tabIndex={-1} className="scroll-mt-28"><CardHeader><CardTitle>Rule 33: equipment</CardTitle></CardHeader><CardContent className="space-y-2 text-sm"><p>Vessels 12 m or more carry a whistle; vessels 20 m or more also carry a bell; vessels 100 m or more additionally carry a gong whose tone cannot be confused with the bell.</p><p>The bell, gong, or both may be replaced by equipment with the same respective sound characteristics, provided manual sounding of the prescribed signals remains possible. This provision does <strong>not</strong> replace the required whistle.</p><p>Under 12 m, another means of making an efficient sound signal may replace the prescribed appliances.</p></CardContent></Card>
     <section id="rule-34" tabIndex={-1} className="scroll-mt-28 space-y-4"><h3 className="text-xl font-bold">Rule 34: manoeuvring and warning</h3><p className="text-sm text-muted-foreground">These state actions in their specified in-sight context; they do not grant right of way.</p><div className="grid gap-4 md:grid-cols-2">{SOUND_SIGNALS.filter(s=>s.rule===34).map(s=><SignalCard key={s.id} signal={s}/>)}</div><Card><CardHeader><CardTitle className="text-lg">Supplementary manoeuvring lights</CardTitle></CardHeader><CardContent className="space-y-2 text-sm"><p>One, two or three all-round white flashes may repeat the corresponding starboard, port or astern whistle signal. Each flash lasts about 1 second, with about 1 second between flashes and at least 10 seconds between successive signals.</p><p>The light must be visible for at least 5 miles. A doubt signal may likewise be supplemented by <strong>at least five short, rapid flashes</strong>.</p></CardContent></Card><Card><CardHeader><CardTitle className="text-lg">Narrow-channel overtaking agreement</CardTitle></CardHeader><CardContent className="space-y-2 text-sm"><p>Under Rule 9(e)(i), the overtaker sounds <strong>two prolonged + one short</strong> to overtake on the other vessel's starboard side, or <strong>two prolonged + two short</strong> on her port side.</p><p>Agreement is <strong>one prolonged, one short, one prolonged, one short</strong>. It is not permission to proceed unsafely.</p></CardContent></Card></section>
     <div id="rule-35" tabIndex={-1} className="scroll-mt-28 space-y-4"><h3 className="text-xl font-bold">Restricted Visibility (Rule 35)</h3><p className="text-sm text-muted-foreground">Use in or near restricted visibility, by day or night. Status signals do not establish right of way.</p><div className="grid gap-4 md:grid-cols-2">{SOUND_SIGNALS.filter(s=>s.rule===35).map(s=><SignalCard key={s.id} signal={s}/>)}</div><Card><CardHeader><CardTitle className="text-lg">Anchor, aground, pilot and small vessels</CardTitle></CardHeader><CardContent className="space-y-3 text-sm"><p><strong>At anchor:</strong> ring the bell rapidly for about 5 seconds at intervals of not more than 1 minute. At 100 m or more, bell forward then gong aft for about 5 seconds. An extra short–prolonged–short whistle warning may be sounded.</p><p><strong>Aground:</strong> add three distinct bell strokes immediately before and after the anchor ringing; an appropriate whistle signal may also be sounded.</p><p><strong>Pilot on duty:</strong> may add four short blasts to its Rule 35 signal.</p><p><strong>Under 12 m:</strong> if not making the prescribed signal, make another efficient signal at intervals of not more than 2 minutes. <strong>Under 20 m at anchor/aground:</strong> may substitute another efficient signal at the same maximum interval.</p></CardContent></Card></div>
     <Card id="rule-36" tabIndex={-1} className="scroll-mt-28"><CardHeader><CardTitle>Rule 36: attracting attention</CardTitle></CardHeader><CardContent className="space-y-2 text-sm"><p>If necessary, use light or sound that <strong>cannot be mistaken for a signal authorised elsewhere</strong>, or direct a searchlight toward danger without embarrassing another vessel.</p><p>Avoid high-intensity intermittent or revolving lights, such as strobes, that could be mistaken for an aid to navigation. Attention signals do not replace prescribed signals.</p></CardContent></Card>
