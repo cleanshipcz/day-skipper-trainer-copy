@@ -1,5 +1,6 @@
 import type { SupabaseClient } from "@supabase/supabase-js";
 import { saveProgressRecord } from "@/features/progress/progressPersistence";
+import { isVictuallingChecklistConflict, VICTUALLING_CHECKLIST_PROGRESS_ID } from "@/features/progress/victuallingProgress";
 
 const DATABASE_NAME = "day-skipper-offline";
 const STORE_NAME = "progress-queue";
@@ -32,7 +33,7 @@ export const isRetryableProgressError = (
   if (!online) return true;
   const candidate = error as { status?: number; code?: string; message?: string };
   if (candidate.status === 408 || candidate.status === 429 || (candidate.status ?? 0) >= 500) return true;
-  if (candidate.code && /^(?:5\d\d|ETIMEDOUT|ECONNRESET|NETWORK_ERROR)$/i.test(candidate.code)) return true;
+  if (candidate.code && /^(?:40001|5\d\d|ETIMEDOUT|ECONNRESET|NETWORK_ERROR)$/i.test(candidate.code)) return true;
   if (candidate.code && /^(?:PGRST002|PGRST003|57P01|57P02|57P03|08000|08001|08003|08004|08006|08007|08P01)$/i.test(candidate.code)) return true;
   const diagnostic = [
     candidate.message,
@@ -174,10 +175,12 @@ export const replayProgressQueue = async (
       await removeQueuedProgress(entry);
       synced += 1;
     } catch (error) {
+      const staleChecklist = entry.topicId === VICTUALLING_CHECKLIST_PROGRESS_ID
+        && isVictuallingChecklistConflict(error);
       await updateQueuedProgress(entry, {
         ...entry,
         attempts: entry.attempts + 1,
-        status: isRetryableProgressError(error) ? "pending" : "quarantined",
+        status: !staleChecklist && isRetryableProgressError(error) ? "pending" : "quarantined",
         lastError: errorMessage(error).slice(0, 300),
       });
     }

@@ -54,11 +54,34 @@ describe("offline progress queue", () => {
     ]);
   });
 
+  it("quarantines a stale checklist replay instead of erasing newer server state", async () => {
+    await queueProgress({
+      userId: "stale-checklist-user", topicId: "victualling-checklist", completed: false,
+      score: 6, pointsEarned: 0,
+      answersHistory: { version: 1, checkedItemIds: ["f1"], revision: 2 },
+    });
+    const rpc = vi.fn().mockResolvedValue({
+      data: null,
+      error: { code: "40001", message: "Victualling checklist revision conflict" },
+    });
+
+    expect(await replayProgressQueue({ rpc } as never, "stale-checklist-user"))
+      .toEqual({ synced: 0, remaining: 1, quarantined: 1 });
+    expect(rpc).toHaveBeenCalledWith("save_victualling_checklist_progress", {
+      p_expected_revision: 2,
+      p_checked_item_ids: ["f1"],
+    });
+    expect(await getQueuedProgress("stale-checklist-user")).toEqual([
+      expect.objectContaining({ status: "quarantined", lastError: "Victualling checklist revision conflict" }),
+    ]);
+  });
+
   it("classifies connectivity and server errors without treating authorization errors as retryable", () => {
     expect(isRetryableProgressError(new Error("offline"), false)).toBe(true);
     expect(isRetryableProgressError({ status: 408 }, true)).toBe(true);
     expect(isRetryableProgressError({ status: 429 }, true)).toBe(true);
     expect(isRetryableProgressError({ code: "ETIMEDOUT" }, true)).toBe(true);
+    expect(isRetryableProgressError({ code: "40001", message: "serialization failure" }, true)).toBe(true);
     expect(isRetryableProgressError(new Error("Failed to fetch"), true)).toBe(true);
     expect(isRetryableProgressError({ status: 503, message: "unavailable" }, true)).toBe(true);
     expect(isRetryableProgressError({

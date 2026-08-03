@@ -1,4 +1,5 @@
 import type { SupabaseClient } from "@supabase/supabase-js";
+import { VICTUALLING_CHECKLIST_PROGRESS_ID, VICTUALLING_PROGRESS_VERSION } from "./victuallingProgress";
 
 interface SaveProgressRecordArgs {
   supabaseClient: SupabaseClient;
@@ -35,6 +36,14 @@ export const saveProgressRecord = async ({
   if (topicId === "anchorwork" && (!Array.isArray(anchorworkIds) || anchorworkIds.some((id) => typeof id !== "string"))) {
     throw new Error("Anchorwork progress requires canonical completed topic IDs");
   }
+  const victuallingPayload = answersHistory as { version?: unknown; checkedItemIds?: unknown; revision?: unknown } | undefined;
+  if (topicId === VICTUALLING_CHECKLIST_PROGRESS_ID && (
+    completed || pointsEarned !== 0 || victuallingPayload?.version !== VICTUALLING_PROGRESS_VERSION
+    || !Array.isArray(victuallingPayload.checkedItemIds)
+    || victuallingPayload.checkedItemIds.length > 18
+    || victuallingPayload.checkedItemIds.some((id) => typeof id !== "string")
+    || !Number.isSafeInteger(victuallingPayload.revision) || (victuallingPayload.revision as number) < 0
+  )) throw new Error("Victualling checklist progress requires a valid revisioned snapshot");
   const { data, error } = topicId === "anchorwork"
     ? await supabaseClient.rpc("save_anchorwork_progress", { p_completed_topic_ids: anchorworkIds as string[] })
     : topicId === "anchorwork-practice"
@@ -43,7 +52,12 @@ export const saveProgressRecord = async ({
         p_score: score,
         p_answers_history: answersHistory ?? {},
       })
-    : await supabaseClient.rpc("save_topic_progress", {
+    : topicId === VICTUALLING_CHECKLIST_PROGRESS_ID
+      ? await supabaseClient.rpc("save_victualling_checklist_progress", {
+        p_expected_revision: victuallingPayload?.revision as number,
+        p_checked_item_ids: victuallingPayload?.checkedItemIds as string[],
+      })
+      : await supabaseClient.rpc("save_topic_progress", {
       p_topic_id: topicId,
       p_completed: completed,
       p_score: score,

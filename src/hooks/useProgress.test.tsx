@@ -159,6 +159,22 @@ describe("useProgress", () => {
     expect(await result.current.saveProgressDetailed("topic-a", false)).toBe("failed");
   });
 
+  it("exposes revision conflicts without queueing or blind retry", async () => {
+    mocks.saveProgressRecord.mockRejectedValueOnce({ code: "40001", message: "Victualling checklist revision conflict" });
+    const { result } = renderHook(() => useProgress());
+    expect(await result.current.saveProgressDetailed("victualling-checklist", false)).toBe("conflict");
+    expect(mocks.queueProgress).not.toHaveBeenCalled();
+    expect(mocks.toastError).not.toHaveBeenCalled();
+  });
+
+  it("does not reinterpret another RPC's serialization failure as a checklist conflict", async () => {
+    mocks.retryable = true;
+    mocks.saveProgressRecord.mockRejectedValueOnce({ code: "40001", message: "serialization failure" });
+    const { result } = renderHook(() => useProgress());
+    expect(await result.current.saveProgressDetailed("ropework", false)).toBe("queued");
+    expect(mocks.queueProgress).toHaveBeenCalledOnce();
+  });
+
   it("reports a failed outcome when the offline queue also fails", async () => {
     mocks.retryable = true;
     mocks.saveProgressRecord.mockRejectedValueOnce(new Error("offline"));

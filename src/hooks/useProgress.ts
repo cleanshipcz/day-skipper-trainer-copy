@@ -6,10 +6,11 @@ import type { Tables } from "@/integrations/supabase/types";
 import { syncEngagementEvent } from "@/features/engagement/engagementService";
 import { isRetryableProgressError, queueProgress } from "@/features/offline/progressQueue";
 import { loadProgressClient } from "@/features/progress/progressClient";
+import { isVictuallingChecklistConflict, VICTUALLING_CHECKLIST_PROGRESS_ID } from "@/features/progress/victuallingProgress";
 
 type UserProgressRow = Tables<"user_progress">;
 
-export type ProgressSaveResult = "anonymous" | "remote" | "queued" | "failed";
+export type ProgressSaveResult = "anonymous" | "remote" | "queued" | "conflict" | "failed";
 export type ProgressLoadResult =
   | { status: "remote"; record: UserProgressRow }
   | { status: "missing" | "anonymous" | "failed"; record: null };
@@ -101,6 +102,10 @@ export const useProgress = () => {
       } catch (error) {
         if (ownerRef.current !== user.id) return "failed" as const;
         console.error("Error saving progress:", error);
+        if (
+          topicId === VICTUALLING_CHECKLIST_PROGRESS_ID
+          && isVictuallingChecklistConflict(error)
+        ) return "conflict" as const;
         if (!isRetryableProgressError(error)) {
           toast.error("Failed to save progress");
           return "failed" as const;
