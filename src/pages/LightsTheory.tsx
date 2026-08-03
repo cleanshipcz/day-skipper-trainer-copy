@@ -15,7 +15,8 @@ const LightsTheory = () => {
   const location = useLocation();
   const [searchParams, setSearchParams] = useSearchParams();
   const requestedSection = searchParams.get("section");
-  const activeSection = ["lights", "shapes", "sounds", "distress"].includes(requestedSection ?? "") ? requestedSection! : "lights";
+  const hashSection = location.hash === "#rule-37" ? "distress" : undefined;
+  const activeSection = hashSection ?? (["lights", "shapes", "sounds", "distress"].includes(requestedSection ?? "") ? requestedSection! : "lights");
   const { canComplete, markCompleted, markSectionVisited } = useTheoryCompletionGate({
     topicId: TOPIC_IDS.LIGHTS_THEORY,
     requiredSectionIds: ["lights", "shapes", "sounds", "distress"],

@@ -43,8 +43,9 @@ export const AnnexIVDistressSignals = () => (
     <Card>
       <CardHeader><CardTitle>If you receive or observe distress</CardTitle></CardHeader>
       <CardContent className="space-y-2 text-sm">
-        <p>Treat it as real. Keep a safe navigational watch; record the signal, time, position and available details; alert the master/skipper and the appropriate coastguard or rescue co-ordination centre; maintain the relevant radio watch; acknowledge or relay as required by current radio procedure; and prepare to assist without creating another casualty.</p>
-        <p>Rule 37 identifies the signal—it is not the complete response procedure. The master’s duty to assist is governed by SOLAS chapter V regulation 33 and applicable law, with co-ordination and on-scene actions taught in the current IAMSAR Manual. Follow rescue-coordinator instructions and current national/GMDSS training.</p>
+        <p>Treat it as real. Keep a safe navigational watch; record the signal, time, position and available details; alert the master/skipper and the appropriate coastguard or rescue co-ordination centre; maintain the relevant radio watch; acknowledge or relay as required by current radio procedure; and prepare the vessel and crew to assist without creating another casualty.</p>
+        <p><strong>SOLAS chapter V regulation 33:</strong> the master of a ship at sea which is in a position to provide assistance, on receiving information that persons are in distress at sea, is bound to proceed with all speed to their assistance, if possible informing them or the search and rescue service that the ship is doing so. If unable to assist, or if the master considers it unreasonable or unnecessary in the special circumstances, the reason must be entered in the log-book and the appropriate search and rescue service informed.</p>
+        <p>Rule 37 identifies the signal—it is not the complete response procedure. Co-ordination and on-scene actions are taught in the current IAMSAR Manual. Follow rescue-coordinator instructions and current national/GMDSS training while continuing to navigate safely.</p>
       </CardContent>
     </Card>
 

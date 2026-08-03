@@ -35,7 +35,8 @@ describe("Annex IV safety-critical content", () => {
     render(<AnnexIVDistressSignals />);
     expect(screen.getByRole("heading", { name: /If you receive or observe distress/i })).toBeTruthy();
     expect(screen.getByText(/record the signal, time, position/i)).toBeTruthy();
-    expect(screen.getByText(/SOLAS chapter V regulation 33/i)).toBeTruthy();
+    expect(screen.getByText(/bound to proceed with all speed/i)).toBeTruthy();
+    expect(screen.getByText(/reason must be entered in the log-book/i)).toBeTruthy();
     expect(ANNEX_IV_SOURCE_REVIEW.ruleVersion).toMatch(/corrected 8 August 2024/);
     expect(ANNEX_IV_SOURCE_REVIEW.reviewedOn).toMatch(/^\d{4}-\d{2}-\d{2}$/);
     expect(screen.getByRole("link", { name: ANNEX_IV_SOURCE_REVIEW.ruleVersion }).getAttribute("href")).toBe(ANNEX_IV_SOURCE_REVIEW.ruleUrl);

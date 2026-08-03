@@ -38,6 +38,17 @@ describe("LightsTheory remediation navigation", () => {
     expect(document.activeElement).toBe(target);
   });
 
+  it("routes a Rule 37 hash directly to the Distress tab and focus target", async () => {
+    render(<MemoryRouter initialEntries={["/rules/lights/theory#rule-37"]}><LightsTheory /></MemoryRouter>);
+    const heading = await screen.findByRole("heading", { name: "Rule 37 scope and prohibition" });
+    const target = heading.closest("section[id='rule-37']");
+    expect(target).not.toBeNull();
+    expect(screen.getByRole("tab", { name: "Distress" }).getAttribute("data-state")).toBe("active");
+    expect(markSectionVisited).toHaveBeenCalledWith("distress");
+    expect(scrollIntoView).toHaveBeenCalledWith({ block: "start" });
+    expect(document.activeElement).toBe(target);
+  });
+
   it("falls back to Lights for an unknown section", async () => {
     render(<MemoryRouter initialEntries={["/rules/lights/theory?section=unknown"]}><LightsTheory /></MemoryRouter>);
     expect((await screen.findByRole("tab", { name: "Lights" })).getAttribute("data-state")).toBe("active");
