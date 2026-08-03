@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useNavigate, useSearchParams } from "react-router-dom";
 import { toast } from "sonner";
 import {
@@ -15,6 +15,7 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { AnchorControls } from "@/pages/anchor-minigame/AnchorControls";
+import { AnchorScene } from "@/pages/anchor-minigame/AnchorScene";
 import { AnchorResultOverlay, type AnchorResult } from "@/pages/anchor-minigame/AnchorResultOverlay";
 import { calculateSceneGeometry } from "@/pages/anchor-minigame/geometry";
 import {
@@ -143,6 +144,8 @@ const AnchorMinigame = () => {
   const returnTopic = searchParams.get("returnTopic") || "scope";
   const [scenario, setScenario] = useState<AnchorScenario>(() => pickScenario());
   const [game, setGame] = useState(createInitialState);
+  const gameRef = useRef(game);
+  gameRef.current = game;
   const [attempts, setAttempts] = useState(0);
   const [lastStatus, setLastStatus] = useState("Tap ↓ to lower the anchor. Drift back with ←.");
   const [resultOverlay, setResultOverlay] = useState<AnchorResult | null>(null);
@@ -165,7 +168,9 @@ const AnchorMinigame = () => {
   const anchorAheadBy = game.anchorOnBottom && game.anchorX !== null ? game.anchorX - bowTipX : 0;
 
   const resetPosition = () => {
-    setGame(createInitialState());
+    const initialState = createInitialState();
+    gameRef.current = initialState;
+    setGame(initialState);
     setLastStatus("Anchor stowed. Lower with ↓ and use ← to fall back.");
     setResultOverlay(null);
   };
@@ -182,23 +187,25 @@ const AnchorMinigame = () => {
 
   const moveBoat = useCallback(
     (direction: -1 | 1) => {
-      const result = transitionBoat(game, direction, currentVerticalDistance);
+      const result = transitionBoat(gameRef.current, direction, currentVerticalDistance);
+      gameRef.current = result.state;
       setGame(result.state);
       setLastStatus(result.status);
     },
-    [game, currentVerticalDistance],
+    [currentVerticalDistance],
   );
 
   const changeRode = useCallback(
     (delta: number) => {
-      const result = transitionRode(game, delta, currentVerticalDistance);
+      const result = transitionRode(gameRef.current, delta, currentVerticalDistance);
+      gameRef.current = result.state;
       setGame(result.state);
       if (result.status) setLastStatus(result.status);
       if (result.event === "anchor-bottom") {
         toast.success("Anchor on the bottom", { description: "Move astern with ← to lay out chain." });
       }
     },
-    [game, currentVerticalDistance],
+    [currentVerticalDistance],
   );
 
   const checkPlacement = useCallback(() => {
@@ -424,7 +431,7 @@ const AnchorMinigame = () => {
           </CardHeader>
 
           <CardContent className="space-y-4">
-            <div className="relative overflow-hidden rounded-xl border border-border bg-gradient-to-b from-sky-100/80 via-sky-50 to-ocean-light/30">
+            <AnchorScene onMove={moveBoat} onChangeRode={changeRode} rodeStep={RODE_STEP}>
               <svg aria-label="Anchoring side profile" viewBox={`0 0 ${viewWidth} ${viewHeight}`} className="w-full h-full">
                 <defs>
                   <linearGradient id="water" x1="0" x2="0" y1="0" y2="1">
@@ -527,20 +534,22 @@ const AnchorMinigame = () => {
                 </text>
               </svg>
               {resultOverlay && (
-                <AnchorResultOverlay
-                  result={resultOverlay}
-                  onContinue={() => {
-                    if (resultOverlay.type === "success") rollScenario();
-                    setResultOverlay(null);
-                  }}
-                  onReset={resetPosition}
-                  onRemediate={() => navigate(anchorTheoryRoute(resultOverlay.type === "success"
-                    ? returnTopic
-                    : resultOverlay.issues?.includes("procedure") ? "procedure"
-                    : resultOverlay.issues?.includes("watch") ? "swinging-room" : "scope", "practice"))}
-                />
+                <div className="absolute inset-0 z-10">
+                  <AnchorResultOverlay
+                    result={resultOverlay}
+                    onContinue={() => {
+                      if (resultOverlay.type === "success") rollScenario();
+                      setResultOverlay(null);
+                    }}
+                    onReset={resetPosition}
+                    onRemediate={() => navigate(anchorTheoryRoute(resultOverlay.type === "success"
+                      ? returnTopic
+                      : resultOverlay.issues?.includes("procedure") ? "procedure"
+                      : resultOverlay.issues?.includes("watch") ? "swinging-room" : "scope", "practice"))}
+                  />
+                </div>
               )}
-            </div>
+            </AnchorScene>
 
             <div className="grid gap-3 md:grid-cols-3">
               <div className="rounded-lg border border-border p-3">
