@@ -17,8 +17,8 @@ const subModules: ModuleMenuItem[] = [
   },
   {
     id: "nautical-terms-sail-controls",
-    title: "Sail Controls & Lines",
-    description: "Learn sheets, halyards, outhaul, reefing lines and more",
+    title: "Sail Controls & Rig Adjustments",
+    description: "Learn running lines, deck hardware and adjustable rig controls",
     icon: Sailboat,
     path: "/nautical-terms/sail-controls",
     type: "learn",

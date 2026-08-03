@@ -18,6 +18,7 @@ interface SailControl {
   purpose: string;
   location: string;
   effect: string;
+  category: "Running rigging" | "Deck hardware" | "Standing-rigging adjustment";
   color: string;
 }
 
@@ -35,28 +36,31 @@ const sailControls: SailControl[] = [
     description:
       "The line used to raise and lower the mainsail. It runs from the head (top) of the sail, up through the masthead, and back down to the deck.",
     purpose: "Raises and lowers the mainsail",
-    location: "Attached to head of mainsail → masthead sheave → cleat on mast",
-    effect: "Hoisting: sail goes up. Tension affects luff shape.",
+    location: "Head of mainsail → masthead sheave → mast, deck or cockpit cleat/clutch",
+    effect: "Raises/lowers the sail; added tension removes luff wrinkles and moves draft forward.",
+    category: "Running rigging",
     color: "#3b82f6",
   },
   {
     id: "jib-halyard",
     name: "Jib Halyard",
     description:
-      "The line used to raise and lower the jib or genoa. Proper tension keeps the luff (front edge) tight for optimal pointing ability.",
+      "The line used to raise and lower the jib or genoa. Its tension adjusts luff tension and draft position; the correct setting depends on conditions and the sail.",
     purpose: "Raises and lowers the headsail (jib/genoa)",
-    location: "Attached to head of jib → masthead sheave → cleat on mast",
-    effect: "Hoisting: sail goes up. Tension affects forestay sag.",
+    location: "Head of headsail → mast sheave → mast, deck or cockpit cleat/clutch",
+    effect: "More tension removes luff wrinkles and moves draft forward; too much can over-flatten the sail.",
+    category: "Running rigging",
     color: "#06b6d4",
   },
   {
     id: "mainsheet",
     name: "Mainsheet",
     description:
-      "The primary control line for the mainsail angle. It's attached to the boom and runs through a system of blocks for mechanical advantage.",
-    purpose: "Controls the angle of the mainsail to the wind",
+      "The primary running line for mainsail trim. It acts through blocks between the boom and boat, often via a traveller, for mechanical advantage.",
+    purpose: "Controls mainsail angle and, especially upwind, leech tension and twist",
     location: "Boom → blocks → traveller or cockpit floor",
-    effect: "Trim (pull in): sail closer to centerline. Ease (let out): sail further out.",
+    effect: "Trim brings the boom in and usually tightens the leech; ease lets the boom out and increases twist unless the vang restrains it.",
+    category: "Running rigging",
     color: "#ec4899",
   },
   {
@@ -64,10 +68,11 @@ const sailControls: SailControl[] = [
     name: "Jib Sheet",
     aka: "Jib Sheets (port & starboard)",
     description:
-      "Two lines (one each side) that control the jib angle. The working sheet is always on the leeward side. During a tack, you ease one and trim the other.",
+      "Two lines, one on each side, used to trim the jib. The working sheet is normally on the leeward side; during a tack it is eased as the new sheet is trimmed.",
     purpose: "Controls the angle of the jib/genoa",
     location: "Clew of jib → fairlead/car → winch → cleat",
-    effect: "Trim: sail flattens, points higher. Ease: sail fuller, more power.",
+    effect: "Trim or ease to set angle, depth and twist for the course and lead position; over-trimming closes the leech and can stall airflow.",
+    category: "Running rigging",
     color: "#f59e0b",
   },
   {
@@ -75,10 +80,11 @@ const sailControls: SailControl[] = [
     name: "Boom Vang",
     aka: "Kicking Strap (UK)",
     description:
-      "A tackle or rigid strut between the boom and mast base. Essential for controlling sail twist, especially when eased off the wind.",
+      "On this diagram, an adjustable tackle between the boom and mast base. It controls boom rise and sail twist, especially when the mainsheet is eased off the wind.",
     purpose: "Prevents boom from rising, controls sail twist",
     location: "Boom (near gooseneck) → mast base",
-    effect: "Tighten: less twist, flatter sail. Ease: more twist at top of sail.",
+    effect: "Tighten: boom rises less and leech twist decreases. Ease: the upper leech can open more.",
+    category: "Running rigging",
     color: "#ef4444",
   },
   {
@@ -87,39 +93,42 @@ const sailControls: SailControl[] = [
     description:
       "Controls the tension along the foot (bottom edge) of the mainsail. Adjusts the amount of draft (belly) in the lower part of the sail.",
     purpose: "Flattens or adds fullness to lower mainsail",
-    location: "Clew of mainsail → runs inside boom → cleat",
+    location: "Mainsail clew → along or inside boom → cleat/clutch",
     effect: "Tighten: flatter (heavy air). Ease: fuller (light air, power).",
+    category: "Running rigging",
     color: "#8b5cf6",
   },
   {
     id: "cunningham",
     name: "Cunningham",
-    aka: "Downhaul",
     description:
-      "Tensions the luff of the mainsail by pulling down on a cringle above the tack. Moves the position of maximum draft forward in the sail.",
+      "A dedicated luff-tension control led through a Cunningham cringle above the tack. Unlike a conventional mainsail downhaul, it tensions the sail without pulling the boom or sliding gooseneck down.",
     purpose: "Moves draft forward, tensions luff",
     location: "Cringle near tack → deck fitting/cleat",
     effect: "Tighten: draft moves forward (heavy air). Ease: draft moves aft.",
+    category: "Running rigging",
     color: "#22c55e",
   },
   {
     id: "topping-lift",
     name: "Topping Lift",
     description:
-      "A line from the masthead to the end of the boom. Supports the boom when the sail is lowered or being reefed. Some boats use a rigid vang instead.",
+      "On this diagram, an adjustable line from the masthead to the aft end of the boom. It supports the boom when the sail is lowered or while reefing.",
     purpose: "Supports the boom when mainsail is down",
-    location: "End of boom → masthead → often led to cockpit",
+    location: "Aft end of boom → masthead fitting → mast or cockpit cleat",
     effect: "Holds boom up without mainsail. Ease when sailing (or vang takes over).",
+    category: "Running rigging",
     color: "#64748b",
   },
   {
     id: "reefing-lines",
     name: "Reefing Lines",
     description:
-      "Lines used to reduce sail area in strong winds. They pull reef cringles down to the boom, creating a smaller sail. Most boats have 1-3 reef points.",
+      "Controls used to reduce mainsail area. Arrangements vary: separate tack and clew controls, single-line systems, hooks or other fittings may secure the reef cringles.",
     purpose: "Reduces mainsail area for heavy weather",
-    location: "Reef cringle (luff & leech) → through boom → cockpit",
-    effect: "Shorten sail by tying down a 'fold' at the foot.",
+    location: "Vessel-specific: reef tack and clew cringles → boom/deck hardware → mast or cockpit",
+    effect: "Loaded reef controls secure the new tack and clew. Reef-point ties only gather loose sail; they must not carry sail load.",
+    category: "Running rigging",
     color: "#f97316",
   },
   {
@@ -127,9 +136,10 @@ const sailControls: SailControl[] = [
     name: "Mainsheet Traveller",
     description:
       "A track across the cockpit that allows the mainsheet attachment point to slide from side to side. Controls boom angle without changing mainsheet tension.",
-    purpose: "Adjusts boom angle independently of sheet tension",
+    purpose: "Positions the mainsheet attachment point across the boat",
     location: "Track across cockpit or coachroof, behind helmsman",
-    effect: "Windward: boom up, better pointing. Leeward: boom out, more power.",
+    effect: "Windward brings the boom toward centre. Leeward lets the boom and sail plan move off centre, reducing angle of attack, power and heel while largely retaining mainsheet-set leech tension; exact response depends on geometry.",
+    category: "Deck hardware",
     color: "#475569",
   },
   {
@@ -140,17 +150,19 @@ const sailControls: SailControl[] = [
       "An adjustable fitting on a track that guides the jib sheet at the correct angle. Position affects the balance between leech and foot tension.",
     purpose: "Sets the angle of pull on the jib sheet",
     location: "Track on deck, between clew and winch",
-    effect: "Forward: tighter leech. Aft: open leech, less pointing.",
+    effect: "Forward increases leech tension and eases the foot; aft tightens the foot and opens the leech. Use telltales for balanced trim.",
+    category: "Deck hardware",
     color: "#78716c",
   },
   {
     id: "backstay-adjuster",
     name: "Backstay Adjuster",
     description:
-      "On many boats, the backstay tension can be adjusted while sailing. Affects mast bend and forestay tension, changing sail shape.",
-    purpose: "Bends mast to flatten mainsail, tightens forestay",
+      "An adjuster for a load-bearing part of the standing rigging. On suitable rigs it changes backstay load, mast bend and forestay sag; response varies with rig design.",
+    purpose: "Adjusts rig load, mast bend and forestay sag where the rig permits",
     location: "Lower part of backstay, near deck",
-    effect: "Tighten: mast bends, sails flatten (heavy air).",
+    effect: "On a typical masthead sloop, tightening reduces forestay sag and often bends the mast to flatten and open the mainsail; follow the boat's limits.",
+    category: "Standing-rigging adjustment",
     color: "#1e3a5f",
   },
 ];
@@ -693,9 +705,9 @@ const SailControls = () => {
                 <ArrowLeft className="w-5 h-5" />
               </Button>
               <div>
-                <h1 className="text-xl font-bold">Sail Controls & Lines</h1>
+                <h1 className="text-xl font-bold">Sail Controls & Rig Adjustments</h1>
                 <p className="text-sm text-muted-foreground">
-                  {mode === "learn" ? "Learn the running rigging" : "Identify the control lines"}
+                  {mode === "learn" ? "Learn lines, deck hardware and rig adjustments" : "Identify each sail control"}
                 </p>
               </div>
             </div>
@@ -806,6 +818,7 @@ const SailControls = () => {
                             )}
                           </CardHeader>
                           <CardContent className="space-y-3 text-sm">
+                            <Badge variant="secondary">{selectedPart.category}</Badge>
                             <p className="text-muted-foreground">{selectedPart.description}</p>
                             <div className="pt-2 space-y-2 border-t">
                               <div className="flex gap-2">
@@ -848,9 +861,9 @@ const SailControls = () => {
             <Card className="border-primary/20 bg-primary/5">
               <CardContent className="pt-6">
                 <p className="text-sm text-muted-foreground">
-                  <strong>Running rigging</strong> refers to the lines that control the sails - as opposed to{" "}
-                  <em>standing rigging</em> (stays and shrouds) that hold up the mast. Click on any control in the
-                  diagram above or the cards below to learn more about each one.
+                  This catalogue includes <strong>running rigging</strong> (movable lines), <strong>deck hardware</strong>{" "}
+                  (the traveller and jib fairlead/car), and a <strong>standing-rigging adjustment</strong> (the backstay
+                  adjuster). Click a diagram control or card to see its classification and effect.
                 </p>
               </CardContent>
             </Card>
@@ -883,6 +896,7 @@ const SailControls = () => {
                       <span className="font-medium text-sm truncate">{control.name}</span>
                     </div>
                     {control.aka && <p className="text-xs text-muted-foreground mt-1 pl-5">({control.aka})</p>}
+                    <p className="text-xs text-muted-foreground mt-1 pl-5">{control.category}</p>
                   </CardContent>
                 </Card>
               ))}
