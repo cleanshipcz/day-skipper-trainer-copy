@@ -2,11 +2,12 @@ import { canonicalQuizProgressKey } from "./progressKeys";
 import type { Json } from "@/integrations/supabase/types";
 import type { Question } from "@/data/quizzes/types";
 
-const QUIZ_SESSION_SCHEMA_VERSION = 2;
+const QUIZ_SESSION_SCHEMA_VERSION = 3;
 
 export type RestoredQuizSession = {
   answers: Array<number | null>;
   currentQuestion: number;
+  tentativeAnswer?: number;
 };
 
 export type QuizSessionProgress = {
@@ -71,7 +72,7 @@ export const buildQuizSessionProgress = (
 };
 
 const parseIdentitySession = (raw: Record<string, unknown>, questions: readonly Question[]): RestoredQuizSession | null => {
-  if (raw.version !== QUIZ_SESSION_SCHEMA_VERSION || typeof raw.catalogueVersion !== "string"
+  if ((raw.version !== 2 && raw.version !== QUIZ_SESSION_SCHEMA_VERSION) || typeof raw.catalogueVersion !== "string"
     || !Array.isArray(raw.answers) || typeof raw.currentQuestionId !== "string") return null;
   const answerByQuestion = new Map<string, string | null>();
   for (const value of raw.answers) {
@@ -89,6 +90,14 @@ const parseIdentitySession = (raw: Record<string, unknown>, questions: readonly 
   });
   const savedCurrentIndex = questions.findIndex(({ id }) => id === raw.currentQuestionId);
   const currentQuestion = savedCurrentIndex >= 0 ? savedCurrentIndex : Math.max(0, answers.findIndex((answer) => answer === null));
+  // Version 2 persisted radio changes before Submit, so its current answer is
+  // necessarily ambiguous. Restore it as a tentative selection without
+  // scoring it or revealing feedback. Version 3 contains assessed answers only.
+  if (raw.version === 2 && answers[currentQuestion] !== null) {
+    const tentativeAnswer = answers[currentQuestion] as number;
+    answers[currentQuestion] = null;
+    return { answers, currentQuestion, tentativeAnswer };
+  }
   return { answers, currentQuestion };
 };
 
