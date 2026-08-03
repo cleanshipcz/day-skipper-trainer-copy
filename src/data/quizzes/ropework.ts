@@ -1,127 +1,159 @@
+import type { KnotId } from "../ropeworkKnots";
 import type { Question } from "./types";
+
+/**
+ * The lesson-to-assessment contract for /ropework. Keep this catalogue in sync
+ * with the knot lessons so a taught knot cannot silently disappear from the quiz.
+ */
+export const ropeworkAssessmentCoverage = {
+  bowline: ["r1", "r8"],
+  "clove-hitch": ["r2", "r9"],
+  "sheet-bend": ["r3", "r11"],
+  "figure-eight": ["r4"],
+  "reef-knot": ["r5", "r10"],
+  "round-turn": ["r6"],
+  "rolling-hitch": ["r7", "r12"],
+} as const satisfies Record<KnotId, readonly string[]>;
 
 const ropeworkQuestions: readonly Question[] = [
   {
     id: "r1",
-    question: "Which knot creates a fixed loop and is essential for mooring?",
-    options: ["Reef Knot", "Bowline", "Clove Hitch", "Figure Eight"],
+    question: "A fixed loop is needed on a mooring line, but the line may repeatedly shake while slack. Which choice matches the Bowline lesson?",
+    options: [
+      "Use a Bowline with a short tail because shaking tightens it",
+      "Use a dressed Bowline with a generous tail and approved backup protection against cyclic slack loading",
+      "Use a Reef Knot because it cannot spill",
+      "Use a Figure Eight because it creates a fixed loop",
+    ],
     correctAnswer: 1,
-    explanation: "The bowline creates a secure fixed loop that won't slip and is easy to untie after loading.",
+    explanation: "A Bowline creates a fixed loop, but cyclic loading or shaking while slack can work it loose. Dress and set it, leave a generous tail, and use an approved backup where that risk exists.",
   },
   {
     id: "r2",
-    question: "What is the best knot for quickly attaching a rope to a post?",
-    options: ["Bowline", "Sheet Bend", "Clove Hitch", "Figure Eight"],
+    question: "Which is the safe taught use of a Clove Hitch?",
+    options: [
+      "The sole attachment for a critical mooring load",
+      "A permanent bend joining two loaded ropes",
+      "A quick adjustable fender attachment, with additional half hitches securing the tail",
+      "A stopper for a line running through a block",
+    ],
     correctAnswer: 2,
-    explanation: "The clove hitch is quick to tie and adjustable, ideal for temporary fastening to rails and posts.",
+    explanation: "A Clove Hitch is quick and adjustable for temporary attachments such as fenders. Its crossing turns should be dressed without overlap and its tail secured; it can slip under changing loads, so it is not a sole critical mooring attachment.",
   },
   {
     id: "r3",
-    question: "Which knot is used to join two ropes of different thickness?",
-    options: ["Reef Knot", "Sheet Bend", "Bowline", "Clove Hitch"],
+    question: "Which description identifies a correctly dressed Sheet Bend joining ropes of different thickness?",
+    options: [
+      "The thinner rope forms the bight and the tails finish on opposite sides",
+      "The thicker rope forms the bight; the thinner rope circles both legs, tucks under its own standing part, and both tails finish on the same side",
+      "Both ropes form identical interlocking half-knots with crossed tails",
+      "The thinner rope passes back through the bight after circling one leg",
+    ],
     correctAnswer: 1,
-    explanation: "The sheet bend is specifically designed to join ropes of different diameters securely.",
+    explanation: "In the taught Sheet Bend, the thicker or less flexible rope forms the bight. The thinner rope circles both legs and tucks under its own standing part; both tails should finish on the same side.",
   },
   {
     id: "r4",
-    question: "What type of knot is a Figure Eight?",
-    options: ["Binding knot", "Stopper knot", "Bend", "Hitch"],
-    correctAnswer: 1,
-    explanation: "The figure eight is a stopper knot used to prevent rope running through a block.",
+    question: "Before using a Figure Eight as a stopper, what inspection is taught?",
+    options: [
+      "Confirm it has two even lobes, a generous tail, and is large enough for the intended opening",
+      "Confirm it has two same-direction half hitches against a round turn",
+      "Confirm both tails finish on the same side of a bight",
+      "Confirm its working end is cut flush with the knot",
+    ],
+    correctAnswer: 0,
+    explanation: "A Figure Eight should show a clear, evenly dressed figure-eight with a generous tail. It must also be large and secure enough for the opening it is intended to stop.",
   },
   {
     id: "r5",
-    question: "Which knot should NOT be used for joining ropes of different thickness?",
-    options: ["Sheet Bend", "Reef Knot", "Double Sheet Bend", "Carrick Bend"],
+    question: "Which knot should NOT be used to join load-bearing ropes?",
+    options: ["Sheet Bend", "Reef Knot", "Double Sheet Bend", "A suitable purpose-made bend"],
     correctAnswer: 1,
-    explanation:
-      "A reef knot (square knot) can slip when joining ropes of different thickness. Use a sheet bend instead.",
+    explanation: "A Reef Knot is a binding knot for reef points or bundles. Used as a bend it can spill, capsize, or pull undone; use a suitable bend such as a correctly tied Sheet Bend instead.",
   },
   {
     id: "r6",
-    question: "What is the primary purpose of a round turn and two half hitches?",
+    question: "What should a correctly tied Round Turn and Two Half Hitches look like before loading?",
     options: [
-      "Joining two ropes together",
-      "Securing a rope to a ring, post, or rail under load",
-      "Creating a loop in the middle of a rope",
-      "Shortening a rope",
+      "One turn with two hitches tied in opposite directions and spaced apart",
+      "A round turn controlling the strain, with two same-direction half hitches dressed together against it and the tail inspected",
+      "Two gripping turns crossed toward a sideways pull",
+      "Two flat interlocking half-knots with all four ends loaded",
     ],
     correctAnswer: 1,
-    explanation:
-      "A round turn and two half hitches is reliable for securing a line to a ring, post, or rail and is easy to untie even after heavy loading.",
+    explanation: "The round turn takes and controls strain while tying. The two half hitches are made in the same direction, dressed together against the round turn, and the tail is inspected before loading.",
   },
   {
     id: "r7",
-    question: "What is 'surging' a line on a cleat or winch?",
+    question: "When is the taught Rolling Hitch an appropriate choice?",
     options: [
-      "Tying it off permanently",
-      "Easing it under control by allowing it to slip gradually",
-      "Pulling it in as fast as possible",
-      "Coiling it on deck",
+      "For a sideways pull on a slippery modern rope",
+      "For joining two ropes end-to-end under changing load",
+      "For attaching a usually smaller rope to a larger rope for a pull nearly parallel to it in one stated direction",
+      "For making a fixed loop that can be loaded from any direction",
     ],
-    correctAnswer: 1,
-    explanation:
-      "Surging means allowing the line to slip in a controlled manner around a cleat or winch drum, used when easing sheets or mooring lines.",
+    correctAnswer: 2,
+    explanation: "A Rolling Hitch is directional: its doubled turns grip for a pull nearly parallel to the main rope in the stated direction. It may fail on slippery rope or with a sideways pull.",
   },
   {
     id: "r8",
-    question: "Why should you always coil ropes clockwise (right-handed lay)?",
+    question: "Which observation indicates a dressed Bowline rather than merely a loop-shaped tangle?",
     options: [
-      "It looks tidier",
-      "It follows the natural twist of the rope, preventing kinks and tangles",
-      "It is a maritime superstition",
-      "Left-handed coiling is illegal",
+      "The collar is snug around the standing part, the fixed loop is uncrossed, and the working end has a generous tail",
+      "The working end is cut flush and the collar remains loose",
+      "Two tails leave opposite sides of a bight",
+      "Two gripping turns point away from the expected pull",
     ],
-    correctAnswer: 1,
-    explanation:
-      "Standard three-strand rope has a right-hand lay. Coiling clockwise works with the twist, preventing kinks and ensuring the rope runs freely.",
+    correctAnswer: 0,
+    explanation: "Inspect the Bowline's rope path: its collar should be dressed snugly around the standing part, its fixed loop uncrossed, and its working end left with a generous tail.",
   },
   {
     id: "r9",
-    question: "What knot is used to create a loop in the middle (bight) of a rope without access to the ends?",
-    options: ["Bowline", "Alpine Butterfly", "Reef Knot", "Clove Hitch"],
+    question: "A Clove Hitch around a post has overlapping wraps and its crossing turns are loose. What should you do?",
+    options: [
+      "Load it immediately so the overlaps settle themselves",
+      "Dress the two crossing turns snugly together without overlap, set the knot, and inspect the tail",
+      "Convert it into a Reef Knot by pulling both ends apart",
+      "Cut the tail short so it cannot snag",
+    ],
     correctAnswer: 1,
-    explanation:
-      "The alpine butterfly knot forms a secure loop in the bight of a rope and can take load in any direction.",
+    explanation: "The taught inspection requires the two crossing turns to be dressed snugly together without overlap. Set the hitch and inspect or secure its tail before its temporary use.",
   },
   {
     id: "r10",
-    question: "What is the danger of a riding turn on a winch?",
+    question: "How do you distinguish a correctly dressed Reef Knot from a Granny Knot?",
     options: [
-      "It makes the winch look untidy",
-      "The line jams and cannot be eased, potentially causing equipment failure or injury",
-      "It wears out the winch handle",
-      "It only occurs on manual winches",
+      "Its two half-knots are tied in the same direction",
+      "Its two opposite half-knots lie flat and symmetrical, with each tail beside its own standing part",
+      "Its tails finish on opposite sides of a thicker-rope bight",
+      "It has one doubled turn toward the direction of pull",
     ],
     correctAnswer: 1,
-    explanation:
-      "A riding turn (override) locks the line on the winch drum so it cannot be eased. It can cause rigging damage or injury if loads are high.",
+    explanation: "A Reef Knot uses opposite half-knots and dresses flat and symmetrically, with each tail beside its own standing part. Even correctly tied, it remains a binding knot rather than a load-bearing bend.",
   },
   {
     id: "r11",
-    question: "What should you do to the end of a synthetic rope to prevent fraying?",
+    question: "Two ropes differ greatly in size and the material is slippery. What does the Sheet Bend lesson advise?",
     options: [
-      "Tie a reef knot in it",
-      "Heat-seal (melt) the end or apply whipping twine",
-      "Leave it — synthetic ropes don't fray",
-      "Wrap it in electrical tape permanently",
+      "Use a single Sheet Bend with very short tails",
+      "Use a Double Sheet Bend with longer tails",
+      "Substitute a Reef Knot and load all four ends",
+      "Use a Clove Hitch around the thinner rope",
     ],
     correctAnswer: 1,
-    explanation:
-      "Heat-sealing melts the synthetic fibres together. For a more durable finish, apply whipping twine. Both prevent the strands from unravelling.",
+    explanation: "For a large size difference or slippery material, the lesson advises a Double Sheet Bend and longer tails. The knot must still be dressed and inspected before loading.",
   },
   {
     id: "r12",
-    question: "When cleating a line, how many figure-of-eight turns are typically sufficient?",
+    question: "Which inspection and test matches a Rolling Hitch set for a pull to the left along the main rope?",
     options: [
-      "One turn only",
-      "Two to three complete figure-of-eight turns, finished with a locking turn",
-      "As many as possible",
-      "None — just one round turn",
+      "The doubled gripping turns are dressed toward the left; apply load progressively and confirm it grips in that direction",
+      "The doubled turns are dressed to the right; test it first with a hard sideways shock",
+      "The turns may overlap anywhere because the final half hitch carries the load",
+      "It should slide equally easily in both directions under full load",
     ],
-    correctAnswer: 1,
-    explanation:
-      "Two to three figure-of-eight turns provide sufficient friction. Finish with a locking (half-hitch) turn to secure the line.",
+    correctAnswer: 0,
+    explanation: "Dress the two gripping turns tightly together toward the expected pull, snug the final half hitch, inspect the tail, and test progressively. A Rolling Hitch is directional and should not be relied on for a sideways pull.",
   },
 ] as const;
 
