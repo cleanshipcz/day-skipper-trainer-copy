@@ -41,6 +41,8 @@ declare
   v_existing_history jsonb;
   v_visited jsonb;
   v_evidence_count integer;
+  v_distinct_evidence_count integer;
+  v_all_evidence_known boolean;
   v_expected_score integer;
 begin
   if v_user_id is null then
@@ -58,15 +60,15 @@ begin
   end if;
 
   v_visited := p_answers_history -> 'visitedSectionIds';
-  select count(*), round(count(*) * 100.0 / 3)::integer
-    into v_evidence_count, v_expected_score
-    from jsonb_array_elements_text(v_visited) evidence(id);
+  select count(*)::integer,
+         count(distinct evidence_id)::integer,
+         coalesce(bool_and(evidence_id = any(array['part-c-recognition', 'part-d-recognition', 'distress-recognition']::text[])), true),
+         round(count(*) * 100.0 / 3)::integer
+    into v_evidence_count, v_distinct_evidence_count, v_all_evidence_known, v_expected_score
+    from jsonb_array_elements_text(v_visited) as submitted_evidence(evidence_id);
   if v_evidence_count > 3
-     or exists (
-       select 1 from jsonb_array_elements_text(v_visited) evidence(id)
-       where evidence.id <> all(array['part-c-recognition', 'part-d-recognition', 'distress-recognition']::text[])
-     )
-     or v_evidence_count <> (select count(distinct evidence.id) from jsonb_array_elements_text(v_visited) evidence(id))
+     or not v_all_evidence_known
+     or v_evidence_count <> v_distinct_evidence_count
      or p_completed is distinct from (v_evidence_count = 3)
      or p_score is distinct from v_expected_score then
     raise exception 'Invalid lights theory evidence catalogue or score' using errcode = '22023';
@@ -89,7 +91,10 @@ begin
                or v_existing_history ->> 'completionState' is distinct from 'completed'
              then p_answers_history else answers_history end
      where user_id = v_user_id and topic_id = 'lights-theory';
-    return query select false, false, 0;
+    points_awarded := false;
+    completion_awarded := false;
+    awarded_points := 0;
+    return next;
     return;
   end if;
 
@@ -112,8 +117,11 @@ begin
     end if;
   end if;
 
-  return query select coalesce(v_points_awarded, false), v_completion_awarded,
-    case when coalesce(v_points_awarded, false) then 10 else 0 end;
+  points_awarded := coalesce(v_points_awarded, false);
+  completion_awarded := v_completion_awarded;
+  awarded_points := case when points_awarded then 10 else 0 end;
+  return next;
+  return;
 end;
 $$;
 

@@ -8,7 +8,9 @@ const hardenedSql = readFileSync(resolve(process.cwd(), "supabase/migrations/202
 describe("revisioned Lights theory progress migration", () => {
   it("refreshes evidence on an old completed row without awarding again", () => {
     expect(hardenedSql).toContain("if v_was_completed then");
-    expect(hardenedSql).toContain("return query select false, false, 0");
+    expect(hardenedSql).toContain("points_awarded := false");
+    expect(hardenedSql).toContain("return next");
+    expect(hardenedSql).not.toContain("return query");
     expect(hardenedSql).toContain("insert into public.progress_awards");
     expect(hardenedSql).not.toContain("from public.save_topic_progress('lights-theory'");
   });
@@ -45,6 +47,7 @@ describe("revisioned Lights theory progress migration", () => {
     expect(hardenedSql).toContain("p_completed is null or p_score is null or p_answers_history is null");
     expect(hardenedSql).toContain("is distinct from 'colregs-parts-c-d-annex-iv-v1'");
     expect(hardenedSql).toContain("round(count(*) * 100.0 / 3)::integer");
+    expect(hardenedSql).toContain("count(distinct evidence_id)::integer");
     expect(hardenedSql).toContain("p_score is distinct from v_expected_score");
     expect(hardenedSql).toContain("p_completed is distinct from (v_evidence_count = 3)");
   });
