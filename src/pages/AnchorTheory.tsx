@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -24,12 +24,19 @@ const AnchorTheorySession = () => {
   const [tipChecks, setTipChecks] = useState<number[]>([]);
   const [persistenceStatus, setPersistenceStatus] = useState<"loading" | "ready" | "saving" | "saved" | "anonymous" | "failed">("loading");
   const [pendingCompletedIds, setPendingCompletedIds] = useState<string[] | null>(null);
+  const [pendingCompletionTitle, setPendingCompletionTitle] = useState<string | null>(null);
   const [loadRevision, setLoadRevision] = useState(0);
+  const [announcements, setAnnouncements] = useState<string[]>([]);
+  const topicHeadingRef = useRef<HTMLHeadingElement>(null);
 
   const selectedTopic = useMemo(
     () => topicList.find((topic) => topic.id === selectedTopicId) ?? null,
     [selectedTopicId, topicList],
   );
+
+  const announce = (message: string) => {
+    setAnnouncements((current) => [...current, message]);
+  };
 
   useEffect(() => {
     let cancelled = false;
@@ -57,9 +64,10 @@ const AnchorTheorySession = () => {
     return () => { cancelled = true; };
   }, [loadProgressDetailed, loadRevision]);
 
-  const persistCompletedIds = async (completedIds: string[]) => {
+  const persistCompletedIds = async (completedIds: string[], completedTopicTitle?: string) => {
     setPersistenceStatus("saving");
     setPendingCompletedIds(completedIds);
+    setPendingCompletionTitle(completedTopicTitle ?? null);
     const completed = completedIds.length === topics.length;
     const score = Math.round((completedIds.length / topics.length) * 100);
     let result: ProgressSaveResult;
@@ -73,10 +81,31 @@ const AnchorTheorySession = () => {
     }
     if (result === "failed") {
       setPersistenceStatus("failed");
+      announce("Anchorwork progress could not be saved. Use Retry save to try again.");
       return;
     }
     setPendingCompletedIds(null);
+    setPendingCompletionTitle(null);
     setPersistenceStatus(result === "anonymous" ? "anonymous" : "saved");
+    announce(result === "anonymous"
+      ? "Completion recorded for this visit. Sign in to save it across devices."
+      : result === "queued"
+        ? "Anchorwork progress saved offline and queued to sync."
+        : "Anchorwork progress saved.");
+  };
+
+  const selectTopic = (topic: Topic) => {
+    setSelectedTopicId(topic.id);
+    setTipChecks([]);
+    announce(`${topic.title} selected${topic.completed ? ", completed" : ""}.`);
+    requestAnimationFrame(() => topicHeadingRef.current?.focus());
+  };
+
+  const moveTopicSelection = (currentIndex: number, direction: 1 | -1) => {
+    const nextIndex = (currentIndex + direction + topicList.length) % topicList.length;
+    const nextTopic = topicList[nextIndex];
+    selectTopic(nextTopic);
+    requestAnimationFrame(() => document.getElementById(`anchor-topic-tab-${nextTopic.id}`)?.focus());
   };
 
   const handleTopicComplete = (topicId: string) => {
@@ -86,8 +115,11 @@ const AnchorTheorySession = () => {
     const completedIds = updatedTopics.filter((item) => item.completed).map((item) => item.id);
     setTopicList(updatedTopics);
     setTipChecks([]);
+    announce(`${topic.title} completed. ${completedIds.length} of ${topics.length} topics completed.`);
+    announce("Saving anchorwork progress.");
     toast.success("Topic study check completed.");
-    void persistCompletedIds(completedIds);
+    void persistCompletedIds(completedIds, topic.title);
+    requestAnimationFrame(() => topicHeadingRef.current?.focus());
   };
 
   const completedCount = topicList.filter((t) => t.completed).length;
@@ -99,8 +131,8 @@ const AnchorTheorySession = () => {
         <div className="container mx-auto px-4 py-4">
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-3">
-              <Button variant="ghost" size="icon" onClick={() => navigate("/")}>
-                <ArrowLeft className="w-5 h-5" />
+              <Button variant="ghost" size="icon" aria-label="Back to home" onClick={() => navigate("/")}>
+                <ArrowLeft aria-hidden="true" className="w-5 h-5" />
               </Button>
               <div>
                 <h1 className="text-xl font-bold">Anchorwork</h1>
@@ -108,11 +140,11 @@ const AnchorTheorySession = () => {
               </div>
             </div>
             <div className="flex items-center gap-4">
-              <div className="flex items-center gap-2">
-                <Trophy className="w-5 h-5 text-accent" />
-                <span className="font-bold text-lg">{score}</span>
+              <div className="flex items-center gap-2" aria-label={`Score: ${score} points`}>
+                <Trophy aria-hidden="true" className="w-5 h-5 text-accent" />
+                <span aria-hidden="true" className="font-bold text-lg">{score}</span>
               </div>
-              <Badge variant="secondary">
+              <Badge variant="secondary" role="progressbar" aria-label="Topic completion progress" aria-valuemin={0} aria-valuemax={topicList.length} aria-valuenow={completedCount} aria-valuetext={`${completedCount} of ${topicList.length} topics completed`}>
                 {completedCount}/{topicList.length} completed
               </Badge>
             </div>
@@ -124,7 +156,7 @@ const AnchorTheorySession = () => {
         <p className="mb-2 text-sm text-muted-foreground">
           Completion criteria: read each topic and confirm every key tip before marking it complete. Each completed topic is worth 20 points.
         </p>
-        <div className="mb-4 text-sm" aria-live="polite">
+        <div className="mb-4 text-sm">
           {persistenceStatus === "loading" && "Loading saved anchorwork progress…"}
           {persistenceStatus === "saving" && "Saving anchorwork progress…"}
           {persistenceStatus === "saved" && "Anchorwork progress saved."}
@@ -138,12 +170,15 @@ const AnchorTheorySession = () => {
               <Button
                 size="sm"
                 variant="outline"
-                onClick={() => pendingCompletedIds ? void persistCompletedIds(pendingCompletedIds) : setLoadRevision((revision) => revision + 1)}
+                onClick={() => pendingCompletedIds ? void persistCompletedIds(pendingCompletedIds, pendingCompletionTitle ?? undefined) : setLoadRevision((revision) => revision + 1)}
               >
                 {pendingCompletedIds ? "Retry save" : "Retry load"}
               </Button>
             </span>
           )}
+        </div>
+        <div className="sr-only" role="status" aria-live="polite" aria-atomic="false" aria-relevant="additions" data-testid="anchorwork-announcements">
+          {announcements.map((message, index) => <p key={`${index}-${message}`}>{message}</p>)}
         </div>
         <div className="grid lg:grid-cols-4 gap-6">
           {/* Topics Sidebar */}
@@ -151,13 +186,30 @@ const AnchorTheorySession = () => {
             <CardHeader>
               <CardTitle className="text-lg">Topics</CardTitle>
             </CardHeader>
-            <CardContent className="space-y-2">
-              {topicList.map((topic) => (
+            <CardContent className="space-y-2" role="tablist" aria-label="Anchorwork topics" aria-orientation="vertical">
+              {topicList.map((topic, topicIndex) => (
                 <button
                   key={topic.id}
-                  onClick={() => {
-                    setSelectedTopicId(topic.id);
-                    setTipChecks([]);
+                  id={`anchor-topic-tab-${topic.id}`}
+                  role="tab"
+                  aria-selected={selectedTopic?.id === topic.id}
+                  aria-controls="anchor-topic-panel"
+                  aria-label={`${topic.title}${topic.completed ? ", completed" : ", not completed"}`}
+                  tabIndex={selectedTopic?.id === topic.id ? 0 : -1}
+                  onClick={() => selectTopic(topic)}
+                  onKeyDown={(event) => {
+                    if (event.key === "ArrowDown" || event.key === "ArrowRight") {
+                      event.preventDefault();
+                      moveTopicSelection(topicIndex, 1);
+                    } else if (event.key === "ArrowUp" || event.key === "ArrowLeft") {
+                      event.preventDefault();
+                      moveTopicSelection(topicIndex, -1);
+                    } else if (event.key === "Home" || event.key === "End") {
+                      event.preventDefault();
+                      const nextTopic = topicList[event.key === "Home" ? 0 : topicList.length - 1];
+                      selectTopic(nextTopic);
+                      requestAnimationFrame(() => document.getElementById(`anchor-topic-tab-${nextTopic.id}`)?.focus());
+                    }
                   }}
                   disabled={persistenceStatus === "loading" || persistenceStatus === "saving" || persistenceStatus === "failed"}
                   className={`w-full p-3 rounded-lg border-2 text-left transition-all ${
@@ -168,7 +220,7 @@ const AnchorTheorySession = () => {
                 >
                   <div className="flex items-center justify-between">
                     <span className="font-semibold text-sm">{topic.title}</span>
-                    {topic.completed && <CheckCircle2 className="w-4 h-4 text-success" />}
+                    {topic.completed && <CheckCircle2 aria-hidden="true" className="w-4 h-4 text-success" />}
                   </div>
                 </button>
               ))}
@@ -179,17 +231,17 @@ const AnchorTheorySession = () => {
           <div className="lg:col-span-3 space-y-6">
             {selectedTopic && (
               <>
-                <Card>
+                <Card id="anchor-topic-panel" role="tabpanel" aria-labelledby={`anchor-topic-tab-${selectedTopic.id}`}>
                   <CardHeader>
                     <div className="flex items-start justify-between">
                       <div>
-                        <CardTitle className="text-2xl flex items-center gap-3">
-                          <Anchor className="w-8 h-8 text-primary" />
+                        <CardTitle ref={topicHeadingRef} tabIndex={-1} className="text-2xl flex items-center gap-3">
+                          <Anchor aria-hidden="true" className="w-8 h-8 text-primary" />
                           {selectedTopic.title}
                         </CardTitle>
                         {selectedTopic.completed && (
                           <Badge variant="default" className="bg-success mt-2">
-                            ✓ Completed
+                            <span aria-hidden="true">✓ </span>Completed
                           </Badge>
                         )}
                       </div>
@@ -203,7 +255,7 @@ const AnchorTheorySession = () => {
 
                     <div className="p-4 bg-muted rounded-lg">
                       <h3 className="font-semibold mb-3 flex items-center gap-2">
-                        <CheckCircle2 className="w-5 h-5 text-secondary" />
+                        <CheckCircle2 aria-hidden="true" className="w-5 h-5 text-secondary" />
                         Key Tips
                       </h3>
                       <ul className="space-y-2">
@@ -282,7 +334,7 @@ const AnchorTheorySession = () => {
                         <CardDescription>Understanding scope and swinging room</CardDescription>
                       </div>
                       <Button variant="secondary" size="sm" onClick={() => navigate("/anchor-minigame")}>
-                        🎮 Try Minigame
+                        <span aria-hidden="true">🎮 </span>Try Minigame
                       </Button>
                     </div>
                   </CardHeader>
@@ -300,12 +352,12 @@ const AnchorTheorySession = () => {
             <CardContent className="pt-6">
               <div className="flex flex-col md:flex-row items-center justify-between gap-4">
                 <div>
-                  <h3 className="text-xl font-bold mb-2">🎉 All topics completed!</h3>
+                  <h3 className="text-xl font-bold mb-2"><span aria-hidden="true">🎉 </span>All topics completed!</h3>
                   <p className="text-muted-foreground">Test your knowledge or practice with the minigame</p>
                 </div>
                 <div className="flex gap-3">
                   <Button size="lg" variant="outline" onClick={() => navigate("/anchor-minigame")}>
-                    🎮 Play Minigame
+                    <span aria-hidden="true">🎮 </span>Play Minigame
                   </Button>
                   <Button
                     size="lg"
