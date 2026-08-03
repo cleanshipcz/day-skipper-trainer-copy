@@ -16,6 +16,7 @@
     "test:live-db": "vitest --run src/features/progress/progressLiveDbConcurrency.integration.test.ts",
     "test:build-budget": "node scripts/check-build-budget.mjs",
     "test:quiz-chunks": "node scripts/check-quiz-chunks.mjs",
+    "guard:boat-parts-assets": "node scripts/check-boat-parts-assets.mjs",
     "setup:anchor-browser": "node scripts/install-anchor-browser.mjs",
     "test:anchor-browser": "node scripts/check-anchor-minigame-browser.mjs",
     "guard:migrations": "node scripts/check-migrations.mjs",
