@@ -3,7 +3,6 @@ import { readFileSync } from "node:fs";
 import { resolve } from "node:path";
 import { describe, expect, it } from "vitest";
 
-const sql = readFileSync(resolve(process.cwd(), "supabase/migrations/20260803043000_revisioned_lights_theory_progress.sql"), "utf8").toLowerCase();
 const hardenedSql = readFileSync(resolve(process.cwd(), "supabase/migrations/20260803050000_harden_revisioned_lights_theory_progress.sql"), "utf8").toLowerCase();
 
 describe("revisioned Lights theory progress migration", () => {
@@ -15,20 +14,20 @@ describe("revisioned Lights theory progress migration", () => {
   });
 
   it("validates the exact revision and evidence catalogue", () => {
-    expect(sql).toContain("colregs-parts-c-d-annex-iv-v1");
-    expect(sql).toContain("part-c-recognition");
-    expect(sql).toContain("part-d-recognition");
-    expect(sql).toContain("distress-recognition");
-    expect(sql).toContain("count(distinct evidence.id) = 3");
+    expect(hardenedSql).toContain("colregs-parts-c-d-annex-iv-v1");
+    expect(hardenedSql).toContain("part-c-recognition");
+    expect(hardenedSql).toContain("part-d-recognition");
+    expect(hardenedSql).toContain("distress-recognition");
+    expect(hardenedSql).toContain("v_evidence_count = 3");
   });
 
   it("derives ownership from auth and limits execution to authenticated users", () => {
-    expect(sql).toContain("auth.uid()");
-    expect(sql).not.toContain("p_user_id");
-    expect(sql).toContain("security definer");
-    expect(sql).toContain("from public, anon");
-    expect(sql).toContain("to authenticated");
-    expect(sql).toContain("where up.user_id = v_user_id");
+    expect(hardenedSql).toContain("auth.uid()");
+    expect(hardenedSql).not.toContain("p_user_id");
+    expect(hardenedSql).toContain("security definer");
+    expect(hardenedSql).toContain("from public, anon");
+    expect(hardenedSql).toContain("to authenticated");
+    expect(hardenedSql).toContain("where up.user_id = v_user_id");
   });
 
   it("serializes against generic same-topic saves", () => {
