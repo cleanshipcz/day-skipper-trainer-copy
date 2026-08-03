@@ -6,17 +6,90 @@ import { ArrowLeft, ExternalLink, Play, Trophy } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 
 import { knots, Knot } from "@/data/ropeworkKnots";
+import { TOPIC_IDS } from "@/constants/topicRegistry";
+import { useProgress, type ProgressSaveResult } from "@/hooks/useProgress";
+import { useAuth } from "@/contexts/AuthHooks";
 
-const RopeworkTheory = () => {
+const POINTS_PER_KNOT = 15;
+const ROPEWORK_PROGRESS_VERSION = 1;
+
+type RopeworkProgress = {
+  version: typeof ROPEWORK_PROGRESS_VERSION;
+  learnedKnotIds: string[];
+};
+
+const parseRopeworkProgress = (value: unknown): string[] | null => {
+  if (typeof value === "string") {
+    try { value = JSON.parse(value); } catch { return null; }
+  }
+  if (!value || typeof value !== "object") return null;
+  const payload = value as Partial<RopeworkProgress>;
+  if (payload.version !== ROPEWORK_PROGRESS_VERSION || !Array.isArray(payload.learnedKnotIds)) return null;
+  const validIds = new Set(knots.map((knot) => knot.id));
+  if (payload.learnedKnotIds.some((id) => typeof id !== "string" || !validIds.has(id))) return null;
+  return [...new Set(payload.learnedKnotIds)];
+};
+
+const RopeworkSession = () => {
   const navigate = useNavigate();
+  const { loadProgressDetailed, saveProgressDetailed } = useProgress();
   const [selectedKnot, setSelectedKnot] = useState<Knot | null>(null);
   const [knotList, setKnotList] = useState<Knot[]>(knots);
   const [score, setScore] = useState(0);
   const [announcement, setAnnouncement] = useState("");
+  const [persistenceStatus, setPersistenceStatus] = useState<"loading" | "ready" | "saving" | "saved" | "anonymous" | "failed">("loading");
+  const [pendingLearnedIds, setPendingLearnedIds] = useState<string[] | null>(null);
+  const [loadRevision, setLoadRevision] = useState(0);
   const knotButtonRefs = useRef<Record<string, HTMLButtonElement | null>>({});
   const detailsHeadingRef = useRef<HTMLHeadingElement>(null);
 
+  useEffect(() => {
+    let cancelled = false;
+    setPendingLearnedIds(null);
+    setPersistenceStatus("loading");
+    void loadProgressDetailed(TOPIC_IDS.ROPEWORK).then((result) => {
+      if (cancelled) return;
+      if (result.status === "remote") {
+        const learnedIds = parseRopeworkProgress(result.record.answers_history);
+        if (learnedIds) {
+          const learned = new Set(learnedIds);
+          setKnotList(knots.map((knot) => ({ ...knot, discovered: learned.has(knot.id) })));
+          setScore(learnedIds.length * POINTS_PER_KNOT);
+        }
+        setPersistenceStatus("ready");
+      } else {
+        setPersistenceStatus(result.status === "anonymous" ? "anonymous" : result.status === "failed" ? "failed" : "ready");
+      }
+    }).catch(() => {
+      if (!cancelled) setPersistenceStatus("failed");
+    });
+    return () => { cancelled = true; };
+  }, [loadProgressDetailed, loadRevision]);
+
+  const persistLearnedIds = async (learnedIds: string[]) => {
+    setPersistenceStatus("saving");
+    setPendingLearnedIds(learnedIds);
+    const complete = learnedIds.length === knots.length;
+    const nextScore = Math.round((learnedIds.length / knots.length) * 100);
+    let result: ProgressSaveResult;
+    try {
+      result = await saveProgressDetailed(TOPIC_IDS.ROPEWORK, complete, nextScore, complete ? knots.length * POINTS_PER_KNOT : 0, {
+        version: ROPEWORK_PROGRESS_VERSION,
+        learnedKnotIds: learnedIds,
+      });
+    } catch {
+      result = "failed";
+    }
+    if (result === "failed") {
+      setPersistenceStatus("failed");
+      return;
+    }
+    setPendingLearnedIds(null);
+    setPersistenceStatus(result === "anonymous" ? "anonymous" : "saved");
+  };
+
   const handleKnotClick = (knot: Knot) => {
+    if (persistenceStatus === "loading" || persistenceStatus === "saving" || persistenceStatus === "failed") return;
     const wasDiscovered = knot.discovered;
 
     if (!knot.discovered) {
@@ -26,6 +99,8 @@ const RopeworkTheory = () => {
         ),
       );
       setScore((prevScore) => prevScore + 15);
+      const learnedIds = knotList.filter((item) => item.discovered).map((item) => item.id).concat(knot.id);
+      void persistLearnedIds(learnedIds);
     }
 
     setSelectedKnot({ ...knot, discovered: true });
@@ -79,6 +154,22 @@ const RopeworkTheory = () => {
         <p className="sr-only" role="status" aria-live="polite" aria-atomic="true">
           {announcement}
         </p>
+        <div className="mb-4 text-sm" aria-live="polite">
+          {persistenceStatus === "loading" && "Loading saved ropework progress…"}
+          {persistenceStatus === "saving" && "Saving ropework progress…"}
+          {persistenceStatus === "saved" && "Ropework progress saved."}
+          {persistenceStatus === "anonymous" && "Progress is available for this visit. Sign in to save it across devices."}
+          {persistenceStatus === "failed" && (
+            <span className="inline-flex items-center gap-3">
+              {pendingLearnedIds ? "Progress could not be saved." : "Saved progress could not be loaded. Learning is paused to protect your existing progress."}
+              {pendingLearnedIds ? (
+                <Button size="sm" variant="outline" onClick={() => void persistLearnedIds(pendingLearnedIds)}>Retry save</Button>
+              ) : (
+                <Button size="sm" variant="outline" onClick={() => setLoadRevision((revision) => revision + 1)}>Retry load</Button>
+              )}
+            </span>
+          )}
+        </div>
         <div className="grid lg:grid-cols-3 gap-6">
           {/* Knots Grid */}
           <div className="lg:col-span-2 grid md:grid-cols-2 gap-4">
@@ -97,6 +188,7 @@ const RopeworkTheory = () => {
                   aria-describedby={`${knot.id}-uses ${knot.id}-state`}
                   className="absolute inset-0 z-10 rounded-lg focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
                   onClick={() => handleKnotClick(knot)}
+                  disabled={persistenceStatus === "loading" || persistenceStatus === "saving" || persistenceStatus === "failed"}
                 />
                 <CardHeader>
                   <div className="flex items-start justify-between">
@@ -203,6 +295,11 @@ const RopeworkTheory = () => {
       </main>
     </div>
   );
+};
+
+const RopeworkTheory = () => {
+  const { user } = useAuth();
+  return <RopeworkSession key={user?.id ?? "anonymous"} />;
 };
 
 export default RopeworkTheory;

@@ -7,6 +7,10 @@ const sql = readFileSync(
   resolve(process.cwd(), "supabase/migrations/20260729235500_atomic_save_topic_progress.sql"),
   "utf8",
 ).toLowerCase();
+const ropeworkCatalogueSql = readFileSync(
+  resolve(process.cwd(), "supabase/migrations/20260801170000_register_ropework_progress.sql"),
+  "utf8",
+).toLowerCase();
 
 describe("atomic progress migration", () => {
   it("derives identity from auth.uid and accepts no user-id argument", () => {
@@ -40,6 +44,13 @@ describe("atomic progress migration", () => {
     expect(sql).not.toMatch(/coalesce\(p_points,\s*0\)/);
     expect(sql).not.toMatch(/v_award_points\s*:=\s*p_points/);
     expect(sql).toContain("coalesce(points, 0) + v_award_points");
+  });
+
+  it("registers ropework with a server-owned 105 point completion reward", () => {
+    expect(ropeworkCatalogueSql).toContain("'ropework', 'pilotage-plan'");
+    expect(ropeworkCatalogueSql).toContain("when 'ropework' then 105");
+    expect(ropeworkCatalogueSql).toContain("save_topic_progress catalogue marker was not found");
+    expect(sql).toContain("on conflict (user_id, topic_id) do nothing");
   });
 
   it("supports direct completion without a forgeable client engagement ceremony", () => {

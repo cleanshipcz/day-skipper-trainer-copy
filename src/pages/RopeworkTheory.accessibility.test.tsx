@@ -1,9 +1,21 @@
 import { render, screen, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
-import { describe, expect, it } from "vitest";
+import { describe, expect, it, vi } from "vitest";
 import { MemoryRouter, Route, Routes, useLocation } from "react-router-dom";
 
 import { knots } from "@/data/ropeworkKnots";
+
+const progressMocks = vi.hoisted(() => ({
+  load: vi.fn().mockResolvedValue({ status: "anonymous", record: null }),
+  save: vi.fn().mockResolvedValue("anonymous"),
+}));
+vi.mock("@/hooks/useProgress", () => ({
+  useProgress: () => ({
+    loadProgressDetailed: progressMocks.load,
+    saveProgressDetailed: progressMocks.save,
+  }),
+}));
+vi.mock("@/contexts/AuthHooks", () => ({ useAuth: () => ({ user: null }) }));
 import RopeworkTheory from "./RopeworkTheory";
 
 const LocationProbe = () => {
@@ -24,6 +36,7 @@ describe("RopeworkTheory accessible knot discovery", () => {
   it("provides one named native control per knot and exposes selection and learning", async () => {
     const user = userEvent.setup();
     renderPage();
+    await screen.findByText(/Sign in to save/);
 
     const controls = knots.map((knot) => screen.getByRole("button", { name: knot.name }));
     expect(controls).toHaveLength(knots.length);
@@ -49,6 +62,7 @@ describe("RopeworkTheory accessible knot discovery", () => {
   it("supports Space activation without introducing a second card focus stop", async () => {
     const user = userEvent.setup();
     renderPage();
+    await screen.findByText(/Sign in to save/);
 
     const secondKnot = knots[1];
     const cardControl = screen.getByRole("button", { name: secondKnot.name });
@@ -65,6 +79,7 @@ describe("RopeworkTheory accessible knot discovery", () => {
   it("announces completion and exposes a predictable quiz CTA", async () => {
     const user = userEvent.setup();
     renderPage();
+    await screen.findByText(/Sign in to save/);
 
     for (const knot of knots) {
       await user.click(screen.getByRole("button", { name: knot.name }));
