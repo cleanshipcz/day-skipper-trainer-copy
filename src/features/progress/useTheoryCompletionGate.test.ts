@@ -328,6 +328,23 @@ describe("useTheoryCompletionGate", () => {
     setItem.mockRestore();
   });
 
+  it("restores a queued completion without enqueueing an older incomplete snapshot", async () => {
+    mocks.ownerId = "owner-a";
+    mocks.loadProgressDetailed.mockResolvedValue({ status: "failed", record: null });
+    mocks.saveProgressDetailed.mockResolvedValue("queued");
+    const first = renderHook(() => useTheoryCompletionGate({ topicId, requiredSectionIds: ["s1"], catalogueRevision: "v1" }));
+    await act(async () => { await first.result.current.markSectionVisited("s1"); });
+    await act(async () => { expect(await first.result.current.markCompleted()).toBe(true); });
+    expect(first.result.current.saveState).toBe("queued");
+    first.unmount();
+
+    mocks.saveProgressDetailed.mockClear();
+    const resumed = renderHook(() => useTheoryCompletionGate({ topicId, requiredSectionIds: ["s1"], catalogueRevision: "v1" }));
+    await act(async () => {});
+    expect(resumed.result.current.saveState).toBe("queued");
+    expect(mocks.saveProgressDetailed).not.toHaveBeenCalled();
+  });
+
   it("drains a pending evidence write before queueing the completed snapshot", async () => {
     let releaseEvidence!: () => void;
     const { result } = renderHook(() => useTheoryCompletionGate({ topicId, requiredSectionIds: ["s1", "s2"], catalogueRevision: "v1" }));

@@ -53,6 +53,16 @@ export const saveProgressRecord = async ({
     || enginePayload.checkedItemIds.some((id) => typeof id !== "string")
     || !Number.isSafeInteger(enginePayload.revision) || (enginePayload.revision as number) < 0
   )) throw new Error("Engine checklist progress requires a valid revisioned catalogue snapshot");
+  const lightsPayload = answersHistory as { catalogueRevision?: unknown; completionState?: unknown; visitedSectionIds?: unknown } | undefined;
+  const lightsEvidenceIds = ["part-c-recognition", "part-d-recognition", "distress-recognition"];
+  if (topicId === "lights-theory" && (
+    lightsPayload?.catalogueRevision !== "colregs-parts-c-d-annex-iv-v1"
+    || !Array.isArray(lightsPayload.visitedSectionIds)
+    || lightsPayload.visitedSectionIds.some((id) => typeof id !== "string" || !lightsEvidenceIds.includes(id))
+    || new Set(lightsPayload.visitedSectionIds).size !== lightsPayload.visitedSectionIds.length
+    || !["in_progress", "completed"].includes(String(lightsPayload.completionState))
+    || completed !== (lightsPayload.completionState === "completed")
+  )) throw new Error("Lights theory progress requires valid revisioned evidence");
   const { data, error } = topicId === "anchorwork"
     ? await supabaseClient.rpc("save_anchorwork_progress", { p_completed_topic_ids: anchorworkIds as string[] })
     : topicId === "anchorwork-practice"
@@ -72,6 +82,12 @@ export const saveProgressRecord = async ({
         p_version: enginePayload?.version as number,
         p_expected_revision: enginePayload?.revision as number,
         p_checked_item_ids: enginePayload?.checkedItemIds as string[],
+      })
+    : topicId === "lights-theory"
+      ? await supabaseClient.rpc("save_lights_theory_progress", {
+        p_completed: completed,
+        p_score: score,
+        p_answers_history: lightsPayload as Record<string, unknown>,
       })
       : await supabaseClient.rpc("save_topic_progress", {
       p_topic_id: topicId,

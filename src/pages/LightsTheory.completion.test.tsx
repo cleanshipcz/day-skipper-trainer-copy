@@ -88,7 +88,7 @@ describe("LightsTheory evidence-based completion", () => {
   it.each([
     ["saved", "Progress saved to the server."],
     ["queued", "Progress is durably queued on this device and will sync when you reconnect."],
-    ["local", "Progress saved on this device. Sign in to save it across devices."],
+    ["local", "Progress saved only in this browser profile."],
     ["failed", "Progress could not be saved. Retry when ready."],
   ])("reports the %s persistence outcome truthfully", (state, message) => {
     mocks.saveState = state;

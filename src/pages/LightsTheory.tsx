@@ -395,7 +395,7 @@ const LightsTheory = () => {
           <p className="w-full text-center text-sm" role="status" aria-live="polite">
             {saveState === "saved" && "Progress saved to the server."}
             {saveState === "queued" && "Progress is durably queued on this device and will sync when you reconnect."}
-            {saveState === "local" && "Progress saved on this device. Sign in to save it across devices."}
+            {saveState === "local" && "Progress saved only in this browser profile."}
             {saveState === "failed" && "Progress could not be saved. Retry when ready."}
           </p>
         </div>

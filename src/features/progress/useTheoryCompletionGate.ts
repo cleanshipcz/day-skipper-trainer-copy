@@ -30,10 +30,10 @@ export const useTheoryCompletionGate = ({
   const [saveState, setSaveState] = useState<"idle" | "saving" | "saved" | "local" | "queued" | "failed">("idle");
   const storageKey = catalogueRevision ? `theory-gate:${ownerId ?? "anonymous"}:${topicId}:${catalogueRevision}` : null;
 
-  const writeBrowserEvidence = useCallback((ids: readonly string[], completed = false) => {
+  const writeBrowserEvidence = useCallback((ids: readonly string[], completed = false, completionOutcome?: "saved" | "queued" | "local") => {
     if (!storageKey) return true;
     try {
-      localStorage.setItem(storageKey, JSON.stringify({ catalogueRevision, visitedSectionIds: ids, completed }));
+      localStorage.setItem(storageKey, JSON.stringify({ catalogueRevision, visitedSectionIds: ids, completed, completionOutcome }));
       localDurableRef.current = true;
       return true;
     } catch {
@@ -76,10 +76,12 @@ export const useTheoryCompletionGate = ({
     const restore = async () => {
       let restored: string[] = [];
       let locallyCompleted = false;
+      let localCompletionOutcome: "saved" | "queued" | "local" | undefined;
       try {
-        const parsed = JSON.parse(localStorage.getItem(storageKey) ?? "null") as { visitedSectionIds?: unknown; completed?: unknown } | null;
+        const parsed = JSON.parse(localStorage.getItem(storageKey) ?? "null") as { visitedSectionIds?: unknown; completed?: unknown; completionOutcome?: unknown } | null;
         if (parsed && Array.isArray(parsed.visitedSectionIds)) restored = parsed.visitedSectionIds.filter((id): id is string => typeof id === "string" && requiredSectionIds.includes(id));
         locallyCompleted = parsed?.completed === true;
+        if (parsed?.completionOutcome === "saved" || parsed?.completionOutcome === "queued" || parsed?.completionOutcome === "local") localCompletionOutcome = parsed.completionOutcome;
       } catch { /* Ignore corrupt legacy browser state. */ }
       const load = loadProgressDetailed ? await loadProgressDetailed(topicId) : null;
       const remoteHistory = load?.status === "remote" ? load.record.answers_history as { catalogueRevision?: string; visitedSectionIds?: unknown } | null : null;
@@ -93,8 +95,9 @@ export const useTheoryCompletionGate = ({
       setVisitedSectionIds(merged);
       inProgressPersistedRef.current = merged.length > 0;
       const completed = (locallyCompleted || remotelyCompleted) && merged.length === requiredSectionIds.length;
-      const browserSaved = writeBrowserEvidence(merged, completed);
-      if (completed) setSaveState(remotelyCompleted ? "saved" : browserSaved ? "local" : "failed");
+      const outcome = remotelyCompleted ? "saved" : localCompletionOutcome ?? "local";
+      const browserSaved = writeBrowserEvidence(merged, completed, completed ? outcome : undefined);
+      if (completed) setSaveState(browserSaved ? outcome : remotelyCompleted ? "saved" : "failed");
       else if (merged.length > 0) await enqueueInProgressSave(merged, generation);
     };
     void restore();
@@ -163,7 +166,9 @@ export const useTheoryCompletionGate = ({
           : await saveProgress(topicId, true, 100, pointsOnComplete, history);
         // Legacy saveProgress mocks/consumers historically resolved void on success.
         let ok = result !== false && result !== "failed" && result !== "conflict";
-        if (result === "anonymous") ok = writeBrowserEvidence(visitedRef.current, true);
+        if (result === "anonymous") ok = writeBrowserEvidence(visitedRef.current, true, "local");
+        else if (result === "queued") ok = writeBrowserEvidence(visitedRef.current, true, "queued");
+        else if (ok) writeBrowserEvidence(visitedRef.current, true, "saved");
         setSaveState(result === "queued" ? "queued" : result === "anonymous" ? ok ? "local" : "failed" : ok ? "saved" : "failed");
         return ok;
       } catch {
