@@ -9,6 +9,10 @@ export interface Knot {
   tutorialTitle: string;
   visualDescription: string;
   steps: string[];
+  practice: {
+    prompt: string;
+    acknowledgements: string[];
+  };
   discovered: boolean;
 }
 
@@ -29,6 +33,7 @@ export const knots: Knot[] = [
       "Dress the collar and loop neatly, then set the knot by pulling the standing part against the loop",
       "Inspect the path and leave a generous tail appropriate to the rope; use an approved backup where cyclic loading could shake the bowline loose",
     ],
+    practice: { prompt: "Bowline practical check", acknowledgements: ["I tied the Bowline myself using rope.", "I dressed and set the collar and fixed loop without crossings.", "I checked the working end, generous tail, and protection needed against cyclic slack loading."] },
     discovered: false,
   },
   {
@@ -46,6 +51,7 @@ export const knots: Knot[] = [
       "Dress the crossing turns snugly together and set by pulling both ends",
       "Inspect before use; for a fender, secure the tail with additional half hitches around the standing part, and choose a more secure hitch for changing or critical loads",
     ],
+    practice: { prompt: "Clove Hitch practical check", acknowledgements: ["I tied the Clove Hitch myself around a rail or post.", "I dressed and set the two crossing turns snugly without overlap.", "I checked the tail and added securing half hitches for a fender, without treating this as a critical mooring attachment."] },
     discovered: false,
   },
   {
@@ -63,6 +69,7 @@ export const knots: Knot[] = [
       "Set by pulling both standing parts and inspect that it is a symmetrical reef knot, not a granny knot",
       "Use only as a binding knot; choose a suitable bend, such as a correctly tied Sheet Bend, for joining ropes under load",
     ],
+    practice: { prompt: "Reef Knot practical check", acknowledgements: ["I tied the Reef Knot myself as a binding knot.", "I dressed and set two opposite half-knots into a flat, symmetrical form.", "I checked each tail beside its own standing part and confirmed I would not use it to join load-bearing ropes."] },
     discovered: false,
   },
   {
@@ -80,6 +87,7 @@ export const knots: Knot[] = [
       "Dress the figure-eight shape, pull it snug, and leave a generous tail",
       "Inspect it before use; choose a larger or more secure stopper for a large opening or slippery rope",
     ],
+    practice: { prompt: "Figure Eight practical check", acknowledgements: ["I tied the Figure Eight myself near a rope end.", "I dressed and set two even lobes into a clear figure-eight shape.", "I checked the stopper against the intended opening and left a generous tail."] },
     discovered: false,
   },
   {
@@ -97,6 +105,7 @@ export const knots: Knot[] = [
       "Make a second half hitch around the standing part in the same direction as the first",
       "Dress and set both hitches against the round turn, then inspect the knot and tail before loading",
     ],
+    practice: { prompt: "Round Turn and Two Half Hitches practical check", acknowledgements: ["I tied the knot myself around a post or through a ring.", "I used the round turn to control strain, then dressed and set two same-direction half hitches.", "I checked both hitches against the round turn and inspected the tail before loading."] },
     discovered: false,
   },
   {
@@ -115,6 +124,7 @@ export const knots: Knot[] = [
       "Dress the knot so both tails lie on the same side; set by pulling both standing parts and inspect the tails",
       "Use a Double Sheet Bend and longer tails when the ropes differ greatly in size or the material is slippery",
     ],
+    practice: { prompt: "Sheet Bend practical check", acknowledgements: ["I tied the Sheet Bend myself using two separate ropes.", "I formed the bight in the thicker rope, then dressed and set the thinner rope around it.", "I checked that both tails finish on the same side and are long enough for the expected load."] },
     discovered: false,
   },
   {
@@ -133,6 +143,7 @@ export const knots: Knot[] = [
       "Dress the two gripping turns tightly together toward the pull, snug the final half hitch, and set the hitch before applying load",
       "Inspect the direction and tail, then test progressively: it must grip only along the main rope toward the doubled turns; do not use it on slippery rope or for a sideways pull",
     ],
+    practice: { prompt: "Rolling Hitch practical check", acknowledgements: ["I tied the Rolling Hitch myself around a second rope.", "I dressed and set the doubled gripping turns toward the intended direction of pull.", "I checked the tail and progressively tested that it grips only in the intended direction, without a sideways pull or slippery rope."] },
     discovered: false,
   },
 ];

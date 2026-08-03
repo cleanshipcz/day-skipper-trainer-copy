@@ -79,7 +79,7 @@ try {
   };
   const key = async (keyValue) => {
     const code = keyValue === " " ? "Space" : keyValue;
-    const virtualKeyCode = keyValue === "Enter" ? 13 : keyValue === " " ? 32 : 9;
+    const virtualKeyCode = { Enter: 13, " ": 32, Tab: 9, ArrowDown: 40, ArrowUp: 38 }[keyValue];
     const event = { key: keyValue, code, windowsVirtualKeyCode: virtualKeyCode, nativeVirtualKeyCode: virtualKeyCode };
     await send("Input.dispatchKeyEvent", { type: "rawKeyDown", ...event });
     if (keyValue === " " || keyValue === "Enter") {
@@ -157,26 +157,38 @@ try {
     }
   }
   await send("Emulation.clearDeviceMetricsOverride");
+  const bowlineGroup = await evaluate(`(() => { const fieldset = document.querySelector('fieldset'); return { name: fieldset.querySelector('legend').textContent.trim(), checks: fieldset.querySelectorAll('input[type=checkbox]').length, checked: fieldset.querySelectorAll('input:checked').length }; })()`);
+  if (bowlineGroup.name !== "Bowline practical check" || bowlineGroup.checks !== 3 || bowlineGroup.checked !== 0) throw new Error(`Practical group semantics failed: ${JSON.stringify(bowlineGroup)}`);
+
+  // From the programmatically focused heading, Tab reaches the first acknowledgement.
   await key("Tab");
-  await key("Tab");
-  if (!await evaluate("document.activeElement.textContent.includes('Back to Bowline in knot list')")) throw new Error("Details controls are not in predictable order.");
-  await key("Enter");
-  if (!await evaluate("document.activeElement.getAttribute('aria-labelledby') === 'bowline-name'")) throw new Error("Back did not restore Bowline card focus.");
+  if (!await evaluate("document.activeElement.type === 'checkbox'")) throw new Error("Practice acknowledgements are not next in keyboard order.");
+  await key(" ");
+  const incomplete = await evaluate(`({ score: document.querySelector('[aria-label^="Score:"]').getAttribute('aria-label'), learned: document.getElementById('bowline-state').textContent.trim(), disabled: document.querySelector('button[type=submit]').disabled, checked: document.querySelectorAll('input:checked').length })`);
+  if (incomplete.score !== "Score: 0 points" || incomplete.learned !== "Not learned" || !incomplete.disabled || incomplete.checked !== 1) throw new Error(`Incomplete acknowledgement path failed: ${JSON.stringify(incomplete)}`);
   await key("Tab");
   await key(" ");
-  await waitFor(() => evaluate("document.activeElement.textContent.trim() === 'Clove Hitch details'"), "Clove Hitch details focus");
+  await key("Tab");
+  await key(" ");
+  await key("Tab");
+  if (!await evaluate("document.activeElement.textContent.trim() === 'Submit practical check'")) throw new Error("Submit is not after the acknowledgement group.");
+  await key("Enter");
+  await waitFor(() => evaluate("document.getElementById('bowline-state').textContent.trim() === 'Learned'"), "Bowline practice pass");
 
-  for (let cardIndex = 1; cardIndex < 7; cardIndex += 1) {
-    await key("Tab");
+  const knotIds = Object.keys(expectedRopes).slice(1);
+  for (let index = 0; index < knotIds.length; index += 1) {
+    const knotId = knotIds[index];
+    await evaluate(`document.querySelector('button[aria-labelledby="${knotId}-name"]').focus()`);
+    await key(index % 2 === 0 ? " " : "Enter");
+    await waitFor(() => evaluate(`document.activeElement.textContent.trim().endsWith('details')`), `${knotId} details focus`);
+    await evaluate("document.querySelector('input[type=checkbox]').focus()");
+    await key(" "); await key("Tab"); await key(" "); await key("Tab"); await key(" ");
     await key("Tab");
     await key("Enter");
-    if (cardIndex < 6) {
-      await key("Tab");
-      await key(" ");
-    }
+    await waitFor(() => evaluate(`document.getElementById('${knotId}-state').textContent.trim() === 'Learned'`), `${knotId} practice pass`);
   }
-  await key("Tab");
-  await key("Tab");
+
+  await evaluate("[...document.querySelectorAll('button')].find((button) => button.textContent.includes('Back to Rolling Hitch')).focus()");
   await key("Tab");
 
   const completion = await evaluate(`(() => ({
@@ -191,7 +203,7 @@ try {
 
   await send("Browser.close");
   socket.close();
-  console.log("Ropework browser accessibility passed: all seven diagram topologies, 375/768/1280 layouts, native semantics, keyboard focus, Enter/Space activation, announcements, and completion CTA order.");
+  console.log("Ropework browser accessibility passed: all seven diagram topologies, responsive layouts, named practical groups, keyboard incomplete/pass flows, announcements, and completion CTA order.");
 } finally {
   for (const child of children.reverse()) {
     if (child.exitCode === null) child.kill("SIGTERM");

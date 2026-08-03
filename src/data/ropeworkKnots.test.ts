@@ -31,6 +31,11 @@ describe("ropework knot safety guidance", () => {
       expect(entry.visualDescription).toMatch(/working end/i);
       expect(entry.visualDescription).toMatch(/load/i);
       expect(entry.visualDescription).toMatch(/dress/i);
+      expect(entry.practice.prompt).toContain("practical check");
+      expect(entry.practice.acknowledgements).toHaveLength(3);
+      expect(entry.practice.acknowledgements[0]).toMatch(/tied.+myself/i);
+      expect(entry.practice.acknowledgements[1]).toMatch(/dress/i);
+      expect(entry.practice.acknowledgements[2]).toMatch(/check/i);
       const tutorial = new URL(entry.tutorialUrl);
       expect(tutorial.protocol).toBe("https:");
       expect(tutorial.hostname).toBe("www.animatedknots.com");

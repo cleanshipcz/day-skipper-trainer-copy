@@ -13,6 +13,11 @@ vi.mock("@/contexts/AuthHooks", () => ({ useAuth: () => ({ user: mocks.user }) }
 import RopeworkTheory from "./RopeworkTheory";
 
 const renderPage = () => render(<MemoryRouter><RopeworkTheory /></MemoryRouter>);
+const passKnot = async (user: ReturnType<typeof userEvent.setup>, knot: (typeof knots)[number]) => {
+  await user.click(screen.getByRole("button", { name: knot.name }));
+  for (const acknowledgement of knot.practice.acknowledgements) await user.click(screen.getByRole("checkbox", { name: acknowledgement }));
+  await user.click(screen.getByRole("button", { name: "Submit practical check" }));
+};
 const record = (answers_history: unknown, completed = false, score = 0) => ({
   id: "p", user_id: "u", topic_id: "ropework", answers_history, completed, score,
   created_at: "", updated_at: "", completed_at: null, points_earned: 0,
@@ -49,7 +54,7 @@ describe("RopeworkTheory durable progress", () => {
     expect(thirdKnot.disabled).toBe(true);
     await waitFor(() => expect(thirdKnot.disabled).toBe(false));
 
-    await user.click(thirdKnot);
+    await passKnot(user, knots[2]);
     await waitFor(() => expect(mocks.save).toHaveBeenCalledTimes(1));
     expect(mocks.save).toHaveBeenLastCalledWith("ropework", false, Math.round(100 / knots.length), 0, {
       version: 1,
@@ -102,12 +107,20 @@ describe("RopeworkTheory durable progress", () => {
     expect(screen.queryByRole("region", { name: /all knots learned/i })).toBeNull();
   });
 
-  it("saves each newly learned identity and does not award twice on repeated clicks", async () => {
+  it("reveals lessons without credit, saves a passed check, and does not award twice", async () => {
     const user = userEvent.setup();
     renderPage();
     const button = await screen.findByRole("button", { name: knots[0].name });
     await waitFor(() => expect((button as HTMLButtonElement).disabled).toBe(false));
     await user.click(button);
+    expect(mocks.save).not.toHaveBeenCalled();
+    expect(screen.getByLabelText("Score: 0 points")).toBeTruthy();
+    await user.click(screen.getByRole("checkbox", { name: knots[0].practice.acknowledgements[0] }));
+    expect((screen.getByRole("button", { name: "Submit practical check" }) as HTMLButtonElement).disabled).toBe(true);
+    expect(mocks.save).not.toHaveBeenCalled();
+    expect(screen.getByLabelText("Score: 0 points")).toBeTruthy();
+    for (const acknowledgement of knots[0].practice.acknowledgements.slice(1)) await user.click(screen.getByRole("checkbox", { name: acknowledgement }));
+    await user.click(screen.getByRole("button", { name: "Submit practical check" }));
     await waitFor(() => expect(mocks.save).toHaveBeenCalledTimes(1));
     expect(mocks.save).toHaveBeenCalledWith("ropework", false, Math.round(100 / knots.length), 0, {
       version: 1, learnedKnotIds: [knots[0].id],
@@ -124,6 +137,8 @@ describe("RopeworkTheory durable progress", () => {
     const button = await screen.findByRole("button", { name: knots[0].name });
     await waitFor(() => expect((button as HTMLButtonElement).disabled).toBe(false));
     await user.click(button);
+    for (const acknowledgement of knots[0].practice.acknowledgements) await user.click(screen.getByRole("checkbox", { name: acknowledgement }));
+    await user.click(screen.getByRole("button", { name: "Submit practical check" }));
     const retry = await screen.findByRole("button", { name: "Retry save" });
     await user.click(retry);
     await waitFor(() => expect(screen.getByText("Ropework progress saved.")).toBeTruthy());
@@ -163,7 +178,7 @@ describe("RopeworkTheory durable progress", () => {
     for (const knot of knots) {
       const button = screen.getByRole("button", { name: knot.name });
       await waitFor(() => expect((button as HTMLButtonElement).disabled).toBe(false));
-      await user.click(button);
+      await passKnot(user, knot);
     }
     expect(screen.getByRole("region", { name: /all knots learned/i })).toBeTruthy();
     expect(mocks.save).toHaveBeenLastCalledWith("ropework", true, 100, knots.length * 15, {

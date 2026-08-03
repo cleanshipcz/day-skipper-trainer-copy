@@ -38,6 +38,7 @@ const RopeworkSession = () => {
   const [knotList, setKnotList] = useState<Knot[]>(knots);
   const [score, setScore] = useState(0);
   const [announcement, setAnnouncement] = useState("");
+  const [practiceChecks, setPracticeChecks] = useState<number[]>([]);
   const [persistenceStatus, setPersistenceStatus] = useState<"loading" | "ready" | "saving" | "saved" | "anonymous" | "failed">("loading");
   const [pendingLearnedIds, setPendingLearnedIds] = useState<string[] | null>(null);
   const [loadRevision, setLoadRevision] = useState(0);
@@ -91,28 +92,23 @@ const RopeworkSession = () => {
 
   const handleKnotClick = (knot: Knot) => {
     if (persistenceStatus === "loading" || persistenceStatus === "saving" || persistenceStatus === "failed") return;
-    const wasDiscovered = knot.discovered;
+    setSelectedKnot(knot);
+    setPracticeChecks([]);
+    setAnnouncement(`${knot.name} lesson opened. Complete its practice check to earn credit.`);
+  };
 
-    if (!knot.discovered) {
-      setKnotList((prevKnots) =>
-        prevKnots.map((currentKnot) =>
-          currentKnot.id === knot.id ? { ...currentKnot, discovered: true } : currentKnot,
-        ),
-      );
-      setScore((prevScore) => prevScore + 15);
-      const learnedIds = knotList.filter((item) => item.discovered).map((item) => item.id).concat(knot.id);
-      void persistLearnedIds(learnedIds);
-    }
+  const handlePracticeSubmit = () => {
+    if (!selectedKnot || selectedKnot.discovered || practiceChecks.length !== selectedKnot.practice.acknowledgements.length) return;
 
-    setSelectedKnot({ ...knot, discovered: true });
-    const nextDiscoveredCount = discoveredCount + (wasDiscovered ? 0 : 1);
-    setAnnouncement(
-      nextDiscoveredCount === knotList.length
-        ? `${knot.name} learned. All ${knotList.length} knots learned. The ropework quiz is ready.`
-        : wasDiscovered
-          ? `${knot.name} was already learned.`
-          : `${knot.name} learned. ${nextDiscoveredCount} of ${knotList.length} knots learned.`,
-    );
+    const learnedIds = knotList.filter((item) => item.discovered).map((item) => item.id).concat(selectedKnot.id);
+    const nextCount = learnedIds.length;
+    setKnotList((previous) => previous.map((knot) => knot.id === selectedKnot.id ? { ...knot, discovered: true } : knot));
+    setSelectedKnot((previous) => previous ? { ...previous, discovered: true } : previous);
+    setScore(nextCount * POINTS_PER_KNOT);
+    void persistLearnedIds(learnedIds);
+    setAnnouncement(nextCount === knots.length
+      ? `${selectedKnot.name} practice passed. All ${knots.length} knots learned. The ropework quiz is ready.`
+      : `${selectedKnot.name} practice passed. 15 points earned. ${nextCount} of ${knots.length} knots learned.`);
   };
 
   const discoveredCount = useMemo(
@@ -152,6 +148,7 @@ const RopeworkSession = () => {
       </header>
 
       <main className="container mx-auto px-4 py-8">
+        <p className="mb-4 text-sm text-muted-foreground">Completion criteria: open each lesson and pass its practice check. Each first pass earns 15 points; all 7 knots earn 105 points and unlock the ropework quiz. Exploring lessons and incorrect attempts do not reduce your score.</p>
         <p className="sr-only" role="status" aria-live="polite" aria-atomic="true">
           {announcement}
         </p>
@@ -237,6 +234,28 @@ const RopeworkSession = () => {
                     <h3 className="font-semibold mb-2">Uses:</h3>
                     <p className="text-sm text-muted-foreground">{selectedKnot.uses}</p>
                   </div>
+
+                  <form className="space-y-3 border-t pt-4" onSubmit={(event) => { event.preventDefault(); handlePracticeSubmit(); }}>
+                    <fieldset disabled={selectedKnot.discovered || persistenceStatus === "saving"}>
+                      <legend className="font-semibold">{selectedKnot.practice.prompt}</legend>
+                      <p className="mt-1 text-sm text-muted-foreground">Physically practise the knot, then confirm every observable check before submitting.</p>
+                      <div className="mt-3 space-y-2">
+                        {selectedKnot.practice.acknowledgements.map((acknowledgement, index) => (
+                          <label key={acknowledgement} className="flex cursor-pointer items-start gap-2 text-sm">
+                            <input
+                              type="checkbox"
+                              value={index}
+                              checked={practiceChecks.includes(index)}
+                              onChange={(event) => setPracticeChecks((current) => event.target.checked ? [...current, index] : current.filter((value) => value !== index))}
+                            />
+                            <span>{acknowledgement}</span>
+                          </label>
+                        ))}
+                      </div>
+                    </fieldset>
+                    {!selectedKnot.discovered && <Button type="submit" className="w-full" disabled={practiceChecks.length !== selectedKnot.practice.acknowledgements.length || persistenceStatus === "saving"}>Submit practical check</Button>}
+                    {selectedKnot.discovered && <p className="text-sm text-success">Practice passed — 15 points earned.</p>}
+                  </form>
 
                   <div>
                     <h3 className="font-semibold mb-2">Steps:</h3>
