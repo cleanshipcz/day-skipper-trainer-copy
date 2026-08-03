@@ -8,13 +8,15 @@ import { useTheoryCompletionGate } from "@/features/progress/useTheoryCompletion
 import { TOPIC_IDS } from "@/constants/topicRegistry";
 import { PartCLights, PartCShapes } from "@/components/colregs/PartCLightsShapes";
 import { PartDSoundSignals } from "@/components/colregs/PartDSoundSignals";
+import { AnnexIVDistressSignals } from "@/components/colregs/AnnexIVDistressSignals";
 
 const LightsTheory = () => {
   const navigate = useNavigate();
   const location = useLocation();
   const [searchParams, setSearchParams] = useSearchParams();
   const requestedSection = searchParams.get("section");
-  const activeSection = ["lights", "shapes", "sounds", "distress"].includes(requestedSection ?? "") ? requestedSection! : "lights";
+  const hashSection = location.hash === "#rule-37" ? "distress" : undefined;
+  const activeSection = hashSection ?? (["lights", "shapes", "sounds", "distress"].includes(requestedSection ?? "") ? requestedSection! : "lights");
   const { canComplete, markCompleted, markSectionVisited } = useTheoryCompletionGate({
     topicId: TOPIC_IDS.LIGHTS_THEORY,
     requiredSectionIds: ["lights", "shapes", "sounds", "distress"],
@@ -27,7 +29,7 @@ const LightsTheory = () => {
 
   useEffect(() => {
     const targetId = location.hash.slice(1);
-    if (!/^rule-(?:23|25|27|30|32|33|34|35|36)$/.test(targetId)) return;
+    if (!/^rule-(?:23|25|27|30|32|33|34|35|36|37)$/.test(targetId)) return;
     const target = document.getElementById(targetId);
     target?.scrollIntoView({ block: "start" });
     target?.focus({ preventScroll: true });
@@ -313,36 +315,9 @@ const LightsTheory = () => {
               <h2 className="text-2xl font-bold flex items-center gap-2">
                 <Flame className="text-orange-500" /> Distress Signals (Annex IV)
               </h2>
-              <p>Used only when in grave and imminent danger.</p>
+              <p>Rule 37 recognition, limitations and immediate receiving-vessel response.</p>
             </div>
-
-            <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-4">
-              {[
-                "Gun or explosive (1 min intervals)",
-                "Continuous fog horn sounding",
-                "Rockets/Shells throwing red stars",
-                "SOS by Morse (• • • — — — • • •)",
-                "MAYDAY by Radio",
-                "Code flags N over C",
-                "Square flag & Ball",
-                "Flames (burning barrel)",
-                "Rocket Parachute Flare (Red)",
-                "Hand Flare (Red)",
-                "Orange Smoke",
-                "Slowly raising/lowering arms",
-              ].map((signal, idx) => (
-                <Card key={idx} className="flex items-center p-4">
-                  <AlertTriangle className="w-4 h-4 text-red-500 mr-3 shrink-0" />
-                  <span className="font-medium text-sm">{signal}</span>
-                </Card>
-              ))}
-              <Card className="flex items-center p-4 bg-red-500/10 border-red-500/50">
-                <span className="font-bold text-sm">EPIRB Activate</span>
-              </Card>
-              <Card className="flex items-center p-4 bg-red-500/10 border-red-500/50">
-                <span className="font-bold text-sm">DSC Distress Alert</span>
-              </Card>
-            </div>
+            <AnnexIVDistressSignals />
           </TabsContent>
         </Tabs>
 
