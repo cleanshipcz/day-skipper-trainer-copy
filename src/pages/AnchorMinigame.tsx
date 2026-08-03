@@ -42,6 +42,9 @@ import {
   normaliseScenarioSeed,
 } from "@/pages/anchor-minigame/state";
 import { anchorPracticeSkills, anchorTheoryRoute } from "@/features/anchorwork/learningPath";
+import { useProgress, type ProgressSaveResult } from "@/hooks/useProgress";
+import { useAuth } from "@/contexts/AuthHooks";
+import { ANCHOR_MINIGAME_PROGRESS_VERSION, ANCHOR_MINIGAME_TOPIC_ID, ANCHOR_SCENARIO_FAMILIES, parseAnchorMinigameProgress } from "@/features/anchorwork/minigameProgress";
 
 const scenarioPool: AnchorScenarioTemplate[] = [
   {
@@ -142,11 +145,12 @@ const scenarioPool: AnchorScenarioTemplate[] = [
   },
 ];
 
-const AnchorMinigame = () => {
+const AnchorMinigameSession = ({ ownerId }: { ownerId: string | null }) => {
   const navigate = useNavigate();
+  const { loadProgressDetailed, saveProgressDetailed } = useProgress();
   const [searchParams, setSearchParams] = useSearchParams();
   const returnTopic = searchParams.get("returnTopic") || "scope";
-  const [scenarioSeed] = useState(() => normaliseScenarioSeed(searchParams.get("scenarioSeed")
+  const [scenarioSeed, setScenarioSeed] = useState(() => normaliseScenarioSeed(searchParams.get("scenarioSeed")
     ?? (searchParams.has("scenarioRandom") ? "0" : String(Math.floor(Math.random() * 0xffffffff)))));
   const [initialSequenceIndex] = useState(() => {
     const rawIndex = searchParams.get("scenarioIndex");
@@ -163,9 +167,58 @@ const AnchorMinigame = () => {
   const gameRef = useRef(game);
   gameRef.current = game;
   const [attempts, setAttempts] = useState(0);
+  const [failedChecks, setFailedChecks] = useState(0);
+  const [persistenceStatus, setPersistenceStatus] = useState<"loading" | "ready" | "saving" | "saved" | "queued" | "anonymous" | "failed">(ownerId ? "loading" : "anonymous");
+  const [loadRevision, setLoadRevision] = useState(0);
+  const pendingSaveRef = useRef<Parameters<typeof saveProgressDetailed> | null>(null);
+  const saveChainRef = useRef<Promise<void>>(Promise.resolve());
+  const saveRevisionRef = useRef(0);
   const [lastStatus, setLastStatus] = useState("Tap ↓ to lower the anchor. Drift back with ←.");
   const [resultOverlay, setResultOverlay] = useState<AnchorResult | null>(null);
   const resultReturnFocusRef = useRef<HTMLElement | null>(null);
+
+  useEffect(() => {
+    let cancelled = false;
+    if (!ownerId) { setPersistenceStatus("anonymous"); return () => { cancelled = true; }; }
+    setPersistenceStatus("loading");
+    void loadProgressDetailed(ANCHOR_MINIGAME_TOPIC_ID).then((result) => {
+      if (cancelled) return;
+      if (result.status === "remote") {
+        const saved = parseAnchorMinigameProgress(result.record.answers_history);
+        if (!saved) { setPersistenceStatus("failed"); return; }
+        const restored = createScenario(scenarioPool, saved.scenarioSeed, saved.sequenceIndex);
+        setCompletedFamilies(saved.completedFamilies); setAttempts(saved.attempts); setFailedChecks(saved.failedChecks);
+        setScenarioSeed(saved.scenarioSeed);
+        setSequenceIndex(saved.sequenceIndex); setScenario(restored);
+        setPersistenceStatus("ready"); return;
+      }
+      setPersistenceStatus(result.status === "anonymous" ? "anonymous" : result.status === "failed" ? "failed" : "ready");
+    }).catch(() => { if (!cancelled) setPersistenceStatus("failed"); });
+    return () => { cancelled = true; };
+  }, [loadProgressDetailed, loadRevision, ownerId]);
+
+  const persistPractice = useCallback((families: AnchorScenarioFamily[], nextAttempts: number, nextFailures: number, checkpoint = { seed: scenarioSeed, index: sequenceIndex, identity: scenario.identity }) => {
+    const complete = ANCHOR_SCENARIO_FAMILIES.every((family) => families.includes(family));
+    const payload = { version: ANCHOR_MINIGAME_PROGRESS_VERSION, completedFamilies: families, attempts: nextAttempts, failedChecks: nextFailures, scenarioSeed: checkpoint.seed, sequenceIndex: checkpoint.index, scenarioIdentity: checkpoint.identity };
+    const args: Parameters<typeof saveProgressDetailed> = [ANCHOR_MINIGAME_TOPIC_ID, complete, Math.round(families.length / ANCHOR_SCENARIO_FAMILIES.length * 100), 0, payload];
+    const revision = ++saveRevisionRef.current;
+    setPersistenceStatus("saving");
+    saveChainRef.current = saveChainRef.current.then(async () => {
+      let result: ProgressSaveResult;
+      try { result = await saveProgressDetailed(...args); } catch { result = "failed"; }
+      if (revision !== saveRevisionRef.current) return;
+      if (result === "failed") { pendingSaveRef.current = args; setPersistenceStatus("failed"); return; }
+      pendingSaveRef.current = null;
+      setPersistenceStatus(result === "anonymous" ? "anonymous" : result === "queued" ? "queued" : "saved");
+    });
+  }, [saveProgressDetailed, scenario.identity, scenarioSeed, sequenceIndex]);
+
+  const retrySave = () => {
+    const args = pendingSaveRef.current;
+    if (!args) { setLoadRevision((value) => value + 1); return; }
+    const payload = args[4] as ReturnType<typeof parseAnchorMinigameProgress>;
+    if (payload) persistPractice(payload.completedFamilies, payload.attempts, payload.failedChecks, { seed: payload.scenarioSeed, index: payload.sequenceIndex, identity: payload.scenarioIdentity });
+  };
 
   useEffect(() => {
     if (searchParams.get("scenarioSeed") === String(scenarioSeed)
@@ -203,6 +256,7 @@ const AnchorMinigame = () => {
   };
 
   const rollScenario = () => {
+    if (persistenceStatus === "loading" || persistenceStatus === "failed") return;
     const nextIndex = sequenceIndex + 1;
     const next = createScenario(scenarioPool, scenarioSeed, nextIndex);
     setHistory((items) => {
@@ -215,7 +269,7 @@ const AnchorMinigame = () => {
     });
     setSequenceIndex(nextIndex);
     setScenario(next);
-    setAttempts(0);
+    persistPractice(completedFamilies, attempts, failedChecks, { seed: scenarioSeed, index: nextIndex, identity: next.identity });
     resetPosition();
     toast.message("New anchorage", {
       description: `${next.title} • ${next.condition} wind • ${next.depth}m depth`,
@@ -246,8 +300,10 @@ const AnchorMinigame = () => {
   );
 
   const checkPlacement = useCallback(() => {
+    if (persistenceStatus === "loading" || persistenceStatus === "failed") return;
     resultReturnFocusRef.current = document.activeElement instanceof HTMLElement ? document.activeElement : null;
-    setAttempts((value) => value + 1);
+    const nextAttempts = attempts + 1;
+    setAttempts(nextAttempts);
     const result = evaluatePlacement(game, scenario);
     if (result.type === "failure"
       && result.issues.includes("verification")
@@ -257,7 +313,9 @@ const AnchorMinigame = () => {
       setLastStatus("Fixed-position observation started. Hold the progressive setting load and re-check after 5 seconds without moving or changing rode.");
     }
     if (result.type === "success") {
-      setCompletedFamilies((families) => families.includes(scenario.family) ? families : [...families, scenario.family]);
+      const families = completedFamilies.includes(scenario.family) ? completedFamilies : [...completedFamilies, scenario.family];
+      setCompletedFamilies(families);
+      void persistPractice(families, nextAttempts, failedChecks);
       setHistory((items) => [{ identity: scenario.identity, title: scenario.title, outcome: "passed" }, ...items.filter((item) => item.identity !== scenario.identity)].slice(0, 5));
       toast.success("Modeled placement passed", {
         description: result.message,
@@ -265,11 +323,14 @@ const AnchorMinigame = () => {
       setLastStatus(result.status);
       setResultOverlay(result);
     } else {
+      const nextFailures = failedChecks + 1;
+      setFailedChecks(nextFailures);
+      void persistPractice(completedFamilies, nextAttempts, nextFailures);
       toast.error("Checks not passed", { description: result.message });
       setLastStatus(result.status);
       setResultOverlay(result);
     }
-  }, [game, scenario]);
+  }, [attempts, completedFamilies, failedChecks, game, persistPractice, persistenceStatus, scenario]);
 
   const dismissResult = useCallback(() => {
     setResultOverlay(null);
@@ -329,7 +390,7 @@ const AnchorMinigame = () => {
               Attempted {attempts} time{attempts === 1 ? "" : "s"}
             </Badge>
             <Badge variant="outline" className="text-sm">Family {sequenceIndex % scenarioPool.length + 1}/{scenarioPool.length} • Cycle {scenario.cycle}</Badge>
-            <Button disabled={resultOverlay !== null} variant="outline" onClick={rollScenario}>
+            <Button disabled={resultOverlay !== null || persistenceStatus === "loading" || persistenceStatus === "failed"} variant="outline" onClick={rollScenario}>
               <RefreshCcw className="w-4 h-4 mr-2" />
               New setup
             </Button>
@@ -430,6 +491,10 @@ const AnchorMinigame = () => {
             <p><strong>{completedFamilies.length}/{scenarioPool.length} families passed:</strong> {completedFamilies.length ? completedFamilies.join(", ") : "none yet"}.</p>
             <p><strong>Recent setups:</strong> {history.length ? history.map((item) => `${item.title} (${item.outcome}, ${item.identity})`).join(" • ") : "This is the first setup."}</p>
             <p className="text-muted-foreground">“Try again here” resets the controls without changing this setup. “New setup” advances through every family once per cycle with no immediate repeats.</p>
+            <p><strong>Diagnostic evidence:</strong> {attempts} checks, {failedChecks} needing remediation. Attempts and speed earn no points; only safe modeled outcomes count toward mastery.</p>
+            <p aria-live="polite">{persistenceStatus === "loading" ? "Loading saved practice…" : persistenceStatus === "saving" ? "Saving practice…" : persistenceStatus === "saved" ? "Practice saved to your account." : persistenceStatus === "queued" ? "Practice saved offline and queued to sync." : persistenceStatus === "anonymous" ? "Practice lasts for this visit only. Sign in to restore it across devices." : persistenceStatus === "failed" ? "Practice could not be loaded or saved safely." : "Practice ready."}</p>
+            {persistenceStatus === "failed" && <Button variant="outline" size="sm" onClick={retrySave}>Retry progress</Button>}
+            {completedFamilies.length === scenarioPool.length && <div className="flex flex-wrap gap-2"><Button onClick={() => navigate(anchorTheoryRoute(returnTopic, "practice"))}>Review Anchorwork</Button><Button variant="outline" onClick={() => navigate("/quiz/anchorwork")}>Take Anchorwork quiz</Button></div>}
           </CardContent>
         </Card>
 
@@ -451,12 +516,12 @@ const AnchorMinigame = () => {
               onWatch={watchAnchor}
               onRecover={recover}
               rodeStep={RODE_STEP}
-              disabled={resultOverlay !== null}
+              disabled={resultOverlay !== null || persistenceStatus === "loading" || persistenceStatus === "failed"}
             />
           </CardHeader>
 
           <CardContent className="space-y-4">
-            <AnchorScene onMove={moveBoat} onChangeRode={changeRode} onCheck={checkPlacement} rodeStep={RODE_STEP} disabled={resultOverlay !== null}>
+            <AnchorScene onMove={moveBoat} onChangeRode={changeRode} onCheck={checkPlacement} rodeStep={RODE_STEP} disabled={resultOverlay !== null || persistenceStatus === "loading" || persistenceStatus === "failed"}>
               <svg aria-label="Anchoring side profile" role="img" viewBox={`0 0 ${viewWidth} ${viewHeight}`} className="block w-full h-auto" preserveAspectRatio="xMidYMid meet">
                 <title>Side-profile anchoring geometry</title>
                 <desc>Boat, waterline, seabed, bow roller, anchor and rode. Measurements are repeated as accessible text below.</desc>
@@ -680,6 +745,12 @@ const AnchorMinigame = () => {
       </main>
     </div>
   );
+};
+
+const AnchorMinigame = () => {
+  const { user } = useAuth();
+  const ownerId = user?.id ?? null;
+  return <AnchorMinigameSession key={ownerId ?? "anonymous"} ownerId={ownerId} />;
 };
 
 export default AnchorMinigame;

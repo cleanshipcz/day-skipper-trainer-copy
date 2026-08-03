@@ -1,11 +1,11 @@
 import { useCallback, useRef } from "react";
 import { useAuth } from "@/contexts/AuthHooks";
-import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { deleteProgressRecord, saveProgressRecord } from "@/features/progress/progressPersistence";
 import type { Tables } from "@/integrations/supabase/types";
 import { syncEngagementEvent } from "@/features/engagement/engagementService";
 import { isRetryableProgressError, queueProgress } from "@/features/offline/progressQueue";
+import { loadProgressClient } from "@/features/progress/progressClient";
 
 type UserProgressRow = Tables<"user_progress">;
 
@@ -24,6 +24,8 @@ export const useProgress = () => {
       if (!user) return { status: "anonymous", record: null };
 
       try {
+        const supabase = await loadProgressClient();
+        if (ownerRef.current !== user.id) return { status: "failed", record: null };
         const { data, error } = await supabase
           .from("user_progress")
           .select("*")
@@ -31,9 +33,11 @@ export const useProgress = () => {
           .eq("topic_id", topicId)
           .maybeSingle();
 
+        if (ownerRef.current !== user.id) return { status: "failed", record: null };
         if (error) throw error;
         return data ? { status: "remote", record: data } : { status: "missing", record: null };
       } catch (error) {
+        if (ownerRef.current !== user.id) return { status: "failed", record: null };
         console.error("Error loading progress:", error);
         return { status: "failed", record: null };
       }
@@ -61,6 +65,8 @@ export const useProgress = () => {
       if (ownerRef.current !== user.id) return "failed" as const;
 
       try {
+        const supabase = await loadProgressClient();
+        if (ownerRef.current !== user.id) return "failed" as const;
         const { pointsAwarded, completionAwarded, awardedPoints } = await saveProgressRecord({
           supabaseClient: supabase,
           userId: user.id,
@@ -70,6 +76,7 @@ export const useProgress = () => {
           pointsEarned,
           answersHistory,
         });
+        if (ownerRef.current !== user.id) return "failed" as const;
 
         if (pointsAwarded) {
           toast.success(`+${awardedPoints} points earned!`);
@@ -92,16 +99,20 @@ export const useProgress = () => {
         }
         return "remote" as const;
       } catch (error) {
+        if (ownerRef.current !== user.id) return "failed" as const;
         console.error("Error saving progress:", error);
         if (!isRetryableProgressError(error)) {
           toast.error("Failed to save progress");
           return "failed" as const;
         }
         try {
+          if (ownerRef.current !== user.id) return "failed" as const;
           await queueProgress({ userId: user.id, topicId, completed, score, pointsEarned, answersHistory });
+          if (ownerRef.current !== user.id) return "failed" as const;
           toast.info("Progress saved offline and will sync when you reconnect.");
           return "queued" as const;
         } catch (queueError) {
+          if (ownerRef.current !== user.id) return "failed" as const;
           console.error("Error queueing progress:", queueError);
           toast.error("Failed to save progress");
           return "failed" as const;
@@ -127,14 +138,17 @@ export const useProgress = () => {
       if (!user) return;
 
       try {
+        const supabase = await loadProgressClient();
+        if (ownerRef.current !== user.id) return;
         await deleteProgressRecord({
           supabaseClient: supabase,
           userId: user.id,
           topicId,
         });
 
-        toast.success("Progress reset successfully");
+        if (ownerRef.current === user.id) toast.success("Progress reset successfully");
       } catch (error) {
+        if (ownerRef.current !== user.id) return;
         console.error("Error resetting progress:", error);
         toast.error("Failed to reset progress");
       }

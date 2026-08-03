@@ -19,6 +19,14 @@ const atomicAnchorworkSql = readFileSync(
   resolve(process.cwd(), "supabase/migrations/20260801190000_atomic_anchorwork_progress.sql"),
   "utf8",
 ).toLowerCase();
+const anchorPracticeCatalogueSql = readFileSync(
+  resolve(process.cwd(), "supabase/migrations/20260802050000_register_anchor_practice_progress.sql"),
+  "utf8",
+).toLowerCase();
+const atomicAnchorPracticeSql = readFileSync(
+  resolve(process.cwd(), "supabase/migrations/20260802053000_atomic_anchor_practice_progress.sql"),
+  "utf8",
+).toLowerCase();
 
 describe("atomic progress migration", () => {
   it("derives identity from auth.uid and accepts no user-id argument", () => {
@@ -65,6 +73,27 @@ describe("atomic progress migration", () => {
     expect(anchorworkCatalogueSql).toContain("'anchorwork', 'ropework', 'pilotage-plan'");
     expect(anchorworkCatalogueSql).toContain("when 'anchorwork' then 100");
     expect(anchorworkCatalogueSql).toContain("anchorwork catalogue marker was not found");
+  });
+
+  it("registers Anchor practice as diagnostic progress with no reward case", () => {
+    expect(anchorPracticeCatalogueSql).toContain("'anchorwork-practice', 'ropework', 'pilotage-plan'");
+    expect(anchorPracticeCatalogueSql).not.toContain("when 'anchorwork-practice'");
+    expect(anchorPracticeCatalogueSql).toContain("practice catalogue marker was not found");
+  });
+
+  it("keeps completed Anchor practice mutable without rewards or mastery regression", () => {
+    expect(atomicAnchorPracticeSql).toContain("public.user_progress.completed or excluded.completed");
+    expect(atomicAnchorPracticeSql).toContain("answers_history = excluded.answers_history");
+    expect(atomicAnchorPracticeSql).toContain("v_merged_families");
+    expect(atomicAnchorPracticeSql).toContain("v_was_completed or v_family_count = 4");
+    expect(atomicAnchorPracticeSql).toContain("greatest(v_attempts");
+    expect(atomicAnchorPracticeSql).toContain("invalid anchor practice checkpoint bounds");
+    expect(atomicAnchorPracticeSql).toContain("v_index > v_existing_index");
+    expect(atomicAnchorPracticeSql).toContain("v_seed >= v_existing_seed");
+    expect(atomicAnchorPracticeSql).toContain("pg_advisory_xact_lock");
+    expect(atomicAnchorPracticeSql).toContain("return query select false");
+    expect(atomicAnchorPracticeSql).not.toContain("insert into public.progress_awards");
+    expect(atomicAnchorPracticeSql).toContain("generic anchor practice catalogue marker was not found");
   });
 
   it("merges stale Anchorwork snapshots monotonically under a user-scoped lock", () => {

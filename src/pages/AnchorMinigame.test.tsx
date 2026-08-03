@@ -5,6 +5,14 @@ import { MemoryRouter, Route, Routes, useLocation } from "react-router-dom";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import AnchorMinigame from "./AnchorMinigame";
 
+const progressMocks = vi.hoisted(() => ({
+  user: null as { id: string } | null,
+  load: vi.fn(),
+  save: vi.fn(),
+}));
+vi.mock("@/contexts/AuthHooks", () => ({ useAuth: () => ({ user: progressMocks.user }) }));
+vi.mock("@/hooks/useProgress", () => ({ useProgress: () => ({ loadProgressDetailed: progressMocks.load, saveProgressDetailed: progressMocks.save }) }));
+
 vi.mock("sonner", () => ({
   toast: { success: vi.fn(), error: vi.fn(), message: vi.fn() },
 }));
@@ -12,6 +20,9 @@ vi.mock("sonner", () => ({
 describe("AnchorMinigame", () => {
   beforeEach(() => {
     vi.spyOn(Math, "random").mockReturnValue(0);
+    progressMocks.user = null;
+    progressMocks.load.mockReset().mockResolvedValue({ status: "anonymous", record: null });
+    progressMocks.save.mockReset().mockResolvedValue("anonymous");
   });
 
   it("limits shortcuts to the focused named surface and announces concise actions", () => {
@@ -187,7 +198,7 @@ describe("AnchorMinigame", () => {
     now.mockRestore();
   });
 
-  it("supports keyboard placement, checking, and reset without writing browser storage", () => {
+  it("supports keyboard placement, checking, and reset without writing browser storage for anonymous practice", () => {
     const now = vi.spyOn(Date, "now").mockReturnValue(1_000);
     const localSetItem = vi.spyOn(window.localStorage, "setItem");
     const sessionSetItem = vi.spyOn(window.sessionStorage, "setItem");
@@ -219,6 +230,178 @@ describe("AnchorMinigame", () => {
     expect(sessionSetItem).not.toHaveBeenCalled();
     expect(indexedDbOpen).not.toHaveBeenCalled();
     now.mockRestore();
+  });
+
+  it("hydrates authenticated mastery by stable scenario identity", async () => {
+    progressMocks.user = { id: "user-a" };
+    progressMocks.load.mockResolvedValue({ status: "remote", record: { answers_history: {
+      version: 1, completedFamilies: ["sheltered", "harbour"], attempts: 5, failedChecks: 3,
+      scenarioSeed: 0, sequenceIndex: 1, scenarioIdentity: "anchor-0-1-2-harbour",
+    } } });
+    render(<MemoryRouter><AnchorMinigame /></MemoryRouter>);
+    expect(await screen.findByText(/2\/4 families passed/)).toBeTruthy();
+    expect(screen.getByText(/5 checks, 3 needing remediation/)).toBeTruthy();
+    expect(screen.getByText("Harbour afternoon")).toBeTruthy();
+  });
+
+  it("continues checks and New setup on the hydrated seed lineage instead of the URL seed", async () => {
+    progressMocks.user = { id: "user-a" };
+    progressMocks.load.mockResolvedValue({ status: "remote", record: { answers_history: {
+      version: 1, completedFamilies: [], attempts: 2, failedChecks: 1,
+      scenarioSeed: 7, sequenceIndex: 1, scenarioIdentity: "anchor-7-1-2-harbour",
+    } } });
+    progressMocks.save.mockResolvedValue("remote");
+    const user = userEvent.setup();
+    render(<MemoryRouter initialEntries={["/?scenarioSeed=99&scenarioIndex=3"]}><AnchorMinigame /></MemoryRouter>);
+    await screen.findByText("Practice ready.");
+    await user.click(screen.getByRole("button", { name: "Enter (check)" }));
+    await waitFor(() => expect(progressMocks.save).toHaveBeenCalledWith(
+      "anchorwork-practice", false, 0, 0,
+      expect.objectContaining({ scenarioSeed: 7, sequenceIndex: 1, scenarioIdentity: expect.stringMatching(/^anchor-7-1-2-/) }),
+    ));
+    await user.click(screen.getAllByRole("button", { name: "Close" })[0]);
+    await user.click(screen.getByRole("button", { name: "New setup" }));
+    await waitFor(() => expect(progressMocks.save).toHaveBeenLastCalledWith(
+      "anchorwork-practice", false, 0, 0,
+      expect.objectContaining({ scenarioSeed: 7, sequenceIndex: 2, scenarioIdentity: expect.stringMatching(/^anchor-7-1-3-/) }),
+    ));
+  });
+
+  it("blocks checks and setup changes until authenticated hydration resolves", async () => {
+    progressMocks.user = { id: "user-a" };
+    let resolveLoad!: (value: { status: "missing"; record: null }) => void;
+    progressMocks.load.mockReturnValue(new Promise((resolve) => { resolveLoad = resolve; }));
+    const user = userEvent.setup();
+    render(<MemoryRouter><AnchorMinigame /></MemoryRouter>);
+    expect((screen.getByRole("button", { name: "Enter (check)" }) as HTMLButtonElement).disabled).toBe(true);
+    expect((screen.getByRole("button", { name: "New setup" }) as HTMLButtonElement).disabled).toBe(true);
+    expect(screen.getByText("Attempted 0 times")).toBeTruthy();
+    resolveLoad({ status: "missing", record: null });
+    await screen.findByText("Practice ready.");
+    await user.click(screen.getByRole("button", { name: "Enter (check)" }));
+    expect(screen.getByText("Attempted 1 time")).toBeTruthy();
+  });
+
+  it("discards a delayed owner A load after switching to owner B", async () => {
+    progressMocks.user = { id: "user-a" };
+    let resolveA!: (value: { status: "remote"; record: { answers_history: Record<string, unknown> } }) => void;
+    progressMocks.load.mockReturnValueOnce(new Promise((resolve) => { resolveA = resolve; })).mockResolvedValueOnce({ status: "missing", record: null });
+    const view = render(<MemoryRouter><AnchorMinigame /></MemoryRouter>);
+    progressMocks.user = { id: "user-b" };
+    view.rerender(<MemoryRouter><AnchorMinigame /></MemoryRouter>);
+    expect(await screen.findByText("Practice ready.")).toBeTruthy();
+    resolveA({ status: "remote", record: { answers_history: {
+      version: 1, completedFamilies: ["sheltered"], attempts: 9, failedChecks: 4,
+      scenarioSeed: 0, sequenceIndex: 1, scenarioIdentity: "anchor-0-1-2-harbour",
+    } } });
+    await waitFor(() => expect(screen.getByText(/0 checks, 0 needing remediation/)).toBeTruthy());
+  });
+
+  it("surfaces load failure and retries hydration", async () => {
+    progressMocks.user = { id: "user-a" };
+    progressMocks.load.mockResolvedValueOnce({ status: "failed", record: null }).mockResolvedValueOnce({ status: "missing", record: null });
+    const user = userEvent.setup();
+    render(<MemoryRouter><AnchorMinigame /></MemoryRouter>);
+    await user.click(await screen.findByRole("button", { name: "Retry progress" }));
+    await waitFor(() => expect(progressMocks.load).toHaveBeenCalledTimes(2));
+    expect(await screen.findByText("Practice ready.")).toBeTruthy();
+  });
+
+  it.each([
+    ["queued", "Practice saved offline and queued to sync."],
+    ["remote", "Practice saved to your account."],
+  ])("persists diagnostic failures with zero reward and surfaces %s", async (saveResult, message) => {
+    progressMocks.user = { id: "user-a" };
+    progressMocks.load.mockResolvedValue({ status: "missing", record: null });
+    progressMocks.save.mockResolvedValue(saveResult);
+    const user = userEvent.setup();
+    render(<MemoryRouter><AnchorMinigame /></MemoryRouter>);
+    await screen.findByText("Practice ready.");
+    await user.click(screen.getByRole("button", { name: "Enter (check)" }));
+    await waitFor(() => expect(progressMocks.save).toHaveBeenCalledWith(
+      "anchorwork-practice", false, 0, 0, expect.objectContaining({ attempts: 1, failedChecks: 1 }),
+    ));
+    expect(await screen.findByText(message)).toBeTruthy();
+  });
+
+  it("retries the exact failed save without creating reward-bearing duplicate credit", async () => {
+    progressMocks.user = { id: "user-a" };
+    progressMocks.load.mockResolvedValue({ status: "missing", record: null });
+    progressMocks.save.mockResolvedValueOnce("failed").mockResolvedValueOnce("remote");
+    const user = userEvent.setup();
+    render(<MemoryRouter><AnchorMinigame /></MemoryRouter>);
+    await screen.findByText("Practice ready.");
+    await user.click(screen.getByRole("button", { name: "Enter (check)" }));
+    await user.click(screen.getAllByRole("button", { name: "Close" })[0]);
+    await user.click(await screen.findByRole("button", { name: "Retry progress" }));
+    await waitFor(() => expect(progressMocks.save).toHaveBeenCalledTimes(2));
+    expect(progressMocks.save.mock.calls[1]).toEqual(progressMocks.save.mock.calls[0]);
+    expect(progressMocks.save.mock.calls[1][3]).toBe(0);
+  });
+
+  it("serializes saves and keeps cumulative diagnostics in the later checkpoint", async () => {
+    progressMocks.user = { id: "user-a" };
+    progressMocks.load.mockResolvedValue({ status: "missing", record: null });
+    let resolveFirst!: (value: "remote") => void;
+    progressMocks.save.mockReturnValueOnce(new Promise((resolve) => { resolveFirst = resolve; })).mockResolvedValueOnce("remote");
+    const user = userEvent.setup();
+    render(<MemoryRouter><AnchorMinigame /></MemoryRouter>);
+    await screen.findByText("Practice ready.");
+    await user.click(screen.getByRole("button", { name: "Enter (check)" }));
+    await user.click(screen.getAllByRole("button", { name: "Close" })[0]);
+    await user.click(screen.getByRole("button", { name: "New setup" }));
+    expect(progressMocks.save).toHaveBeenCalledTimes(1);
+    resolveFirst("remote");
+    await waitFor(() => expect(progressMocks.save).toHaveBeenCalledTimes(2));
+    expect(progressMocks.save.mock.calls[1][4]).toEqual(expect.objectContaining({
+      attempts: 1, failedChecks: 1, sequenceIndex: 1, scenarioIdentity: "anchor-0-1-2-harbour",
+    }));
+    expect(await screen.findByText(/1 checks, 1 needing remediation/)).toBeTruthy();
+  });
+
+  it("clears owner A state and retry generation on signout during a delayed save", async () => {
+    progressMocks.user = { id: "user-a" };
+    progressMocks.load.mockResolvedValue({ status: "missing", record: null });
+    let resolveSave!: (value: "failed") => void;
+    progressMocks.save.mockReturnValue(new Promise((resolve) => { resolveSave = resolve; }));
+    const user = userEvent.setup();
+    const view = render(<MemoryRouter><AnchorMinigame /></MemoryRouter>);
+    await screen.findByText("Practice ready.");
+    await user.click(screen.getByRole("button", { name: "Enter (check)" }));
+    progressMocks.user = null;
+    view.rerender(<MemoryRouter><AnchorMinigame /></MemoryRouter>);
+    expect(screen.getByText(/0 checks, 0 needing remediation/)).toBeTruthy();
+    expect(screen.getByText(/Practice lasts for this visit only/)).toBeTruthy();
+    resolveSave("failed");
+    await waitFor(() => expect(screen.queryByRole("button", { name: "Retry progress" })).toBeNull());
+  });
+
+  it("does not expose or retry owner A's delayed failed save after switching to owner B", async () => {
+    progressMocks.user = { id: "user-a" };
+    progressMocks.load.mockResolvedValue({ status: "missing", record: null });
+    let resolveSave!: (value: "failed") => void;
+    progressMocks.save.mockReturnValue(new Promise((resolve) => { resolveSave = resolve; }));
+    const user = userEvent.setup();
+    const view = render(<MemoryRouter><AnchorMinigame /></MemoryRouter>);
+    await screen.findByText("Practice ready.");
+    await user.click(screen.getByRole("button", { name: "Enter (check)" }));
+    progressMocks.user = { id: "user-b" };
+    view.rerender(<MemoryRouter><AnchorMinigame /></MemoryRouter>);
+    await screen.findByText("Practice ready.");
+    resolveSave("failed");
+    await waitFor(() => expect(screen.queryByRole("button", { name: "Retry progress" })).toBeNull());
+    expect(screen.getByText(/0 checks, 0 needing remediation/)).toBeTruthy();
+  });
+
+  it("offers parent theory and quiz handoff after restored mastery", async () => {
+    progressMocks.user = { id: "user-a" };
+    progressMocks.load.mockResolvedValue({ status: "remote", record: { answers_history: {
+      version: 1, completedFamilies: ["sheltered", "harbour", "exposed", "tidal"], attempts: 8, failedChecks: 4,
+      scenarioSeed: 0, sequenceIndex: 0, scenarioIdentity: "anchor-0-1-1-sheltered",
+    } } });
+    render(<MemoryRouter><AnchorMinigame /></MemoryRouter>);
+    expect(await screen.findByRole("button", { name: "Review Anchorwork" })).toBeTruthy();
+    expect(screen.getByRole("button", { name: "Take Anchorwork quiz" })).toBeTruthy();
   });
 
   it("preserves a passed history outcome when continuing to the next setup", () => {

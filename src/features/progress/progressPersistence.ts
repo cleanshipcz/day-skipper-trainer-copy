@@ -37,6 +37,12 @@ export const saveProgressRecord = async ({
   }
   const { data, error } = topicId === "anchorwork"
     ? await supabaseClient.rpc("save_anchorwork_progress", { p_completed_topic_ids: anchorworkIds as string[] })
+    : topicId === "anchorwork-practice"
+      ? await supabaseClient.rpc("save_anchorwork_practice_progress", {
+        p_completed: completed,
+        p_score: score,
+        p_answers_history: answersHistory ?? {},
+      })
     : await supabaseClient.rpc("save_topic_progress", {
       p_topic_id: topicId,
       p_completed: completed,

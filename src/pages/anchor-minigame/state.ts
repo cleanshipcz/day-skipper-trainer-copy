@@ -86,7 +86,7 @@ export const createScenario = (
   const family = getScenarioFamilyOrder(seed, cycle)[position];
   const template = templates.find((candidate) => candidate.family === family);
   if (!template) throw new Error(`Missing anchor scenario family: ${family}`);
-  const identity = `anchor-${seed.toString(36)}-${cycle + 1}-${position + 1}-${family}`;
+  const identity = `anchor-${seed}-${cycle + 1}-${position + 1}-${family}`;
   return { ...template, seed, cycle: cycle + 1, identity, id: hashSeed(identity) };
 };
 

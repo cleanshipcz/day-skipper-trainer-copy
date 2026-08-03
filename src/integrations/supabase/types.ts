@@ -454,6 +454,14 @@ export type Database = {
           isSetofReturn: false
         }
       }
+      save_anchorwork_practice_progress: {
+        Args: { p_answers_history: Json; p_completed: boolean; p_score: number }
+        Returns: {
+          awarded_points: number
+          completion_awarded: boolean
+          points_awarded: boolean
+        }[]
+      }
       save_anchorwork_progress: {
         Args: { p_completed_topic_ids: string[] }
         Returns: {

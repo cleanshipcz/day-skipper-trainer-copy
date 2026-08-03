@@ -65,7 +65,7 @@ describe("anchor minigame transitions", () => {
     expect(new Set(first.slice(0, 4).map(({ family }) => family))).toHaveLength(4);
     expect(new Set(first.slice(4, 8).map(({ family }) => family))).toHaveLength(4);
     first.slice(1).forEach((item, index) => expect(item.family).not.toBe(first[index].family));
-    expect(first[0].identity).toMatch(/^anchor-39u-1-1-/);
+    expect(first[0].identity).toMatch(/^anchor-4242-1-1-/);
   });
 
   it("keeps seeded family ordering stable at cycle boundaries", () => {

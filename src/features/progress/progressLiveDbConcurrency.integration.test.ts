@@ -76,6 +76,29 @@ describeLiveDb("live DB concurrency stress — progress integrity", () => {
         .eq("user_id", userId);
       expect(ledgerError).toBeNull();
       expect(count).toBe(topics.length);
+
+      const checkpoint = (sequenceIndex: number, attempts: number, families = ["sheltered", "harbour", "exposed", "tidal"]) => ({
+        version: 1, completedFamilies: families, attempts, failedChecks: Math.min(2, attempts),
+        scenarioSeed: 7, sequenceIndex,
+        scenarioIdentity: `anchor-7-${Math.floor(sequenceIndex / 4) + 1}-${sequenceIndex % 4 + 1}-sheltered`,
+      });
+      const malformed = await userClient.rpc("save_anchorwork_practice_progress", {
+        p_completed: false, p_score: 0, p_answers_history: { ...checkpoint(1, 1), scenarioIdentity: "wrong" },
+      });
+      expect(malformed.error).not.toBeNull();
+
+      const [newer, stale] = await Promise.all([
+        userClient.rpc("save_anchorwork_practice_progress", { p_completed: true, p_score: 100, p_answers_history: checkpoint(9, 8) }),
+        userClient.rpc("save_anchorwork_practice_progress", { p_completed: false, p_score: 25, p_answers_history: checkpoint(3, 3, ["sheltered"]) }),
+      ]);
+      expect(newer.error).toBeNull();
+      expect(stale.error).toBeNull();
+      const { data: practice } = await admin.from("user_progress").select("completed, score, answers_history").eq("user_id", userId).eq("topic_id", "anchorwork-practice").single();
+      expect(practice?.completed).toBe(true);
+      expect(practice?.score).toBe(100);
+      expect(practice?.answers_history).toEqual(expect.objectContaining({ sequenceIndex: 9, attempts: 8, completedFamilies: ["sheltered", "harbour", "exposed", "tidal"] }));
+      const practiceAwards = await admin.from("progress_awards").select("*", { count: "exact", head: true }).eq("user_id", userId).eq("topic_id", "anchorwork-practice");
+      expect(practiceAwards.count).toBe(0);
     } finally {
       await admin.auth.admin.deleteUser(userId);
     }
