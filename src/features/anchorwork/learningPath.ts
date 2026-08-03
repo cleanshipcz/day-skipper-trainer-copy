@@ -6,19 +6,19 @@ export const anchorPracticeSkills = [
 
 export const anchorPracticePrerequisites = ["scope", "procedure"] as const;
 
-const quizRemediationByQuestion: Readonly<Record<string, string>> = {
+export const anchorQuizRemediationByQuestion: Readonly<Record<string, string>> = {
   a1: "scope",
   a2: "procedure",
   a3: "scope",
   a4: "swinging-room",
   a5: "types",
   a6: "weighing",
-  a7: "types",
+  a7: "scope",
   a8: "procedure",
-  a9: "scope",
+  a9: "swinging-room",
   a10: "procedure",
   a11: "types",
-  a12: "procedure",
+  a12: "weighing",
 };
 
 export const anchorQuizRemediationTopic = (
@@ -27,7 +27,7 @@ export const anchorQuizRemediationTopic = (
   correctAnswers: readonly number[],
 ): string => {
   const firstMissed = questionIds.find((_, index) => answers[index] !== correctAnswers[index]);
-  return (firstMissed && quizRemediationByQuestion[firstMissed]) || "scope";
+  return (firstMissed && anchorQuizRemediationByQuestion[firstMissed]) || "scope";
 };
 
 export const anchorTheoryRoute = (topic: string, source: "practice" | "quiz") =>

@@ -52,7 +52,7 @@ export const topics: Topic[] = [
     id: "types",
     title: "Plan and Select",
     content:
-      "Plan before committing: assess depth and tidal range, weather, seabed, hazards, traffic, escape routes and room to swing, and use current location guidance to avoid protected or sensitive seabed habitats. Select an anchor and rode for the particular anchor design and size, vessel displacement and windage, seabed, expected load and manufacturer guidance; no anchor type or size is best for every boat or bottom.",
+      "Plan before committing: assess depth and tidal range, weather, seabed, hazards, traffic, escape routes and room to swing, and use current location guidance to avoid protected or sensitive seabed habitats. Select an anchor and rode for the particular anchor design and size, vessel displacement and windage, seabed, expected load and manufacturer guidance; no anchor type or size is best for every boat or bottom. A kedge is a secondary anchor used only under a vessel-specific plan; laying or warping with one adds tender, crossing-rode, communication and load hazards.",
     tips: [
       "Use the vessel and anchor manufacturers' instructions; familiar type labels do not establish suitability",
       "Allow for changing wind, current, waves, tide, nearby vessels and their different swing",
@@ -65,7 +65,7 @@ export const topics: Topic[] = [
     id: "scope",
     title: "Prepare the Operation",
     content:
-      "Brief the helm and foredeck crew, agree clear signals and an abort plan, and prepare the correctly secured rode before entering the anchorage. Scope means rode length divided by the maximum vertical distance from the bow roller or chock to the seabed, including the expected rise of tide. It is only one input: adapt the plan to the rode, anchor, vessel, seabed, available room, forecast conditions and manufacturer or local guidance rather than relying on one universal ratio.",
+      "Brief the helm and foredeck crew, agree clear signals and an abort plan, and prepare the correctly secured rode before entering the anchorage. Scope means rode length divided by the maximum vertical distance from the bow roller or chock to the seabed, including the expected rise of tide. It is only one input: adapt the plan to the rode, anchor, vessel, seabed, available room, forecast conditions and manufacturer or local guidance rather than relying on one universal ratio. Chain resists seabed abrasion and helps keep the pull low, but it can straighten under load; use the vessel's approved snubber or bridle arrangement for deliberate elasticity.",
     tips: [
       "Confirm the rode is serviceable, securely attached and ready for use; follow the vessel and equipment instructions for emergency release",
       "Keep people out of the bight, pinch points and snap-back zones; never stand astride or over a moving rode",
@@ -96,7 +96,7 @@ export const topics: Topic[] = [
     id: "procedure",
     title: "Deploy, Set and Verify",
     content:
-      "Approach at controlled speed while accounting for the dominant wind or current. When stopped over the chosen position, lower—not throw—the anchor under control; move astern slowly while paying out rode so it does not pile on the anchor. Snub on a suitable strong point and increase setting load progressively within the vessel's and equipment's limits. A windlass handles rode; unless its maker expressly approves the load, do not use it as the permanent anchoring strong point.",
+      "Approach at controlled speed while accounting for the dominant wind or current. When stopped over the chosen position, lower—not throw—the anchor under control; move astern slowly while paying out rode so it does not pile on the anchor. Snub on a suitable strong point and increase setting load progressively within the vessel's and equipment's limits. A windlass handles rode; unless its maker expressly approves the load, do not use it as the permanent anchoring strong point. Lead the rode through its designed fairlead and secure it to an engineered strong point; a bow roller is not automatically the permanent load-bearing point.",
     tips: [
       "Use agreed helm–foredeck communication and stop immediately if a person, rode or equipment is at risk",
       "Use two fixed shore points as a transit to check holding, and keep checking position, depth and rode load for change",
@@ -122,7 +122,7 @@ export const topics: Topic[] = [
     id: "weighing",
     title: "Recover and Secure",
     content:
-      "Brief the recovery, start the engine when appropriate, and coordinate helm and foredeck. Take in slack while the vessel is moved gently toward the anchor; do not use the windlass to pull the vessel or motor across the rode. Keep clear of the loaded line and machinery. If the anchor or rode is fouled or heavily loaded, stop, reduce the load and use the vessel-specific recovery plan—do not force the windlass or put a person in danger.",
+      "Brief the recovery, start the engine when appropriate, and coordinate helm and foredeck. Take in slack while the vessel is moved gently toward the anchor; do not use the windlass to pull the vessel or motor across the rode. Keep clear of the loaded line and machinery. If the anchor or rode is fouled or heavily loaded, stop, reduce the load and use the vessel-specific recovery plan—do not force the windlass or put a person in danger. A crown trip line may help recover a fouled anchor only where the vessel's plan and local conditions allow; its buoy and line can foul propellers, the vessel or other traffic.",
     tips: [
       "Confirm the anchor is aweigh and clear before manoeuvring away; check for damage, chafe or contamination",
       "Clean and stow the rode under control, then mechanically secure the anchor and windlass controls for sea",
