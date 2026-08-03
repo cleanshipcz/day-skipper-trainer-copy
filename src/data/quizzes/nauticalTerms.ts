@@ -156,6 +156,109 @@ const nauticalTermsQuestions: readonly Question[] = [
     correctAnswer: 2,
     explanation: "The cockpit is the recessed working area where helm and sail controls are managed.",
   },
+  {
+    id: "nt-control-main-halyard",
+    question: "Which line raises and lowers the mainsail?",
+    options: ["Main halyard", "Mainsheet", "Outhaul", "Topping lift"],
+    correctAnswer: 0,
+    explanation: "The main halyard runs from the head of the mainsail through a masthead sheave to raise and lower it.",
+  },
+  {
+    id: "nt-control-jib-halyard",
+    question: "Which line raises the jib or genoa and can adjust its luff tension?",
+    options: ["Jib sheet", "Jib halyard", "Reefing line", "Backstay adjuster"],
+    correctAnswer: 1,
+    explanation: "The jib halyard raises the headsail; its tension also affects luff wrinkles and draft position.",
+  },
+  {
+    id: "nt-control-mainsheet",
+    question: "Which control primarily sets mainsail angle and, especially upwind, leech tension and twist?",
+    options: ["Cunningham", "Mainsheet", "Topping lift", "Jib fairlead"],
+    correctAnswer: 1,
+    explanation: "The mainsheet trims or eases the boom and strongly influences mainsail leech tension and twist.",
+  },
+  {
+    id: "nt-control-jib-sheet",
+    question: "What controls the angle of the jib or genoa during normal sail trim?",
+    options: ["Jib sheets", "Jib halyard", "Forestay", "Main halyard"],
+    correctAnswer: 0,
+    explanation: "Port and starboard jib sheets lead from the clew through a fairlead to trim the headsail.",
+  },
+  {
+    id: "nt-control-boom-vang",
+    question: "Which control restrains boom rise and reduces mainsail leech twist when the sheet is eased?",
+    options: ["Outhaul", "Boom vang", "Traveller", "Topping lift"],
+    correctAnswer: 1,
+    explanation: "The boom vang, also called a kicking strap, pulls the boom down and controls twist off the wind.",
+  },
+  {
+    id: "nt-control-outhaul",
+    question: "Which control changes the fullness of the lower mainsail by tensioning its foot?",
+    options: ["Outhaul", "Cunningham", "Main halyard", "Reefing line"],
+    correctAnswer: 0,
+    explanation: "Tightening the outhaul flattens the lower mainsail; easing it adds fullness.",
+  },
+  {
+    id: "nt-control-cunningham",
+    question: "Which dedicated control tensions the mainsail luff through a cringle above the tack?",
+    options: ["Topping lift", "Cunningham", "Jib sheet", "Traveller"],
+    correctAnswer: 1,
+    explanation: "The Cunningham tensions the luff without pulling the boom or a sliding gooseneck down.",
+  },
+  {
+    id: "nt-control-topping-lift",
+    question: "Which line supports the aft end of the boom when the mainsail is lowered?",
+    options: ["Boom vang", "Backstay", "Topping lift", "Mainsheet"],
+    correctAnswer: 2,
+    explanation: "The topping lift supports the boom while the mainsail is down or during reefing.",
+  },
+  {
+    id: "nt-control-reefing-lines",
+    question: "What is the purpose of the loaded controls in a mainsail reefing system?",
+    options: ["Raise the jib", "Secure the new tack and clew", "Support the mast laterally", "Move the traveller"],
+    correctAnswer: 1,
+    explanation: "Reefing controls secure the new tack and clew to reduce sail area; reef-point ties only gather loose sail.",
+  },
+  {
+    id: "nt-control-traveller",
+    question: "Which deck fitting moves the mainsheet attachment point across the boat?",
+    options: ["Jib fairlead", "Mainsheet traveller", "Backstay adjuster", "Cunningham"],
+    correctAnswer: 1,
+    explanation: "The mainsheet traveller changes the attachment point side to side, helping set boom angle independently of sheet tension.",
+  },
+  {
+    id: "nt-control-jib-fairlead",
+    question: "Which adjustable fitting sets the angle at which the jib sheet pulls on the clew?",
+    options: ["Jib fairlead", "Spreader", "Reefing cringle", "Gooseneck"],
+    correctAnswer: 0,
+    explanation: "Moving the jib fairlead changes the balance of foot and leech tension in the headsail.",
+  },
+  {
+    id: "nt-control-backstay-adjuster",
+    question: "On a suitable rig, which control changes backstay load, mast bend, and forestay sag?",
+    options: ["Main halyard", "Outhaul", "Backstay adjuster", "Jib sheet"],
+    correctAnswer: 2,
+    explanation: "A backstay adjuster changes standing-rigging load; its precise effects depend on the rig design.",
+  },
 ] as const;
+
+/** Stable catalogue-to-question mapping used to keep the full quiz comprehensive. */
+export const nauticalTermsCoverage = {
+  boatParts: {
+    bow: "nt-bow", stern: "nt-stern", hull: "nt-hull", deck: "nt-deck", mast: "nt-mast", boom: "nt-boom",
+    mainsail: "nt-mainsail", jib: "nt-jib", forestay: "nt-forestay", backstay: "nt-backstay",
+    rudder: "nt-rudder", tiller: "nt-tiller", keel: "nt-keel", cockpit: "nt-cockpit", telltales: "nt-telltales",
+    port: "nt-port", starboard: "nt-starboard-light", beam: "nt-beam", shrouds: "nt-shrouds",
+    spreaders: "nt-spreaders",
+  },
+  sailControls: {
+    "main-halyard": "nt-control-main-halyard", "jib-halyard": "nt-control-jib-halyard",
+    mainsheet: "nt-control-mainsheet", "jib-sheet": "nt-control-jib-sheet",
+    "boom-vang": "nt-control-boom-vang", outhaul: "nt-control-outhaul",
+    cunningham: "nt-control-cunningham", "topping-lift": "nt-control-topping-lift",
+    "reefing-lines": "nt-control-reefing-lines", traveller: "nt-control-traveller",
+    "jib-fairlead": "nt-control-jib-fairlead", "backstay-adjuster": "nt-control-backstay-adjuster",
+  },
+} as const;
 
 export default nauticalTermsQuestions;

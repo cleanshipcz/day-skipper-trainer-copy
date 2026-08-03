@@ -27,7 +27,7 @@ const subModules: ModuleMenuItem[] = [
   {
     id: "nautical-terms-quiz",
     title: "Full Nautical Terms Quiz",
-    description: "20-question challenge across every boat part and orientation term",
+    description: "32-question challenge covering Boat Parts and every Sail Control",
     icon: Trophy,
     path: "/quiz/nautical-terms-quiz",
     type: "quiz",

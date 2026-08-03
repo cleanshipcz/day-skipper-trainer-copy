@@ -6,6 +6,10 @@ import { loadAllQuizTopics } from "@/data/quizzes";
 const sql = readFileSync("supabase/migrations/20260730110000_engagement.sql", "utf8");
 const hardened = readFileSync("supabase/migrations/20260730111000_harden_engagement_evidence.sql", "utf8");
 const issued = readFileSync("supabase/migrations/20260730112000_issued_quiz_attempts.sql", "utf8");
+const expandedNauticalTerms = readFileSync(
+  "supabase/migrations/20260801081500_expand_nautical_terms_quiz_attempts.sql",
+  "utf8",
+);
 
 describe("engagement migration", () => {
   test("should keep badges immutable and mutation RPC-only", () => {
@@ -33,9 +37,16 @@ describe("engagement migration", () => {
   });
 
   test("should keep the issued-attempt catalogue aligned with client quiz totals", async () => {
-    Object.entries(await loadAllQuizTopics()).forEach(([topic, questions]) => {
-      expect(issued).toContain(`when '${topic}' then ${questions.length}`);
-    });
+    const clientCatalogue = Object.fromEntries(
+      Object.entries(await loadAllQuizTopics()).map(([topic, questions]) => [topic, questions.length]),
+    );
+    const caseEntries = [...expandedNauticalTerms.matchAll(/when '([^']+)' then (\d+)/g)]
+      .map(([, topic, count]) => [topic, Number(count)] as const);
+
+    expect(caseEntries).toHaveLength(Object.keys(clientCatalogue).length);
+    expect(new Set(caseEntries.map(([topic]) => topic)).size).toBe(caseEntries.length);
+    expect(Object.fromEntries(caseEntries)).toEqual(clientCatalogue);
+    expect(expandedNauticalTerms).toContain("and expected_total=expected");
   });
 
   test("should use authenticated server-owned activity dates and idempotent awards", () => {

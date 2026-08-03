@@ -24,7 +24,7 @@ The official RYA Day Skipper Shorebased syllabus (SBT DS 03) contains **13 subje
 
 | # | Syllabus Area | Status | Current Implementation | Gap |
 |---|--------------|--------|----------------------|-----|
-| 1 | **Nautical Terms** | ✅ Complete | Interactive boat diagram (20+ parts), sail controls (11 lines), 20-question quiz | — |
+| 1 | **Nautical Terms** | ✅ Complete | Interactive boat diagram (20 parts), 12 sail controls, comprehensive 32-question quiz | — |
 | 2 | **Ropework** | ✅ Complete | 7 knots with steps, discovery mechanic, quiz | — |
 | 3 | **Anchorwork** | ✅ Complete | 5 theory topics, anchor minigame (scope calc, positioning), quiz | — |
 | 4 | **Safety** | ⚠️ Partial | MOB theory (5 tabs), MOB sorting game, MOB quiz | Fire safety, life rafts, flares/pyrotechnics, personal safety equipment, abandon ship, gas safety |
