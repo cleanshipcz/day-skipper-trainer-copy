@@ -24,5 +24,6 @@
   "20260802170000_engine_checklist_catalogue_v2.sql": "587a7b9f126aab956195406106309274397429e8471b47dbe831ed40fa5b3a9d",
   "20260802181500_retire_unsafe_engine_reviews.sql": "8e4620bb9dae7a0b38a93de123a04e0bf15a2c756d82e2f861f365157f672b65",
   "20260802193000_register_rig_review_progress.sql": "012e52639953b90db40053ca5aab927f8aaa3e6782b1d540b09292f66a816556",
-  "20260803043000_revisioned_lights_theory_progress.sql": "55060d39ff72193eccda05aa5cbb162ce16e9d6f6ef5f032736fa1467cfd928f"
+  "20260803043000_revisioned_lights_theory_progress.sql": "55060d39ff72193eccda05aa5cbb162ce16e9d6f6ef5f032736fa1467cfd928f",
+  "20260803050000_harden_revisioned_lights_theory_progress.sql": "be06d5861d20f9432df8aa8c5d563deb7af0f8294bbe574541b49cb1eb3d53ee"
 }

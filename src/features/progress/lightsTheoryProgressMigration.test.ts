@@ -4,13 +4,14 @@ import { resolve } from "node:path";
 import { describe, expect, it } from "vitest";
 
 const sql = readFileSync(resolve(process.cwd(), "supabase/migrations/20260803043000_revisioned_lights_theory_progress.sql"), "utf8").toLowerCase();
+const hardenedSql = readFileSync(resolve(process.cwd(), "supabase/migrations/20260803050000_harden_revisioned_lights_theory_progress.sql"), "utf8").toLowerCase();
 
 describe("revisioned Lights theory progress migration", () => {
   it("refreshes evidence on an old completed row without awarding again", () => {
-    expect(sql).toContain("if v_was_completed then");
-    expect(sql).toContain("answers_history = p_answers_history");
-    expect(sql).toContain("return query select false, false, 0");
-    expect(sql).toContain("save_topic_progress('lights-theory'");
+    expect(hardenedSql).toContain("if v_was_completed then");
+    expect(hardenedSql).toContain("return query select false, false, 0");
+    expect(hardenedSql).toContain("insert into public.progress_awards");
+    expect(hardenedSql).not.toContain("from public.save_topic_progress('lights-theory'");
   });
 
   it("validates the exact revision and evidence catalogue", () => {
@@ -31,7 +32,28 @@ describe("revisioned Lights theory progress migration", () => {
   });
 
   it("serializes against generic same-topic saves", () => {
-    expect(sql).toContain("pg_advisory_xact_lock");
-    expect(sql).toContain("v_user_id::text || ':lights-theory'");
+    expect(hardenedSql).toContain("pg_advisory_xact_lock");
+    expect(hardenedSql).toContain("v_user_id::text || ':lights-theory'");
+  });
+
+  it("removes Lights completion and rewards from the generic authenticated RPC", () => {
+    expect(hardenedSql).toContain("remove lights-theory from generic progress rpc");
+    expect(hardenedSql).toContain("position($$'lights-theory'$$ in v_updated) > 0");
+    expect(hardenedSql).toContain("grant execute on function public.save_topic_progress");
+  });
+
+  it("rejects NULL fields and derives the only valid score from evidence", () => {
+    expect(hardenedSql).toContain("p_completed is null or p_score is null or p_answers_history is null");
+    expect(hardenedSql).toContain("is distinct from 'colregs-parts-c-d-annex-iv-v1'");
+    expect(hardenedSql).toContain("round(count(*) * 100.0 / 3)::integer");
+    expect(hardenedSql).toContain("p_score is distinct from v_expected_score");
+    expect(hardenedSql).toContain("p_completed is distinct from (v_evidence_count = 3)");
+  });
+
+  it("preserves full completed evidence against delayed incomplete replay", () => {
+    expect(hardenedSql).toContain("v_existing_history ->> 'cataloguerevision' is distinct from 'colregs-parts-c-d-annex-iv-v1'");
+    expect(hardenedSql).toContain("v_existing_history ->> 'completionstate' is distinct from 'completed'");
+    expect(hardenedSql).toContain("then p_answers_history else answers_history end");
+    expect(hardenedSql).toContain("delayed incomplete queue entry");
   });
 });
