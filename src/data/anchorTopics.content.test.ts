@@ -13,7 +13,7 @@ describe("reviewed Anchorwork guidance", () => {
   });
 
   it("requires an exact, located basis for every learner-facing safety statement", () => {
-    const displayedStatements = topics.flatMap((topic) => [topic.content, ...topic.tips]).sort();
+    const displayedStatements = topics.flatMap((topic) => [topic.content, ...topic.tips, ...(topic.calculationGuide?.map(({ body }) => body) ?? [])]).sort();
     const reviewedStatements = anchorClaimReviews.map(({ text }) => text).sort();
     expect(reviewedStatements).toEqual(displayedStatements);
     expect(new Set(reviewedStatements).size).toBe(reviewedStatements.length);
@@ -27,7 +27,8 @@ describe("reviewed Anchorwork guidance", () => {
     }
     for (const topic of topics) {
       const displayedSources = new Set(topic.sourceIds);
-      for (const claim of anchorClaimReviews.filter(({ text }) => [topic.content, ...topic.tips].includes(text))) {
+      const topicStatements = [topic.content, ...topic.tips, ...(topic.calculationGuide?.map(({ body }) => body) ?? [])];
+      for (const claim of anchorClaimReviews.filter(({ text }) => topicStatements.includes(text))) {
         expect(claim.basis.every(({ sourceId }) => displayedSources.has(sourceId))).toBe(true);
       }
     }

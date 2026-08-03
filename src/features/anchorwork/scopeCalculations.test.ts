@@ -1,0 +1,105 @@
+import { describe, expect, it } from "vitest";
+import {
+  approximateSwingRadius,
+  maximumVerticalDistance,
+  scopeRatio,
+  scopeWorkedExample,
+  swingWorkedExample,
+} from "./scopeCalculations";
+
+describe("reviewed anchorwork calculation fixtures", () => {
+  it("includes tide allowance in maximum bow-roller-to-seabed distance and scope", () => {
+    expect(maximumVerticalDistance(scopeWorkedExample.assumptions)).toBe(scopeWorkedExample.maximumVerticalDistanceMetres);
+    expect(scopeRatio(scopeWorkedExample.assumptions)).toBe(scopeWorkedExample.ratio);
+  });
+
+  it("reproduces the plan-view swinging-room example", () => {
+    const { rodeLengthMetres, maximumVerticalDistanceMetres, bowToFurthestPointMetres } = swingWorkedExample.assumptions;
+    expect(Math.sqrt(rodeLengthMetres ** 2 - maximumVerticalDistanceMetres ** 2)).toBeCloseTo(swingWorkedExample.horizontalRodeReachMetres, 2);
+    expect(approximateSwingRadius(swingWorkedExample.assumptions)).toBeCloseTo(swingWorkedExample.approximateSwingRadiusMetres, 2);
+  });
+
+  it("rejects impossible straight-line geometry", () => {
+    expect(() => approximateSwingRadius({ rodeLengthMetres: 6, maximumVerticalDistanceMetres: 7, bowToFurthestPointMetres: 10 })).toThrow(RangeError);
+  });
+
+  it("deliberately allows rode equal to vertical distance", () => {
+    expect(approximateSwingRadius({ rodeLengthMetres: 7, maximumVerticalDistanceMetres: 7, bowToFurthestPointMetres: 10 })).toBe(10);
+  });
+
+  it.each([0, -1, Number.NaN, Number.POSITIVE_INFINITY, Number.NEGATIVE_INFINITY])(
+    "rejects invalid rode length %s",
+    (rodeLengthMetres) => {
+      const inputs = { ...scopeWorkedExample.assumptions, rodeLengthMetres };
+      expect(() => maximumVerticalDistance(inputs)).toThrow(RangeError);
+      expect(() => scopeRatio(inputs)).toThrow(RangeError);
+    },
+  );
+
+  it.each([
+    { currentDepthMetres: -1 },
+    { tideRiseMetres: -1 },
+    { bowRollerHeightMetres: -1 },
+    { currentDepthMetres: Number.NaN },
+    { tideRiseMetres: Number.POSITIVE_INFINITY },
+    { bowRollerHeightMetres: Number.NEGATIVE_INFINITY },
+  ])("rejects invalid scope component combination $currentDepthMetres/$tideRiseMetres/$bowRollerHeightMetres", (override) => {
+    const inputs = { ...scopeWorkedExample.assumptions, ...override };
+    expect(() => maximumVerticalDistance(inputs)).toThrow(RangeError);
+    expect(() => scopeRatio(inputs)).toThrow(RangeError);
+  });
+
+  it("rejects an all-zero vertical-distance combination", () => {
+    const inputs = { rodeLengthMetres: 35, currentDepthMetres: 0, tideRiseMetres: 0, bowRollerHeightMetres: 0 };
+    expect(() => maximumVerticalDistance(inputs)).toThrow(RangeError);
+    expect(() => scopeRatio(inputs)).toThrow(RangeError);
+  });
+
+  it.each([
+    { rodeLengthMetres: 0 },
+    { rodeLengthMetres: Number.NaN },
+    { rodeLengthMetres: Number.POSITIVE_INFINITY },
+    { maximumVerticalDistanceMetres: 0 },
+    { maximumVerticalDistanceMetres: -1 },
+    { maximumVerticalDistanceMetres: Number.NaN },
+    { maximumVerticalDistanceMetres: Number.POSITIVE_INFINITY },
+    { bowToFurthestPointMetres: -1 },
+    { bowToFurthestPointMetres: Number.NaN },
+    { bowToFurthestPointMetres: Number.POSITIVE_INFINITY },
+  ])("rejects invalid swing input combination", (override) => {
+    expect(() => approximateSwingRadius({ ...swingWorkedExample.assumptions, ...override })).toThrow(RangeError);
+  });
+
+  it("keeps a representable swing radius finite at Number.MAX_VALUE scale", () => {
+    const radius = approximateSwingRadius({
+      rodeLengthMetres: Number.MAX_VALUE,
+      maximumVerticalDistanceMetres: Number.MAX_VALUE / 2,
+      bowToFurthestPointMetres: 0,
+    });
+    expect(Number.isFinite(radius)).toBe(true);
+    expect(radius / Number.MAX_VALUE).toBeCloseTo(Math.sqrt(0.75), 12);
+  });
+
+  it("fails closed when finite swing components overflow the result", () => {
+    expect(() => approximateSwingRadius({
+      rodeLengthMetres: Number.MAX_VALUE,
+      maximumVerticalDistanceMetres: 1,
+      bowToFurthestPointMetres: Number.MAX_VALUE,
+    })).toThrow(RangeError);
+  });
+
+  it("fails closed when an extreme finite scope ratio overflows or underflows", () => {
+    expect(() => scopeRatio({
+      rodeLengthMetres: Number.MAX_VALUE,
+      currentDepthMetres: Number.MIN_VALUE,
+      tideRiseMetres: 0,
+      bowRollerHeightMetres: 0,
+    })).toThrow(RangeError);
+    expect(() => scopeRatio({
+      rodeLengthMetres: Number.MIN_VALUE,
+      currentDepthMetres: Number.MAX_VALUE,
+      tideRiseMetres: 0,
+      bowRollerHeightMetres: 0,
+    })).toThrow(RangeError);
+  });
+});
