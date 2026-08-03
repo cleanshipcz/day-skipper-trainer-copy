@@ -6,12 +6,14 @@ import {
   getTopicsBySyllabusArea,
   getRootTopics,
   getImplementedSyllabusAreas,
+  resolveQuizParentDestination,
   TOTAL_SYLLABUS_AREAS,
   TOPIC_IDS,
 } from "./topicRegistry";
 import { appRoutes } from "@/app/routes";
 import { topicIds, topicMeta } from "@/data/quizzes";
 import { DURABLE_PROGRESS_IDS } from "./durableProgressIds";
+import type { TopicEntry } from "./topicRegistry";
 
 // ── Helpers ──────────────────────────────────────────────────────────────
 
@@ -391,6 +393,89 @@ describe("TOPIC_IDS", () => {
     // then
     for (const id of registryIds) {
       expect(constantValues.has(id)).toBe(true);
+    }
+  });
+});
+
+describe("quiz parent destinations", () => {
+  it("returns the registered owning module for direct, nested, and legacy quiz topics", () => {
+    expect(resolveQuizParentDestination("nautical-terms-quiz")).toEqual({ route: "/nautical-terms", label: "Nautical Terms & Boat Parts" });
+    expect(resolveQuizParentDestination("lights-signals")).toEqual({ route: "/rules/lights", label: "Lights & Signals Theory" });
+    expect(resolveQuizParentDestination("colregs")).toEqual({ route: "/rules-of-the-road", label: "Rules of the Road" });
+    expect(resolveQuizParentDestination("ropework")).toEqual({ route: "/ropework", label: "Ropework & Knots" });
+  });
+
+  it("falls back safely for standalone, unknown, and malformed deep links", () => {
+    expect(resolveQuizParentDestination("standalone-topic")).toEqual({ route: "/", label: "Home" });
+    expect(resolveQuizParentDestination("../nautical-terms")).toEqual({ route: "/", label: "Home" });
+    expect(resolveQuizParentDestination("")).toEqual({ route: "/", label: "Home" });
+  });
+
+  it("maps every registered quiz ID to its explicit owning parent route", () => {
+    const expectedRoutes: Record<string, string> = {
+      "nautical-terms-quiz": "/nautical-terms",
+      victualling: "/victualling",
+      engine: "/engine",
+      rig: "/rig",
+      ropework: "/ropework",
+      anchorwork: "/anchorwork",
+      safety: "/safety",
+      "safety-mob-quiz": "/safety/mob",
+      "safety-fire-quiz": "/safety/fire",
+      "safety-life-raft-quiz": "/safety/life-raft",
+      "safety-flares-quiz": "/safety/flares",
+      colregs: "/rules-of-the-road",
+      "lights-signals": "/rules/lights",
+      pilotage: "/pilotage",
+      weather: "/weather",
+      "passage-planning": "/passage-planning",
+    };
+    const registeredQuizIds = new Set(topicRegistry.flatMap(({ quizRoute }) => quizRoute ? [quizRoute.replace("/quiz/", "")] : []));
+
+    expect(new Set(Object.keys(expectedRoutes))).toEqual(registeredQuizIds);
+    for (const [quizTopicId, expectedRoute] of Object.entries(expectedRoutes)) {
+      expect(resolveQuizParentDestination(quizTopicId).route).toBe(expectedRoute);
+    }
+  });
+
+  it("resolves a quiz-only registry leaf through its registered parent", () => {
+    const mutableRegistry = topicRegistry as TopicEntry[];
+    const quizOnlyLeaf: TopicEntry = {
+      id: "synthetic-quiz-leaf",
+      label: "Synthetic Quiz",
+      parentId: "safety",
+      route: "/quiz/synthetic-quiz-leaf",
+      quizRoute: "/quiz/synthetic-quiz-leaf",
+      submoduleIds: [],
+      syllabusArea: 4,
+    };
+    mutableRegistry.push(quizOnlyLeaf);
+    try {
+      expect(resolveQuizParentDestination("synthetic-quiz-leaf")).toEqual({ route: "/safety", label: "Safety Procedures" });
+    } finally {
+      mutableRegistry.pop();
+    }
+  });
+
+  it.each([
+    [null, "a quiz-only leaf without a parent"],
+    ["missing-parent", "a quiz-only leaf whose parent is absent"],
+  ])("falls back for %s", (parentId) => {
+    const mutableRegistry = topicRegistry as TopicEntry[];
+    const quizOnlyLeaf: TopicEntry = {
+      id: "synthetic-orphan-quiz",
+      label: "Synthetic Orphan Quiz",
+      parentId,
+      route: "/quiz/synthetic-orphan-quiz",
+      quizRoute: "/quiz/synthetic-orphan-quiz",
+      submoduleIds: [],
+      syllabusArea: 13,
+    };
+    mutableRegistry.push(quizOnlyLeaf);
+    try {
+      expect(resolveQuizParentDestination("synthetic-orphan-quiz")).toEqual({ route: "/", label: "Home" });
+    } finally {
+      mutableRegistry.pop();
     }
   });
 });

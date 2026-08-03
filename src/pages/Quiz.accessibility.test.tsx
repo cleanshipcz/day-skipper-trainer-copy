@@ -1,31 +1,47 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { render, screen, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
-import { MemoryRouter, Route, Routes } from "react-router-dom";
+import { MemoryRouter, Route, Routes, useLocation } from "react-router-dom";
 
 const mocks = vi.hoisted(() => ({
   loadProgress: vi.fn(),
   saveProgress: vi.fn(),
   resetProgress: vi.fn(),
+  loadQuizTopic: vi.fn(),
 }));
 
 vi.mock("@/contexts/AuthHooks", () => ({ useAuth: () => ({ user: null }) }));
 vi.mock("@/hooks/useProgress", () => ({ useProgress: () => mocks }));
 vi.mock("@/integrations/supabase/client", () => ({ supabase: { rpc: vi.fn() } }));
 vi.mock("@/data/quizzes", () => ({
-  isQuizTopicId: () => true,
-  topicMeta: { test: { title: "A very long localized quiz title that must reflow", subtitle: "Long localized supporting text" } },
-  loadQuizTopic: vi.fn().mockResolvedValue([
-    { id: "q1", question: "First deliberately long localized question withoutshortbreakpoints?", options: ["First wrong", "First correct answer with exceptionallylonglocalizedcontent"], correctAnswer: 1, explanation: "First explanation with exceptionallylonglocalizedcontent." },
-    { id: "q2", question: "Second question?", options: ["Second wrong", "Second correct"], correctAnswer: 1, explanation: "Second explanation." },
-  ]),
+  isQuizTopicId: (topic: string) => ["test", "nautical-terms-quiz", "ropework", "lights-signals"].includes(topic),
+  topicMeta: {
+    test: { title: "A very long localized quiz title that must reflow", subtitle: "Long localized supporting text" },
+    "nautical-terms-quiz": { title: "Full Nautical Terms Quiz", subtitle: "Terms" },
+    ropework: { title: "Ropework Quiz", subtitle: "Knots" },
+    "lights-signals": { title: "Lights & Signals Mastery", subtitle: "Signals" },
+  },
+  loadQuizTopic: mocks.loadQuizTopic,
 }));
 
 import Quiz from "./Quiz";
 
-const renderQuiz = () => render(
-  <MemoryRouter initialEntries={["/quiz/test"]}>
-    <Routes><Route path="/quiz/:topicId" element={<Quiz />} /></Routes>
+const questions = [
+  { id: "q1", question: "First deliberately long localized question withoutshortbreakpoints?", options: ["First wrong", "First correct answer with exceptionallylonglocalizedcontent"], correctAnswer: 1, explanation: "First explanation with exceptionallylonglocalizedcontent." },
+  { id: "q2", question: "Second question?", options: ["Second wrong", "Second correct"], correctAnswer: 1, explanation: "Second explanation." },
+];
+
+const LocationProbe = () => {
+  const location = useLocation();
+  return <p>Current path: {location.pathname}</p>;
+};
+
+const renderQuiz = (path = "/quiz/test") => render(
+  <MemoryRouter initialEntries={[path]}>
+    <Routes>
+      <Route path="/quiz/:topicId" element={<Quiz />} />
+      <Route path="*" element={<LocationProbe />} />
+    </Routes>
   </MemoryRouter>,
 );
 
@@ -35,6 +51,41 @@ describe("Quiz accessible interaction and reflow", () => {
     mocks.loadProgress.mockReset().mockResolvedValue(null);
     mocks.saveProgress.mockReset().mockResolvedValue(true);
     mocks.resetProgress.mockReset().mockResolvedValue(true);
+    mocks.loadQuizTopic.mockReset().mockResolvedValue(questions);
+  });
+
+  it.each([
+    ["/quiz/nautical-terms-quiz", "Back to Nautical Terms & Boat Parts from Full Nautical Terms Quiz", "/nautical-terms"],
+    ["/quiz/nautical-terms", "Back to Nautical Terms & Boat Parts from Full Nautical Terms Quiz", "/nautical-terms"],
+    ["/quiz/ropework", "Back to Ropework & Knots from Ropework Quiz", "/ropework"],
+    ["/quiz/lights-signals", "Back to Lights & Signals Theory from Lights & Signals Mastery", "/rules/lights"],
+  ])("returns active and legacy quiz routes to their registered parent", async (path, backName, expectedPath) => {
+    const user = userEvent.setup();
+    renderQuiz(path);
+    await user.click(await screen.findByRole("button", { name: backName }));
+    expect(await screen.findByText(`Current path: ${expectedPath}`)).toBeTruthy();
+  });
+
+  it("uses the same safe fallback in the unavailable state", async () => {
+    const user = userEvent.setup();
+    mocks.loadQuizTopic.mockRejectedValueOnce(new Error("missing"));
+    renderQuiz("/quiz/unknown-deep-link");
+    await user.click(await screen.findByRole("button", { name: "Back to Home" }));
+    expect(await screen.findByText("Current path: /")).toBeTruthy();
+    expect(screen.queryByRole("button", { name: "Nautical Terms" })).toBeNull();
+  });
+
+  it("returns completed quizzes to the exact registered parent path", async () => {
+    const user = userEvent.setup();
+    mocks.loadQuizTopic.mockResolvedValueOnce([questions[0]]);
+    renderQuiz("/quiz/ropework");
+
+    await user.click(await screen.findByRole("radio", { name: /First correct answer/i }));
+    await user.click(screen.getByRole("button", { name: "Submit Answer" }));
+    await user.click(screen.getByRole("button", { name: "View Results" }));
+    await user.click(await screen.findByRole("button", { name: "Return to Ropework & Knots" }));
+
+    expect(await screen.findByText("Current path: /ropework")).toBeTruthy();
   });
 
   it("labels navigation and numeric progress and exposes one radio selection", async () => {
@@ -56,7 +107,7 @@ describe("Quiz accessible interaction and reflow", () => {
 
   it("announces feedback once and focuses each advanced question and completion", async () => {
     const user = userEvent.setup();
-    renderQuiz();
+    renderQuiz("/quiz/ropework");
     const firstHeading = await screen.findByRole("heading", { level: 3 });
     const firstPrefix = firstHeading.textContent?.startsWith("First") ? "First" : "Second";
     await user.click(screen.getByRole("radio", { name: new RegExp(`${firstPrefix} correct`, "i") }));
@@ -83,6 +134,7 @@ describe("Quiz accessible interaction and reflow", () => {
 
     const completion = await screen.findByRole("heading", { name: "Quiz Complete!" });
     await waitFor(() => expect(document.activeElement).toBe(completion));
+    expect(screen.getByRole("button", { name: "Return to Ropework & Knots" })).toBeTruthy();
 
     await user.click(screen.getByRole("button", { name: "Retry Quiz" }));
     const restartedHeading = await screen.findByRole("heading", { level: 3 });
