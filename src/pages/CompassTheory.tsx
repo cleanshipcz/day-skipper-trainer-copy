@@ -2,7 +2,7 @@ import { useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { ArrowLeft, Compass, RotateCw, Globe } from "lucide-react";
-import { useEffect } from "react";
+import { useEffect, useState } from "react";
 import { useTheoryCompletionGate } from "@/features/progress/useTheoryCompletionGate";
 import CompassConverter from "@/components/navigation/CompassConverter";
 import DeviationDrill from "@/components/navigation/DeviationDrill";
@@ -11,10 +11,12 @@ import { TOPIC_IDS } from "@/constants/topicRegistry";
 
 const CompassTheory = () => {
   const navigate = useNavigate();
-  const { canComplete, markCompleted, markSectionVisited } = useTheoryCompletionGate({
+  const [completionMessage, setCompletionMessage] = useState("");
+  const { canComplete, markCompleted, markSectionVisited, saveState, isHydrated } = useTheoryCompletionGate({
     topicId: TOPIC_IDS.COMPASS_THEORY,
     requiredSectionIds: ["read-content"],
     pointsOnComplete: 10,
+    catalogueRevision: "compass-theory-v1",
   });
 
   useEffect(() => {
@@ -144,17 +146,36 @@ const CompassTheory = () => {
         </section>
 
         {/* Action Button */}
-        <div className="flex justify-center pt-8">
+        <div className="flex flex-col items-center gap-3 pt-8">
           <Button
             size="lg"
-            disabled={!canComplete}
+            disabled={!isHydrated || !canComplete || saveState === "saving"}
             onClick={async () => {
-              await markCompleted();
-              navigate("/navigation");
+              setCompletionMessage("");
+              const persisted = await markCompleted();
+              if (persisted) {
+                navigate("/navigation");
+                return;
+              }
+              setCompletionMessage("Completion was not saved. Your reading progress remains here; retry when ready.");
             }}
           >
-            {canComplete ? "Complete Module" : "Scroll through module to complete"}
+            {!isHydrated
+              ? "Loading saved progress…"
+              : saveState === "saving"
+                ? "Saving…"
+                : canComplete
+                  ? saveState === "failed" ? "Retry completion" : "Complete Module"
+                  : "Scroll through module to complete"}
           </Button>
+          {completionMessage && <p role="alert" className="text-center text-sm text-destructive">{completionMessage}</p>}
+          {!completionMessage && (saveState === "queued" || saveState === "local") && (
+            <p role="status" aria-live="polite" aria-atomic="true" className="text-center text-sm text-muted-foreground">
+              {saveState === "queued"
+                ? "Completion is durably queued on this device and will sync when you reconnect."
+                : "Completion is saved in this browser. Sign in to sync future progress to an account."}
+            </p>
+          )}
         </div>
       </main>
     </div>
