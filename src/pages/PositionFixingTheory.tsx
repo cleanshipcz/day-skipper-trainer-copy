@@ -30,13 +30,13 @@ const PositionFixingTheory = () => {
   }, [markSectionVisited]);
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-background via-ocean-light/10 to-background pb-20">
+    <div className="min-h-screen overflow-x-hidden bg-gradient-to-br from-background via-ocean-light/10 to-background pb-20">
       <header className="sticky top-0 z-40 border-b border-border bg-card/95 backdrop-blur-sm">
-        <div className="container mx-auto flex items-center gap-3 px-4 py-4">
-          <Button aria-label="Back to Navigation from Position Fixing" variant="ghost" size="icon" onClick={() => navigate("/navigation")}>
+        <div className="container mx-auto flex min-w-0 items-center gap-3 px-4 py-4">
+          <Button className="min-h-11 min-w-11 shrink-0" aria-label="Back to Navigation from Position Fixing" variant="ghost" size="icon" onClick={() => navigate("/navigation")}>
             <ArrowLeft aria-hidden className="h-5 w-5" />
           </Button>
-          <div><h1 className="text-xl font-bold">Position Fixing</h1><p className="text-sm text-muted-foreground">Build, interpret and check a defensible position</p></div>
+          <div className="min-w-0"><h1 className="break-words text-xl font-bold">Position Fixing</h1><p className="break-words text-sm text-muted-foreground">Build, interpret and check a defensible position</p></div>
         </div>
       </header>
 

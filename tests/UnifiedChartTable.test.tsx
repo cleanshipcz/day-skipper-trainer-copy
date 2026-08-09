@@ -30,6 +30,7 @@ describe("UnifiedChartTable", () => {
       tapChart(svg, x, y);
     }
     expect(screen.getByText(/Fix passed — 1042/i)).toBeDefined();
+    expect(document.activeElement?.textContent).toContain("Fix passed — 1042");
     expect(screen.getByText(/Calculated position: \((?:299|300)\.\d, (?:299|300)\.\d\)/i)).toBeDefined();
     expect(screen.getByText(/independently specified scenario position/i)).toBeDefined();
   });
@@ -76,7 +77,7 @@ describe("UnifiedChartTable", () => {
     await user.type(screen.getByLabelText("Corrected true bearing"), "34.3");
     await user.click(screen.getByRole("button", { name: "Record corrected sight" }));
     expect(screen.getByText(/Stay within 2 minutes and 0.3 NM/i)).toBeDefined();
-    await user.click(screen.getByRole("button", { name: "Reset" }));
+    await user.click(screen.getByRole("button", { name: "Reset exercise" }));
     expect(screen.queryByText(/1040, log 18.6: Headland Light/i)).toBeNull();
     await user.click(screen.getByRole("button", { name: "Sight Headland Light" }));
     expect((screen.getByLabelText("Observation time") as HTMLInputElement).value).toBe("1042");
@@ -128,8 +129,41 @@ describe("UnifiedChartTable", () => {
   it.each([375, 768, 1280, 1600])("retains chart controls at %ipx/high zoom equivalent", (width) => {
     Object.defineProperty(window, "innerWidth", { configurable: true, value: width });
     render(<UnifiedChartTable />);
-    expect(screen.getByRole("button", { name: "Open full screen chart" })).toBeDefined();
-    expect(screen.getByRole("button", { name: "Reset" })).toBeDefined();
+    expect(screen.getByRole("button", { name: "Enlarge chart inline" })).toBeDefined();
+    expect(screen.getByRole("button", { name: "Reset exercise" })).toBeDefined();
     expect(screen.getByText(/Sight → record\/correct → plot/i)).toBeDefined();
+  });
+
+  it("exposes named state, chart description and a keyboard-equivalent precise plot", async () => {
+    const user = userEvent.setup();
+    render(<UnifiedChartTable />);
+    const sight = screen.getByRole("button", { name: "Sight Headland Light" });
+    expect(sight.getAttribute("aria-pressed")).toBe("false");
+    sight.focus();
+    await user.keyboard("{Enter}");
+    expect(sight.getAttribute("aria-pressed")).toBe("true");
+    await user.type(screen.getByLabelText("Corrected true bearing"), "306.9");
+    await user.click(screen.getByRole("button", { name: "Record corrected sight" }));
+    await user.type(screen.getByLabelText("Reciprocal bearing"), "126.9");
+    const precise = screen.getByRole("button", { name: "Plot selected sight precisely" });
+    precise.focus();
+    await user.keyboard("{Enter}");
+    expect(screen.getByText(/LOP 1 accepted/i)).toBeDefined();
+    expect(screen.getByText(/Headland Light: 126.9°T reciprocal/i)).toBeDefined();
+    const chart = screen.getByRole("img", { name: "Position-fix practice chart" });
+    expect(chart.getAttribute("aria-describedby")).toBe("position-chart-description");
+    expect(screen.getByText(/Practice chart with three fixed objects/i)).toBeDefined();
+  });
+
+  it("reports inline enlargement with stable expanded and pressed state", async () => {
+    const user = userEvent.setup();
+    render(<UnifiedChartTable />);
+    const enlarge = screen.getByRole("button", { name: "Enlarge chart inline" });
+    expect(enlarge.getAttribute("aria-expanded")).toBe("false");
+    expect(enlarge.getAttribute("aria-pressed")).toBe("false");
+    await user.click(enlarge);
+    expect(enlarge.getAttribute("aria-expanded")).toBe("true");
+    expect(enlarge.getAttribute("aria-pressed")).toBe("true");
+    expect(enlarge.getAttribute("aria-controls")).toBe("position-chart-region");
   });
 });
