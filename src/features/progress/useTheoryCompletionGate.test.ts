@@ -304,6 +304,28 @@ describe("useTheoryCompletionGate", () => {
     expect(result.current.saveState).toBe("saved");
   });
 
+  it("retains revisioned evidence and resolves failed when its detailed save rejects", async () => {
+    const { result } = renderHook(() => useTheoryCompletionGate({ topicId, requiredSectionIds, catalogueRevision: "v1" }));
+    await waitFor(() => expect(localStorage.getItem(`theory-gate:anonymous:${topicId}:v1`)).not.toBeNull());
+    mocks.saveProgressDetailed.mockRejectedValueOnce(new Error("offline"));
+    let outcome: "failed" | void;
+    await act(async () => { outcome = await result.current.markSectionVisited("s1"); });
+    expect(outcome!).toBe("failed");
+    expect(result.current.saveState).toBe("failed");
+    expect(result.current.visitedSectionIds).toEqual(["s1"]);
+    expect(JSON.parse(localStorage.getItem(`theory-gate:anonymous:${topicId}:v1`)!).visitedSectionIds).toEqual(["s1"]);
+  });
+
+  it("retains non-revisioned evidence and resolves failed when its legacy save rejects", async () => {
+    mocks.saveProgress.mockRejectedValueOnce(new Error("offline"));
+    const { result } = renderHook(() => useTheoryCompletionGate({ topicId, requiredSectionIds }));
+    let outcome: "failed" | void;
+    await act(async () => { outcome = await result.current.markSectionVisited("s1"); });
+    expect(outcome!).toBe("failed");
+    expect(result.current.saveState).toBe("failed");
+    expect(result.current.visitedSectionIds).toEqual(["s1"]);
+  });
+
   it("treats the legacy saveProgress Boolean false result as a completion failure", async () => {
     const { result } = renderHook(() => useTheoryCompletionGate({ topicId, requiredSectionIds: ["s1"] }));
     await act(async () => { await result.current.markSectionVisited("s1"); });

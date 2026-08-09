@@ -25,7 +25,7 @@ export const useTheoryCompletionGate = ({
   const hydrationKeyRef = useRef<string | null>(null);
   const hydrationGenerationRef = useRef(0);
   const pendingSaveRef = useRef<{ generation: number; ids: string[] } | null>(null);
-  const saveWorkerRef = useRef<{ generation: number; promise: Promise<void> } | null>(null);
+  const saveWorkerRef = useRef<{ generation: number; promise: Promise<"failed" | void> } | null>(null);
   const localDurableRef = useRef(true);
   const [saveState, setSaveState] = useState<"idle" | "saving" | "saved" | "local" | "queued" | "failed">("idle");
   const storageKey = catalogueRevision ? `theory-gate:${ownerId ?? "anonymous"}:${topicId}:${catalogueRevision}` : null;
@@ -52,16 +52,22 @@ export const useTheoryCompletionGate = ({
   const enqueueInProgressSave = useCallback((ids: string[], generation = hydrationGenerationRef.current) => {
     pendingSaveRef.current = { generation, ids };
     if (saveWorkerRef.current?.generation === generation) return saveWorkerRef.current.promise;
-    const worker = { generation, promise: Promise.resolve() };
-    worker.promise = (async () => {
+    const worker: { generation: number; promise: Promise<"failed" | void> } = { generation, promise: Promise.resolve() };
+    worker.promise = (async (): Promise<"failed" | void> => {
       while (pendingSaveRef.current?.generation === generation) {
         const snapshot = pendingSaveRef.current;
         pendingSaveRef.current = null;
         const score = deriveCompletionGateDecision({ visitedSectionIds: snapshot.ids, requiredSectionIds }).score;
         setSaveState("saving");
-        const result = saveProgressDetailed
-          ? await saveProgressDetailed(topicId, false, score, 0, { completionState: "in_progress", catalogueRevision, visitedSectionIds: snapshot.ids })
-          : await saveProgress(topicId, false, score, 0, { completionState: "in_progress", catalogueRevision, visitedSectionIds: snapshot.ids });
+        let result;
+        try {
+          result = saveProgressDetailed
+            ? await saveProgressDetailed(topicId, false, score, 0, { completionState: "in_progress", catalogueRevision, visitedSectionIds: snapshot.ids })
+            : await saveProgress(topicId, false, score, 0, { completionState: "in_progress", catalogueRevision, visitedSectionIds: snapshot.ids });
+        } catch {
+          setSaveState("failed");
+          return "failed";
+        }
         const ok = result !== false && result !== "failed" && result !== "conflict";
         setSaveState(result === "queued" ? "queued" : result === "anonymous" ? localDurableRef.current ? "local" : "failed" : ok ? "saved" : "failed");
       }
@@ -130,9 +136,15 @@ export const useTheoryCompletionGate = ({
       if (state !== "in_progress" || (!catalogueRevision && inProgressPersistedRef.current)) return;
 
       inProgressPersistedRef.current = true;
-      if (catalogueRevision) await enqueueInProgressSave(nextVisitedSectionIds);
+      if (catalogueRevision) return enqueueInProgressSave(nextVisitedSectionIds);
       else {
-        const saved = await saveProgress(topicId, false, score, 0, { completionState: "in_progress", visitedSectionIds: nextVisitedSectionIds });
+        let saved;
+        try {
+          saved = await saveProgress(topicId, false, score, 0, { completionState: "in_progress", visitedSectionIds: nextVisitedSectionIds });
+        } catch {
+          setSaveState("failed");
+          return "failed" as const;
+        }
         if (saved === false) setSaveState("failed");
       }
     },
@@ -162,7 +174,7 @@ export const useTheoryCompletionGate = ({
         visitedSectionIds: nextVisitedSectionIds,
         requiredSectionIds,
       });
-      await persistInProgressIfNeeded(nextDecision.state, nextDecision.score, nextVisitedSectionIds);
+      return persistInProgressIfNeeded(nextDecision.state, nextDecision.score, nextVisitedSectionIds);
     },
     [persistInProgressIfNeeded, requiredSectionIds, writeBrowserEvidence]
   );
