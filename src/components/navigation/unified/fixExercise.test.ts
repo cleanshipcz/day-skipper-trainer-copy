@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { angularDifference, clientToSvgPoint, intersectLines, landmarks, lineFromLandmark, magneticToTrue, normalizeBearing, reciprocal, SCENARIO_ORACLE, solveFix } from "./fixExercise";
+import { angularDifference, clientToSvgPoint, intersectLines, landmarks, lineFromLandmark, magneticToTrue, minutesApart, normalizeBearing, reciprocal, SCENARIO_ORACLE, solveFix } from "./fixExercise";
 
 describe("position fix geometry", () => {
   it("normalizes wraparound and reciprocal bearings", () => {
@@ -7,6 +7,11 @@ describe("position fix geometry", () => {
     expect(angularDifference(359, 1)).toBe(2);
     expect(reciprocal(306.87)).toBeCloseTo(126.87, 5);
     expect(magneticToTrue(3)).toBe(358);
+  });
+
+  it("treats observations either side of midnight as near-simultaneous", () => {
+    expect(minutesApart(23 * 60 + 59, 0)).toBe(1);
+    expect(minutesApart(23 * 60 + 58, 1)).toBe(3);
   });
 
   it("intersects non-parallel LOPs and rejects parallel evidence", () => {
@@ -44,5 +49,23 @@ describe("position fix geometry", () => {
     [0, 0, 800, 800, 400, 400],
   ])("maps client coordinates at responsive and zoomed sizes", (left, top, width, height, clientX, clientY) => {
     expect(clientToSvgPoint(clientX, clientY, { left, top, width, height })).toEqual({ x: 400, y: 250 });
+  });
+
+  it("removes horizontal letterboxing before independently scaling x and y", () => {
+    const rect = { left: 20, top: 30, width: 1000, height: 500 };
+    expect(clientToSvgPoint(120, 30, rect)).toEqual({ x: 0, y: 0 });
+    expect(clientToSvgPoint(320, 130, rect)).toEqual({ x: 200, y: 100 });
+    expect(clientToSvgPoint(920, 530, rect)).toEqual({ x: 800, y: 500 });
+  });
+
+  it("removes vertical letterboxing at chart edges and off-centre points", () => {
+    const rect = { left: 10, top: 20, width: 800, height: 800 };
+    expect(clientToSvgPoint(10, 170, rect)).toEqual({ x: 0, y: 0 });
+    expect(clientToSvgPoint(210, 370, rect)).toEqual({ x: 200, y: 200 });
+    expect(clientToSvgPoint(810, 670, rect)).toEqual({ x: 800, y: 500 });
+  });
+
+  it("maps asymmetric points correctly at two-times rendered size", () => {
+    expect(clientToSvgPoint(440, 360, { left: 40, top: 60, width: 1600, height: 1000 })).toEqual({ x: 200, y: 150 });
   });
 });

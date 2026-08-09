@@ -17,6 +17,10 @@ export const normalizeBearing = (bearing: number) => ((bearing % 360) + 360) % 3
 export const angularDifference = (a: number, b: number) => Math.abs(((a - b + 540) % 360) - 180);
 export const magneticToTrue = (magnetic: number) => normalizeBearing(magnetic - VARIATION_WEST);
 export const reciprocal = (bearing: number) => normalizeBearing(bearing + 180);
+export const minutesApart = (first: number, second: number) => {
+  const direct = Math.abs(first - second) % 1440;
+  return Math.min(direct, 1440 - direct);
+};
 
 export const lineFromLandmark = (landmark: Landmark, plottedReciprocal: number): Lop => ({
   landmarkId: landmark.id,

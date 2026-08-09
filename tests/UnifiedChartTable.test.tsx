@@ -47,6 +47,20 @@ describe("UnifiedChartTable", () => {
     expect(screen.getByText(/bearing to the object.*reciprocal 126.9°T/i)).toBeDefined();
   });
 
+  it("keeps the learner's accepted corrected bearing as the recorded evidence", async () => {
+    const user = userEvent.setup();
+    const { container } = render(<UnifiedChartTable />);
+    const svg = container.querySelector("svg.bg-white") as SVGSVGElement;
+    Object.defineProperty(svg, "getBoundingClientRect", { value: () => ({ left: 0, top: 0, width: 800, height: 500 }) });
+    await user.click(screen.getByRole("button", { name: "Sight Headland Light" }));
+    await user.type(screen.getByLabelText("Corrected true bearing"), "306.5");
+    await user.click(screen.getByRole("button", { name: "Record corrected sight" }));
+    expect(screen.getByText(/Headland Light 311.9°M → 306.5°T/i)).toBeDefined();
+    await user.type(screen.getByLabelText("Reciprocal bearing"), "126.5");
+    tapChart(svg, 100, 150);
+    expect(screen.getByText(/LOP 1 accepted/i)).toBeDefined();
+  });
+
   it("rejects observations outside the common-time sequence and reset clears edited evidence", async () => {
     const user = userEvent.setup();
     render(<UnifiedChartTable />);
@@ -67,6 +81,23 @@ describe("UnifiedChartTable", () => {
     await user.click(screen.getByRole("button", { name: "Sight Headland Light" }));
     expect((screen.getByLabelText("Observation time") as HTMLInputElement).value).toBe("1042");
     expect((screen.getByLabelText("Log reading") as HTMLInputElement).value).toBe("18.6");
+  });
+
+  it("accepts a near-common-time sequence across midnight", async () => {
+    const user = userEvent.setup();
+    render(<UnifiedChartTable />);
+    await user.click(screen.getByRole("button", { name: "Sight Headland Light" }));
+    await user.clear(screen.getByLabelText("Observation time"));
+    await user.type(screen.getByLabelText("Observation time"), "2359");
+    await user.type(screen.getByLabelText("Corrected true bearing"), "306.9");
+    await user.click(screen.getByRole("button", { name: "Record corrected sight" }));
+    await user.click(screen.getByRole("button", { name: "Sight North Buoy" }));
+    await user.clear(screen.getByLabelText("Observation time"));
+    await user.type(screen.getByLabelText("Observation time"), "0000");
+    await user.type(screen.getByLabelText("Corrected true bearing"), "34.3");
+    await user.click(screen.getByRole("button", { name: "Record corrected sight" }));
+    expect(screen.getByText(/0000, log 18.6: North Buoy/i)).toBeDefined();
+    expect(screen.queryByText(/Stay within 2 minutes/i)).toBeNull();
   });
 
   it("announces and styles an out-of-tolerance assessment as failure", async () => {

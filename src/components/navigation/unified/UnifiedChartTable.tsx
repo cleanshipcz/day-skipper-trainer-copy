@@ -5,7 +5,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import ChartSurface from "./ChartSurface";
 import {
   angularDifference, CHART_HEIGHT, CHART_WIDTH, clientToSvgPoint, FIX_TOLERANCE, landmarks,
-  lineFromLandmark, magneticToTrue, reciprocal, SCENARIO_ORACLE, solveFix, type Landmark, type Lop,
+  lineFromLandmark, magneticToTrue, minutesApart, normalizeBearing, reciprocal, SCENARIO_ORACLE, solveFix, type Landmark, type Lop,
 } from "./fixExercise";
 
 interface RecordedSight { landmark: Landmark; time: string; log: string; trueBearing: number }
@@ -50,13 +50,13 @@ const UnifiedChartTable = () => {
       const first = recorded[0];
       const firstMinutes = Number(first.time.slice(0, 2)) * 60 + Number(first.time.slice(2));
       const currentMinutes = hours * 60 + minutes;
-      if (Math.abs(currentMinutes - firstMinutes) > 2 || Math.abs(Number(log) - Number(first.log)) > 0.3) return setFeedback(`Take the sights in quick succession. Stay within 2 minutes and 0.3 NM of the first record (${first.time}, log ${first.log}), or reset for a new sequence.`);
+      if (minutesApart(currentMinutes, firstMinutes) > 2 || Math.abs(Number(log) - Number(first.log)) > 0.3) return setFeedback(`Take the sights in quick succession. Stay within 2 minutes and 0.3 NM of the first record (${first.time}, log ${first.log}), or reset for a new sequence.`);
     }
     const entered = Number(trueInput);
     const correct = magneticToTrue(selected.magneticBearing);
     if (!Number.isFinite(entered) || angularDifference(entered, correct) > 1) return setFeedback(`Check Compass → True. ${selected.magneticBearing.toFixed(1)}°M minus 5°W = ${correct.toFixed(1)}°T.`);
     if (recorded.some((item) => item.landmark.id === selected.id)) return setFeedback(`${selected.name} is already recorded; choose independent evidence.`);
-    const next = { landmark: selected, time, log, trueBearing: correct };
+    const next = { landmark: selected, time, log, trueBearing: normalizeBearing(entered) };
     setRecorded((items) => [...items, next]);
     setPlotChoice(selected.id);
     setReciprocalInput("");
