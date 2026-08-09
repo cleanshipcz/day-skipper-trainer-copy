@@ -24,7 +24,7 @@ const EXPECTED_QUESTION_COUNTS: Record<string, number> = {
   "nautical-terms-quiz": 32,
   ropework: 12,
   anchorwork: 12,
-  victualling: 12,
+  victualling: 16,
   engine: 12,
   rig: 12,
   colregs: 20,

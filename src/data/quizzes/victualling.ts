@@ -128,6 +128,34 @@ const victuallingQuestions: readonly Question[] = [
     explanation:
       "Oilskin trousers protect the cook's legs against scalds from hot liquids spilling in rough conditions.",
   },
+  {
+    id: "v13",
+    question: "A crew member has a severe food allergy. What should the provisioning plan include?",
+    options: ["Rely on medication", "Labelled alternatives plus controls for shared equipment, preparation and storage", "Remove only visibly allergenic pieces", "Let the crew member skip meals"],
+    correctAnswer: 1,
+    explanation: "Ask about allergies and medical constraints before menu planning, provide suitable alternatives, and control cross-contact through separation, cleaning, labelling and preparation order.",
+  },
+  {
+    id: "v14",
+    question: "Which stowage plan is safest?",
+    options: ["Heavy stores high for easy reach", "All water in one tank", "Heavy stores low and restrained, with an inventory and separate protected emergency water", "Cleaning products beside food"],
+    correctAnswer: 2,
+    explanation: "Stores must not move when the vessel heels, and must remain dry, accessible and traceable. Emergency water stays separate from the main supply and contamination sources.",
+  },
+  {
+    id: "v15",
+    question: "What should you do after finding a dirty water hose and an unusual odour in the tank?",
+    options: ["Taste the water to decide", "Add flavouring", "Isolate the suspect supply and use protected water until it is confirmed safe or correctly treated", "Use it only for cooking"],
+    correctAnswer: 2,
+    explanation: "A dirty filling path and changed odour are contamination warnings. Do not taste suspect water or assume heating during normal cooking makes an unknown hazard safe.",
+  },
+  {
+    id: "v16",
+    question: "How should waste disposal be planned?",
+    options: ["Throw biodegradable waste overboard anywhere", "Securely retain and segregate waste, then dispose of it under the rules for the vessel, location and waste type", "Burn packaging on deck", "Store waste beside drinking water"],
+    correctAnswer: 1,
+    explanation: "Reduce packaging and portions first, then retain waste without leaks or contamination. Applicable international, national and local rules determine what may be disposed of and where.",
+  },
 ] as const;
 
 export default victuallingQuestions;
