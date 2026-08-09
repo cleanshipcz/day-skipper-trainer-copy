@@ -4,10 +4,11 @@ update public.user_progress canonical
 set completed = canonical.completed or legacy.completed,
     score = greatest(canonical.score, legacy.score),
     last_accessed = greatest(canonical.last_accessed, legacy.last_accessed),
-    answers_history = case
-      when legacy.completed and not canonical.completed then legacy.answers_history
-      else coalesce(canonical.answers_history, legacy.answers_history)
-    end
+    answers_history = case when
+      (legacy.completed::integer, legacy.score, coalesce(legacy.last_accessed, '-infinity'::timestamptz))
+        > (canonical.completed::integer, canonical.score, coalesce(canonical.last_accessed, '-infinity'::timestamptz))
+      then coalesce(legacy.answers_history, canonical.answers_history)
+      else coalesce(canonical.answers_history, legacy.answers_history) end
 from public.user_progress legacy
 where canonical.user_id = legacy.user_id
   and canonical.topic_id = 'tides-heights-calc'
@@ -29,10 +30,11 @@ update public.user_progress canonical
 set completed = canonical.completed or legacy.completed,
     score = greatest(canonical.score, legacy.score),
     last_accessed = greatest(canonical.last_accessed, legacy.last_accessed),
-    answers_history = case
-      when legacy.completed and not canonical.completed then legacy.answers_history
-      else coalesce(canonical.answers_history, legacy.answers_history)
-    end
+    answers_history = case when
+      (legacy.completed::integer, legacy.score, coalesce(legacy.last_accessed, '-infinity'::timestamptz))
+        > (canonical.completed::integer, canonical.score, coalesce(canonical.last_accessed, '-infinity'::timestamptz))
+      then coalesce(legacy.answers_history, canonical.answers_history)
+      else coalesce(canonical.answers_history, legacy.answers_history) end
 from public.user_progress legacy
 where canonical.user_id = legacy.user_id
   and canonical.topic_id = 'tides-vector-tool'
@@ -78,7 +80,12 @@ begin
   select pg_get_functiondef('public.save_topic_progress(text,boolean,integer,integer,jsonb)'::regprocedure)
     into definition;
   definition := replace(definition, '''tidal-heights-calc''', '''tides-heights-calc''');
-  definition := replace(definition, ''', ''vector-triangle''', '');
+  definition := regexp_replace(definition, E',\\s*''vector-triangle''', '', 'g');
+  if position('''tidal-heights-calc''' in definition) > 0
+     or position('''vector-triangle''' in definition) > 0
+     or position('''tides-heights-calc''' in definition) = 0 then
+    raise exception 'Failed to canonicalize Tides progress RPC catalogue';
+  end if;
   execute definition;
 end;
 $$;

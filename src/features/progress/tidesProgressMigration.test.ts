@@ -10,5 +10,8 @@ describe("Tides progress catalogue migration", () => {
     expect(sql).toContain("'vector-triangle'");
     expect(sql).toContain("'tides-vector-tool'");
     expect(sql).toContain("pg_get_functiondef");
+    expect(sql).toContain("regexp_replace");
+    expect(sql).toContain("failed to canonicalize tides progress rpc catalogue");
+    expect(sql).toContain("legacy.completed::integer, legacy.score");
   });
 });
