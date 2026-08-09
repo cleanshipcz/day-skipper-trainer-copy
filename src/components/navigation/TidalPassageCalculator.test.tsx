@@ -52,6 +52,24 @@ describe("TidalPassageCalculator rendering contract", () => {
     expect(screen.queryByText(/^about /)).toBeNull();
   });
 
+  it("does not call a nonzero interval usable when both inward-rounded endpoints are noon", () => {
+    render(<TidalPassageCalculator />);
+    change("draft", "4.4999");
+    change("clearance", "0");
+    change("chartedDepth", "0");
+    expect(screen.getByText(/No usable five-minute window/)).toBeTruthy();
+    expect(screen.queryByText("exact boundary at 12:00")).toBeNull();
+  });
+
+  it("renders low-water equality boundaries as intervals", () => {
+    render(<TidalPassageCalculator />);
+    change("draft", "0.8");
+    change("clearance", "0");
+    change("chartedDepth", "0");
+    expect(screen.getByText("about 06:00–18:00")).toBeTruthy();
+    expect(screen.queryByText(/exact boundary at/)).toBeNull();
+  });
+
   it("keeps finite curve geometry and identifies an off-scale requirement", () => {
     render(<TidalPassageCalculator />);
     change("draft", "30");

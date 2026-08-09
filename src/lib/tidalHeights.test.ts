@@ -69,6 +69,38 @@ describe("tidal passage calculations", () => {
     expect(conservativeWindow(narrow.safeWindows[0]).start).toBeGreaterThan(conservativeWindow(narrow.safeWindows[0]).end);
   });
 
+  it("rejects a nonzero exact interval whose inward-rounded endpoints coincide", () => {
+    const result = plan({
+      previousLow: { minutes: 718, height: 4.99987815 },
+      high: { minutes: 720, height: 5 },
+      followingLow: { minutes: 722, height: 4.99987815 },
+      draft: 4.9999,
+      clearance: 0,
+    });
+    // Use a normal-duration model with analytic crossings close to noon instead.
+    const normalDuration = plan({ draft: 4.9999, clearance: 0 });
+    expect(result.status).toBe("out_of_model");
+    expect(normalDuration.safeWindows[0].start).toBeLessThan(normalDuration.safeWindows[0].end);
+    expect(conservativeWindow(normalDuration.safeWindows[0]).start).toBe(conservativeWindow(normalDuration.safeWindows[0]).end);
+    expect(normalDuration.status).toBe("no_usable_window");
+  });
+
+  it("preserves real safe intervals when the requirement equals either or both low waters", () => {
+    const atPrevious = plan({ previousLow: { minutes: 360, height: 2 }, followingLow: { minutes: 1080, height: 1 }, draft: 2, clearance: 0 });
+    expect(atPrevious.status).toBe("boundary");
+    expect(atPrevious.safeWindows[0].start).toBe(360);
+    expect(atPrevious.safeWindows[0].end).toBeLessThan(1080);
+
+    const atFollowing = plan({ previousLow: { minutes: 360, height: 1 }, followingLow: { minutes: 1080, height: 2 }, draft: 2, clearance: 0 });
+    expect(atFollowing.status).toBe("boundary");
+    expect(atFollowing.safeWindows[0].start).toBeGreaterThan(360);
+    expect(atFollowing.safeWindows[0].end).toBe(1080);
+
+    const atBoth = plan({ draft: 1, clearance: 0 });
+    expect(atBoth.status).toBe("boundary");
+    expect(atBoth.safeWindows).toEqual([{ start: 360, end: 1080 }]);
+  });
+
   it("supports finite negative and high tidal values", () => {
     const result = plan({ previousLow: { minutes: 360, height: -3 }, high: { minutes: 720, height: 18 }, followingLow: { minutes: 1080, height: -2 }, chartedDepth: -1 });
     expect(result.status).toBe("safe_window");

@@ -123,7 +123,7 @@ export const calculatePassagePlan = (input: PassageInputs): PassagePlan => {
   ];
   const atEventBoundary = approximatelyEqual(requiredTide, input.previousLow.height) || approximatelyEqual(requiredTide, input.followingLow.height);
   const conservative = conservativeWindow({ start, end });
-  if (conservative.start > conservative.end) {
+  if (start < end && conservative.start >= conservative.end) {
     return { status: "no_usable_window", requiredTide, crossings, safeWindows: [{ start, end }], errors };
   }
   return { status: atEventBoundary ? "boundary" : "safe_window", requiredTide, crossings, safeWindows: [{ start, end }], errors };

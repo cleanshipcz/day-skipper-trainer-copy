@@ -128,11 +128,13 @@ const TidalPassageCalculator = () => {
         </svg></div>
         <div className="mt-4 rounded-lg border p-4"><h4 className="flex items-center gap-2 font-semibold"><Clock className="h-4 w-4" /> Result</h4>
           <p className="mt-1 text-sm">{statusCopy}</p>
-          {model.plan.status === "boundary" && model.plan.safeWindows.map((window, index) => <Badge key={index} variant="outline" className="mt-2 mr-2">exact boundary at {formatTidalTime(window.start)}</Badge>)}
+          {model.plan.status === "boundary" && model.plan.safeWindows.map((window, index) => window.start === window.end
+            ? <Badge key={index} variant="outline" className="mt-2 mr-2">exact boundary at {formatTidalTime(window.start)}</Badge>
+            : <Badge key={index} variant="outline" className="mt-2 mr-2">about {formatTidalTime(conservativeWindow(window).start)}–{formatTidalTime(conservativeWindow(window).end)}</Badge>)}
           {model.plan.status !== "boundary" && model.plan.status !== "no_usable_window" && model.plan.safeWindows.map((window, index) => { const display = conservativeWindow(window); return <Badge key={index} variant="outline" className="mt-2 mr-2">about {formatTidalTime(display.start)}–{formatTidalTime(display.end)}</Badge>; })}
           {model.plan.status === "no_usable_window" && <p className="mt-2 text-sm font-medium text-red-700">No usable five-minute window; do not plan a passage from this result.</p>}
           {!chart.requiredLineVisible && <p className="mt-2 text-xs text-muted-foreground">The required-tide line is outside the plotted tidal-height scale; the result state above still uses the exact value.</p>}
-          {model.plan.safeWindows.length > 0 && model.plan.status !== "boundary" && <p className="mt-2 text-xs text-muted-foreground">Crossings are calculated analytically; usable displayed limits are rounded inward to five minutes and remain approximate.</p>}
+          {model.plan.safeWindows.some((window) => window.start < window.end) && <p className="mt-2 text-xs text-muted-foreground">Crossings are calculated analytically; usable displayed limits are rounded inward to five minutes and remain approximate.</p>}
         </div>
       </> : <div role="alert" className="rounded-md border border-red-200 bg-red-50 p-4 text-red-800"><p className="font-semibold">No result or chart is shown.</p><p className="text-sm">{statusCopy}</p></div>}
     </CardContent></Card>
