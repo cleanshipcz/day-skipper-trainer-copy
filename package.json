@@ -23,6 +23,7 @@
     "test:quiz-accessibility-browser": "node scripts/check-quiz-accessibility-browser.mjs",
     "test:ropework-accessibility-browser": "node scripts/check-ropework-accessibility-browser.mjs",
     "test:charts-accessibility-browser": "node scripts/check-charts-accessibility-browser.mjs",
+    "test:compass-accessibility-browser": "node scripts/check-compass-accessibility-browser.mjs",
     "guard:migrations": "node scripts/check-migrations.mjs",
     "supabase:start": "supabase start",
     "supabase:stop": "supabase stop",

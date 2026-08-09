@@ -34,15 +34,15 @@ const CompassTheory = () => {
   }, [markSectionVisited]);
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-background via-ocean-light/10 to-background pb-20">
+    <div className="min-h-screen overflow-x-hidden bg-gradient-to-br from-background via-ocean-light/10 to-background pb-20">
       {/* Header */}
       <header className="border-b border-border bg-card/50 backdrop-blur-sm sticky top-0 z-40">
         <div className="container mx-auto px-4 py-4">
           <div className="flex items-center gap-3">
-            <Button variant="ghost" size="icon" onClick={() => navigate("/navigation")}>
-              <ArrowLeft className="w-5 h-5" />
+            <Button aria-label="Back to Navigation from The Magnetic Compass" variant="ghost" size="icon" onClick={() => navigate("/navigation")}>
+              <ArrowLeft aria-hidden className="w-5 h-5" />
             </Button>
-            <div>
+            <div className="min-w-0">
               <h1 className="text-xl font-bold">The Magnetic Compass</h1>
               <p className="text-sm text-muted-foreground">Variation, Deviation and the CADET Rule</p>
             </div>
@@ -121,7 +121,7 @@ const CompassTheory = () => {
               <p className="text-lg mb-6">To convert between Compass, Magnetic, and True, use the standard mnemonic:</p>
 
               <div className="bg-muted p-6 rounded-xl border border-border text-center mb-6">
-                <span className="text-4xl font-black tracking-widest text-primary">C A D E T</span>
+                <span className="break-words text-2xl font-black tracking-[0.15em] text-primary sm:text-4xl">C A D E T</span>
                 <p className="mt-2 text-xl font-medium">Compass to True, Add East</p>
               </div>
 

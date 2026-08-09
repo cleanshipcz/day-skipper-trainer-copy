@@ -1,9 +1,9 @@
 /* eslint-disable react-refresh/only-export-components -- exported navigation maths are the drill's testable contract */
-import { useState } from "react";
+import { useRef, useState } from "react";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
+import { Table, TableBody, TableCaption, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Trophy, CheckCircle, RefreshCw } from "lucide-react";
 
 /** Signed degrees: east is positive, west is negative. Card headings are compass headings. */
@@ -53,6 +53,8 @@ const DeviationDrill = () => {
   const [results, setResults] = useState<Record<number, boolean>>({});
   const [completed, setCompleted] = useState(false);
   const [score, setScore] = useState(0);
+  const summaryRef = useRef<HTMLDivElement>(null);
+  const firstAnswerRef = useRef<HTMLInputElement>(null);
   const rows = headings.map((trueHeading) => solveCompassHeading(trueHeading, variation));
 
   const handleSubmit = () => {
@@ -67,20 +69,22 @@ const DeviationDrill = () => {
     setResults(newResults);
     setScore(newScore);
     setCompleted(true);
+    requestAnimationFrame(() => summaryRef.current?.focus());
   };
 
   const reset = () => {
     setInputs({}); setResults({}); setCompleted(false); setScore(0);
     setVariation((previous) => previous === -5 ? 4 : -5);
+    requestAnimationFrame(() => firstAnswerRef.current?.focus());
   };
 
-  return <Card className="mt-8 w-full border-2 border-primary/20 bg-card">
+  return <Card className="mt-8 w-full min-w-0 overflow-hidden border-2 border-primary/20 bg-card">
     <CardHeader><CardTitle className="flex items-center gap-2"><Trophy aria-hidden className="h-5 w-5 text-yellow-500"/>Deviation-card drill</CardTitle><CardDescription>Convert each true heading to compass. Variation is <strong>{signed(variation)}</strong>. Enter compass headings rounded to the nearest degree.</CardDescription></CardHeader>
-    <CardContent className="space-y-6">
-      <section aria-labelledby="deviation-card-heading" className="space-y-2">
+    <CardContent className="min-w-0 space-y-6">
+      <section aria-labelledby="deviation-card-heading" className="min-w-0 space-y-2">
         <h3 id="deviation-card-heading" className="font-semibold">Vessel deviation card</h3>
         <p className="text-sm text-muted-foreground">The first row is <strong>compass heading (°C)</strong>, not true or magnetic heading.</p>
-        <div className="overflow-x-auto"><Table><TableBody><TableRow><TableHead scope="row">Compass heading</TableHead>{DEVIATION_CARD.map((entry) => <TableCell key={entry.compass}>{heading(entry.compass)}°C</TableCell>)}</TableRow><TableRow><TableHead scope="row">Deviation</TableHead>{DEVIATION_CARD.map((entry) => <TableCell key={entry.compass}>{signed(entry.deviation)}</TableCell>)}</TableRow></TableBody></Table></div>
+        <div className="overflow-x-auto" role="region" aria-label="Vessel deviation card; scroll horizontally to see all headings" tabIndex={0}><Table><TableCaption className="sr-only">Deviation values by compass heading</TableCaption><TableBody><TableRow><TableHead scope="row" className="sticky left-0 z-10 bg-card">Compass heading</TableHead>{DEVIATION_CARD.map((entry) => <TableCell key={entry.compass}>{heading(entry.compass)}°C</TableCell>)}</TableRow><TableRow><TableHead scope="row" className="sticky left-0 z-10 bg-card">Deviation</TableHead>{DEVIATION_CARD.map((entry) => <TableCell key={entry.compass}>{signed(entry.deviation)}</TableCell>)}</TableRow></TableBody></Table></div>
       </section>
 
       <aside className="rounded-md border bg-muted/30 p-4 text-sm space-y-2">
@@ -89,14 +93,18 @@ const DeviationDrill = () => {
         <p>Start with C₀ = M, linearly interpolate between the two adjacent compass-card entries (including 315°→000° across north), then repeat Cₙ₊₁ = M − deviation(Cₙ) until the change is below 0.0001°. The drill caps this deterministic iteration at 25 passes and rounds only the final compass answer.</p>
       </aside>
 
-      <div className="overflow-x-auto"><Table><TableHeader><TableRow><TableHead>True</TableHead><TableHead>Variation</TableHead><TableHead>Magnetic</TableHead><TableHead>Card entries used</TableHead><TableHead>Interpolated deviation</TableHead><TableHead>Compass answer</TableHead></TableRow></TableHeader><TableBody>{rows.map((row) => <TableRow key={row.trueHeading}><TableCell className="font-bold">{heading(row.trueHeading)}°T</TableCell><TableCell>{signed(variation)}</TableCell><TableCell>{heading(row.magnetic)}°M</TableCell><TableCell data-testid={`bracket-${row.trueHeading}`}>{completed ? `${heading(row.bracket[0])}–${heading(row.bracket[1])}°C` : <span className="text-muted-foreground">Shown after check</span>}</TableCell><TableCell data-testid={`deviation-${row.trueHeading}`}>{completed ? signed(row.deviation, 1) : <span className="text-muted-foreground">Shown after check</span>}</TableCell><TableCell><div className="flex items-center gap-2"><Input aria-label={`Compass heading for ${heading(row.trueHeading)} degrees true`} className={`w-24 ${completed ? results[row.trueHeading] ? "border-green-500 bg-green-50 text-green-900" : "border-red-500 bg-red-50" : ""}`} placeholder="000" inputMode="numeric" value={inputs[row.trueHeading] || ""} onChange={(event) => setInputs((previous) => ({ ...previous, [row.trueHeading]: event.target.value }))} disabled={completed}/>{completed && results[row.trueHeading] && <CheckCircle aria-hidden className="h-4 w-4 text-green-500"/>}{completed && !results[row.trueHeading] && <span className="text-sm">{heading(row.compass)}°C</span>}</div></TableCell></TableRow>)}</TableBody></Table></div>
+      <div className="overflow-x-auto" role="region" aria-label="Compass drill answers; scroll horizontally to see all columns" tabIndex={0}><Table><TableCaption className="sr-only">True-to-compass calculation practice and feedback</TableCaption><TableHeader><TableRow><TableHead scope="col">True</TableHead><TableHead scope="col">Variation</TableHead><TableHead scope="col">Magnetic</TableHead><TableHead scope="col">Card entries used</TableHead><TableHead scope="col">Interpolated deviation</TableHead><TableHead scope="col">Compass answer</TableHead></TableRow></TableHeader><TableBody>{rows.map((row, index) => {
+        const feedbackId = `answer-feedback-${row.trueHeading}`;
+        const expected = heading(row.compass);
+        return <TableRow key={row.trueHeading}><TableCell className="font-bold">{heading(row.trueHeading)}°T</TableCell><TableCell>{signed(variation)}</TableCell><TableCell>{heading(row.magnetic)}°M</TableCell><TableCell data-testid={`bracket-${row.trueHeading}`}>{completed ? `${heading(row.bracket[0])}–${heading(row.bracket[1])}°C` : <span className="text-muted-foreground">Shown after check</span>}</TableCell><TableCell data-testid={`deviation-${row.trueHeading}`}>{completed ? signed(row.deviation, 1) : <span className="text-muted-foreground">Shown after check</span>}</TableCell><TableCell className="min-w-72"><div className="flex items-center gap-2"><Input ref={index === 0 ? firstAnswerRef : undefined} aria-label={`Compass answer in degrees compass for ${heading(row.trueHeading)} degrees true`} aria-invalid={completed ? !results[row.trueHeading] : undefined} aria-describedby={completed ? feedbackId : undefined} className={`w-28 min-h-11 ${completed ? results[row.trueHeading] ? "border-green-500 bg-green-50 text-green-900" : "border-red-500 bg-red-50" : ""}`} placeholder="000" inputMode="numeric" value={inputs[row.trueHeading] || ""} onChange={(event) => setInputs((previous) => ({ ...previous, [row.trueHeading]: event.target.value }))} disabled={completed}/>{completed && results[row.trueHeading] && <CheckCircle aria-hidden className="h-4 w-4 text-green-500"/>}</div>{completed && <p id={feedbackId} className="mt-2 text-sm"><strong>{results[row.trueHeading] ? "Correct." : "Incorrect."}</strong> Expected {expected}°C. {heading(row.magnetic)}°M − {signed(row.deviation, 1)} deviation = {expected}°C.</p>}</TableCell></TableRow>;
+      })}</TableBody></Table></div>
 
       <section aria-labelledby="worked-heading" className="rounded-md border p-4 text-sm space-y-1">
         <h3 id="worked-heading" className="font-semibold">Worked interpolation example</h3>
         <p>For a separate 337.5°C lookup, the heading is halfway from the 315°C card entry (+2°E) to 000°C (2°W). Linear interpolation gives 0° deviation. This demonstrates the north-wrap method without supplying an answer to the assessed rows.</p>
       </section>
 
-      <div className="flex items-center justify-between">{completed ? <div className="flex items-center gap-4"><span className="text-lg font-bold">Score: {score}/{headings.length}</span><Button onClick={reset} variant="outline"><RefreshCw aria-hidden className="mr-2 h-4 w-4"/>New drill</Button></div> : <Button onClick={handleSubmit} className="w-full">Check answers</Button>}</div>
+      <div className="flex items-center justify-between">{completed ? <div ref={summaryRef} tabIndex={-1} role="status" aria-live="polite" aria-atomic="true" className="flex flex-col items-start gap-3 sm:flex-row sm:items-center"><span className="text-lg font-bold">Submission complete. Score: {score}/{headings.length}. Review the feedback in each row.</span><Button onClick={reset} variant="outline" className="min-h-11"><RefreshCw aria-hidden className="mr-2 h-4 w-4"/>New drill</Button></div> : <Button onClick={handleSubmit} className="min-h-11 w-full">Check answers</Button>}</div>
     </CardContent>
   </Card>;
 };
