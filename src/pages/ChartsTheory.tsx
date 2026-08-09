@@ -20,6 +20,10 @@ const ChartsTheory = () => {
     pointsOnComplete: 10,
     catalogueRevision: "chart-evidence-v1",
   });
+  // The embedded drills own transient attempt state. Remount all of them when
+  // account ownership changes so a mastered widget from the previous account
+  // cannot emit its outcome into the new owner's evidence gate.
+  const evidenceOwnerKey = `${ownerId ?? "anonymous"}:chart-evidence-v1`;
   const recordEvidence = async (id: string, label: string) => {
     if (visitedSectionIds.includes(id)) return;
     const outcome = await markSectionVisited(id);
@@ -200,7 +204,7 @@ const ChartsTheory = () => {
 
               <Card className="border-2 border-indigo-100 shadow-md">
                 <CardContent className="pt-6">
-                  <VirtualChartPlotter onMastery={() => void recordEvidence("plotter-mastery", "Chart plotting mastery")} />
+                  <VirtualChartPlotter key={`plotter:${evidenceOwnerKey}`} onMastery={() => void recordEvidence("plotter-mastery", "Chart plotting mastery")} />
                 </CardContent>
               </Card>
             </section>
@@ -332,7 +336,7 @@ const ChartsTheory = () => {
                     Use the tool below to visualize how the tide level (blue water) rises above Chart Datum, adding to
                     your available depth.
                   </p>
-                  <TidalVisualizer onMastery={() => void recordEvidence("tidal-depth-mastery", "Tidal depth mastery")} />
+                  <TidalVisualizer key={`tidal:${evidenceOwnerKey}`} onMastery={() => void recordEvidence("tidal-depth-mastery", "Tidal depth mastery")} />
                 </div>
               </div>
             </section>
@@ -392,6 +396,7 @@ const ChartsTheory = () => {
                     Charts.
                   </p>
                   <ChartSymbolQuiz
+                    key={`symbols:${evidenceOwnerKey}`}
                     evidenceOwnerId={ownerId}
                     catalogueRevision="chart-symbols-v1"
                     onMastery={() => void recordEvidence("symbol-mastery", "Chart symbol mastery")}

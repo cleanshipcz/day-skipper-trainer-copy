@@ -1,30 +1,38 @@
 import { beforeEach, describe, it, expect, vi } from "vitest";
 import { render, screen, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
+import { useEffect, useState } from "react";
 import ChartsTheory from "../src/pages/ChartsTheory";
 import TestRouter from "./TestRouter";
 
 // Mock dependencies to focus on component structure
+const MasteryButton = ({ label, onMastery }: { label: string; onMastery?: () => void }) => {
+  const [mastered, setMastered] = useState(false);
+  useEffect(() => { if (mastered) onMastery?.(); }, [mastered, onMastery]);
+  return <button onClick={() => setMastered(true)}>{label}</button>;
+};
+
 vi.mock("@/components/navigation/ChartSymbolQuiz", () => ({
-  default: ({ onMastery }: { onMastery?: () => void }) => <div data-testid="chart-symbol-quiz">Mock Quiz<button onClick={onMastery}>Master symbols</button></div>,
+  default: ({ onMastery }: { onMastery?: () => void }) => <div data-testid="chart-symbol-quiz">Mock Quiz<MasteryButton label="Master symbols" onMastery={onMastery} /></div>,
 }));
 
 vi.mock("@/components/navigation/VirtualChartPlotter", () => ({
-  default: ({ onMastery }: { onMastery?: () => void }) => <div data-testid="virtual-chart-plotter">Mock Plotter<button onClick={onMastery}>Master plotter</button></div>,
+  default: ({ onMastery }: { onMastery?: () => void }) => <div data-testid="virtual-chart-plotter">Mock Plotter<MasteryButton label="Master plotter" onMastery={onMastery} /></div>,
 }));
 
 vi.mock("@/components/navigation/TidalVisualizer", () => ({
-  default: ({ onMastery }: { onMastery?: () => void }) => <div data-testid="tidal-visualizer">Mock Tides<button onClick={onMastery}>Master tides</button></div>,
+  default: ({ onMastery }: { onMastery?: () => void }) => <div data-testid="tidal-visualizer">Mock Tides<MasteryButton label="Master tides" onMastery={onMastery} /></div>,
 }));
 
 // Mock hooks
 const progressMocks = vi.hoisted(() => ({
+  ownerId: "account-a",
   loadProgressDetailed: vi.fn(),
   saveProgressDetailed: vi.fn(),
 }));
 vi.mock("@/hooks/useProgress", () => ({
   useProgress: () => ({
-    ownerId: "account-a",
+    ownerId: progressMocks.ownerId,
     loadProgressDetailed: progressMocks.loadProgressDetailed,
     saveProgressDetailed: progressMocks.saveProgressDetailed,
     saveProgress: vi.fn(),
@@ -34,6 +42,7 @@ vi.mock("@/hooks/useProgress", () => ({
 describe("ChartsTheory Page", () => {
   beforeEach(() => {
     localStorage.clear();
+    progressMocks.ownerId = "account-a";
     progressMocks.loadProgressDetailed.mockReset().mockResolvedValue({ status: "missing", record: null });
     progressMocks.saveProgressDetailed.mockReset().mockResolvedValue("remote");
   });
@@ -168,5 +177,21 @@ describe("ChartsTheory Page", () => {
     await user.click(screen.getByRole("button", { name: "Complete Module" }));
     expect(await screen.findByText("Completion was not saved. Your evidence remains here; retry when ready.")).toBeDefined();
     expect(screen.getByRole("button", { name: "Retry completion" })).toBeDefined();
+  });
+
+  it("remounts mastered widgets on owner switch without attributing inherited evidence", async () => {
+    const user = userEvent.setup();
+    const view = render(<TestRouter><ChartsTheory /></TestRouter>);
+    await screen.findByText("Complete each practical outcome to unlock module completion.");
+    await user.click(screen.getByRole("button", { name: "Master plotter" }));
+    await waitFor(() => expect(screen.getByText("Complete all eight chart-plotting challenges: recorded")).toBeDefined());
+
+    progressMocks.ownerId = "account-b";
+    progressMocks.saveProgressDetailed.mockClear();
+    view.rerender(<TestRouter><ChartsTheory /></TestRouter>);
+
+    await waitFor(() => expect(screen.getByText("Complete all eight chart-plotting challenges: not yet recorded")).toBeDefined());
+    await new Promise((resolve) => setTimeout(resolve, 0));
+    expect(progressMocks.saveProgressDetailed).not.toHaveBeenCalled();
   });
 });
