@@ -54,6 +54,7 @@ export const useTheoryCompletionGate = ({
     if (saveWorkerRef.current?.generation === generation) return saveWorkerRef.current.promise;
     const worker: { generation: number; promise: Promise<"failed" | void> } = { generation, promise: Promise.resolve() };
     worker.promise = (async (): Promise<"failed" | void> => {
+      let failed = false;
       while (pendingSaveRef.current?.generation === generation) {
         const snapshot = pendingSaveRef.current;
         pendingSaveRef.current = null;
@@ -69,8 +70,10 @@ export const useTheoryCompletionGate = ({
           return "failed";
         }
         const ok = result !== false && result !== "failed" && result !== "conflict";
+        if (!ok) failed = true;
         setSaveState(result === "queued" ? "queued" : result === "anonymous" ? localDurableRef.current ? "local" : "failed" : ok ? "saved" : "failed");
       }
+      if (failed) return "failed";
     })().finally(() => { if (saveWorkerRef.current === worker) saveWorkerRef.current = null; });
     saveWorkerRef.current = worker;
     return worker.promise;
@@ -135,17 +138,23 @@ export const useTheoryCompletionGate = ({
     async (state: CompletionState, score: number, nextVisitedSectionIds: string[]) => {
       if (state !== "in_progress" || (!catalogueRevision && inProgressPersistedRef.current)) return;
 
-      inProgressPersistedRef.current = true;
       if (catalogueRevision) return enqueueInProgressSave(nextVisitedSectionIds);
       else {
+        inProgressPersistedRef.current = true;
         let saved;
         try {
           saved = await saveProgress(topicId, false, score, 0, { completionState: "in_progress", visitedSectionIds: nextVisitedSectionIds });
         } catch {
+          inProgressPersistedRef.current = false;
           setSaveState("failed");
           return "failed" as const;
         }
-        if (saved === false) setSaveState("failed");
+        const ok = saved !== false && saved !== "failed" && saved !== "conflict";
+        if (!ok) {
+          inProgressPersistedRef.current = false;
+          setSaveState("failed");
+          return "failed" as const;
+        }
       }
     },
     [catalogueRevision, enqueueInProgressSave, saveProgress, topicId]

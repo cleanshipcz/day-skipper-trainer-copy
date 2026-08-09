@@ -276,7 +276,9 @@ describe("useTheoryCompletionGate", () => {
     const { result } = renderHook(() => useTheoryCompletionGate({ topicId, requiredSectionIds, catalogueRevision: "v1" }));
     await act(async () => {});
     mocks.saveProgressDetailed.mockResolvedValueOnce(saveResult);
-    await act(async () => { await result.current.markSectionVisited("s1"); });
+    let outcome: "failed" | void;
+    await act(async () => { outcome = await result.current.markSectionVisited("s1"); });
+    expect(outcome!).toBe("failed");
     expect(result.current.visitedSectionIds).toEqual(["s1"]);
     expect(result.current.saveState).toBe("failed");
   });
@@ -324,6 +326,30 @@ describe("useTheoryCompletionGate", () => {
     expect(outcome!).toBe("failed");
     expect(result.current.saveState).toBe("failed");
     expect(result.current.visitedSectionIds).toEqual(["s1"]);
+  });
+
+  it.each([false, "failed", "conflict"])("normalizes legacy in-progress persistence result %s and retries the cumulative snapshot", async (saveResult) => {
+    mocks.saveProgress.mockResolvedValueOnce(saveResult).mockResolvedValueOnce("remote");
+    const { result } = renderHook(() => useTheoryCompletionGate({ topicId, requiredSectionIds }));
+    let outcome: "failed" | void;
+    await act(async () => { outcome = await result.current.markSectionVisited("s1"); });
+    expect(outcome!).toBe("failed");
+    expect(result.current.saveState).toBe("failed");
+
+    await act(async () => { await result.current.markSectionVisited("s2"); });
+    expect(result.current.visitedSectionIds).toEqual(["s1", "s2"]);
+    expect(mocks.saveProgress).toHaveBeenCalledTimes(2);
+    expect(mocks.saveProgress).toHaveBeenLastCalledWith(topicId, false, 67, 0, expect.objectContaining({ visitedSectionIds: ["s1", "s2"] }));
+  });
+
+  it("retries the latest legacy evidence snapshot after a rejected first save", async () => {
+    mocks.saveProgress.mockRejectedValueOnce(new Error("offline")).mockResolvedValueOnce("remote");
+    const { result } = renderHook(() => useTheoryCompletionGate({ topicId, requiredSectionIds }));
+    await act(async () => { expect(await result.current.markSectionVisited("s1")).toBe("failed"); });
+    await act(async () => { await result.current.markSectionVisited("s2"); });
+    expect(mocks.saveProgress).toHaveBeenCalledTimes(2);
+    expect(mocks.saveProgress).toHaveBeenLastCalledWith(topicId, false, 67, 0, expect.objectContaining({ visitedSectionIds: ["s1", "s2"] }));
+    expect(result.current.visitedSectionIds).toEqual(["s1", "s2"]);
   });
 
   it("treats the legacy saveProgress Boolean false result as a completion failure", async () => {
