@@ -68,9 +68,12 @@ try {
   await send("Input.dispatchKeyEvent", { type: "keyUp", key: "Tab", code: "Tab", windowsVirtualKeyCode: 9, nativeVirtualKeyCode: 9 });
   const focus = await evaluate(`(() => ({ name: document.activeElement?.ariaLabel, ring: getComputedStyle(document.activeElement).boxShadow }))()`);
   if (focus.name !== "Back to Tides" || focus.ring === "none") throw new Error(`Back focus failed: ${JSON.stringify(focus)}`);
+  await send("Emulation.setEmulatedMedia", { features: [{ name: "prefers-reduced-motion", value: "no-preference" }, { name: "forced-colors", value: "none" }] });
+  const normalAnimation = await evaluate("getComputedStyle(document.querySelector('g[aria-hidden=true]')).animationName");
+  if (normalAnimation === "none") throw new Error("Decorative direction cue has no normal-mode animation to suppress.");
   await send("Emulation.setEmulatedMedia", { features: [{ name: "prefers-reduced-motion", value: "reduce" }, { name: "forced-colors", value: "active" }] });
-  const media = await evaluate(`(() => ({ reduced: matchMedia('(prefers-reduced-motion: reduce)').matches, forced: matchMedia('(forced-colors: active)').matches, svgBackground: getComputedStyle(document.querySelector('svg')).backgroundColor }))()`);
-  if (!media.reduced || !media.forced || !media.svgBackground) throw new Error(`Media preferences failed: ${JSON.stringify(media)}`);
+  const media = await evaluate(`(() => { const svg = getComputedStyle(document.querySelector('svg[role=img]')); const cue = getComputedStyle(document.querySelector('g[aria-hidden=true]')); return { reduced: matchMedia('(prefers-reduced-motion: reduce)').matches, forced: matchMedia('(forced-colors: active)').matches, animation: cue.animationName, adjustment: svg.forcedColorAdjust, background: svg.backgroundColor, colour: svg.color, border: svg.borderTopColor }; })()`);
+  if (!media.reduced || !media.forced || media.animation !== "none" || media.adjustment !== "none" || media.background === media.colour || media.border !== media.colour) throw new Error(`Computed media styles failed: ${JSON.stringify(media)}`);
   await send("Browser.close"); socket.close();
   console.log("Tides browser accessibility passed: semantics, keyboard focus, touch targets, reduced motion, forced colours, 320/375/768/1280 layouts, 200% text, and a 320px effective viewport equivalent to 400% browser zoom at 1280px.");
 } finally {

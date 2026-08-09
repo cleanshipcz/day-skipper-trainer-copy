@@ -57,6 +57,6 @@ describe("Understanding Tides lesson", () => {
     expect(document.getElementById("completion-status")?.getAttribute("aria-live")).toBe("polite");
     const diagram = screen.getByRole("img", { name: /North Sea amphidromic/i });
     expect(diagram.getAttribute("class")).toContain("forced-colors:bg-[Canvas]");
-    expect(diagram.querySelector("g[aria-hidden=true]")?.getAttribute("class")).toContain("motion-reduce:transition-none");
+    expect(diagram.querySelector("g[aria-hidden=true]")?.getAttribute("class")).toContain("motion-reduce:animate-none");
   });
 });

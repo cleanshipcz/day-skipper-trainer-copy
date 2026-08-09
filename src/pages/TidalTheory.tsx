@@ -12,7 +12,7 @@ const NorthSeaAmphidromicDiagram = () => (
       viewBox="0 0 640 430"
       role="img"
       aria-labelledby="amphidromic-title amphidromic-description"
-      className="block h-auto max-w-full rounded-lg border bg-slate-50 forced-colors:bg-[Canvas] forced-colors:text-[CanvasText]"
+      className="block h-auto max-w-full rounded-lg border bg-slate-50 forced-colors:[forced-color-adjust:none] forced-colors:border-[CanvasText] forced-colors:bg-[Canvas] forced-colors:text-[CanvasText]"
     >
       <title id="amphidromic-title">North Sea amphidromic system teaching schematic</title>
       <desc id="amphidromic-description">
@@ -51,7 +51,7 @@ const NorthSeaAmphidromicDiagram = () => (
       <g fill="#075985" fontSize="14" fontWeight="600">
         <text x="337" y="66">0 h</text><text x="174" y="211">3 h</text><text x="337" y="375">6 h</text><text x="463" y="211">9 h</text>
       </g>
-      <g aria-hidden="true" className="motion-reduce:transition-none" fill="none" stroke="#075985" strokeWidth="5" markerEnd="url(#tidal-arrow)">
+      <g aria-hidden="true" className="motion-safe:animate-pulse motion-reduce:animate-none" fill="none" stroke="#075985" strokeWidth="5" markerEnd="url(#tidal-arrow)">
         <path d="M223 306 A150 115 0 0 0 448 304" /><path d="M437 132 A150 115 0 0 0 213 135" />
       </g>
       <text x="224" y="416" fontSize="15" fontWeight="700" fill="#075985">anti-clockwise propagation</text>

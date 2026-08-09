@@ -59,4 +59,20 @@ describe("Tides durable evidence completion", () => {
     await user.click(await screen.findByRole("button", { name: "Retry completion" }));
     expect(await screen.findByText("Completion saved to your account.")).toBeTruthy();
   });
+
+  it("announces and disables the completion action while a save is pending", async () => {
+    let finishSave!: (value: "remote") => void;
+    const pendingSave = new Promise<"remote">((resolve) => { finishSave = resolve; });
+    progress.save.mockResolvedValueOnce("remote").mockReturnValueOnce(pendingSave);
+    const user = userEvent.setup();
+    renderLesson();
+    await user.click(await screen.findByLabelText(/Use the local table\/curve/i));
+    const completion = await screen.findByRole("button", { name: "Save completion" });
+    expect(completion.hasAttribute("disabled")).toBe(false);
+    await user.click(completion);
+    expect((await screen.findByRole("button", { name: "Saving…" })).hasAttribute("disabled")).toBe(true);
+    expect(screen.getByText("Saving progress…").getAttribute("aria-live")).toBe("polite");
+    finishSave("remote");
+    expect(await screen.findByText("Completion saved to your account.")).toBeTruthy();
+  });
 });
