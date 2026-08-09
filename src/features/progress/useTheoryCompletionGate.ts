@@ -20,6 +20,7 @@ export const useTheoryCompletionGate = ({
   const ownerId = "ownerId" in progress ? progress.ownerId : null;
   const [visitedSectionIds, setVisitedSectionIds] = useState<string[]>([]);
   const [isHydrated, setIsHydrated] = useState(false);
+  const [isCompletionDurable, setIsCompletionDurable] = useState(false);
   const visitedRef = useRef<readonly string[]>(visitedSectionIds);
   const completionPromiseRef = useRef<{ generation: number; promise: Promise<boolean> } | null>(null);
   const hydrationKeyRef = useRef<string | null>(null);
@@ -101,6 +102,7 @@ export const useTheoryCompletionGate = ({
     visitedRef.current = [];
     setVisitedSectionIds([]);
     setSaveState("idle");
+    setIsCompletionDurable(false);
     setIsHydrated(false);
     if (!storageKey) {
       setIsHydrated(true);
@@ -142,6 +144,7 @@ export const useTheoryCompletionGate = ({
       const browserSaved = writeBrowserEvidence(merged, completed, completed ? outcome : undefined);
       if (completed) setSaveState(browserSaved ? outcome : remotelyCompleted ? "saved" : "failed");
       else if (merged.length > 0) await enqueueInProgressSave(merged, generation);
+      setIsCompletionDurable(completed && (browserSaved || remotelyCompleted));
       if (hydrationGenerationRef.current === generation) setIsHydrated(true);
     };
     void restore();
@@ -221,6 +224,7 @@ export const useTheoryCompletionGate = ({
         }
         else if (ok) writeBrowserEvidence(visitedRef.current, true, "saved");
         setSaveState(result === "queued" ? "queued" : result === "anonymous" ? ok ? "local" : "failed" : ok ? "saved" : "failed");
+        if (ok) setIsCompletionDurable(true);
         return ok;
       } catch {
         if (hydrationGenerationRef.current === generation) setSaveState("failed");
@@ -238,6 +242,7 @@ export const useTheoryCompletionGate = ({
     canComplete: decision.canComplete,
     visitedSectionIds,
     isHydrated,
+    isCompletionDurable,
     ownerId,
     markSectionVisited,
     markCompleted,

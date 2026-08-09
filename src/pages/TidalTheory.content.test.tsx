@@ -3,7 +3,16 @@ import { MemoryRouter } from "react-router-dom";
 import { describe, expect, it, vi } from "vitest";
 import TidalTheory from "./TidalTheory";
 
-vi.mock("@/hooks/useCompletion", () => ({ useCompletion: () => ({ completeTopic: vi.fn() }) }));
+vi.mock("@/features/progress/useTheoryCompletionGate", () => ({
+  useTheoryCompletionGate: () => ({
+    canComplete: false,
+    markCompleted: vi.fn(),
+    markSectionVisited: vi.fn(),
+    visitedSectionIds: [],
+    saveState: "idle",
+    isHydrated: true,
+  }),
+}));
 
 describe("Understanding Tides lesson", () => {
   it("teaches the differential model, local modifiers, and prediction uncertainty", () => {

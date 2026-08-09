@@ -3,7 +3,8 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { ArrowLeft, CheckCircle2, ChevronRight } from "lucide-react";
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { useCompletion } from "@/hooks/useCompletion";
+import { useTheoryCompletionGate } from "@/features/progress/useTheoryCompletionGate";
+import { TOPIC_IDS } from "@/constants/topicRegistry";
 
 const NorthSeaAmphidromicDiagram = () => (
   <figure className="space-y-3">
@@ -66,13 +67,18 @@ const NorthSeaAmphidromicDiagram = () => (
 
 const TidalTheory = () => {
   const navigate = useNavigate();
-  const { completeTopic } = useCompletion();
-  const [markedComplete, setMarkedComplete] = useState(false);
   const [answer, setAnswer] = useState<"" | "table" | "diagram">("");
+  const [announcement, setAnnouncement] = useState("");
+  const { canComplete, markCompleted, markSectionVisited, visitedSectionIds, saveState, isHydrated, isCompletionDurable } = useTheoryCompletionGate({
+    topicId: TOPIC_IDS.TIDES_THEORY,
+    requiredSectionIds: ["safe-local-tide-decision"],
+    pointsOnComplete: 10,
+    catalogueRevision: "tides-theory-evidence-v1",
+  });
 
-  const handleComplete = () => {
-    completeTopic("tides-theory");
-    setMarkedComplete(true);
+  const selectAnswer = (next: "table" | "diagram") => {
+    setAnswer(next);
+    if (next === "table") void markSectionVisited("safe-local-tide-decision");
   };
 
   return (
@@ -85,11 +91,19 @@ const TidalTheory = () => {
             </Button>
             <div><h1 className="text-xl font-bold">Understanding Tidal Phenomena</h1><p className="text-sm text-muted-foreground">From astronomical forcing to a local decision</p></div>
           </div>
-          {markedComplete ? (
-            <Button variant="outline" className="text-green-600 border-green-200 bg-green-50" disabled><CheckCircle2 className="w-4 h-4 mr-2" />Completed</Button>
-          ) : (
-            <Button onClick={handleComplete}>Mark as Complete <ChevronRight className="w-4 h-4 ml-2" /></Button>
-          )}
+          <Button
+            variant={isCompletionDurable ? "outline" : "default"}
+            className={isCompletionDurable ? "text-green-700 border-green-200 bg-green-50" : ""}
+            disabled={!isHydrated || !canComplete || saveState === "saving" || isCompletionDurable}
+            onClick={async () => {
+              const durable = await markCompleted();
+              setAnnouncement(durable ? "" : "Completion was not saved. Your concept-check evidence remains available; retry when ready.");
+            }}
+          >
+            {isCompletionDurable && <CheckCircle2 className="w-4 h-4 mr-2" />}
+            {!isHydrated ? "Loading progress…" : saveState === "saving" ? "Saving…" : isCompletionDurable && saveState === "saved" ? "Saved" : isCompletionDurable && saveState === "queued" ? "Queued offline" : isCompletionDurable && saveState === "local" ? "Completed on this device" : saveState === "failed" && canComplete ? "Retry completion" : canComplete ? "Save completion" : "Complete the concept check"}
+            {isHydrated && canComplete && saveState !== "saving" && !isCompletionDurable && <ChevronRight className="w-4 h-4 ml-2" />}
+          </Button>
         </div>
       </header>
 
@@ -120,7 +134,7 @@ const TidalTheory = () => {
 
         <section className="space-y-4"><h2 className="text-2xl font-bold text-primary">Amphidromic systems</h2><Card><CardContent className="pt-6 space-y-5"><p>In many basins the tidal wave rotates around amphidromic points where range is small. A qualified Northern Hemisphere tendency is <strong>anti-clockwise</strong>, influenced by Coriolis, but basin geometry, depth and boundaries control each real system. The North Sea has anti-clockwise propagation around its amphidromic systems; never infer a port's time or range from this teaching sketch.</p><NorthSeaAmphidromicDiagram /></CardContent></Card></section>
 
-        <section className="space-y-4"><h2 className="text-2xl font-bold text-primary">Worked decision check</h2><Card><CardContent className="pt-6 space-y-4"><p><strong>Scenario:</strong> A local table predicts HW 4.8 m and the following LW 1.2 m. The range is <strong>3.6 m</strong>. Your berth needs 2.0 m and the forecast warns that strong offshore wind may lower water by 0.3 m.</p><fieldset className="space-y-2"><legend className="font-semibold">What is the defensible next step?</legend><label className="flex gap-2"><input type="radio" name="decision" onChange={() => setAnswer("diagram")} /> Use the amphidromic diagram as the exact berth prediction.</label><label className="flex gap-2"><input type="radio" name="decision" onChange={() => setAnswer("table")} /> Use the local table/curve, subtract the possible residual, apply clearance, and monitor actual conditions.</label></fieldset>{answer && <p role="status" className={answer === "table" ? "text-emerald-700" : "text-amber-700"}>{answer === "table" ? "Correct. The adjusted planning level is 4.5 m at HW before applying the vessel-specific calculation and safety margin; keep monitoring." : "Not safe. The schematic explains propagation only; it contains no usable local prediction."}</p>}</CardContent></Card></section>
+        <section className="space-y-4"><h2 className="text-2xl font-bold text-primary">Worked decision check</h2><Card><CardContent className="pt-6 space-y-4"><p><strong>Scenario:</strong> A local table predicts HW 4.8 m and the following LW 1.2 m. The range is <strong>3.6 m</strong>. Your berth needs 2.0 m and the forecast warns that strong offshore wind may lower water by 0.3 m.</p><fieldset className="space-y-2"><legend className="font-semibold">What is the defensible next step?</legend><label className="flex gap-2"><input type="radio" name="decision" checked={answer === "diagram"} onChange={() => selectAnswer("diagram")} /> Use the amphidromic diagram as the exact berth prediction.</label><label className="flex gap-2"><input type="radio" name="decision" checked={answer === "table" || visitedSectionIds.includes("safe-local-tide-decision")} onChange={() => selectAnswer("table")} /> Use the local table/curve, subtract the possible residual, apply clearance, and monitor actual conditions.</label></fieldset>{(answer || visitedSectionIds.includes("safe-local-tide-decision")) && <p role="status" className={answer === "diagram" ? "text-amber-700" : "text-emerald-700"}>{answer === "diagram" ? "Not safe. The schematic explains propagation only; it contains no usable local prediction." : "Correct. The adjusted planning level is 4.5 m at HW before applying the vessel-specific calculation and safety margin; keep monitoring."}</p>}<p aria-live="polite">{announcement || (saveState === "saving" ? "Saving progress…" : isCompletionDurable && saveState === "saved" ? "Completion saved to your account." : isCompletionDurable && saveState === "queued" ? "Completion is durably queued on this device and will sync when you reconnect." : isCompletionDurable && saveState === "local" ? "Completed on this device. Sign in to save to an account." : saveState === "failed" ? "Completion was not saved. Retry when ready." : !isHydrated ? "Loading saved progress…" : canComplete ? "Concept-check evidence recorded. Save completion when ready." : "Answer the concept check correctly to unlock completion.")}</p></CardContent></Card></section>
 
         <section className="rounded-lg border p-5 space-y-3 text-sm"><h2 className="text-lg font-bold">Check authoritative information</h2><p>Use the current edition of official local tide tables/almanac and the relevant tidal stream atlas or diamonds for navigation. The theory here is supported by:</p><ul className="list-disc pl-5 space-y-1"><li><a className="text-primary underline" href="https://www.nesdis.noaa.gov/about/k-12-education/oceans-coasts/what-causes-tides" target="_blank" rel="noreferrer">NOAA/NESDIS: What Causes Tides?</a></li><li><a className="text-primary underline" href="https://oceanservice.noaa.gov/facts/springtide.html" target="_blank" rel="noreferrer">NOAA Ocean Service: spring and neap tides</a></li><li><a className="text-primary underline" href="https://www.gov.uk/government/publications/officer-of-the-watch-yacht-written-examination-syllabuses/navigation-and-radar-examination-syllabus" target="_blank" rel="noreferrer">MCA Navigation and Radar Examination Syllabus</a></li></ul></section>
       </main>

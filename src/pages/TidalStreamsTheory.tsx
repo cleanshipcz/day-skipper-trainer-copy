@@ -1,19 +1,14 @@
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
-import { ArrowLeft, ChevronRight, CheckCircle2, Navigation } from "lucide-react";
+import { ArrowLeft, ChevronRight, Navigation } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { useState } from "react";
-import { useCompletion } from "@/hooks/useCompletion";
+import { TOPIC_IDS } from "@/constants/topicRegistry";
+import { TheoryCompletionButton } from "@/features/progress/TheoryCompletionButton";
 
 const TidalStreamsTheory = () => {
   const navigate = useNavigate();
-  const { completeTopic } = useCompletion();
-  const [markedComplete, setMarkedComplete] = useState(false);
-
-  const handleComplete = () => {
-    completeTopic("tides-streams-theory");
-    setMarkedComplete(true);
-  };
+  const [conceptAnswer, setConceptAnswer] = useState<"" | "tide-first" | "boat-first">("");
 
   return (
     <div className="min-h-screen bg-background">
@@ -30,16 +25,7 @@ const TidalStreamsTheory = () => {
                 <p className="text-sm text-muted-foreground">The Vector Triangle</p>
               </div>
             </div>
-            {markedComplete ? (
-              <Button variant="outline" className="text-green-600 border-green-200 bg-green-50" disabled>
-                <CheckCircle2 className="w-4 h-4 mr-2" />
-                Completed
-              </Button>
-            ) : (
-              <Button onClick={handleComplete}>
-                Mark as Complete <ChevronRight className="w-4 h-4 ml-2" />
-              </Button>
-            )}
+            <TheoryCompletionButton topicId={TOPIC_IDS.TIDES_STREAMS_THEORY} catalogueRevision="tides-streams-theory-v1" evidenceId="vector-order-check" evidenceSatisfied={conceptAnswer === "tide-first"} lockedLabel="Complete the vector check" />
           </div>
         </div>
       </header>
@@ -58,6 +44,8 @@ const TidalStreamsTheory = () => {
             </CardContent>
           </Card>
         </section>
+
+        <section className="rounded-lg border p-5 space-y-3"><h2 className="font-bold">Vector construction check</h2><p>From the departure point, which vector is plotted first in the taught CTS construction?</p><label className="mr-5"><input type="radio" name="vector-check" onChange={() => setConceptAnswer("tide-first")} /> Tidal set and rate</label><label><input type="radio" name="vector-check" onChange={() => setConceptAnswer("boat-first")} /> An assumed boat heading</label>{conceptAnswer && <p role="status">{conceptAnswer === "tide-first" ? "Correct — plot the tidal vector, then use boat speed to cut the desired ground track." : "Not quite — the required boat heading is the result, not the starting assumption."}</p>}</section>
 
         {/* Section 2: The Vector Triangle */}
         <section className="space-y-4">
