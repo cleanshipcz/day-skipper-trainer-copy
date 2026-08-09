@@ -1,33 +1,29 @@
+import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
+import { ArrowLeft, Compass, Crosshair, Globe, MapPin, Target } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
-import { ArrowLeft, Crosshair, Globe, MapPin, Target, Compass } from "lucide-react";
-import { useEffect } from "react";
-import { useTheoryCompletionGate } from "@/features/progress/useTheoryCompletionGate";
-// import FixSimulator from "@/components/navigation/FixSimulator"; // Keeping for reference if needed, but unused
 import UnifiedChartTable from "@/components/navigation/unified/UnifiedChartTable";
+import { useTheoryCompletionGate } from "@/features/progress/useTheoryCompletionGate";
 import { TOPIC_IDS } from "@/constants/topicRegistry";
 
 const PositionFixingTheory = () => {
   const navigate = useNavigate();
-  const { canComplete, markCompleted, markSectionVisited } = useTheoryCompletionGate({
+  const [completionMessage, setCompletionMessage] = useState("");
+  const { canComplete, markCompleted, markSectionVisited, saveState, isHydrated } = useTheoryCompletionGate({
     topicId: TOPIC_IDS.POSITION_THEORY,
     requiredSectionIds: ["read-content"],
     pointsOnComplete: 10,
+    catalogueRevision: "position-fixing-theory-v1",
   });
 
   useEffect(() => {
     const onScroll = () => {
-      const viewportBottom = window.scrollY + window.innerHeight;
       const docHeight = document.documentElement.scrollHeight;
-      if (docHeight <= 0) return;
-
-      const scrollPercent = (viewportBottom / docHeight) * 100;
-      if (scrollPercent >= 80) {
+      if (docHeight > 0 && ((window.scrollY + window.innerHeight) / docHeight) * 100 >= 80) {
         void markSectionVisited("read-content");
       }
     };
-
     onScroll();
     window.addEventListener("scroll", onScroll, { passive: true });
     return () => window.removeEventListener("scroll", onScroll);
@@ -35,166 +31,103 @@ const PositionFixingTheory = () => {
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-background via-ocean-light/10 to-background pb-20">
-      {/* Header */}
-      <header className="border-b border-border bg-card/50 backdrop-blur-sm sticky top-0 z-40">
-        <div className="container mx-auto px-4 py-4">
-          <div className="flex items-center gap-3">
-            <Button variant="ghost" size="icon" onClick={() => navigate("/navigation")}>
-              <ArrowLeft className="w-5 h-5" />
-            </Button>
-            <div>
-              <h1 className="text-xl font-bold">Position Fixing</h1>
-              <p className="text-sm text-muted-foreground">Knowing Where You Are</p>
-            </div>
-          </div>
+      <header className="sticky top-0 z-40 border-b border-border bg-card/95 backdrop-blur-sm">
+        <div className="container mx-auto flex items-center gap-3 px-4 py-4">
+          <Button aria-label="Back to Navigation from Position Fixing" variant="ghost" size="icon" onClick={() => navigate("/navigation")}>
+            <ArrowLeft aria-hidden className="h-5 w-5" />
+          </Button>
+          <div><h1 className="text-xl font-bold">Position Fixing</h1><p className="text-sm text-muted-foreground">Build, interpret and check a defensible position</p></div>
         </div>
       </header>
 
-      <main className="container mx-auto px-4 py-8 max-w-4xl space-y-8">
-        {/* Intro */}
-        <section>
-          <div className="prose dark:prose-invert max-w-none">
-            <p className="text-lg leading-relaxed">
-              Defining your position accurately is the cornerstone of navigation. You must be able to define your
-              position using the global grid system (Latitude & Longitude) and verify it using objects in the real world
-              (Visual Fixes).
-            </p>
-          </div>
-        </section>
+      <main className="container mx-auto max-w-4xl space-y-8 px-4 py-8">
+        <p className="text-lg leading-relaxed">A fix is observed evidence, not certainty. Keep the observation time, source and corrections with every plotted position, compare it with the expected track, and navigate to the safe side of uncertainty.</p>
 
-        {/* Latitude & Longitude */}
-        <section className="space-y-4">
-          <h2 className="text-2xl font-semibold flex items-center gap-2">
-            <Globe className="w-6 h-6 text-primary" />
-            Latitude & Longitude
-          </h2>
-
-          <div className="grid md:grid-cols-2 gap-4">
-            <Card>
-              <CardContent className="pt-6">
-                <h3 className="font-bold text-lg mb-2">Latitude (Lat)</h3>
-                <p className="text-muted-foreground mb-4">Measures North or South of the Equator (0°).</p>
-                <ul className="list-disc list-inside text-sm text-foreground space-y-1">
-                  <li>Lines run Horizontal (Parallels).</li>
-                  <li>
-                    Scale is on the <b>Side</b> of the chart.
-                  </li>
-                  <li>1 minute of Latitude = 1 Nautical Mile.</li>
-                  <li>Format: 50° 45'.5 N</li>
-                </ul>
-              </CardContent>
-            </Card>
-
-            <Card>
-              <CardContent className="pt-6">
-                <h3 className="font-bold text-lg mb-2">Longitude (Long)</h3>
-                <p className="text-muted-foreground mb-4">Measures East or West of the Prime Meridian (0°).</p>
-                <ul className="list-disc list-inside text-sm text-foreground space-y-1">
-                  <li>Lines run Vertical (Meridians).</li>
-                  <li>
-                    Scale is on the <b>Top/Bottom</b> of the chart.
-                  </li>
-                  <li>
-                    <b>NEVER</b> measure distance on the Longitude scale.
-                  </li>
-                  <li>Format: 001° 30'.2 W</li>
-                </ul>
-              </CardContent>
-            </Card>
-          </div>
-        </section>
-
-        {/* Visual Fixes */}
-        <section className="space-y-4">
-          <h2 className="text-2xl font-semibold flex items-center gap-2">
-            <Crosshair className="w-6 h-6 text-red-500" />
-            Visual Fixes
-          </h2>
-          <Card className="overflow-hidden">
-            <div className="p-6">
-              <p className="mb-6">
-                A "Fix" is a position determined by reference to real-world objects. The most common method is the
-                <b> Three Point Fix</b> using visual bearings.
-              </p>
-
-              <div className="grid md:grid-cols-3 gap-6">
-                <div className="flex flex-col gap-2">
-                  <div className="p-3 bg-muted rounded-lg flex items-center justify-center h-24">
-                    <Target className="w-10 h-10 text-primary" />
-                  </div>
-                  <h3 className="font-bold">1. Select Objects</h3>
-                  <p className="text-sm text-muted-foreground">
-                    Choose 3 charted objects spread roughly 60° - 120° apart for the best "cut".
-                  </p>
-                </div>
-
-                <div className="flex flex-col gap-2">
-                  <div className="p-3 bg-muted rounded-lg flex items-center justify-center h-24">
-                    <Compass className="w-10 h-10 text-primary" />
-                  </div>
-                  <h3 className="font-bold">2. Take Bearings</h3>
-                  <p className="text-sm text-muted-foreground">
-                    Use a hand-bearing compass. Record the time and the log reading.
-                    <b> Convert to True!</b> (Compass → True).
-                  </p>
-                </div>
-
-                <div className="flex flex-col gap-2">
-                  <div className="p-3 bg-muted rounded-lg flex items-center justify-center h-24">
-                    <MapPin className="w-10 h-10 text-primary" />
-                  </div>
-                  <h3 className="font-bold">3. Plot on Chart</h3>
-                  <p className="text-sm text-muted-foreground">
-                    Draw the lines from the objects. Where they intersect is your position. If they form a "Cocked Hat"
-                    (triangle), you are inside it.
-                  </p>
-                </div>
-              </div>
-
-              <UnifiedChartTable />
+        <section className="space-y-4" aria-labelledby="coordinates-heading">
+          <h2 id="coordinates-heading" className="flex items-center gap-2 text-2xl font-semibold"><Globe className="h-6 w-6 text-primary" />Read and plot latitude/longitude</h2>
+          <Card><CardContent className="space-y-4 pt-6">
+            <p>Write <strong>latitude first</strong> (north/south of the Equator), then <strong>longitude</strong> (east/west of Greenwich). Use degrees, minutes and decimal minutes with hemisphere letters, including leading zeros where they prevent ambiguity: <strong>50° 45.5′ N, 001° 30.2′ W</strong>.</p>
+            <div className="rounded-md border p-4">
+              <h3 className="font-bold">Worked chart plot</h3>
+              <ol className="mt-2 list-decimal space-y-2 pl-5 text-sm">
+                <li>Check the chart title, edition/corrections, scale and horizontal datum. If a position source uses another datum, apply the charted datum shift before plotting.</li>
+                <li>For <strong>50° 45.5′ N</strong>, find 50° 45′ on a side latitude scale and interpolate halfway to 46′. Carry a light horizontal construction line into the chart.</li>
+                <li>For <strong>001° 30.2′ W</strong>, find 001° 30′ on the top/bottom longitude scale and interpolate 0.2′ towards 31′ W. Carry a vertical construction line to meet the latitude line; mark a small precise cross.</li>
+                <li>Read back from the cross—latitude first, then longitude—and state the datum. Quote only precision supported by the chart scale and plotting accuracy.</li>
+              </ol>
             </div>
-          </Card>
+            <p className="text-sm text-muted-foreground">For short chartwork distances, one minute of latitude is approximately one nautical mile: use the nearby latitude scale. Do not measure distance on the longitude border; a minute of longitude covers less ground away from the Equator.</p>
+          </CardContent></Card>
         </section>
 
-        <section className="space-y-4">
-          <Card className="bg-muted">
-            <CardContent className="pt-6">
-              <h3 className="font-bold text-lg mb-2 flex items-center gap-2">
-                <MapPin className="w-5 h-5" />
-                Dead Reckoning (DR) vs Estimated Position (EP)
-              </h3>
-              <div className="grid md:grid-cols-2 gap-8 mt-4">
-                <div>
-                  <strong className="block mb-1">Dead Reckoning (DR)</strong>
-                  <p className="text-sm text-muted-foreground">
-                    Your position based ONLY on Course Steered and Distance Run (Log). Does not account for tide or
-                    leeway.
-                  </p>
-                </div>
-                <div>
-                  <strong className="block mb-1">Estimated Position (EP)</strong>
-                  <p className="text-sm text-muted-foreground">
-                    Your DR position corrected for the effects of Tide and Leeway. This is your best guess without a
-                    Fix.
-                  </p>
-                </div>
-              </div>
-            </CardContent>
-          </Card>
+        <section className="space-y-4" aria-labelledby="visual-fix-heading">
+          <h2 id="visual-fix-heading" className="flex items-center gap-2 text-2xl font-semibold"><Crosshair className="h-6 w-6 text-red-500" />A repeatable visual-fix procedure</h2>
+          <div className="grid gap-4 md:grid-cols-3">
+            <Card><CardContent className="pt-6"><Target className="mb-2 h-8 w-8 text-primary" /><h3 className="font-bold">1. Select</h3><p className="mt-2 text-sm">Choose unmistakable, charted, fixed and conspicuous objects. Confirm each identity. Prefer a useful angular spread; avoid three objects in nearly the same direction.</p></CardContent></Card>
+            <Card><CardContent className="pt-6"><Compass className="mb-2 h-8 w-8 text-primary" /><h3 className="font-bold">2. Observe and record</h3><p className="mt-2 text-sm">Take bearings in quick succession so vessel movement is small—normally the object changing fastest first. Record each bearing, exact time and log reading. If delay matters, advance earlier LOPs to a common time.</p></CardContent></Card>
+            <Card><CardContent className="pt-6"><MapPin className="mb-2 h-8 w-8 text-primary" /><h3 className="font-bold">3. Correct, plot, annotate</h3><p className="mt-2 text-sm">Use the deviation card for the vessel heading and the charted variation updated to the observation date. Convert Compass → Magnetic → True. Plot each reciprocal from its object; intersect the LOPs and annotate the fix with a circle and time.</p></CardContent></Card>
+          </div>
+          <Card><CardContent className="space-y-3 pt-6">
+            <h3 className="font-bold">Worked bearing and reciprocal</h3>
+            <p className="text-sm">At 1042, log 18.6 NM, a lighthouse bears 073°C. Deviation on the vessel card for the heading is 2°E; chart variation updated to 2026 is 4°W. Using east positive and west negative: <strong>073°C + 2° = 075°M; 075°M − 4° = 071°T</strong>. The direction from the vessel to the light is 071°T, so plot its reciprocal <strong>251°T</strong> from the charted lighthouse back towards the vessel. Record “1042 / log 18.6”.</p>
+            <p className="text-xs text-muted-foreground">Do not reuse this arithmetic blindly: deviation is vessel- and heading-specific, and variation must come from the current chart information.</p>
+          </CardContent></Card>
+          <UnifiedChartTable />
         </section>
 
-        {/* Action Button */}
-        <div className="flex justify-center pt-8">
-          <Button
-            size="lg"
-            disabled={!canComplete}
-            onClick={async () => {
-              await markCompleted();
-              navigate("/navigation");
-            }}
-          >
-            {canComplete ? "Complete Module" : "Scroll through module to complete"}
+        <section className="space-y-4" aria-labelledby="quality-heading">
+          <h2 id="quality-heading" className="text-2xl font-semibold">Cut geometry, cocked hats and safety</h2>
+          <Card><CardContent className="space-y-4 pt-6">
+            <ul className="list-disc space-y-2 pl-5 text-sm">
+              <li><strong>Strong cut:</strong> two LOPs crossing near 90° constrain position well in both directions. Three bearings spread around the vessel improve diagnosis, but 60°–120° is guidance, not a magic rule.</li>
+              <li><strong>Weak cut:</strong> LOPs crossing at 15° turn small bearing errors into a long uncertainty area. Near-parallel lines may look tidy yet locate the vessel poorly along their length.</li>
+              <li><strong>Example:</strong> a ±2° bearing uncertainty at 3 NM is roughly ±0.10 NM across each LOP; at 10 NM it is roughly ±0.35 NM. Range and cut angle both matter.</li>
+            </ul>
+            <div className="rounded-md border-l-4 border-amber-500 bg-amber-500/10 p-4">
+              <h3 className="font-bold">A cocked hat does not prove you are inside it</h3>
+              <p className="mt-2 text-sm"><strong>Random errors</strong> (reading, steering and plotting scatter) can put the probable position near or within a small triangle. A shared <strong>systematic error</strong>—wrong variation, biased compass, misidentified object or chart/datum mismatch—can shift all LOPs so the vessel lies outside it. A large or unexpected triangle demands investigation and another observation.</p>
+              <p className="mt-2 text-sm"><strong>Near danger, use the hazard-side conservative position</strong>: assume the vessel is at the point of the uncertainty area closest to the hazard, then maintain the required clearance. Never choose the triangle centre merely because it is convenient.</p>
+            </div>
+          </CardContent></Card>
+        </section>
+
+        <section className="space-y-4" aria-labelledby="dr-ep-heading">
+          <h2 id="dr-ep-heading" className="text-2xl font-semibold">Worked DR and EP</h2>
+          <Card><CardContent className="space-y-4 pt-6">
+            <p><strong>DR:</strong> From the 0900 fix, steer 090°T at 5 kn for 2 hours. Plot 10 NM along 090°T and mark the 1100 DR with the standard semicircle/time annotation. It uses course and distance through the water only; uncertainty accumulates from the start fix, compass, steering and log.</p>
+            <p><strong>EP:</strong> Forecast tidal stream for the same two hours is 180°T at 1 kn, so apply a 2 NM south-going vector from the DR. If leeway is assessed as 5° to starboard with a northerly wind, plot the water-track course as 095°T before applying the tide. The end of the vector construction is the 1100 EP; mark it with a square and time.</p>
+            <p className="text-sm text-muted-foreground">An EP is a reasoned construction, not a fix. State the tide, leeway, speed and time assumptions. Draw an uncertainty area that grows with uncertain start position, elapsed time, steering/log error, changing stream and estimated leeway. Compare the next observed fix with the EP; a material difference is evidence to investigate, not something to erase.</p>
+          </CardContent></Card>
+        </section>
+
+        <section className="space-y-4" aria-labelledby="monitor-heading">
+          <h2 id="monitor-heading" className="text-2xl font-semibold">Fix often enough—and cross-check independently</h2>
+          <Card><CardContent className="space-y-3 pt-6">
+            <p>Set the interval from speed, visibility, traffic, charted dangers, tidal uncertainty and distance to the next decision. Offshore in stable conditions it may be longer; in pilotage, restricted visibility or near hazards it may be minutes or continuous monitoring. Fix before and after course alterations and before a position becomes critical.</p>
+            <p>Do not rely on one sensor or one family of errors. Cross-check visual bearings with a transit, radar ranges/bearings, depth against predicted tide and charted contours, GNSS on the correct datum, or another suitable method. Compare every fix with DR/EP, track, log and surrounding evidence; resolve disagreement promptly.</p>
+          </CardContent></Card>
+        </section>
+
+        <aside className="border-t pt-4 text-sm text-muted-foreground" aria-label="Authoritative references">
+          <h2 className="font-bold text-foreground">Authoritative references (checked August 2026)</h2>
+          <ul className="mt-2 list-disc space-y-2 pl-5">
+            <li><a className="underline" href="https://www.gov.uk/government/publications/deck-officer-yacht-oral-examination-syllabuses/master-code-vessels-less-than-200-gtofficer-of-the-watch-yachts-less-than-500-gt-oral-examination-syllabus" target="_blank" rel="noreferrer">MCA yacht oral examination syllabus</a>, navigation section 1.1.</li>
+            <li><a className="underline" href="https://www.gov.uk/government/publications/officer-of-the-watch-yacht-written-examination-syllabuses/navigation-and-radar-examination-syllabus" target="_blank" rel="noreferrer">MCA Navigation and Radar written examination syllabus</a>, position fixing, DR and EP outcomes.</li>
+            <li><a className="underline" href="https://iho.int/uploads/user/pubs/standards/s-4/S-4%20Ed%204.10.0_FINAL.pdf" target="_blank" rel="noreferrer">IHO S-4, edition 4.10.0 (March 2026)</a>, coordinate and chart-datum conventions.</li>
+            <li><a className="underline" href="https://assets.publishing.service.gov.uk/government/uploads/system/uploads/attachment_data/file/440740/MGN_379.pdf" target="_blank" rel="noreferrer">MCA MGN 379: Use of Electronic Navigation Aids</a>, independent position cross-checking.</li>
+          </ul>
+        </aside>
+
+        <div className="flex flex-col items-center gap-3 pt-8">
+          <Button size="lg" disabled={!isHydrated || !canComplete || saveState === "saving"} onClick={async () => {
+            setCompletionMessage("");
+            if (await markCompleted()) navigate("/navigation");
+            else setCompletionMessage("Completion was not saved. Your reading progress remains here; retry when ready.");
+          }}>
+            {!isHydrated ? "Loading saved progress…" : saveState === "saving" ? "Saving…" : canComplete ? saveState === "failed" ? "Retry completion" : "Complete Module" : "Scroll through module to complete"}
           </Button>
+          {completionMessage && <p role="alert" className="text-center text-sm text-destructive">{completionMessage}</p>}
+          {!completionMessage && (saveState === "queued" || saveState === "local") && <p role="status" className="text-center text-sm text-muted-foreground">{saveState === "queued" ? "Completion is durably queued on this device and will sync when you reconnect." : "Completion is saved in this browser. Sign in to sync future progress to an account."}</p>}
         </div>
       </main>
     </div>
