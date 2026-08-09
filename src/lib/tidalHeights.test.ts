@@ -55,7 +55,18 @@ describe("tidal passage calculations", () => {
 
   it("uses conservative five-minute display boundaries", () => {
     expect(conservativeWindow({ start: 541.1, end: 898.9 })).toEqual({ start: 545, end: 895 });
+    expect(conservativeWindow({ start: 721.1, end: 723.9 })).toEqual({ start: 725, end: 720 });
     expect(formatTidalTime(1439.6)).toBe("00:00 (+1 day)");
+  });
+
+  it("represents a non-five-minute equality exactly and rejects a narrower-than-five-minute display window", () => {
+    const equality = plan({ high: { minutes: 722, height: 5 }, followingLow: { minutes: 1082, height: 1 }, draft: 4, clearance: 1 });
+    expect(equality.status).toBe("boundary");
+    expect(equality.safeWindows).toEqual([{ start: 722, end: 722 }]);
+    const narrow = plan({ high: { minutes: 722, height: 5 }, followingLow: { minutes: 1082, height: 1 }, draft: 4.99999, clearance: 0 });
+    expect(narrow.status).toBe("no_usable_window");
+    expect(narrow.safeWindows[0].start).toBeLessThan(narrow.safeWindows[0].end);
+    expect(conservativeWindow(narrow.safeWindows[0]).start).toBeGreaterThan(conservativeWindow(narrow.safeWindows[0]).end);
   });
 
   it("supports finite negative and high tidal values", () => {

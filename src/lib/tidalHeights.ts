@@ -12,7 +12,7 @@ export interface PassageInputs {
   chartedDepth: number;
 }
 
-export type PassageStatus = "always_safe" | "never_safe" | "safe_window" | "boundary" | "out_of_model" | "invalid";
+export type PassageStatus = "always_safe" | "never_safe" | "safe_window" | "no_usable_window" | "boundary" | "out_of_model" | "invalid";
 
 export interface PassagePlan {
   status: PassageStatus;
@@ -122,6 +122,10 @@ export const calculatePassagePlan = (input: PassageInputs): PassagePlan => {
     ...(requiredTide > input.followingLow.height ? [end] : []),
   ];
   const atEventBoundary = approximatelyEqual(requiredTide, input.previousLow.height) || approximatelyEqual(requiredTide, input.followingLow.height);
+  const conservative = conservativeWindow({ start, end });
+  if (conservative.start > conservative.end) {
+    return { status: "no_usable_window", requiredTide, crossings, safeWindows: [{ start, end }], errors };
+  }
   return { status: atEventBoundary ? "boundary" : "safe_window", requiredTide, crossings, safeWindows: [{ start, end }], errors };
 };
 

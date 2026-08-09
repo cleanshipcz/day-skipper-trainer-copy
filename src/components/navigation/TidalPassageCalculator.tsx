@@ -41,7 +41,9 @@ const TidalPassageCalculator = () => {
       const minutes = first.minutes + (index / 96) * (last.minutes - first.minutes);
       return { minutes, height: minutes <= peak.minutes ? heightAtTime(first, peak, minutes) : heightAtTime(peak, last, minutes) };
     });
-    const values = [...points.map((point) => point.height), model.plan.requiredTide as number, 0];
+    // Keep the curve legible when a valid vessel requirement lies outside the tidal range.
+    // Off-scale requirements are described textually rather than distorting the tide scale.
+    const values = [...points.map((point) => point.height), 0];
     let min = Math.min(...values);
     let max = Math.max(...values);
     const padding = Math.max((max - min) * 0.12, 0.5);
@@ -56,6 +58,7 @@ const TidalPassageCalculator = () => {
     return {
       path: points.map((point, i) => `${i ? "L" : "M"} ${x(point.minutes)},${y(point.height)}`).join(" "),
       x, y, heightTicks, timeTicks,
+      requiredLineVisible: (model.plan.requiredTide as number) >= min && (model.plan.requiredTide as number) <= max,
       safeRects: model.plan.safeWindows.map((window) => ({ x: x(window.start), width: Math.max(0, x(window.end) - x(window.start)) })),
     };
   }, [model]);
@@ -82,6 +85,7 @@ const TidalPassageCalculator = () => {
     always_safe: "Always safe within the entered event window (subject to the stated assumptions).",
     never_safe: "Never safe within the entered event window.",
     safe_window: "A predicted safe window exists within the entered events.",
+    no_usable_window: "The mathematical safe interval is narrower than one usable five-minute planning interval.",
     boundary: "Boundary case: the required height equals a published tidal event.",
     out_of_model: "Out of model: correct the event sequence before using a result.",
     invalid: "Invalid input: correct the highlighted fields before using a result.",
@@ -92,7 +96,7 @@ const TidalPassageCalculator = () => {
       <CardHeader><CardTitle className="flex items-center gap-2 text-lg"><AlertTriangle className="h-5 w-5" /> Scope and assumptions</CardTitle></CardHeader>
       <CardContent className="space-y-2 text-sm">
         <p>This teaching aid applies smooth harmonic interpolation only between a preceding LW, the intervening HW, and the following LW from one official tide table. It does not extrapolate beyond those events and is not a navigational prediction.</p>
-        <p>Use events for the same standard port, chart datum, local date and stated time zone. A clock time earlier than the previous event is treated as the next day. Confirm secondary-port corrections where applicable.</p>
+        <p>Use consecutive events for the same standard port, chart datum and stated local time zone. Start with the date of the preceding LW; each earlier clock time is explicitly treated as falling on the next calendar day. Confirm secondary-port corrections where applicable.</p>
         <p>Predictions omit pressure, wind, waves, swell, silting and survey uncertainty. Check current official predictions and observations, and choose clearance for the vessel, conditions and consequences.</p>
       </CardContent>
     </Card>
@@ -119,13 +123,16 @@ const TidalPassageCalculator = () => {
           {chart.heightTicks.map((tick) => <g key={tick}><line x1={PADDING} x2={WIDTH-PADDING} y1={chart.y(tick)} y2={chart.y(tick)} stroke="#e2e8f0" /><text x={PADDING-6} y={chart.y(tick)+4} textAnchor="end" fontSize="10">{tick.toFixed(1)}m</text></g>)}
           {chart.timeTicks.map((tick) => <text key={tick} x={chart.x(tick)} y={HEIGHT-PADDING+18} textAnchor="middle" fontSize="10">{formatTidalTime(tick)}</text>)}
           {chart.safeRects.map((rect, index) => <rect key={index} x={rect.x} y={PADDING} width={rect.width} height={HEIGHT-PADDING*2} fill="#16a34a" fillOpacity="0.12" />)}
-          <line x1={PADDING} x2={WIDTH-PADDING} y1={chart.y(model.plan.requiredTide as number)} y2={chart.y(model.plan.requiredTide as number)} stroke="#dc2626" strokeWidth="2" strokeDasharray="4 3" />
+          {chart.requiredLineVisible && <line x1={PADDING} x2={WIDTH-PADDING} y1={chart.y(model.plan.requiredTide as number)} y2={chart.y(model.plan.requiredTide as number)} stroke="#dc2626" strokeWidth="2" strokeDasharray="4 3" />}
           <path d={chart.path} fill="none" stroke="#2563eb" strokeWidth="2" />
         </svg></div>
         <div className="mt-4 rounded-lg border p-4"><h4 className="flex items-center gap-2 font-semibold"><Clock className="h-4 w-4" /> Result</h4>
           <p className="mt-1 text-sm">{statusCopy}</p>
-          {model.plan.safeWindows.map((window, index) => { const display = conservativeWindow(window); return <Badge key={index} variant="outline" className="mt-2 mr-2">about {formatTidalTime(display.start)}–{formatTidalTime(display.end)}</Badge>; })}
-          {model.plan.safeWindows.length > 0 && <p className="mt-2 text-xs text-muted-foreground">Crossings are calculated analytically; displayed window limits are rounded inward to five minutes and remain approximate.</p>}
+          {model.plan.status === "boundary" && model.plan.safeWindows.map((window, index) => <Badge key={index} variant="outline" className="mt-2 mr-2">exact boundary at {formatTidalTime(window.start)}</Badge>)}
+          {model.plan.status !== "boundary" && model.plan.status !== "no_usable_window" && model.plan.safeWindows.map((window, index) => { const display = conservativeWindow(window); return <Badge key={index} variant="outline" className="mt-2 mr-2">about {formatTidalTime(display.start)}–{formatTidalTime(display.end)}</Badge>; })}
+          {model.plan.status === "no_usable_window" && <p className="mt-2 text-sm font-medium text-red-700">No usable five-minute window; do not plan a passage from this result.</p>}
+          {!chart.requiredLineVisible && <p className="mt-2 text-xs text-muted-foreground">The required-tide line is outside the plotted tidal-height scale; the result state above still uses the exact value.</p>}
+          {model.plan.safeWindows.length > 0 && model.plan.status !== "boundary" && <p className="mt-2 text-xs text-muted-foreground">Crossings are calculated analytically; usable displayed limits are rounded inward to five minutes and remain approximate.</p>}
         </div>
       </> : <div role="alert" className="rounded-md border border-red-200 bg-red-50 p-4 text-red-800"><p className="font-semibold">No result or chart is shown.</p><p className="text-sm">{statusCopy}</p></div>}
     </CardContent></Card>
