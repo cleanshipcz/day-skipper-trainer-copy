@@ -90,12 +90,21 @@ describe("TidalVisualizer Component", () => {
     render(<TidalVisualizer />);
     const layout = screen.getByTestId("tidal-layout");
     expect(layout.getAttribute("data-layout")).toBe("compact");
+    expect(layout.className).toContain("grid-cols-1");
+    expect(layout.className).toContain("gap-4");
     Object.defineProperty(window, "innerWidth", { configurable: true, value: 768 });
     fireEvent(window, new Event("resize"));
     expect(layout.getAttribute("data-layout")).toBe("standard");
+    expect(layout.className).toContain("minmax(17rem,0.8fr)");
+    expect(layout.className).toContain("gap-5");
     Object.defineProperty(window, "innerWidth", { configurable: true, value: 1280 });
     fireEvent(window, new Event("resize"));
     expect(layout.getAttribute("data-layout")).toBe("wide");
+    expect(layout.className).toContain("minmax(20rem,0.8fr)");
+    expect(layout.className).toContain("gap-8");
+    expect(screen.getByTestId("tidal-figure").className).toContain("overflow-hidden");
+    expect(screen.getByRole("img").classList.contains("w-full")).toBe(true);
+    expect(screen.getByRole("img").classList.contains("min-w-0")).toBe(true);
   });
 
   it("supports keyboard slider adjustment and pointer-driven drill entry", async () => {

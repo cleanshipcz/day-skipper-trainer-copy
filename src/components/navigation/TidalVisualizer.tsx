@@ -36,6 +36,11 @@ const TidalVisualizer = () => {
   const diagramResult = feature === "sounding" ? tide + featureValue : tide - featureValue;
   const finished = drillActive && index >= SCENARIOS.length - 1 && feedback?.ok;
   const completed = finished || feedback?.text.startsWith("Drill complete");
+  const layoutClass = layout === "compact"
+    ? "grid grid-cols-1 gap-4"
+    : layout === "standard"
+      ? "grid grid-cols-[minmax(0,1fr)_minmax(17rem,0.8fr)] gap-5"
+      : "grid grid-cols-[minmax(0,1.2fr)_minmax(20rem,0.8fr)] gap-8";
 
   useEffect(() => {
     const updateLayout = () => setLayout(window.innerWidth < 768 ? "compact" : window.innerWidth < 1280 ? "standard" : "wide");
@@ -88,7 +93,7 @@ const TidalVisualizer = () => {
           <p className="text-sm"><strong>Worked drying height:</strong> 0.8 m tide − 1.4 m drying height = −0.6 m, so water depth is 0 m and the feature is 0.6 m uncovered.</p>
         </section>
 
-        <div data-testid="tidal-layout" data-layout={layout} className="grid gap-5 md:grid-cols-[minmax(0,1fr)_minmax(17rem,0.8fr)]">
+        <div data-testid="tidal-layout" data-layout={layout} className={layoutClass}>
           <div className="min-w-0 space-y-3">
             <Label id="tide-slider-label">Height of Tide: <strong>{tide.toFixed(1)} m above CD</strong></Label>
             <Slider aria-labelledby="tide-slider-label" value={[tide]} min={0} max={6} step={0.1} disabled={drillActive}
@@ -108,7 +113,7 @@ const TidalVisualizer = () => {
             </div>}
         </div>
 
-        <figure className="overflow-hidden rounded-xl border bg-sky-50">
+        <figure data-testid="tidal-figure" className="w-full min-w-0 overflow-hidden rounded-xl border bg-sky-50">
           <svg role="img" aria-labelledby={`${titleId} ${descId}`} viewBox="0 0 600 390" className="block h-auto w-full min-w-0">
             <title id={titleId}>Tidal depth cross-section for scenario {drillActive ? scenario.id : "example"}</title>
             <desc id={descId}>Chart Datum, sea surface at {tide.toFixed(1)} metres above datum, and a {feature} of {featureValue.toFixed(1)} metres. {diagramResult > 0 ? `${diagramResult.toFixed(1)} metres of water covers it.` : diagramResult === 0 ? "The feature is awash, with zero metres of water depth." : `There is zero metres of water depth; it is ${Math.abs(diagramResult).toFixed(1)} metres uncovered.`}</desc>
