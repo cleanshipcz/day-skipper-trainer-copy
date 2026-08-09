@@ -24,7 +24,7 @@ const definitions: Record<QuizTopicId, { meta: TopicMeta; importer: QuizImporter
   victualling: { meta: { title: "Victualling Quiz", subtitle: "Provisioning, storage, and passage planning" }, importer: () => import("./victualling") },
   engine: { meta: { title: "Engine Checks Quiz", subtitle: "Pre-start routines and troubleshooting" }, importer: () => import("./engine") },
   rig: { meta: { title: "Rig Prep Quiz", subtitle: "Standing and running rigging inspections" }, importer: () => import("./rig") },
-  colregs: { meta: { title: "Colregs Quiz", subtitle: "Steering & Sailing Rules (Rules of the Road)" }, importer: () => import("./colregs") },
+  colregs: { meta: { title: "Combined Rules Diagnostic", subtitle: "Steering & Sailing plus Lights & Signals" }, importer: () => import("./colregs") },
   "lights-signals": { meta: { title: "Lights & Signals Mastery", subtitle: "Lights, Shapes, Sound Signals & Distress" }, importer: () => import("./lightsSignals") },
   "safety-mob-quiz": { meta: { title: "Man Overboard Quiz", subtitle: "Procedures, distress signals, and recovery actions" }, importer: () => import("./safetyMob") },
   "safety-fire-quiz": { meta: { title: "Fire Safety Quiz", subtitle: "Fire types, extinguishers, prevention, and emergency procedure" }, importer: () => import("./safetyFire") },
