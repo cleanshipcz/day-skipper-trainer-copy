@@ -3,6 +3,7 @@ import type { Question } from "@/data/quizzes/types";
 import {
   ANONYMOUS_QUIZ_SESSION_MAX_AGE_MS, anonymousQuizSessionKey, buildQuizSessionProgress,
   clearAnonymousQuizSession, createEmptyQuizAnswers, parseSavedQuizSession,
+  isCurrentCompletedQuizCatalogue,
   persistQuizSessionProgress, restoreAnonymousQuizSession, saveAnonymousQuizSession,
 } from "./sessionProgress";
 
@@ -76,6 +77,14 @@ describe("quiz session progress helpers", () => {
     const saved = buildQuizSessionProgress([1, 1], 1, catalogue);
     expect(parseSavedQuizSession(saved, catalogue, true)).toBeNull();
     expect(parseSavedQuizSession({ ...saved, completed: true }, catalogue)).toBeNull();
+  });
+
+  it("validates completed catalogue identity without restoring its answers", () => {
+    const saved = buildQuizSessionProgress([1, 2], 1, catalogue);
+    expect(isCurrentCompletedQuizCatalogue(saved, catalogue)).toBe(true);
+    expect(isCurrentCompletedQuizCatalogue({ ...saved, catalogueVersion: "retired" }, catalogue)).toBe(false);
+    expect(isCurrentCompletedQuizCatalogue(saved, [question("replacement")])).toBe(false);
+    expect(parseSavedQuizSession(saved, catalogue, true)).toBeNull();
   });
 
   it("migrates only identity-safe unanswered legacy sessions", () => {

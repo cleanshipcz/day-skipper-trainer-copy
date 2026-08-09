@@ -5,10 +5,11 @@ import { Badge } from "@/components/ui/badge";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Progress } from "@/components/ui/progress";
 import { ArrowLeft, Wrench, AlertTriangle } from "lucide-react";
-import { useNavigate } from "react-router-dom";
+import { useLocation, useNavigate } from "react-router-dom";
 import { maintenanceChecks } from "@/data/engineChecks";
 import { engineGuidance, engineSources } from "@/data/engineGuidance";
 import { inspectionExamples, lessonStages, practiceScenarios } from "@/data/engineLesson";
+import { engineObjectives } from "@/data/engineAssessment";
 import { useProgress, type ProgressSaveResult } from "@/hooks/useProgress";
 import { useAuth } from "@/contexts/AuthHooks";
 import { clearAnonymousEngineChecklist, ENGINE_CHECKLIST_CATALOGUE_ID, ENGINE_CHECKLIST_PROGRESS_ID, ENGINE_CHECKLIST_PROGRESS_VERSION, mergeEngineChecklistIds, normalizeEngineCatalogue, parseEngineChecklistProgress, restoreAnonymousEngineChecklist, saveAnonymousEngineChecklist, shouldClearAnonymousAfterMigration } from "@/features/progress/engineChecklistProgress";
@@ -17,6 +18,7 @@ type Status = "loading" | "ready" | "saving" | "saved" | "queued" | "anonymous" 
 
 const EngineTheory = () => {
   const navigate = useNavigate();
+  const location = useLocation();
   const { user } = useAuth();
   const { loadProgressDetailed, saveProgressDetailed } = useProgress();
   const catalogue = useMemo(() => normalizeEngineCatalogue(maintenanceChecks), []);
@@ -29,6 +31,16 @@ const EngineTheory = () => {
   const ownerRef = useRef(user?.id ?? null);
   const revisionRef = useRef(0);
   ownerRef.current = user?.id ?? null;
+
+  useEffect(() => {
+    const anchor = location.hash.startsWith("#") ? location.hash.slice(1) : "";
+    const allowed = engineObjectives.some(({ theoryAnchor }) => theoryAnchor === anchor);
+    if (!allowed) return;
+    const target = document.getElementById(anchor);
+    if (!target) return;
+    target.scrollIntoView?.({ block: "start" });
+    target.focus({ preventScroll: true });
+  }, [location.hash]);
 
   useEffect(() => {
     let cancelled = false;
@@ -124,10 +136,11 @@ const EngineTheory = () => {
       <Card className="mb-6"><CardContent className="pt-6"><div className="flex justify-between mb-2"><span id="engine-progress-label" className="font-semibold">Practice checklist progress</span><span>{percentage}%</span></div><Progress value={percentage} aria-labelledby="engine-progress-label" aria-valuemin={0} aria-valuemax={100} aria-valuenow={percentage} /></CardContent></Card>
       <Card className="mb-6 border-2 border-accent bg-accent/5"><CardContent className="pt-6 flex gap-3"><AlertTriangle className="w-6 h-6 text-accent shrink-0" /><div><h3 className="font-bold mb-2">Use the vessel instructions</h3><p className="text-sm text-muted-foreground">Isolate machinery and follow the engine and vessel manufacturers’ procedures. Ventilation, fuel-vapour checks and pre-start routines depend on the installation; do not treat this training list as authority to operate or maintain equipment.</p></div></CardContent></Card>
       <section aria-labelledby="engine-objectives" className="mb-6">
-        <Card><CardHeader><CardTitle id="engine-objectives">Lesson objectives and scope</CardTitle></CardHeader><CardContent className="space-y-3 text-sm text-muted-foreground">
+        <Card><CardHeader><CardTitle id="engine-objectives" tabIndex={-1}>Lesson objectives and scope</CardTitle></CardHeader><CardContent className="space-y-3 text-sm text-muted-foreground">
           <p>By the end, you should be able to locate the fitted system from its manuals, make a safe operator observation, compare evidence with an installation-specific normal, record it, and decide when to stop, isolate or call a competent person.</p>
           <p><strong className="text-foreground">Representative installation only:</strong> the diagram and examples below help you ask better questions on the actual vessel. They are not a plumbing plan, universal layout, service instruction or substitute for identifying every fitted component in the current engine, gearbox/drive and vessel manuals.</p>
           <p>Before practical work, verify the real installation with the owner/skipper: manuals and service schedule; fuel and cooling routes; shut-offs and isolators; controls, alarms and normal readings; safe access; and the permitted operator-maintenance boundary.</p>
+          <div><h3 className="font-semibold text-foreground">Assessed objectives</h3><ol className="mt-2 grid gap-1 sm:grid-cols-2">{engineObjectives.map((objective, index) => <li key={objective.id}><a className="underline underline-offset-4" href={`#${objective.theoryAnchor}`}>{index + 1}. {objective.title}</a></li>)}</ol></div>
         </CardContent></Card>
       </section>
       <section aria-labelledby="engine-system-map" className="mb-6">
@@ -146,19 +159,19 @@ const EngineTheory = () => {
           </figure>
         </CardContent></Card>
       </section>
-      <section aria-labelledby="engine-worked-routine" className="mb-6"><h2 id="engine-worked-routine" className="text-2xl font-bold mb-4">Worked inspect–compare–decide routine</h2><ol className="grid gap-4">
+      <section aria-labelledby="engine-worked-routine" className="mb-6"><h2 id="engine-worked-routine" tabIndex={-1} className="text-2xl font-bold mb-4 focus:outline-none">Worked inspect–compare–decide routine</h2><ol className="grid gap-4">
         {lessonStages.map((stage) => <li key={stage.id}><Card><CardHeader><CardTitle className="text-lg">{stage.title}</CardTitle></CardHeader><CardContent className="grid gap-3 sm:grid-cols-2"><div><h3 className="font-semibold text-success">Normal evidence example</h3><p className="text-sm text-muted-foreground mt-1">{stage.example}</p></div><div><h3 className="font-semibold text-destructive">Abnormal evidence and decision</h3><p className="text-sm text-muted-foreground mt-1">{stage.abnormal}</p></div></CardContent></Card></li>)}
       </ol></section>
-      <section aria-labelledby="engine-component-inspections" className="mb-6"><h2 id="engine-component-inspections" className="text-2xl font-bold mb-2">Component inspection examples</h2><p className="text-sm text-muted-foreground mb-4">Use these cards to prepare a vessel walk-through. “Normal” means the documented baseline for that installation, not merely the absence of an alarm.</p><div className="grid gap-4 lg:grid-cols-2">
+      <section aria-labelledby="engine-component-inspections" className="mb-6"><h2 id="engine-component-inspections" tabIndex={-1} className="text-2xl font-bold mb-2 focus:outline-none">Component inspection examples</h2><p className="text-sm text-muted-foreground mb-4">Use these cards to prepare a vessel walk-through. “Normal” means the documented baseline for that installation, not merely the absence of an alarm.</p><div className="grid gap-4 lg:grid-cols-2">
         {inspectionExamples.map((item) => <Card key={item.id}><CardHeader><CardTitle className="text-lg">{item.component}</CardTitle></CardHeader><CardContent className="space-y-3 text-sm"><div><h3 className="font-semibold">Locate and verify</h3><p className="text-muted-foreground">{item.locate}</p></div><div><h3 className="font-semibold">Observe and record</h3><p className="text-muted-foreground">{item.observe}</p></div><dl className="grid gap-2 sm:grid-cols-2"><div className="rounded-md border border-success/40 p-3"><dt className="font-semibold">Normal evidence</dt><dd className="text-muted-foreground mt-1">{item.evidence.normal}</dd></div><div className="rounded-md border border-destructive/40 p-3"><dt className="font-semibold">Abnormal evidence</dt><dd className="text-muted-foreground mt-1">{item.evidence.abnormal}</dd></div></dl><div className="rounded-md bg-muted p-3"><h3 className="font-semibold">Work boundary</h3><p className="text-muted-foreground mt-1">{item.boundary}</p></div></CardContent></Card>)}
       </div></section>
-      <section aria-labelledby="engine-safe-routine" className="mb-6"><h2 id="engine-safe-routine" className="text-2xl font-bold mb-4">Safe operating routine and fault response</h2><div className="grid gap-4 md:grid-cols-2">
+      <section aria-labelledby="engine-safe-routine" className="mb-6"><h2 id="engine-safe-routine" tabIndex={-1} className="text-2xl font-bold mb-4 focus:outline-none">Safe operating routine and fault response</h2><div className="grid gap-4 md:grid-cols-2">
         {engineGuidance.map(({ title, body }) => <Card key={title}><CardHeader><CardTitle className="text-lg">{title}</CardTitle></CardHeader><CardContent><p className="text-sm text-muted-foreground">{body}</p></CardContent></Card>)}
       </div></section>
       <section aria-labelledby="engine-practice" className="mb-6"><Card><CardHeader><CardTitle id="engine-practice">Decision practice</CardTitle></CardHeader><CardContent className="space-y-6"><p className="text-sm text-muted-foreground">Choose an action, then use the feedback to correct the reasoning. Practice does not attest that actual maintenance was completed.</p>
         {practiceScenarios.map((scenario) => { const selected = practiceAnswers[scenario.id]; const answered = selected !== undefined; return <fieldset key={scenario.id} className="space-y-3 rounded-lg border p-4"><legend className="px-1 font-semibold">{scenario.prompt}</legend><div className="grid gap-2">{scenario.choices.map((choice, index) => <label key={choice} className="flex min-h-11 cursor-pointer items-start gap-3 rounded-md border p-3"><input type="radio" name={scenario.id} value={index} checked={selected === index} onChange={() => setPracticeAnswers((current) => ({ ...current, [scenario.id]: index }))} className="mt-1 size-5 shrink-0"/><span>{choice}</span></label>)}</div>{answered && <div role="status" className={`rounded-md p-3 text-sm ${selected === scenario.answer ? "bg-success/10" : "bg-destructive/10"}`}><strong>{selected === scenario.answer ? "Defensible decision." : "Reconsider this choice."}</strong> {scenario.remediation}</div>}</fieldset>; })}
       </CardContent></Card></section>
-      <section aria-labelledby="engine-preparation" className="mb-6"><Card><CardHeader><CardTitle id="engine-preparation">Prepare the actual inspection</CardTitle></CardHeader><CardContent className="grid gap-4 text-sm md:grid-cols-2"><div><h3 className="font-semibold">Tools, PPE and controls</h3><ul className="mt-2 list-disc space-y-1 pl-5 text-muted-foreground"><li>Current engine, drive and vessel manuals; service schedule; hours and previous defect/service records</li><li>Only specified tools, test equipment and PPE; remove jewellery and control keys/starting energy</li><li>Correct labelled fluids, filters, belts, impeller, seals and other vessel-specific spares—never substitute by appearance</li></ul></div><div><h3 className="font-semibold">Spill, waste and handover</h3><ul className="mt-2 list-disc space-y-1 pl-5 text-muted-foreground"><li>Absorbents, containers, plugs and fire controls ready before opening a system</li><li>Capture used fluid, filters, contaminated fuel and absorbents; store and dispose under marina/local rules—never discharge to bilge or water</li><li>Record date, hours, evidence, measurements, specification/batch, parts, work performed, next due point and competent person; retain invoices/service reports</li></ul></div></CardContent></Card></section>
+      <section aria-labelledby="engine-preparation" className="mb-6"><Card><CardHeader><CardTitle id="engine-preparation" tabIndex={-1}>Prepare the actual inspection</CardTitle></CardHeader><CardContent className="grid gap-4 text-sm md:grid-cols-2"><div><h3 className="font-semibold">Tools, PPE and controls</h3><ul className="mt-2 list-disc space-y-1 pl-5 text-muted-foreground"><li>Current engine, drive and vessel manuals; service schedule; hours and previous defect/service records</li><li>Only specified tools, test equipment and PPE; remove jewellery and control keys/starting energy</li><li>Correct labelled fluids, filters, belts, impeller, seals and other vessel-specific spares—never substitute by appearance</li></ul></div><div><h3 className="font-semibold">Spill, waste and handover</h3><ul className="mt-2 list-disc space-y-1 pl-5 text-muted-foreground"><li>Absorbents, containers, plugs and fire controls ready before opening a system</li><li>Capture used fluid, filters, contaminated fuel and absorbents; store and dispose under marina/local rules—never discharge to bilge or water</li><li>Record date, hours, evidence, measurements, specification/batch, parts, work performed, next due point and competent person; retain invoices/service reports</li></ul></div></CardContent></Card></section>
       <Card className="mb-6"><CardHeader><CardTitle className="flex items-center gap-2"><Wrench className="w-5 h-5" />Maintenance practice checklist</CardTitle></CardHeader><CardContent className="space-y-3">
         {total === 0 && <p role="status">No valid engine checklist items are currently available. The quiz remains available below.</p>}
         {catalogue.map((check) => <div key={check.id} className={`p-4 rounded-lg border-2 ${checkedIds.has(check.id) ? "border-success/30 bg-success/5" : "border-border"}`}><div className="flex items-start gap-3"><Checkbox id={`engine-${check.id}`} aria-label={check.task} checked={checkedIds.has(check.id)} disabled={!interactive} onCheckedChange={(value) => toggle(check.id, value === true)} className="mt-1 size-11" /><label htmlFor={`engine-${check.id}`} className="cursor-pointer flex-1"><div className="flex flex-wrap justify-between gap-2"><h3 className="font-semibold">{check.task}</h3><Badge variant="outline">{check.frequency}</Badge></div><p className="text-sm text-muted-foreground mt-2">{check.description}</p></label></div></div>)}

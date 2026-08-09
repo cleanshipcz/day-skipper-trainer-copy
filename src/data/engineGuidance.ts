@@ -9,9 +9,12 @@ export const engineGuidance: EngineGuidanceSection[] = [
 ];
 
 export const engineSources = [
-  { label: "RYA: Engine checks and preventing fuel contamination", href: "https://www.rya.org.uk/water-safety/boat-safety-and-maintenance/engine-checks-preventing-fuel-contamination/" },
-  { label: "US Coast Guard: Boater's Guide to Federal Requirements", href: "https://www.uscgboating.org/assets/1/AssetManager/Boaters-Guide-to-Federal-Requirements-for-Receational-Boats-20231108.pdf" },
-  { label: "US Coast Guard: Carbon monoxide protection", href: "https://uscgboating.org/recreational-boaters/carbon-monoxide-protect.php" },
-  { label: "UK MAIB: Carbon monoxide safety lessons", href: "https://www.gov.uk/government/publications/safety-lessons-be-alert-to-carbon-monoxide-accumulating-on-your-boat/safety-flyer-to-the-recreational-craft-industry-and-pleasure-craft-users" },
-  { label: "Yanmar 4JH57 product page: manufacturer operation-manual downloads (example only—use the page/manual for the fitted engine)", href: "https://www.yanmar.com/marine/product/engines/4jh57/" },
-];
+  { id: "rya", label: "RYA: Engine checks and preventing fuel contamination", href: "https://www.rya.org.uk/water-safety/boat-safety-and-maintenance/engine-checks-preventing-fuel-contamination/" },
+  { id: "uscg-ventilation", label: "US Coast Guard: Boatbuilder's Handbook — Ventilation", href: "https://www.uscgboating.org/images/514.PDF" },
+  { id: "yanmar-8lv", label: "Yanmar 8LV operation manual (coolant example; use the manual for the fitted engine)", href: "https://www.yanmar.com/media/global/com/product/marinepleasure/powerBoatPropulsion/operationmanual/8LV_OPM_0A8LV-G00101.pdf" },
+  { id: "yanmar-6lt", label: "Yanmar 6LT operation manual (alarm/operation example; use the manual for the fitted engine)", href: "https://www.yanmar.com/marine/wp-content/uploads/2022/11/L31900574_OPM_M0_20251204.pdf" },
+  { id: "volvo", label: "Volvo Penta: Troubleshooting and alarm-severity guidance", href: "https://www.volvopenta.com/en-us/support/" },
+  { id: "maib", label: "UK MAIB Leisure Craft Safety Digest: dangers of rotating machinery", href: "https://assets.publishing.service.gov.uk/government/uploads/system/uploads/attachment_data/file/877003/2008-SDLeisureCraft-MAIBSafetyDigest.pdf" },
+] as const;
+
+export type EngineSourceId = typeof engineSources[number]["id"];
