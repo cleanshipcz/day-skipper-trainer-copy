@@ -51,6 +51,18 @@ const CompassConverter = () => {
   const announceResult = () => setAnnouncement(result.compassHeading === undefined
     ? "Calculation incomplete. Complete all three valid fields."
     : `Calculated course to steer: ${displayHeading(result.compassHeading)} degrees compass.`);
+  const announceDirectionResult = (nextVariationDir: Direction, nextDeviationDir: Direction) => {
+    const trueField = parseField(trueHeading, "True heading", 359);
+    const variationField = parseField(variation, "Variation", 90);
+    const deviationField = parseField(deviation, "Deviation", 90);
+    if (trueField.value === undefined || variationField.value === undefined || deviationField.value === undefined) {
+      setAnnouncement("Direction changed. Calculation incomplete. Complete all three valid fields.");
+      return;
+    }
+    const magnetic = trueField.value + (nextVariationDir === "E" ? -variationField.value : variationField.value);
+    const compass = normalizeHeading(magnetic + (nextDeviationDir === "E" ? -deviationField.value : deviationField.value));
+    setAnnouncement(`Direction changed. Calculated course to steer: ${displayHeading(compass)} degrees compass.`);
+  };
 
   return (
     <Card className="mt-8 w-full min-w-0 overflow-hidden border-2 border-primary/20 bg-gradient-to-br from-card to-primary/5">
@@ -59,20 +71,20 @@ const CompassConverter = () => {
         <div className="grid grid-cols-1 md:grid-cols-5 gap-4 items-start mb-8">
           <div className="flex flex-col gap-2">
             <Label htmlFor="true">True (°T)</Label>
-            <Input id="true" aria-label="True heading in degrees true" aria-invalid={Boolean(result.trueField.error)} aria-describedby={result.trueField.error ? "true-error" : undefined} type="number" min="0" max="359" step="any" placeholder="000" value={trueHeading} onChange={(e) => setTrueHeading(e.target.value)} onBlur={announceResult} className="text-center font-bold text-lg" />
+            <Input id="true" aria-label="True heading in degrees true" aria-invalid={Boolean(result.trueField.error)} aria-describedby={result.trueField.error ? "true-error" : undefined} type="number" min="0" max="359" step="any" placeholder="000" value={trueHeading} onChange={(e) => setTrueHeading(e.target.value)} onBlur={announceResult} className="min-h-11 text-center font-bold text-lg" />
             {error("true-error", result.trueField.error)}
             <span className="text-xs text-center text-muted-foreground">Chart</span>
           </div>
           <div className="flex flex-col gap-2 relative">
             <Label htmlFor="variation" className="text-center text-xs text-muted-foreground">Variation</Label>
-            <div className="flex gap-2 justify-center items-center"><span aria-hidden className="text-sm font-bold">{variationDir === "E" ? "-" : "+"}</span><Input id="variation" aria-label="Variation magnitude in degrees" aria-invalid={Boolean(result.variationField.error)} aria-describedby={result.variationField.error ? "variation-error" : undefined} type="number" min="0" max="90" step="any" placeholder="0" value={variation} onChange={(e) => setVariation(e.target.value)} onBlur={announceResult} className="w-20 min-h-11 text-center" /><Button type="button" aria-label={`Variation direction: ${variationDir === "E" ? "East" : "West"}`} aria-pressed={variationDir === "W"} variant="outline" size="sm" className="min-h-11 min-w-11 p-0" onClick={() => setVariationDir((prev) => prev === "E" ? "W" : "E")}>{variationDir}</Button></div>
+            <div className="flex gap-2 justify-center items-center"><span aria-hidden className="text-sm font-bold">{variationDir === "E" ? "-" : "+"}</span><Input id="variation" aria-label="Variation magnitude in degrees" aria-invalid={Boolean(result.variationField.error)} aria-describedby={result.variationField.error ? "variation-error" : undefined} type="number" min="0" max="90" step="any" placeholder="0" value={variation} onChange={(e) => setVariation(e.target.value)} onBlur={announceResult} className="w-20 min-h-11 text-center" /><Button type="button" aria-label={`Variation direction: ${variationDir === "E" ? "East" : "West"}`} aria-pressed={variationDir === "W"} variant="outline" size="sm" className="min-h-11 min-w-11 p-0" onClick={() => { const next = variationDir === "E" ? "W" : "E"; setVariationDir(next); announceDirectionResult(next, deviationDir); }}>{variationDir}</Button></div>
             {error("variation-error", result.variationField.error)}
             <MoveRight className="w-4 h-4 text-muted-foreground absolute -right-3 top-1/2 -translate-y-1/2 hidden md:block" />
           </div>
           <div className="flex flex-col gap-2 text-center opacity-70"><Label>Magnetic (°M)</Label><output aria-label="Calculated magnetic heading in degrees magnetic" className="h-10 flex items-center justify-center font-mono text-xl bg-muted rounded-md border border-input">{result.magneticHeading === undefined ? "--" : displayHeading(result.magneticHeading)}</output></div>
           <div className="flex flex-col gap-2 relative">
             <Label htmlFor="deviation" className="text-center text-xs text-muted-foreground">Deviation</Label>
-            <div className="flex gap-2 justify-center items-center"><span aria-hidden className="text-sm font-bold">{deviationDir === "E" ? "-" : "+"}</span><Input id="deviation" aria-label="Deviation magnitude in degrees" aria-invalid={Boolean(result.deviationField.error)} aria-describedby={result.deviationField.error ? "deviation-error" : undefined} type="number" min="0" max="90" step="any" placeholder="0" value={deviation} onChange={(e) => setDeviation(e.target.value)} onBlur={announceResult} className="w-20 min-h-11 text-center" /><Button type="button" aria-label={`Deviation direction: ${deviationDir === "E" ? "East" : "West"}`} aria-pressed={deviationDir === "W"} variant="outline" size="sm" className="min-h-11 min-w-11 p-0" onClick={() => setDeviationDir((prev) => prev === "E" ? "W" : "E")}>{deviationDir}</Button></div>
+            <div className="flex gap-2 justify-center items-center"><span aria-hidden className="text-sm font-bold">{deviationDir === "E" ? "-" : "+"}</span><Input id="deviation" aria-label="Deviation magnitude in degrees" aria-invalid={Boolean(result.deviationField.error)} aria-describedby={result.deviationField.error ? "deviation-error" : undefined} type="number" min="0" max="90" step="any" placeholder="0" value={deviation} onChange={(e) => setDeviation(e.target.value)} onBlur={announceResult} className="w-20 min-h-11 text-center" /><Button type="button" aria-label={`Deviation direction: ${deviationDir === "E" ? "East" : "West"}`} aria-pressed={deviationDir === "W"} variant="outline" size="sm" className="min-h-11 min-w-11 p-0" onClick={() => { const next = deviationDir === "E" ? "W" : "E"; setDeviationDir(next); announceDirectionResult(variationDir, next); }}>{deviationDir}</Button></div>
             {error("deviation-error", result.deviationField.error)}
             <MoveRight className="w-4 h-4 text-muted-foreground absolute -right-3 top-1/2 -translate-y-1/2 hidden md:block" />
           </div>

@@ -57,6 +57,7 @@ describe("CompassConverter", () => {
     expect(document.querySelector("p[aria-live=polite]")?.textContent).toContain("093 degrees compass");
     await user.click(toggle);
     expect(screen.getByRole("button", { name: "Variation direction: West" }).getAttribute("aria-pressed")).toBe("true");
+    expect(document.querySelector("p[aria-live=polite]")?.textContent).toContain("103 degrees compass");
   });
 });
 

@@ -51,13 +51,14 @@ try {
         const notificationPortal = document.querySelector('[aria-label="Notifications (F8)"]');
         if (notificationPortal) notificationPortal.style.display = 'none';
         const regions = [...document.querySelectorAll('[role=region][aria-label*="scroll horizontally"]')];
-        const targets = [...document.querySelectorAll('button[aria-pressed], button')].filter((node) => node.textContent.trim() === 'E' || node.textContent.includes('Check answers'));
+        const targetSelectors = ['header button[aria-label^="Back"]', '#true', '#variation', '#deviation', 'button[aria-pressed]', '[aria-label^="Compass answer"]', 'button'];
+        const targets = [...new Set(targetSelectors.flatMap((selector) => [...document.querySelectorAll(selector)]))].filter((node) => node.matches('header button, input, button[aria-pressed]') || node.textContent.includes('Check answers'));
         const offenders = [...document.querySelectorAll('body *')].filter((node) => { const rect = node.getBoundingClientRect(); return rect.right > document.documentElement.clientWidth + 1 && getComputedStyle(node).position !== 'fixed'; }).slice(0, 8).map((node) => ({ tag: node.tagName, className: node.className?.baseVal ?? node.className, text: node.textContent?.trim().slice(0, 40), right: Math.round(node.getBoundingClientRect().right) }));
-        return { viewport: document.documentElement.clientWidth, pageWidth: document.documentElement.scrollWidth, mainWidth: document.querySelector('main').getBoundingClientRect().width, regions: regions.map((node) => { const scroller = node.querySelector('.overflow-auto'); return { client: scroller.clientWidth, scroll: scroller.scrollWidth, name: node.getAttribute('aria-label') }; }), minTarget: Math.min(...targets.map((node) => node.getBoundingClientRect().height)), offenders };
+        return { viewport: document.documentElement.clientWidth, pageWidth: document.documentElement.scrollWidth, mainWidth: document.querySelector('main').getBoundingClientRect().width, regions: regions.map((node) => { const scroller = node.querySelector('.overflow-auto'); return { client: scroller.clientWidth, scroll: scroller.scrollWidth, name: node.getAttribute('aria-label') }; }), targets: targets.map((node) => ({ name: node.getAttribute('aria-label') ?? node.textContent.trim(), height: node.getBoundingClientRect().height, width: node.getBoundingClientRect().width })), offenders };
       })()`);
       if (layout.pageWidth > layout.viewport || layout.mainWidth > layout.viewport) throw new Error(`Compass page overflow at ${width}px/${textZoom}% text: ${JSON.stringify(layout)}`);
       if (layout.regions.length !== 2 || layout.regions.some(({ name }) => !name?.includes("scroll horizontally"))) throw new Error(`Compass table context missing: ${JSON.stringify(layout)}`);
-      if (layout.minTarget < 44) throw new Error(`Compass touch target below 44px: ${JSON.stringify(layout)}`);
+      if (layout.targets.some(({ height, width }) => height < 44 || width < 44)) throw new Error(`Compass touch target below 44px: ${JSON.stringify(layout)}`);
     }
   }
   const semantics = await evaluate(`(() => ({ back: document.querySelector('header button').getAttribute('aria-label'), toggles: [...document.querySelectorAll('button[aria-pressed]')].map((node) => [node.getAttribute('aria-label'), node.getAttribute('aria-pressed')]), answer: document.querySelector('[aria-label^="Compass answer"]').getAttribute('aria-label') }))()`);
