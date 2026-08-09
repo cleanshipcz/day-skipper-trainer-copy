@@ -1,623 +1,139 @@
-import { useState, useRef } from "react";
-import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
+/* eslint-disable react-refresh/only-export-components -- exported chart maths are the exercise's testable contract */
+import { useMemo, useRef, useState } from "react";
+import { CheckCircle2, Crosshair, Map as MapIcon, MousePointer2, RotateCcw, Ruler, XCircle } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import {
-  Ruler,
-  Crosshair,
-  Map as MapIcon,
-  RotateCcw,
-  MousePointer2,
-  PlayCircle,
-  CheckCircle2,
-  XCircle,
-} from "lucide-react";
-import { Badge } from "@/components/ui/badge";
-import ChartSurface from "./unified/ChartSurface";
-import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 
-type Tool = "pan" | "plot" | "distance" | "bearing";
+export type Point = { x: number; y: number };
+export type PlotterTool = "pan" | "plot" | "distance" | "bearing";
 
-interface Point {
-  x: number;
-  y: number;
-}
+const ORIGIN_LAT = 50 + 15 / 60;
+const ORIGIN_LON = -(1 + 35 / 60);
+const PX_PER_NM = 100;
+const WORLD = { width: 1200, height: 800 };
+const COS_LAT = Math.cos((ORIGIN_LAT * Math.PI) / 180);
 
-interface Challenge {
-  id: number;
-  text: string;
-  type: "dist" | "bearing" | "plot";
-  tool: Tool;
-  targetValue?: number; // For dist/bearing
-  targetPoint?: Point; // For plotting
-  tolerance?: number;
-  hint: string;
-}
-
-// 0,0 is Top Left (50°15'N, 001°35'W)
-// HEIGHT 3NM, WIDTH 5NM. 1NM = 100px.
-// L1: 100, 100
-// L2: 400, 200
-// L3: 250, 50
-
-const CHALLENGES: Challenge[] = [
-  {
-    id: 1,
-    text: "Measure the distance from the Spire (L1) to the Buoy (L2).",
-    type: "dist",
-    tool: "distance",
-    targetValue: 3.16, // sqrt(300^2 + 100^2) = 316px = 3.16NM
-    tolerance: 0.2,
-    hint: "Select the 'Dist' tool and drag from the Spire to the Buoy.",
+/** Local tangent-plane chart model: x is eastward NM, y is southward NM. */
+export const chartModel = {
+  toPoint(lat: number, lon: number): Point {
+    return { x: (lon - ORIGIN_LON) * 60 * COS_LAT * PX_PER_NM, y: (ORIGIN_LAT - lat) * 60 * PX_PER_NM };
   },
-  {
-    id: 2,
-    text: "Find the Bearing from the Wreck (L3) to the Buoy (L2).",
-    type: "bearing",
-    tool: "bearing",
-    targetValue: 135, // dx 150, dy 150. atan2(150, -150) -> 135 deg
-    tolerance: 5,
-    hint: "Select 'Bearing'. Drag FROM the Wreck TO the Buoy.",
-  },
-  {
-    id: 3,
-    text: "How far is the Lighthouse (L4) from the Fort (L5)?",
-    type: "dist",
-    tool: "distance",
-    // L4(800,600) to L5(600,300). dx=200, dy=300. sqrt(130000) = 360.55 = 3.61NM
-    targetValue: 3.61,
-    tolerance: 0.2,
-    hint: "Measure distance between L4 and L5.",
-  },
-  {
-    id: 4,
-    text: "What is the bearing FROM Spire (L1) TO Lighthouse (L4)?",
-    type: "bearing",
-    tool: "bearing",
-    // L1(100,100) to L4(800,600). dx=700, dy=500. atan2(500,700)=35.5 deg. +90 = 125.5 deg.
-    targetValue: 125.5,
-    tolerance: 5,
-    hint: "Drag from Spire to Lighthouse. Remember: Bearings are 'From -> To'.",
-  },
-  {
-    id: 5,
-    text: "Plot a position at 50°13.0'N 001°32.0'W",
-    type: "plot",
-    tool: "plot",
-    // Top Left: 50°15'N, 001°35'W
-    // Target Lat: 13.0N -> 2 mins South -> 200px down (Y=200)
-    // Target Long: 32.0W -> 3 mins East -> 300px right (X=300)
-    targetPoint: { x: 300, y: 200 },
-    tolerance: 20, // 20px radius = 0.2NM error margin
-    hint: "Use the grid lines. Each large square is 1 minute.",
-  },
-  {
-    id: 6,
-    text: "Plot a position at 50°12.5'N 001°30.5'W",
-    type: "plot",
-    tool: "plot",
-    // Lat: 15 - 12.5 = 2.5' South -> 250px Y.
-    // Long: 35 - 30.5 = 4.5' East -> 450px X.
-    targetPoint: { x: 450, y: 250 },
-    tolerance: 20,
-    hint: "Halfway between grid lines. 2.5' South, 4.5' East of Origin.",
-  },
-  {
-    id: 7,
-    text: "Plot a position at 50°14.8'N 001°34.5'W",
-    type: "plot",
-    tool: "plot",
-    // Lat: 15 - 14.8 = 0.2' South -> 20px Y.
-    // Long: 35 - 34.5 = 0.5' East -> 50px X.
-    targetPoint: { x: 50, y: 20 },
-    tolerance: 15,
-    hint: "Very close to the Top Left corner.",
-  },
-  {
-    id: 8,
-    text: "What is the Reciprocal Bearing from Buoy (L2) to Wreck (L3)?",
-    type: "bearing",
-    tool: "bearing",
-    // L2(400,200) to L3(250,50). dx=-150, dy=-150. atan2(-150,-150)=-135. +90=-45. +360=315.
-    targetValue: 315,
-    tolerance: 5,
-    hint: "Drag FROM Buoy TO Wreck. It's the opposite of Exercise 2.",
-  },
-];
-
-const VirtualChartPlotter = () => {
-  // State
-  const [activeTool, setActiveTool] = useState<Tool>("pan");
-  const [points, setPoints] = useState<Point[]>([]);
-
-  // Interaction State
-  const [dragStart, setDragStart] = useState<Point | null>(null);
-  const [dragCurrent, setDragCurrent] = useState<Point | null>(null);
-
-  // Pan State (ViewBox origin)
-  const [panOffset, setPanOffset] = useState<Point>({ x: 0, y: 0 });
-  const [panStart, setPanStart] = useState<Point | null>(null); // Screen coordinates for panning
-
-  const [measurements, setMeasurements] = useState<{ type: "dist" | "bearing"; val: string; raw: number }[]>([]);
-
-  const [drillActive, setDrillActive] = useState(false);
-  const [currentChallengeIndex, setCurrentChallengeIndex] = useState(0);
-  const [feedback, setFeedback] = useState<{ success: boolean; text: string } | null>(null);
-
-  // Zoom State
-  const [zoomLevel, setZoomLevel] = useState(1); // 1 = 100% (5NM width), 2 = 200% (10NM width - zoomed out, showing more)
-  // Wait, standard convention: Zoom Level > 1 usually means "Zoomed In".
-  // Let's stick to "Scale".
-  // Scale 1 = Normal. Scale 2 = Magnified (Zoom In)? No, SVG viewbox works opposite.
-  // Larger ViewBox = Smaller objects = Zoom Out.
-  // Let's call state "viewScale".
-  // viewScale 1 = 5NM wide.
-  // viewScale 2 = 10NM wide (Zoomed Out).
-  // viewScale 0.5 = 2.5NM wide (Zoomed In).
-  const [viewScale, setViewScale] = useState(1);
-
-  const svgRef = useRef<SVGSVGElement>(null);
-
-  // Large World Dimensions
-  const WORLD_WIDTH_NM = 12;
-  const WORLD_HEIGHT_NM = 8;
-  const SCALE_PIXELS_PER_NM = 100;
-
-  const WORLD_WIDTH_PX = WORLD_WIDTH_NM * SCALE_PIXELS_PER_NM;
-  const WORLD_HEIGHT_PX = WORLD_HEIGHT_NM * SCALE_PIXELS_PER_NM;
-
-  // Base View Dimensions
-  const BASE_VIEW_WIDTH_NM = 5;
-  const BASE_VIEW_HEIGHT_NM = 3;
-
-  const VIEW_WIDTH_PX = BASE_VIEW_WIDTH_NM * SCALE_PIXELS_PER_NM * viewScale;
-  const VIEW_HEIGHT_PX = BASE_VIEW_HEIGHT_NM * SCALE_PIXELS_PER_NM * viewScale;
-
-  const landmarks = [
-    { id: "L1", x: 100, y: 100, name: "Spire" },
-    { id: "L2", x: 400, y: 200, name: "Buoy 'A'" },
-    { id: "L3", x: 250, y: 50, name: "Wreck" },
-    { id: "L4", x: 800, y: 600, name: "Lighthouse" },
-    { id: "L5", x: 600, y: 300, name: "Fort" },
-  ];
-
-  const getCoordinates = (x: number, y: number) => {
-    // 50-15N is Top (y=0). y increases South.
-    // 01-35W is Left (x=0). x increases East.
-    const latMinutes = 15 - y / SCALE_PIXELS_PER_NM;
-    const longMinutes = 35 - x / SCALE_PIXELS_PER_NM;
-    const latDeg = 50;
-    const longDeg = 1;
-    return `${latDeg}°${latMinutes.toFixed(1)}'N ${longDeg.toString().padStart(3, "0")}°${longMinutes.toFixed(1)}'W`;
-  };
-
-  const getDistance = (p1: Point, p2: Point) => {
-    const dx = p1.x - p2.x;
-    const dy = p1.y - p2.y;
-    const pixelDist = Math.sqrt(dx * dx + dy * dy);
-    return pixelDist / SCALE_PIXELS_PER_NM;
-  };
-
-  const getBearing = (p1: Point, p2: Point) => {
-    const dx = p2.x - p1.x;
-    const dy = p2.y - p1.y;
-    let deg = Math.atan2(dy, dx) * (180 / Math.PI);
-    deg = (deg + 90 + 360) % 360; // Convert SVG angle to True Bearing
-    return deg;
-  };
-
-  // Helper to convert screen coordinates to SVG coordinates (taking Pan into account)
-  const getSVGPoint = (e: React.PointerEvent) => {
-    if (!svgRef.current) return { x: 0, y: 0 };
-    const rect = svgRef.current.getBoundingClientRect();
-
-    // Calculate current view width based on scale
-    const currentViewWidth = BASE_VIEW_WIDTH_NM * SCALE_PIXELS_PER_NM * viewScale;
-    const currentViewHeight = BASE_VIEW_HEIGHT_NM * SCALE_PIXELS_PER_NM * viewScale;
-
-    const scaleX = currentViewWidth / rect.width;
-    const scaleY = currentViewHeight / rect.height;
-
-    // Screen delta
-    const clickX = (e.clientX - rect.left) * scaleX;
-    const clickY = (e.clientY - rect.top) * scaleY;
-
-    // Map to World
+  toCoordinate(point: Point) {
     return {
-      x: clickX + panOffset.x,
-      y: clickY + panOffset.y,
+      lat: ORIGIN_LAT - point.y / PX_PER_NM / 60,
+      lon: ORIGIN_LON + point.x / PX_PER_NM / (60 * COS_LAT),
     };
-  };
-
-  const handlePointerDown = (e: React.PointerEvent) => {
-    // For Pan, we need SCREEN coords to calculate delta
-    if (activeTool === "pan") {
-      setPanStart({ x: e.clientX, y: e.clientY });
-      e.currentTarget.setPointerCapture(e.pointerId);
-      return;
-    }
-
-    const { x, y } = getSVGPoint(e);
-
-    if (activeTool === "plot") {
-      setPoints([...points, { x, y }]);
-      if (drillActive) checkPlot({ x, y });
-    } else if (activeTool === "distance" || activeTool === "bearing") {
-      setDragStart({ x, y });
-      setDragCurrent({ x, y });
-      e.currentTarget.setPointerCapture(e.pointerId);
-    }
-  };
-
-  const handlePointerMove = (e: React.PointerEvent) => {
-    if (activeTool === "pan" && panStart) {
-      const dx = e.clientX - panStart.x; // Screen pixels
-      const dy = e.clientY - panStart.y;
-
-      // Adjust movement speed by zoom level so dragging feels 1:1 with cursor
-      const moveScale = viewScale;
-
-      setPanOffset((prev) => ({
-        x: Math.max(0, Math.min(WORLD_WIDTH_PX - VIEW_WIDTH_PX, prev.x - dx * moveScale)),
-        y: Math.max(0, Math.min(WORLD_HEIGHT_PX - VIEW_HEIGHT_PX, prev.y - dy * moveScale)),
-      }));
-      setPanStart({ x: e.clientX, y: e.clientY });
-      return;
-    }
-
-    if (dragStart && (activeTool === "distance" || activeTool === "bearing")) {
-      const { x, y } = getSVGPoint(e);
-      setDragCurrent({ x, y });
-    }
-  };
-
-  const handlePointerUp = (e: React.PointerEvent) => {
-    e.currentTarget.releasePointerCapture(e.pointerId);
-
-    if (activeTool === "pan") {
-      setPanStart(null);
-      return;
-    }
-
-    if (activeTool === "distance" && dragStart && dragCurrent) {
-      const dist = getDistance(dragStart, dragCurrent);
-      setMeasurements((prev) => [...prev.slice(-4), { type: "dist", val: dist.toFixed(2) + " NM", raw: dist }]);
-      if (drillActive) checkMeasurement(dist, "dist");
-    } else if (activeTool === "bearing" && dragStart && dragCurrent) {
-      const brg = getBearing(dragStart, dragCurrent);
-      setMeasurements((prev) => [
-        ...prev.slice(-4),
-        { type: "bearing", val: Math.round(brg).toString().padStart(3, "0") + "°T", raw: brg },
-      ]);
-      if (drillActive) checkMeasurement(brg, "bearing");
-    }
-    setDragStart(null);
-    setDragCurrent(null);
-  };
-
-  const clear = () => {
-    setPoints([]);
-    setMeasurements([]);
-    setDragStart(null);
-    setDragCurrent(null);
-    setFeedback(null);
-    setPanOffset({ x: 0, y: 0 }); // Reset View
-    setViewScale(1);
-  };
-  // ... (Drill Logic omitted for brevity, unchanged) ...
-  // Drill Logic
-  const startDrill = () => {
-    setDrillActive(true);
-    setCurrentChallengeIndex(0);
-    setFeedback(null);
-    clear();
-    setActiveTool("pan");
-    // Auto zoom out for the long distance challenge to help user
-    if (currentChallengeIndex === 2) setViewScale(2);
-  };
-
-  const nextChallenge = () => {
-    if (currentChallengeIndex < CHALLENGES.length - 1) {
-      setCurrentChallengeIndex((prev) => prev + 1);
-      setFeedback(null);
-      clear();
-      // Auto-zoom heuristics for specific challenges
-      const nextIdx = currentChallengeIndex + 1;
-      if (
-        CHALLENGES[nextIdx].type === "dist" &&
-        CHALLENGES[nextIdx].targetValue &&
-        CHALLENGES[nextIdx].targetValue > 3
-      ) {
-        setViewScale(2); // Zoom out for long drills
-      }
-    } else {
-      setDrillActive(false);
-      setFeedback({ success: true, text: "All Challenges Completed! Well done." });
-    }
-  };
-
-  const checkMeasurement = (val: number, type: "dist" | "bearing") => {
-    const challenge = CHALLENGES[currentChallengeIndex];
-    if (challenge.type !== type) return;
-
-    const diff = Math.abs(val - (challenge.targetValue || 0));
-    // Bearing wrap around check
-    let adjustedDiff = diff;
-    if (type === "bearing") {
-      const rawDiff = Math.abs(val - (challenge.targetValue || 0));
-      adjustedDiff = Math.min(rawDiff, 360 - rawDiff);
-    }
-
-    if (adjustedDiff <= (challenge.tolerance || 0.1)) {
-      setFeedback({
-        success: true,
-        text: "Correct! " + (adjustedDiff < (challenge.tolerance || 0.1) / 2 ? "Spot on." : "Close enough."),
-      });
-    } else {
-      setFeedback({
-        success: false,
-        text: `Incorrect. You got ${val.toFixed(1)}, expected ~${
-          challenge.targetValue
-        }. Remember: Bearing is measured clockwise from North.`,
-      });
-    }
-  };
-
-  const checkPlot = (p: Point) => {
-    const challenge = CHALLENGES[currentChallengeIndex];
-    if (challenge.type !== "plot" || !challenge.targetPoint) return;
-
-    const dist = Math.sqrt(Math.pow(p.x - challenge.targetPoint.x, 2) + Math.pow(p.y - challenge.targetPoint.y, 2));
-    if (dist <= (challenge.tolerance || 20)) {
-      setFeedback({ success: true, text: "Position Correct!" });
-    } else {
-      setFeedback({ success: false, text: "Position Incorrect. Check your coordinates." });
-    }
-  };
-
-  const handleZoom = (direction: "in" | "out") => {
-    setViewScale((prev) => {
-      const newScale = direction === "in" ? prev - 0.25 : prev + 0.25;
-      return Math.max(0.5, Math.min(2.5, newScale)); // Clamp scale
-    });
-  };
-
-  return (
-    <Card className="w-full mt-8 border-2 border-primary/20 bg-card">
-      <CardHeader>
-        <CardTitle className="flex items-center justify-between">
-          <span className="flex items-center gap-2">
-            <MapIcon className="w-5 h-5 text-primary" />
-            Virtual Chart Plotter
-          </span>
-          <div className="flex gap-2 flex-wrap">
-            <div className="flex border rounded-md overflow-hidden mr-2">
-              <Button
-                variant="ghost"
-                size="icon"
-                onClick={() => handleZoom("in")}
-                disabled={viewScale <= 0.5}
-                className="h-9 w-9 rounded-none border-r"
-              >
-                <span className="font-bold text-lg">+</span>
-              </Button>
-              <Button
-                variant="ghost"
-                size="icon"
-                onClick={() => handleZoom("out")}
-                disabled={viewScale >= 2.5}
-                className="h-9 w-9 rounded-none"
-              >
-                <span className="font-bold text-lg">-</span>
-              </Button>
-            </div>
-
-            {!drillActive && (
-              <Button onClick={startDrill} variant="default" className="bg-green-600 hover:bg-green-700">
-                <PlayCircle className="w-4 h-4 mr-2" /> Start Exercises
-              </Button>
-            )}
-            <Button
-              variant={activeTool === "pan" ? "default" : "outline"}
-              size="sm"
-              onClick={() => setActiveTool("pan")}
-            >
-              <MousePointer2 className="w-4 h-4 mr-1" /> Pan
-            </Button>
-            <Button
-              variant={activeTool === "plot" ? "default" : "outline"}
-              size="sm"
-              onClick={() => setActiveTool("plot")}
-            >
-              <Crosshair className="w-4 h-4 mr-1" /> Plot
-            </Button>
-            <Button
-              variant={activeTool === "distance" ? "default" : "outline"}
-              size="sm"
-              onClick={() => setActiveTool("distance")}
-            >
-              <Ruler className="w-4 h-4 mr-1" /> Dist
-            </Button>
-            <Button
-              variant={activeTool === "bearing" ? "default" : "outline"}
-              size="sm"
-              onClick={() => setActiveTool("bearing")}
-            >
-              <RotateCcw className="w-4 h-4 mr-1" /> Bearing
-            </Button>
-            <Button variant="ghost" size="sm" onClick={clear}>
-              Clear
-            </Button>
-          </div>
-        </CardTitle>
-
-        <CardDescription>
-          {drillActive ? (
-            <div className="mt-2 p-3 bg-secondary/20 rounded-lg border border-secondary text-foreground">
-              <span className="font-bold block mb-1">
-                Challenge {currentChallengeIndex + 1}/{CHALLENGES.length}:
-              </span>
-              {CHALLENGES[currentChallengeIndex].text}
-              {feedback && (
-                <div
-                  className={`mt-2 p-2 rounded flex items-center gap-2 ${
-                    feedback.success
-                      ? "bg-green-100 dark:bg-green-900/30 text-green-700 dark:text-green-300"
-                      : "bg-red-100 dark:bg-red-900/30 text-red-700 dark:text-red-300"
-                  }`}
-                >
-                  {feedback.success ? <CheckCircle2 className="w-4 h-4" /> : <XCircle className="w-4 h-4" />}
-                  <span>{feedback.text}</span>
-                  {feedback.success && currentChallengeIndex < CHALLENGES.length && (
-                    <Button
-                      size="sm"
-                      variant="link"
-                      onClick={nextChallenge}
-                      className="text-inherit font-bold underline ml-auto"
-                    >
-                      Next Challenge &rarr;
-                    </Button>
-                  )}
-                </div>
-              )}
-              <p className="text-xs text-muted-foreground mt-2 italic">
-                Hint: {CHALLENGES[currentChallengeIndex].hint}
-              </p>
-            </div>
-          ) : activeTool === "plot" ? (
-            "Click to mark a position."
-          ) : activeTool === "distance" ? (
-            "Drag between two points to measure distance."
-          ) : activeTool === "bearing" ? (
-            "Drag from Origin to Target to measure Bearing (Clockwise from North)."
-          ) : (
-            "Explore the chart or Start Exercises."
-          )}
-        </CardDescription>
-      </CardHeader>
-      <CardContent>
-        <div className="bg-blue-50/50 rounded-xl border overflow-hidden relative select-none touch-none">
-          {/* Measurements Overlay */}
-          <div className="absolute top-2 right-2 flex flex-col items-end gap-1 pointer-events-none z-10">
-            {measurements.map((m, i) => (
-              <Badge key={i} variant="secondary" className="shadow-sm">
-                {m.type === "dist" ? "📏 " : "🧭 "}
-                {m.val}
-              </Badge>
-            ))}
-          </div>
-
-          <div
-            className="w-full h-auto cursor-crosshair"
-            onPointerDown={handlePointerDown}
-            onPointerMove={handlePointerMove}
-            onPointerUp={handlePointerUp}
-            onPointerLeave={handlePointerUp}
-          >
-            <ChartSurface
-              ref={svgRef}
-              width={WORLD_WIDTH_PX}
-              height={WORLD_HEIGHT_PX}
-              scale={SCALE_PIXELS_PER_NM}
-              viewBox={`${panOffset.x} ${panOffset.y} ${VIEW_WIDTH_PX} ${VIEW_HEIGHT_PX}`}
-              labelScale={viewScale}
-            >
-              {/* Landmarks Overrides */}
-              {landmarks.map((lm) => (
-                <g key={lm.id} transform={`translate(${lm.x}, ${lm.y})`}>
-                  <circle r={4 * viewScale} fill="magenta" stroke="white" strokeWidth={1 * viewScale} />
-                  <text
-                    y={-8 * viewScale}
-                    textAnchor="middle"
-                    fontSize={12 * viewScale}
-                    fill="black"
-                    fontWeight="bold"
-                    stroke="white"
-                    strokeWidth={0.5 * viewScale}
-                    paintOrder="stroke"
-                  >
-                    {lm.name}
-                  </text>
-                </g>
-              ))}
-
-              {/* User Points */}
-              {points.map((p, i) => (
-                <g key={i} transform={`translate(${p.x}, ${p.y})`}>
-                  <line
-                    x1={-5 * viewScale}
-                    y1={-5 * viewScale}
-                    x2={5 * viewScale}
-                    y2={5 * viewScale}
-                    stroke="red"
-                    strokeWidth={2 * viewScale}
-                  />
-                  <line
-                    x1={5 * viewScale}
-                    y1={-5 * viewScale}
-                    x2={-5 * viewScale}
-                    y2={5 * viewScale}
-                    stroke="red"
-                    strokeWidth={2 * viewScale}
-                  />
-                  <text
-                    y={20 * viewScale}
-                    textAnchor="middle"
-                    fontSize={10 * viewScale}
-                    fill="red"
-                    className="bg-white/50"
-                  >
-                    {getCoordinates(p.x, p.y)}
-                  </text>
-                </g>
-              ))}
-
-              {/* Active Drag Line */}
-              {dragStart && dragCurrent && (
-                <g>
-                  <line
-                    x1={dragStart.x}
-                    y1={dragStart.y}
-                    x2={dragCurrent.x}
-                    y2={dragCurrent.y}
-                    stroke={activeTool === "distance" ? "blue" : "purple"}
-                    strokeWidth={2 * viewScale}
-                    strokeDasharray={`${5 * viewScale},${5 * viewScale}`}
-                  />
-                  {activeTool === "distance" && (
-                    <text
-                      x={(dragStart.x + dragCurrent.x) / 2}
-                      y={(dragStart.y + dragCurrent.y) / 2 - 10 * viewScale}
-                      textAnchor="middle"
-                      fill="blue"
-                      fontWeight="bold"
-                      fontSize={12 * viewScale}
-                    >
-                      {getDistance(dragStart, dragCurrent).toFixed(2)} NM
-                    </text>
-                  )}
-                  {activeTool === "bearing" && (
-                    <text
-                      x={(dragStart.x + dragCurrent.x) / 2}
-                      y={(dragStart.y + dragCurrent.y) / 2 - 10 * viewScale}
-                      textAnchor="middle"
-                      fill="purple"
-                      fontWeight="bold"
-                      fontSize={12 * viewScale}
-                    >
-                      {Math.round(getBearing(dragStart, dragCurrent)).toString().padStart(3, "0")}°T
-                    </text>
-                  )}
-                </g>
-              )}
-            </ChartSurface>
-          </div>
-        </div>
-        <p className="text-xs text-muted-foreground mt-2 text-center">
-          Scale: 1 Large Square = 1 Nautical Mile (1'). Lat/Long minutes are marked on axes.
-        </p>
-      </CardContent>
-    </Card>
-  );
+  },
+  distance(a: Point, b: Point) {
+    return Math.hypot(b.x - a.x, b.y - a.y) / PX_PER_NM;
+  },
+  bearing(a: Point, b: Point) {
+    return (Math.atan2(b.x - a.x, a.y - b.y) * 180 / Math.PI + 360) % 360;
+  },
+  angularDifference(a: number, b: number) {
+    return Math.abs(((a - b + 540) % 360) - 180);
+  },
 };
 
-export default VirtualChartPlotter;
+const landmarks = [
+  { id: "L1", x: 100, y: 100, name: "Spire" },
+  { id: "L2", x: 400, y: 200, name: "Buoy A" },
+  { id: "L3", x: 250, y: 50, name: "Wreck" },
+  { id: "L4", x: 800, y: 600, name: "Lighthouse" },
+  { id: "L5", x: 600, y: 300, name: "Fort" },
+] as const;
+
+type Challenge = { id: number; prompt: string; tool: PlotterTool; kind: "distance" | "bearing" | "plot"; start?: Point; end?: Point; target?: Point; tolerance: number; hint: string };
+const at = (id: string) => landmarks.find((landmark) => landmark.id === id)!;
+export const PLOTTER_CHALLENGES: Challenge[] = [
+  { id: 1, prompt: "Measure the distance from the Spire (L1) to Buoy A (L2).", tool: "distance", kind: "distance", start: at("L1"), end: at("L2"), tolerance: .2, hint: "Drag the distance tool from L1 to L2." },
+  { id: 2, prompt: "Find the true bearing from the Wreck (L3) to Buoy A (L2).", tool: "bearing", kind: "bearing", start: at("L3"), end: at("L2"), tolerance: 5, hint: "Bearings are clockwise from true north: drag from L3 to L2." },
+  { id: 3, prompt: "Measure the distance from the Lighthouse (L4) to the Fort (L5).", tool: "distance", kind: "distance", start: at("L4"), end: at("L5"), tolerance: .2, hint: "Zoom out, then drag between L4 and L5." },
+  { id: 4, prompt: "Find the true bearing from the Spire (L1) to the Lighthouse (L4).", tool: "bearing", kind: "bearing", start: at("L1"), end: at("L4"), tolerance: 5, hint: "Drag from L1 to L4; direction matters." },
+  { id: 5, prompt: "Plot 50°13.0′N 001°32.0′W.", tool: "plot", kind: "plot", target: chartModel.toPoint(50 + 13 / 60, -(1 + 32 / 60)), tolerance: .2, hint: "Use the latitude and longitude graduations." },
+  { id: 6, prompt: "Plot 50°12.5′N 001°30.5′W.", tool: "plot", kind: "plot", target: chartModel.toPoint(50 + 12.5 / 60, -(1 + 30.5 / 60)), tolerance: .2, hint: "Interpolate halfway between half-minute graduations." },
+  { id: 7, prompt: "Plot 50°14.8′N 001°34.5′W.", tool: "plot", kind: "plot", target: chartModel.toPoint(50 + 14.8 / 60, -(1 + 34.5 / 60)), tolerance: .15, hint: "This position is close to the north-west corner." },
+  { id: 8, prompt: "Find the reciprocal true bearing from Buoy A (L2) to the Wreck (L3).", tool: "bearing", kind: "bearing", start: at("L2"), end: at("L3"), tolerance: 5, hint: "Reverse the direction used in challenge 2; the answer wraps through 360°." },
+];
+
+const answer = (challenge: Challenge) => challenge.kind === "plot" ? challenge.target! : challenge.kind === "distance" ? chartModel.distance(challenge.start!, challenge.end!) : chartModel.bearing(challenge.start!, challenge.end!);
+const formatCoordinate = (point: Point) => {
+  const { lat, lon } = chartModel.toCoordinate(point);
+  return `50°${((lat - 50) * 60).toFixed(1)}′N 001°${((Math.abs(lon) - 1) * 60).toFixed(1)}′W`;
+};
+
+export default function VirtualChartPlotter() {
+  const [tool, setTool] = useState<PlotterTool>("pan");
+  const [view, setView] = useState({ x: 0, y: 0, scale: 1 });
+  const [drag, setDrag] = useState<{ start: Point; current: Point } | null>(null);
+  const [marks, setMarks] = useState<Point[]>([]);
+  const [measurement, setMeasurement] = useState("");
+  const [active, setActive] = useState(false);
+  const [index, setIndex] = useState(0);
+  const [feedback, setFeedback] = useState<{ ok: boolean; text: string } | null>(null);
+  const [attempts, setAttempts] = useState(0);
+  const [correct, setCorrect] = useState(0);
+  const [formValue, setFormValue] = useState("");
+  const svgRef = useRef<SVGSVGElement>(null);
+  const panRef = useRef<{ client: Point; view: Point } | null>(null);
+  const viewSize = { width: 500 * view.scale, height: 300 * view.scale };
+  const challenge = PLOTTER_CHALLENGES[index];
+
+  const clientToChart = (clientX: number, clientY: number) => {
+    const rect = svgRef.current!.getBoundingClientRect();
+    // preserveAspectRatio="none" makes each axis map independently, including non-3:5 viewports.
+    return { x: view.x + (clientX - rect.left) / rect.width * viewSize.width, y: view.y + (clientY - rect.top) / rect.height * viewSize.height };
+  };
+  const clampView = (next: typeof view) => ({ ...next, x: Math.max(0, Math.min(WORLD.width - 500 * next.scale, next.x)), y: Math.max(0, Math.min(WORLD.height - 300 * next.scale, next.y)) });
+  const announceTool = (next: PlotterTool) => { setTool(next); setFeedback(active && next !== challenge.tool ? { ok: false, text: `That is the ${next} tool. Challenge ${challenge.id} requires the ${challenge.tool} tool; the answer is still hidden.` } : null); };
+  const assess = (value: number | Point, equivalentForm = false) => {
+    if (!active) return;
+    setAttempts((n) => n + 1);
+    if (!equivalentForm && tool !== challenge.tool) { setFeedback({ ok: false, text: `Use the ${challenge.tool} tool for this challenge. No answer has been revealed.` }); return; }
+    const expected = answer(challenge);
+    const error = challenge.kind === "plot" ? chartModel.distance(value as Point, expected as Point) : challenge.kind === "bearing" ? chartModel.angularDifference(value as number, expected as number) : Math.abs((value as number) - (expected as number));
+    const ok = error <= challenge.tolerance;
+    if (ok) setCorrect((n) => n + 1);
+    setFeedback({ ok, text: ok ? `Correct within the ${challenge.kind === "bearing" ? `${challenge.tolerance}°` : `${challenge.tolerance} NM`} tolerance.` : `Not within tolerance. Check the endpoints, direction and graduations, then retry.` });
+  };
+  const finishMeasurement = (a: Point, b: Point) => {
+    const value = tool === "distance" ? chartModel.distance(a, b) : chartModel.bearing(a, b);
+    setMeasurement(tool === "distance" ? `${value.toFixed(2)} NM` : `${Math.round(value).toString().padStart(3, "0")}°T`);
+    assess(value);
+  };
+  const start = () => { setActive(true); setIndex(0); setAttempts(0); setCorrect(0); setFeedback(null); setFormValue(""); announceTool("pan"); };
+  const next = () => { if (index === 7) { setActive(false); setFeedback({ ok: true, text: `Mastery achieved: ${correct}/8 correct challenges. Retry the drill any time to improve accuracy.` }); } else { setIndex((n) => n + 1); setFeedback(null); setFormValue(""); setMeasurement(""); setTool("pan"); } };
+  const reset = () => { setMarks([]); setMeasurement(""); setFeedback(null); setView({ x: 0, y: 0, scale: 1 }); };
+  const meridians = useMemo(() => Array.from({ length: 20 }, (_, i) => chartModel.toPoint(ORIGIN_LAT, ORIGIN_LON + i * .5 / 60).x), []);
+
+  return <Card className="mt-8 w-full border-2 border-primary/20">
+    <CardHeader><CardTitle className="flex flex-wrap items-center justify-between gap-3"><span className="flex items-center gap-2"><MapIcon aria-hidden className="h-5 w-5"/>Virtual Chart Plotter</span><span className="flex flex-wrap gap-2">
+      <Button type="button" aria-label="Zoom in" onClick={() => setView((v) => clampView({ ...v, scale: Math.max(.5, v.scale - .25) }))}>+</Button><Button type="button" aria-label="Zoom out" onClick={() => setView((v) => clampView({ ...v, scale: Math.min(2.5, v.scale + .25) }))}>−</Button>
+      {!active && <Button type="button" onClick={start}>Start / retry exercises</Button>}
+      {(["pan", "plot", "distance", "bearing"] as PlotterTool[]).map((item) => <Button key={item} type="button" aria-pressed={tool === item} variant={tool === item ? "default" : "outline"} onClick={() => announceTool(item)}>{item === "pan" ? <MousePointer2 aria-hidden className="mr-1 h-4 w-4"/> : item === "plot" ? <Crosshair aria-hidden className="mr-1 h-4 w-4"/> : item === "distance" ? <Ruler aria-hidden className="mr-1 h-4 w-4"/> : <RotateCcw aria-hidden className="mr-1 h-4 w-4"/>}{item}</Button>)}
+      <Button type="button" variant="ghost" onClick={reset}>Clear</Button></span></CardTitle>
+      <div className="text-sm text-muted-foreground">{active ? <section aria-labelledby="plotter-challenge"><h3 id="plotter-challenge" className="font-semibold text-foreground">Challenge {index + 1}/8</h3><p>{challenge.prompt}</p><p className="text-xs">Required tool: <strong>{challenge.tool}</strong>. {challenge.hint}</p></section> : "Explore the chart or complete all eight exercises. One correct attempt per challenge demonstrates mastery."}</div>
+    </CardHeader><CardContent>
+      <div role="region" aria-label="Interactive practice chart" className="overflow-auto rounded-xl border bg-white">
+        <svg ref={svgRef} role="img" aria-labelledby="chart-title chart-desc" tabIndex={0} viewBox={`${view.x} ${view.y} ${viewSize.width} ${viewSize.height}`} preserveAspectRatio="none" className="block h-[min(60vh,480px)] min-h-[300px] w-full touch-pan-y"
+          onPointerDown={(e) => { if (tool === "pan") { panRef.current = { client: { x: e.clientX, y: e.clientY }, view: { x: view.x, y: view.y } }; e.currentTarget.setPointerCapture?.(e.pointerId); return; } const point = clientToChart(e.clientX, e.clientY); if (tool === "plot") { setMarks((m) => [...m, point]); setMeasurement(formatCoordinate(point)); assess(point); } else { setDrag({ start: point, current: point }); e.currentTarget.setPointerCapture?.(e.pointerId); } }}
+          onPointerMove={(e) => { if (panRef.current) { const rect = e.currentTarget.getBoundingClientRect(); setView((v) => clampView({ ...v, x: panRef.current!.view.x - (e.clientX - panRef.current!.client.x) / rect.width * viewSize.width, y: panRef.current!.view.y - (e.clientY - panRef.current!.client.y) / rect.height * viewSize.height })); } else if (drag) setDrag({ ...drag, current: clientToChart(e.clientX, e.clientY) }); }}
+          onPointerUp={(e) => { if (panRef.current) panRef.current = null; else if (drag) { const end = clientToChart(e.clientX, e.clientY); finishMeasurement(drag.start, end); setDrag(null); } }}>
+          <title id="chart-title">Local navigation practice chart</title><desc id="chart-desc">A local tangent-plane chart with latitude and longitude graduations, five labelled landmarks, plotted marks and measurement lines. Use the equivalent form below if pointer operation is unsuitable.</desc>
+          <rect width={WORLD.width} height={WORLD.height} fill="#fff"/>
+          {Array.from({ length: 17 }, (_, i) => i * 50).map((y) => <g key={y}><line x1="0" x2={WORLD.width} y1={y} y2={y} stroke="#94a3b8" strokeWidth={y % 100 ? 0.5 : 1}/><text x={view.x + 4 * view.scale} y={y - 4} fontSize={10 * view.scale} fill="#334155">{formatCoordinate({ x: 0, y }).split(" ")[0]}</text></g>)}
+          {meridians.map((x, i) => <g key={x}><line x1={x} x2={x} y1="0" y2={WORLD.height} stroke="#94a3b8" strokeWidth={i % 2 ? .5 : 1}/><text x={x + 3} y={view.y + 13 * view.scale} fontSize={10 * view.scale} fill="#334155">{formatCoordinate({ x, y: 0 }).split(" ")[1]}</text></g>)}
+          {landmarks.map((landmark) => <g key={landmark.id} transform={`translate(${landmark.x} ${landmark.y})`}><circle r={7 * view.scale} fill="#d04297" stroke="#111"/><text y={-11 * view.scale} textAnchor="middle" fontSize={12 * view.scale} fontWeight="bold">{landmark.name} ({landmark.id})</text></g>)}
+          {marks.map((p, i) => <g key={i} stroke="#dc2626" strokeWidth={2 * view.scale}><path d={`M${p.x-6*view.scale},${p.y-6*view.scale} L${p.x+6*view.scale},${p.y+6*view.scale} M${p.x+6*view.scale},${p.y-6*view.scale} L${p.x-6*view.scale},${p.y+6*view.scale}`}/></g>)}
+          {drag && (
+            <line x1={drag.start.x} y1={drag.start.y} x2={drag.current.x} y2={drag.current.y} stroke="#2563eb" strokeWidth={2 * view.scale} strokeDasharray={`${6*view.scale}`}/>
+          )}
+        </svg>
+      </div>
+      <p aria-live="polite" className="mt-2 font-medium">{measurement ? `Measurement: ${measurement}.` : `Selected tool: ${tool}.`} {feedback?.text}</p>
+      {feedback && <div role={feedback.ok ? "status" : "alert"} className={`mt-2 flex items-center gap-2 rounded p-2 ${feedback.ok ? "bg-green-100 text-green-800" : "bg-red-100 text-red-800"}`}>{feedback.ok ? <CheckCircle2 aria-hidden/> : <XCircle aria-hidden/>}<span>{feedback.text}</span>{feedback.ok && active && <Button type="button" variant="link" onClick={next}>Next challenge</Button>}</div>}
+      {active && <form className="mt-4 rounded border p-3" onSubmit={(e) => { e.preventDefault(); const parts = formValue.trim().split(/[ ,]+/).map(Number); if (challenge.kind === "plot" && parts.length === 2 && parts.every(Number.isFinite)) assess(chartModel.toPoint(parts[0], parts[1]), true); else if (parts.length === 1 && Number.isFinite(parts[0])) assess(parts[0], true); else setFeedback({ ok: false, text: "Enter one numeric measurement, or decimal latitude and longitude separated by a comma." }); }}><label htmlFor="plotter-answer" className="block font-medium">Equivalent nonvisual answer</label><p id="plotter-answer-help" className="text-sm text-muted-foreground">Enter distance in NM or bearing in degrees. For a plotted position, enter decimal latitude, longitude (west is negative).</p><div className="mt-2 flex flex-wrap gap-2"><input id="plotter-answer" aria-describedby="plotter-answer-help" className="min-h-11 flex-1 rounded border px-3" inputMode="decimal" value={formValue} onChange={(e) => setFormValue(e.target.value)}/><Button type="submit">Check answer</Button></div></form>}
+      <details className="mt-4"><summary className="cursor-pointer font-medium">Landmark coordinate table</summary><div className="overflow-x-auto"><table className="w-full text-left text-sm"><caption className="sr-only">Nonvisual chart landmark positions</caption><thead><tr><th>Landmark</th><th>Coordinate</th></tr></thead><tbody>{landmarks.map((l) => <tr key={l.id}><th>{l.name} ({l.id})</th><td>{formatCoordinate(l)}</td></tr>)}</tbody></table></div></details>
+      <p className="mt-2 text-center text-xs text-muted-foreground">Local tangent-plane scale: 100 chart units = 1 NM. Latitude ticks are 0.5′; longitude spacing is corrected by cos 50°15′. Scroll the page normally with one-finger touch; drag with Pan selected to move the chart.</p>
+    </CardContent></Card>;
+}
