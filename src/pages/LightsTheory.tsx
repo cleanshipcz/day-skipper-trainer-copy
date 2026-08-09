@@ -379,7 +379,7 @@ const LightsTheory = () => {
                 if (complete) return;
                 const outcome = await markSectionVisited(objective.id);
                 setAnnouncement(outcome === "failed"
-                  ? `${objective.title} evidence was retained in this page, but could not be saved. Retry the objective when ready.`
+                  ? `${objective.title} evidence was retained in this browser, but could not be saved. It will be retried with your next evidence or completion save.`
                   : `${objective.title} evidence recorded. ${persistenceMessage(outcome)}`);
               }}>
                 {complete ? "Evidence recorded" : "Record objective evidence"}

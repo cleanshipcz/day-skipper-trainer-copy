@@ -89,4 +89,20 @@ describe("LightsTheory real persistence transitions", () => {
     await waitFor(() => expect(screen.getByRole("status").textContent).toContain("could not be saved"));
     expect(screen.getByRole("status").textContent).not.toContain("saved to the server");
   });
+
+  it("normalizes a rejected evidence save and explains the automatic retry path", async () => {
+    progress.outcome = "remote";
+    progress.save.mockRejectedValueOnce(new Error("network unavailable"));
+    const user = userEvent.setup();
+    renderPage();
+    await waitFor(() => expect(progress.load).toHaveBeenCalled());
+    await user.click(screen.getByLabelText(objectives[0][0]));
+    await user.click(screen.getByLabelText(objectives[0][1]));
+    const record = screen.getAllByRole("button", { name: "Record objective evidence" })[0];
+    record.focus();
+    await user.click(record);
+    await waitFor(() => expect(screen.getByRole("status").textContent).toContain("could not be saved"));
+    expect(screen.getByRole("status").textContent).toContain("retried with your next evidence or completion save");
+    expect(document.activeElement).toBe(record);
+  });
 });
