@@ -12,10 +12,10 @@ export const RULE_22_RANGES = [
   { length: "Under 12 m", masthead: "2", side: "1", stern: "2", towing: "2", allRound: "2" },
 ] as const;
 
-const LightMarks = ({ marks }: { marks: Mark[] }) => <span className="inline-flex flex-wrap items-center gap-1">{marks.map((mark, index) => <span key={`${mark.label}-${index}`} className="inline-flex items-center gap-1">{Array.from({ length: mark.count ?? 1 }, (_, lightIndex) => <span key={lightIndex} aria-hidden="true" data-light-colour={mark.colour} className={`light-symbol h-4 w-4 rounded-full border-2 ${colourClass[mark.colour]}`} />)}<span>{mark.label}</span></span>)}</span>;
+const LightMarks = ({ marks }: { marks: Mark[] }) => <span className="inline-flex min-w-0 flex-wrap items-center gap-1">{marks.map((mark, index) => <span key={`${mark.label}-${index}`} className="inline-flex min-w-0 items-center gap-1">{Array.from({ length: mark.count ?? 1 }, (_, lightIndex) => <span key={lightIndex} aria-hidden="true" data-light-colour={mark.colour} className={`light-symbol h-4 w-4 shrink-0 rounded-full border-2 forced-colors:border-[CanvasText] forced-colors:bg-[Canvas] ${colourClass[mark.colour]}`} />)}<span className="break-words">{mark.label}</span></span>)}</span>;
 
 const LightPlan = ({ title, height, aspect, caption }: { title: string; height: Mark[][]; aspect: { port?: Mark[]; ahead?: Mark[]; starboard?: Mark[]; astern?: Mark[] }; caption: string }) => (
-  <figure className="my-3 rounded-md border p-3 forced-colors:border-[CanvasText]">
+  <figure className="my-3 min-w-0 overflow-hidden rounded-md border p-3 forced-colors:border-[CanvasText]">
     <p className="font-semibold" data-light-plan-title={title}>{title}</p>
     <div className="mt-2 grid gap-3 text-xs sm:grid-cols-2">
       <div><p className="font-medium">Side/height layout (highest first; labels state fore–aft position)</p><ol className="mt-1 list-decimal space-y-1 pl-5">{height.map((row, index) => <li key={index}><LightMarks marks={row} /></li>)}</ol></div>
@@ -25,12 +25,12 @@ const LightPlan = ({ title, height, aspect, caption }: { title: string; height: 
   </figure>
 );
 
-const DredgingShapePlan = () => <figure className="my-3 rounded-md border p-3"><div className="grid grid-cols-3 items-center gap-3 text-center text-xs"><div><ShapeStack shapes={["ball","ball"]} caption="Obstructed side: two balls vertically." /></div><div><ShapeStack shapes={["ball","diamond","ball"]} caption="Centre/status: ball–diamond–ball vertically." /></div><div><ShapeStack shapes={["diamond","diamond"]} caption="Safe-passing side: two diamonds vertically." /></div></div><figcaption className="text-xs text-muted-foreground">Viewed across the vessel: obstruction indication and safe-passing indication are on their respective sides, in addition to the central RAM status shapes.</figcaption></figure>;
+const DredgingShapePlan = () => <figure className="my-3 min-w-0 rounded-md border p-3"><div className="grid grid-cols-1 items-center gap-3 text-center text-xs sm:grid-cols-3"><div><ShapeStack shapes={["ball","ball"]} caption="Obstructed side: two balls vertically." /></div><div><ShapeStack shapes={["ball","diamond","ball"]} caption="Centre/status: ball–diamond–ball vertically." /></div><div><ShapeStack shapes={["diamond","diamond"]} caption="Safe-passing side: two diamonds vertically." /></div></div><figcaption className="text-xs text-muted-foreground">Viewed across the vessel: obstruction indication and safe-passing indication are on their respective sides, in addition to the central RAM status shapes.</figcaption></figure>;
 
 const ShapeStack = ({ shapes, caption }: { shapes: ("ball" | "diamond" | "cone-down" | "cone-up" | "cylinder")[]; caption: string }) => (
   <figure className="my-3 rounded-md border p-3 forced-colors:border-[CanvasText]">
     <div className="flex min-h-24 flex-col items-center justify-center gap-2 forced-colors:text-[CanvasText]" aria-hidden="true">
-      {shapes.map((shape, index) => shape === "ball" ? <span key={index} className="h-6 w-6 rounded-full bg-foreground" /> : shape === "diamond" ? <span key={index} className="h-6 w-6 rotate-45 bg-foreground" /> : shape === "cylinder" ? <span key={index} className="h-9 w-5 bg-foreground" /> : shape === "cone-up" ? <span key={index} className="h-0 w-0 border-x-[12px] border-b-[24px] border-x-transparent border-b-foreground" /> : <span key={index} className="h-0 w-0 border-x-[12px] border-t-[24px] border-x-transparent border-t-foreground" />)}
+      {shapes.map((shape, index) => shape === "ball" ? <span key={index} className="h-6 w-6 rounded-full bg-foreground forced-colors:border forced-colors:border-[CanvasText] forced-colors:bg-[CanvasText]" /> : shape === "diamond" ? <span key={index} className="h-6 w-6 rotate-45 bg-foreground forced-colors:border forced-colors:border-[CanvasText] forced-colors:bg-[CanvasText]" /> : shape === "cylinder" ? <span key={index} className="h-9 w-5 bg-foreground forced-colors:border forced-colors:border-[CanvasText] forced-colors:bg-[CanvasText]" /> : shape === "cone-up" ? <span key={index} className="h-0 w-0 border-x-[12px] border-b-[24px] border-x-transparent border-b-foreground forced-colors:border-b-[CanvasText]" /> : <span key={index} className="h-0 w-0 border-x-[12px] border-t-[24px] border-x-transparent border-t-foreground forced-colors:border-t-[CanvasText]" />)}
     </div>
     <figcaption className="text-xs text-muted-foreground"><strong>Structured equivalent:</strong> {caption}</figcaption>
   </figure>
