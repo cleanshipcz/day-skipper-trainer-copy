@@ -1,0 +1,29 @@
+export type Blast = "short" | "prolonged";
+export type SoundSignal = { id: string; rule: 34 | 35; title: string; condition: string; pattern: readonly Blast[]; repetition: string; meaning: string };
+export type ScheduledBlast = { blast: Blast; start: number; duration: number };
+export const SOUND_SIGNALS: readonly SoundSignal[] = [
+  { id:"starboard",rule:34,title:"Alter course to starboard",condition:"Power-driven vessels in sight, manoeuvring as authorised or required",pattern:["short"],repetition:"Once for the manoeuvre",meaning:"I am altering course to starboard." },
+  { id:"port",rule:34,title:"Alter course to port",condition:"Power-driven vessels in sight, manoeuvring as authorised or required",pattern:["short","short"],repetition:"Once for the manoeuvre",meaning:"I am altering course to port." },
+  { id:"astern",rule:34,title:"Astern propulsion",condition:"Power-driven vessels in sight",pattern:["short","short","short"],repetition:"Once for the manoeuvre",meaning:"I am operating astern propulsion; the vessel is not necessarily moving astern." },
+  { id:"doubt",rule:34,title:"Doubt or danger",condition:"Vessels in sight; doubt about the other's intentions, actions, or sufficient collision-avoidance action",pattern:["short","short","short","short","short"],repetition:"At least five short, rapid blasts; may be supplemented by at least five short, rapid flashes",meaning:"Immediate warning of doubt." },
+  { id:"bend",rule:34,title:"Bend or obstruction",condition:"Nearing a bend or channel/fairway area where vessels may be obscured",pattern:["prolonged"],repetition:"On approach; an approaching vessel within hearing answers with one prolonged",meaning:"Presence warning where sight is obstructed." },
+  { id:"making-way",rule:35,title:"Power-driven, making way",condition:"Restricted visibility; underway and making way through the water",pattern:["prolonged"],repetition:"At intervals of not more than 2 minutes",meaning:"Power-driven vessel making way." },
+  { id:"stopped",rule:35,title:"Power-driven, stopped",condition:"Restricted visibility; underway but stopped and making no way through the water",pattern:["prolonged","prolonged"],repetition:"About 2 seconds apart, at intervals of not more than 2 minutes",meaning:"Power-driven vessel underway but making no way." },
+  { id:"status",rule:35,title:"Specified status vessels",condition:"Restricted visibility: NUC, RAM, constrained by draught, sailing, fishing, or towing/pushing",pattern:["prolonged","short","short"],repetition:"At intervals of not more than 2 minutes",meaning:"One of the listed status vessels; use all available information to identify it." },
+  { id:"tow",rule:35,title:"Manned tow",condition:"Restricted visibility; last vessel of a tow if manned (other manned towed vessels if practicable)",pattern:["prolonged","short","short","short"],repetition:"At intervals of not more than 2 minutes, if practicable immediately after the towing vessel",meaning:"Manned vessel being towed." },
+];
+export const SOUND_EXERCISES = [
+  {prompt:"In fog, a power-driven vessel is underway but stopped and making no way. Choose its signal.",options:["One prolonged","Two prolonged about 2 seconds apart","One prolonged then two short"],answer:1,feedback:"Rule 35(b): two prolonged about two seconds apart, repeated at intervals no longer than two minutes."},
+  {prompt:"In sight, you doubt whether another vessel is taking sufficient action. Choose the warning.",options:["Exactly five short","At least five short and rapid","One prolonged"],answer:1,feedback:"Rule 34(d) says at least five short and rapid blasts — five is a minimum."},
+  {prompt:"In fog, what changes a power-driven signal from one prolonged to two prolonged?",options:["Being underway","Being stopped and making no way through the water","Being under 12 metres"],answer:1,feedback:"Underway is not the same as making way. Rule 35 distinguishes the two conditions."},
+] as const;
+
+export function scheduleSignal(signal: SoundSignal, initialDelay = 0.05): ScheduledBlast[] {
+  const gap = signal.id === "stopped" ? 2 : signal.id === "doubt" ? 0.25 : 1;
+  let start = initialDelay;
+  return signal.pattern.map((blast) => {
+    const scheduled = { blast, start, duration: blast === "short" ? 1 : 4 };
+    start += scheduled.duration + gap;
+    return scheduled;
+  });
+}
