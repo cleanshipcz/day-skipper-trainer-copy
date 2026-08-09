@@ -44,4 +44,19 @@ describe("Understanding Tides lesson", () => {
     fireEvent.click(screen.getByLabelText(/Use the local table\/curve/i));
     expect(screen.getByRole("status").textContent).toMatch(/adjusted planning level is 4.5 m/i);
   });
+
+  it("provides named navigation, structured visual equivalents, and accessible completion state", () => {
+    render(<MemoryRouter><TidalTheory /></MemoryRouter>);
+    expect(screen.getByRole("button", { name: "Back to Tides" }).className).toContain("focus-visible:ring-2");
+    expect(screen.getByRole("img", { name: /far-side tidal bulge is opposite the Moon/i })).toBeTruthy();
+    expect(screen.getByText(/Co-tidal lines radiate.*0 lunar hours is north.*9 hours east/i)).toBeTruthy();
+    expect(screen.getByText(/Co-range contours increase outwards.*0\.5, 1, and 2 metres/i)).toBeTruthy();
+    const completion = screen.getByRole("button", { name: "Complete the concept check" });
+    expect(completion.getAttribute("aria-describedby")).toBe("completion-status");
+    expect(completion.hasAttribute("disabled")).toBe(true);
+    expect(document.getElementById("completion-status")?.getAttribute("aria-live")).toBe("polite");
+    const diagram = screen.getByRole("img", { name: /North Sea amphidromic/i });
+    expect(diagram.getAttribute("class")).toContain("forced-colors:bg-[Canvas]");
+    expect(diagram.querySelector("g[aria-hidden=true]")?.getAttribute("class")).toContain("motion-reduce:transition-none");
+  });
 });
