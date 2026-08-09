@@ -24,7 +24,7 @@ export interface QueuedProgress {
 
 type ProgressPayload = Omit<QueuedProgress, "id" | "updatedAt" | "revision" | "attempts" | "status" | "lastError">;
 
-const lightsCatalogueRevision = (progress?: ProgressPayload | QueuedProgress) =>
+const catalogueRevision = (progress?: ProgressPayload | QueuedProgress) =>
   (progress?.answersHistory as { catalogueRevision?: unknown } | undefined)?.catalogueRevision;
 const CURRENT_LIGHTS_CATALOGUE_REVISION = "colregs-parts-c-d-annex-iv-v1";
 
@@ -87,11 +87,16 @@ export const queueProgress = async (
     /* v8 ignore next -- platform callback only forwards IndexedDB's request error */
     existingRequest.onerror = () => reject(existingRequest.error);
   });
-  const payload = progress.topicId === "lights-theory"
-    && existing?.completed === true
+  const existingCatalogueRevision = catalogueRevision(existing);
+  const incomingCatalogueRevision = catalogueRevision(progress);
+  const preserveRevisionedCompletion = existing?.completed === true
     && progress.completed === false
-    && (lightsCatalogueRevision(existing) === lightsCatalogueRevision(progress)
-      || lightsCatalogueRevision(existing) === CURRENT_LIGHTS_CATALOGUE_REVISION)
+    && typeof existingCatalogueRevision === "string"
+    && (existingCatalogueRevision === incomingCatalogueRevision
+      // Preserve the stronger legacy Lights guarantee: old/stale tabs from
+      // before its current catalogue migration cannot regress completion.
+      || progress.topicId === "lights-theory" && existingCatalogueRevision === CURRENT_LIGHTS_CATALOGUE_REVISION);
+  const payload = preserveRevisionedCompletion
     ? {
       ...progress,
       completed: true,

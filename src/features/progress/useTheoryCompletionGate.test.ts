@@ -571,6 +571,19 @@ describe("useTheoryCompletionGate", () => {
     setItem.mockRestore();
   });
 
+  it("confirms an authenticated durable queue even when its best-effort browser marker fails", async () => {
+    mocks.ownerId = "owner-a";
+    const { result } = renderHook(() => useTheoryCompletionGate({ topicId, requiredSectionIds: ["s1"], catalogueRevision: "v1" }));
+    await act(async () => { await result.current.markSectionVisited("s1"); });
+    const setItem = vi.spyOn(localStorage, "setItem").mockImplementation(() => { throw new Error("storage unavailable"); });
+    mocks.saveProgressDetailed.mockResolvedValueOnce("queued");
+
+    await act(async () => { expect(await result.current.markCompleted()).toBe(true); });
+
+    expect(result.current.saveState).toBe("queued");
+    setItem.mockRestore();
+  });
+
   it("restores a queued completion without enqueueing an older incomplete snapshot", async () => {
     mocks.ownerId = "owner-a";
     mocks.loadProgressDetailed.mockResolvedValue({ status: "failed", record: null });
