@@ -6,6 +6,7 @@ import { useEffect } from "react";
 import { useTheoryCompletionGate } from "@/features/progress/useTheoryCompletionGate";
 import CompassConverter from "@/components/navigation/CompassConverter";
 import DeviationDrill from "@/components/navigation/DeviationDrill";
+import CompassReference from "@/components/navigation/CompassReference";
 import { TOPIC_IDS } from "@/constants/topicRegistry";
 
 const CompassTheory = () => {
@@ -44,7 +45,7 @@ const CompassTheory = () => {
             </Button>
             <div className="min-w-0">
               <h1 className="text-xl font-bold">The Magnetic Compass</h1>
-              <p className="text-sm text-muted-foreground">Variation, Deviation and the CADET Rule</p>
+              <p className="text-sm text-muted-foreground">Variation, deviation and traceable conversions</p>
             </div>
           </div>
         </div>
@@ -110,64 +111,16 @@ const CompassTheory = () => {
           </div>
         </section>
 
-        {/* CADET Rule */}
+        <CompassReference />
+
+        {/* Conversion practice */}
         <section className="space-y-4">
           <h2 className="text-2xl font-semibold flex items-center gap-2">
             <RotateCw className="w-6 h-6 text-green-500" />
-            The CADET Rule
+            Conversion practice
           </h2>
           <Card className="overflow-hidden">
             <div className="p-6">
-              <p className="text-lg mb-6">To convert between Compass, Magnetic, and True, use the standard mnemonic:</p>
-
-              <div className="bg-muted p-6 rounded-xl border border-border text-center mb-6">
-                <span className="break-words text-2xl font-black tracking-[0.15em] text-primary sm:text-4xl">C A D E T</span>
-                <p className="mt-2 text-xl font-medium">Compass to True, Add East</p>
-              </div>
-
-              <div className="grid md:grid-cols-2 gap-8">
-                <div>
-                  <h3 className="font-semibold text-lg mb-2">Compass → True</h3>
-                  <ul className="space-y-2">
-                    <li className="flex items-center gap-2">
-                      <span className="w-6 h-6 rounded-full bg-green-100 dark:bg-green-900 text-green-600 dark:text-green-400 flex items-center justify-center text-sm font-bold">
-                        +
-                      </span>
-                      <span>ADD East errors</span>
-                    </li>
-                    <li className="flex items-center gap-2">
-                      <span className="w-6 h-6 rounded-full bg-red-100 dark:bg-red-900 text-red-600 dark:text-red-400 flex items-center justify-center text-sm font-bold">
-                        -
-                      </span>
-                      <span>SUBTRACT West errors</span>
-                    </li>
-                  </ul>
-                  <p className="mt-4 text-sm text-muted-foreground italic">"At Easter we Buy (Add) Eggs"</p>
-                </div>
-
-                <div>
-                  <h3 className="font-semibold text-lg mb-2">True → Compass</h3>
-                  <p className="text-sm mb-2 text-muted-foreground">Reverse the logic:</p>
-                  <ul className="space-y-2">
-                    <li className="flex items-center gap-2">
-                      <span className="w-6 h-6 rounded-full bg-red-100 dark:bg-red-900 text-red-600 dark:text-red-400 flex items-center justify-center text-sm font-bold">
-                        -
-                      </span>
-                      <span>SUBTRACT East errors</span>
-                    </li>
-                    <li className="flex items-center gap-2">
-                      <span className="w-6 h-6 rounded-full bg-green-100 dark:bg-green-900 text-green-600 dark:text-green-400 flex items-center justify-center text-sm font-bold">
-                        +
-                      </span>
-                      <span>ADD West errors</span>
-                    </li>
-                  </ul>
-                  <p className="mt-4 text-sm text-muted-foreground italic">
-                    "True Virgins Make Dull Company: True - Var - Mag - Dev - Comp"
-                  </p>
-                </div>
-              </div>
-
               {/* Interactive Tool */}
               <CompassConverter />
             </div>
@@ -183,50 +136,11 @@ const CompassTheory = () => {
           <Card>
             <CardContent className="pt-6">
               <p className="mb-4 text-muted-foreground">
-                Practice converting headings for different courses. Remember: T - V - D = C.
+                Practice converting headings for different courses. Use east-positive signed values and the vessel card.
               </p>
               <DeviationDrill />
             </CardContent>
           </Card>
-        </section>
-
-        {/* Deviation & Variation */}
-        <section className="space-y-4">
-          <div className="grid md:grid-cols-2 gap-4">
-            <Card>
-              <CardContent className="pt-6">
-                <h3 className="font-bold text-lg mb-2">Variation</h3>
-                <p className="text-muted-foreground">
-                  Caused by the Earth's magnetic field not matching the geographic poles.
-                </p>
-                <ul className="list-disc list-inside mt-2 text-sm text-muted-foreground">
-                  <li>
-                    Found on the compass rose of the <b>Chart</b>.
-                  </li>
-                  <li>Changes with time and location.</li>
-                  <li>Not affected by the vessel heading.</li>
-                </ul>
-              </CardContent>
-            </Card>
-
-            <Card>
-              <CardContent className="pt-6">
-                <h3 className="font-bold text-lg mb-2">Deviation</h3>
-                <p className="text-muted-foreground">
-                  Caused by iron/electronics on the vessel deflecting the compass.
-                </p>
-                <ul className="list-disc list-inside mt-2 text-sm text-muted-foreground">
-                  <li>
-                    Found on the vessel's <b>Deviation Card</b>.
-                  </li>
-                  <li>
-                    Changes with the vessel's <b>Heading</b>.
-                  </li>
-                  <li>Unique to each vessel.</li>
-                </ul>
-              </CardContent>
-            </Card>
-          </div>
         </section>
 
         {/* Action Button */}
