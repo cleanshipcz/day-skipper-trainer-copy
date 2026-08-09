@@ -1,6 +1,6 @@
 import { useEffect } from "react";
 import { useLocation, useNavigate } from "react-router-dom";
-import { ArrowLeft, Compass, AlertTriangle } from "lucide-react";
+import { ArrowLeft, Compass, AlertTriangle, CheckCircle2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -85,13 +85,17 @@ export const RULE_18_DECISIONS = [
 // Rule 18 sits in Part B, Section II; it applies only when vessels are in sight.
 export const RULE_18_SCOPE = "Vessels in sight of one another";
 const COLREG_COMPLETION_SECTIONS = ["framework", "rules-5-17", "rule-18", "rule-19", "applied"];
+const LESSON_CONTENTS = [
+  ["framework", "Part B framework"], ["rules-5-17", "Rules 5–17"], ["rule-18", "Rule 18"],
+  ["rule-19", "Rule 19"], ["applied-colregs", "Applied exercises"], ["completion", "Completion"],
+] as const;
 
 const ColregTheory = () => {
   const navigate = useNavigate();
   const location = useLocation();
   const requiredSections = COLREG_COMPLETION_SECTIONS;
   const { canComplete, markCompleted, markSectionVisited, visitedSectionIds, saveState } = useTheoryCompletionGate({ topicId: TOPIC_IDS.COLREGS_THEORY, requiredSectionIds: requiredSections, pointsOnComplete: 10, catalogueRevision: "colregs-part-b-v1" });
-  const reviewButton = (id: string, label: string) => <Button variant="outline" disabled={visitedSectionIds.includes(id)} onClick={() => void markSectionVisited(id)}>{visitedSectionIds.includes(id) ? "Reviewed" : label}</Button>;
+  const reviewButton = (id: string, label: string) => <Button className="min-h-11 max-w-full whitespace-normal break-words" variant="outline" disabled={visitedSectionIds.includes(id)} onClick={() => void markSectionVisited(id)}>{visitedSectionIds.includes(id) ? "Reviewed" : label}</Button>;
   useEffect(() => {
     const targetId = location.hash.slice(1);
     if (!/^rule-(?:[5-9]|1[0-9])$/.test(targetId)) return;
@@ -100,24 +104,26 @@ const ColregTheory = () => {
     target?.focus({ preventScroll: true });
   }, [location.hash]);
 
-  return <div className="min-h-screen bg-gradient-to-br from-background via-ocean-light/10 to-background pb-20">
-    <header className="border-b border-border bg-card/50 backdrop-blur-sm sticky top-0 z-40"><div className="container mx-auto px-4 py-4 flex items-center gap-3">
-      <Button aria-label="Back to rules of the road" variant="ghost" size="icon" onClick={() => navigate("/rules-of-the-road")}><ArrowLeft className="w-5 h-5" /></Button>
-      <div><h1 className="text-xl font-bold">Steering &amp; Sailing Rules</h1><p className="text-sm text-muted-foreground">COLREG Part B — Rules 4–19</p></div>
+  const remaining = requiredSections.length - visitedSectionIds.length;
+  return <div className="min-h-screen min-w-0 overflow-x-clip bg-gradient-to-br from-background via-ocean-light/10 to-background pb-20">
+    <header className="sticky top-0 z-40 border-b border-border bg-card/95 backdrop-blur-sm forced-colors:border-[CanvasText]"><div className="container mx-auto flex min-w-0 items-center gap-3 px-3 py-3 sm:px-4">
+      <Button aria-label="Back to rules of the road" className="min-h-11 min-w-11 shrink-0" variant="ghost" size="icon" onClick={() => navigate("/rules-of-the-road")}><ArrowLeft aria-hidden="true" className="w-5 h-5" /></Button>
+      <div className="min-w-0"><h1 className="break-words text-lg font-bold sm:text-xl">Steering &amp; Sailing Rules</h1><p className="break-words text-sm text-muted-foreground">COLREG Part B — Rules 4–19</p></div>
     </div></header>
-    <main className="container mx-auto px-4 py-8 max-w-4xl space-y-8">
-      <section className="space-y-3"><h2 className="text-2xl font-semibold flex gap-2"><Compass />How Part B works</h2>
+    <main id="main-content" className="container mx-auto max-w-4xl min-w-0 space-y-8 px-3 py-6 sm:px-4 sm:py-8">
+      <nav aria-label="Lesson contents" className="min-w-0 rounded-lg border p-4 forced-colors:border-[CanvasText]"><h2 className="font-semibold">On this page</h2><ol className="mt-2 grid min-w-0 gap-2 sm:grid-cols-2">{LESSON_CONTENTS.map(([id, label], index) => <li className="min-w-0" key={id}><a className="inline-flex min-h-11 max-w-full items-center break-words underline underline-offset-4 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring" href={`#${id}`}>{index + 1}. {label}</a></li>)}</ol></nav>
+      <section id="framework" className="min-w-0 scroll-mt-28 space-y-3" aria-labelledby="framework-heading"><h2 id="framework-heading" className="flex min-w-0 items-start gap-2 break-words text-2xl font-semibold"><Compass aria-hidden="true" className="mt-1 shrink-0" />How Part B works</h2>
         <p>Rule 2 frames every decision: nothing in the Rules excuses neglect of the Rules, ordinary seamanlike precautions or special circumstances. In immediate danger, a departure may be necessary to avoid that danger.</p>
         <div className="grid md:grid-cols-3 gap-3">
-          <Card><CardContent className="pt-6"><Badge>Section I</Badge><h3 className="font-bold mt-2">Rules 4–10</h3><p className="text-sm text-muted-foreground">Conduct of vessels in any condition of visibility.</p></CardContent></Card>
-          <Card><CardContent className="pt-6"><Badge>Section II</Badge><h3 className="font-bold mt-2">Rules 11–18</h3><p className="text-sm text-muted-foreground">Applies only when vessels are in sight of one another. Rule 11 establishes that scope.</p></CardContent></Card>
-          <Card><CardContent className="pt-6"><Badge>Section III</Badge><h3 className="font-bold mt-2">Rule 19</h3><p className="text-sm text-muted-foreground">Conduct in restricted visibility when vessels are not in sight of one another.</p></CardContent></Card>
+          <Card className="min-w-0 forced-colors:border-[CanvasText]"><CardContent className="min-w-0 pt-6"><Badge className="max-w-full whitespace-normal forced-colors:border forced-colors:border-[CanvasText]">Section I</Badge><h3 className="mt-2 break-words font-bold">Rules 4–10</h3><p className="break-words text-sm text-muted-foreground">Conduct of vessels in any condition of visibility.</p></CardContent></Card>
+          <Card className="min-w-0 forced-colors:border-[CanvasText]"><CardContent className="min-w-0 pt-6"><Badge className="max-w-full whitespace-normal forced-colors:border forced-colors:border-[CanvasText]">Section II</Badge><h3 className="mt-2 break-words font-bold">Rules 11–18</h3><p className="break-words text-sm text-muted-foreground">Applies only when vessels are in sight of one another. Rule 11 establishes that scope.</p></CardContent></Card>
+          <Card className="min-w-0 forced-colors:border-[CanvasText]"><CardContent className="min-w-0 pt-6"><Badge className="max-w-full whitespace-normal forced-colors:border forced-colors:border-[CanvasText]">Section III</Badge><h3 className="mt-2 break-words font-bold">Rule 19</h3><p className="break-words text-sm text-muted-foreground">Conduct in restricted visibility when vessels are not in sight of one another.</p></CardContent></Card>
         </div>
         {reviewButton("framework", "I have reviewed the Part B framework")}</section>
-      <section className="space-y-4"><h2 className="text-2xl font-semibold">Rules 5–17: decision essentials</h2><div className="grid md:grid-cols-2 gap-4">
-        {COLREG_RULES.map(({ rule, title, scope, points }) => <Card id={`rule-${rule}`} tabIndex={-1} className="scroll-mt-28 focus:outline-none" key={rule}><CardContent className="pt-6"><h3 className="font-bold text-lg">Rule {rule}: {title}</h3><p className="text-xs font-medium text-primary mb-3">{scope}</p><ul className="list-disc pl-5 space-y-2 text-sm text-muted-foreground">{points.map(point => <li key={point}>{point}</li>)}</ul></CardContent></Card>)}
+      <section id="rules-5-17" className="min-w-0 scroll-mt-28 space-y-4"><h2 className="break-words text-2xl font-semibold">Rules 5–17: decision essentials</h2><nav aria-label="Rules 5 to 17"><ol className="flex flex-wrap gap-2">{COLREG_RULES.map(({ rule }) => <li key={rule}><a className="inline-flex min-h-11 min-w-11 items-center justify-center rounded-md border px-3 underline underline-offset-4 forced-colors:border-[CanvasText]" href={`#rule-${rule}`}>Rule {rule}</a></li>)}</ol></nav><div className="grid min-w-0 gap-4 md:grid-cols-2">
+        {COLREG_RULES.map(({ rule, title, scope, points }) => <Card id={`rule-${rule}`} tabIndex={-1} className="min-w-0 scroll-mt-28 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring forced-colors:border-[CanvasText]" key={rule}><CardContent className="min-w-0 pt-6"><h3 className="break-words text-lg font-bold">Rule {rule}: {title}</h3><p className="mb-3 break-words text-xs font-medium text-primary forced-colors:text-[CanvasText]">{scope}</p><ul className="list-disc space-y-2 break-words pl-5 text-sm text-muted-foreground">{points.map(point => <li key={point}>{point}</li>)}</ul></CardContent></Card>)}
       </div>{reviewButton("rules-5-17", "I have reviewed Rules 5–17")}</section>
-      <section id="rule-18" tabIndex={-1} className="space-y-3 scroll-mt-28 focus:outline-none"><h2 className="text-2xl font-semibold flex gap-2"><AlertTriangle />Rule 18: responsibilities, not a ladder</h2>
+      <section id="rule-18" tabIndex={-1} className="min-w-0 space-y-3 scroll-mt-28 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"><h2 className="flex items-start gap-2 break-words text-2xl font-semibold"><AlertTriangle aria-hidden="true" className="mt-1 shrink-0" />Rule 18: responsibilities, not a ladder</h2>
         <Card><CardContent className="pt-6"><p className="text-xs font-medium text-primary mb-3">{RULE_18_SCOPE}</p><p className="mb-3">Identify the encounter and special waterway duties first; then apply the relevant responsibility:</p><ol className="list-decimal pl-5 space-y-2 text-sm text-muted-foreground">{RULE_18_DECISIONS.map(x => <li key={x}>{x}</li>)}</ol></CardContent></Card>
         {reviewButton("rule-18", "I have reviewed Rule 18 responsibilities")}</section>
       <section id="rule-19" tabIndex={-1} className="space-y-3 scroll-mt-28 focus:outline-none"><h2 className="text-2xl font-semibold">Rule 19: restricted visibility</h2><Card><CardContent className="pt-6 space-y-3 text-sm text-muted-foreground">
@@ -126,8 +132,8 @@ const ColregTheory = () => {
         <p>Except where satisfied no risk exists, a vessel hearing apparently forward of her beam another vessel's fog signal—or unable to avoid close quarters forward of the beam—reduces to the minimum speed at which she can keep course, takes all way off if necessary, and navigates with extreme caution until danger is over.</p>
       </CardContent></Card>{reviewButton("rule-19", "I have reviewed restricted visibility")}</section>
       <ColregScenarioExercise onScenarioCompleted={() => void markSectionVisited("applied")} />
-      <aside className="rounded-lg border p-4 text-sm"><p><strong>Source and version:</strong> Convention on the International Regulations for Preventing Collisions at Sea, 1972 (COLREGs), as amended, consolidated in the U.S. Coast Guard <em>Navigation Rules and Regulations Handbook</em>, August 2014, Rules 2 and 4–19. These are learning summaries, not quoted rule text. Informal phrases and mnemonics are memory aids only and have no legal force.</p></aside>
-      <div className="flex flex-col items-center gap-2 pt-8"><p className="text-sm text-muted-foreground">Evidence complete: {visitedSectionIds.length} of {requiredSections.length} objectives</p><Button size="lg" disabled={!canComplete || saveState === "saving"} onClick={async () => { if (await markCompleted()) navigate("/rules-of-the-road"); }}>{saveState === "saving" ? "Saving…" : saveState === "failed" ? "Retry completion save" : canComplete ? "Complete Module" : "Review each section and complete an applied scenario"}</Button>{saveState === "queued" && <p role="status">Completion is queued offline and will sync when you reconnect.</p>}{saveState === "failed" && <p role="alert">Completion was not saved. Check your connection and retry.</p>}</div>
+      <aside className="min-w-0 rounded-lg border p-4 text-sm forced-colors:border-[CanvasText]"><p className="break-words"><strong>Source and version:</strong> Convention on the International Regulations for Preventing Collisions at Sea, 1972 (COLREGs), as amended, consolidated in the U.S. Coast Guard <em>Navigation Rules and Regulations Handbook</em>, August 2014, Rules 2 and 4–19. These are learning summaries, not quoted rule text. Informal phrases and mnemonics are memory aids only and have no legal force.</p></aside>
+      <section id="completion" aria-labelledby="completion-heading" className="flex min-w-0 scroll-mt-28 flex-col items-stretch gap-3 rounded-lg border p-4 pt-6 text-center forced-colors:border-[CanvasText] sm:items-center"><h2 id="completion-heading" className="break-words text-xl font-semibold">Lesson completion</h2><p aria-live="polite" aria-atomic="true" className="break-words text-sm text-muted-foreground">{saveState === "saving" ? "Saving completion." : saveState === "saved" ? "Completion saved. You can return to the Rules of the Road menu." : saveState === "queued" ? "Completion is queued offline and will sync when you reconnect." : saveState === "failed" ? "Completion was not saved. Check your connection and retry." : canComplete ? "All five objectives are reviewed. Completion is available." : `${visitedSectionIds.length} of ${requiredSections.length} objectives reviewed; ${remaining} remaining.`}</p>{saveState === "saved" || saveState === "queued" ? <Button className="min-h-11 max-w-full whitespace-normal" size="lg" onClick={() => navigate("/rules-of-the-road")}><CheckCircle2 aria-hidden="true" className="mr-2 shrink-0" />Return to Rules of the Road</Button> : <Button className="min-h-11 max-w-full whitespace-normal break-words" size="lg" disabled={!canComplete || saveState === "saving"} onClick={() => void markCompleted()}>{saveState === "saving" ? "Saving…" : saveState === "failed" ? "Retry completion save" : canComplete ? "Complete module" : "Review each section and complete an applied scenario"}</Button>}</section>
     </main>
   </div>;
 };
