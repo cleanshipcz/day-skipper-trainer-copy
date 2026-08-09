@@ -708,6 +708,16 @@ const Quiz = () => {
                 />
               </div>
             )}
+            {question.scenario && (
+              <figure aria-label={question.scenario.accessibleName} aria-describedby={`scenario-description-${question.id}`} className="mb-4 rounded-lg border-2 border-current bg-muted/40 p-4 forced-colors:bg-transparent">
+                <figcaption id={`scenario-description-${question.id}`} className="font-medium">{question.scenario.description}</figcaption>
+                <dl className="mt-3 grid gap-2 text-sm sm:grid-cols-2">
+                  {question.scenario.facts.map((fact) => <div key={fact.label} className="rounded border border-current p-2">
+                    <dt className="font-semibold">{fact.label}</dt><dd>{fact.value}</dd>
+                  </div>)}
+                </dl>
+              </figure>
+            )}
             <CardTitle ref={questionHeadingRef} tabIndex={-1} className="text-2xl break-words [overflow-wrap:anywhere] focus:outline-none">{question.question}</CardTitle>
             {topicKey === "colregs" && question.learningObjective && <p className="text-sm text-muted-foreground">
               Objective: {question.learningObjective} · Prerequisite: {question.prerequisite}

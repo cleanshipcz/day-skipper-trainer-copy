@@ -4,6 +4,12 @@ export interface Question {
   readonly question: string;
   /** Canonical `/images/` application asset path (PNG, JPEG, WebP, or SVG; no URL suffixes or traversal). */
   readonly image?: string;
+  /** Structured, non-answer-bearing equivalent for an assessment diagram. */
+  readonly scenario?: {
+    readonly accessibleName: string;
+    readonly description: string;
+    readonly facts: readonly { readonly label: string; readonly value: string }[];
+  };
   readonly options: readonly string[];
   readonly correctAnswer: number;
   readonly explanation: string;

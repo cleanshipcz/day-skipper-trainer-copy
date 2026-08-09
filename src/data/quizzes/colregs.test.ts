@@ -50,4 +50,24 @@ describe("combined Rules diagnostic curriculum", () => {
     expect(distractors.every((option) => option.length >= 12)).toBe(true);
     expect(distractors.join(" ")).not.toMatch(/Right is Might|more sails|doesn't matter/i);
   });
+
+  it("provides unique, non-answer-bearing structured equivalents for every visual scenario", () => {
+    const scenarios = questions.filter(({ scenario }) => scenario);
+    expect(scenarios.map(({ id }) => id)).toEqual(["cr2", "cr3", "cr4", "cr5", "cr7", "cr13", "cr14"]);
+    expect(new Set(scenarios.map(({ scenario }) => scenario!.accessibleName)).size).toBe(scenarios.length);
+    for (const { id, scenario } of scenarios) {
+      expect(scenario!.accessibleName).toContain(id);
+      expect(scenario!.facts.length).toBeGreaterThanOrEqual(3);
+      expect(JSON.stringify(scenario)).not.toMatch(/give[- ]?way|keep out|stand-on|alter (course|to)/i);
+    }
+  });
+
+  it("makes vessel labels, bearings, side lights, angles and encounter facts explicit", () => {
+    const text = (id: string) => JSON.stringify(questions.find((question) => question.id === id)?.scenario);
+    expect(text("cr2")).toMatch(/30° abaft.*starboard beam/i);
+    expect(text("cr3")).toMatch(/red sidelight.*35°.*starboard bow.*035°.*range decreases/i);
+    expect(text("cr5")).toMatch(/Boat A.*windward.*Boat B.*leeward/i);
+    expect(text("cr7")).toMatch(/reciprocal.*masthead lights.*both sidelights/i);
+    expect(text("cr13")).toMatch(/white masthead.*red sidelight.*green sidelight/i);
+  });
 });
