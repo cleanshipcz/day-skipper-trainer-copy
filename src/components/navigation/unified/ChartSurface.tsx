@@ -18,10 +18,11 @@ interface ChartSurfaceProps {
   viewBox?: string;
   className?: string;
   labelScale?: number; // Scaling factor for text labels (for Zoom)
+  onClick?: React.MouseEventHandler<SVGSVGElement>;
 }
 
 const ChartSurface = forwardRef<SVGSVGElement, ChartSurfaceProps>(
-  ({ width, height, scale, viewBox, children, className, labelScale = 1 }, ref) => {
+  ({ width, height, scale, viewBox, children, className, labelScale = 1, onClick }, ref) => {
     const resolvedViewBox = viewBox || `0 0 ${width} ${height}`;
 
     const [vx, vy, vw, vh] = useMemo(
@@ -104,9 +105,10 @@ const ChartSurface = forwardRef<SVGSVGElement, ChartSurfaceProps>(
         width="100%"
         height="100%"
         viewBox={resolvedViewBox}
-        className={`w-full h-full bg-white select-none pointer-events-none ${className}`}
+        className={`w-full h-full bg-white select-none ${className}`}
+        onClick={onClick}
         style={{ backgroundColor: COLORS.DEEP }}
-        preserveAspectRatio="xMinYMin slice"
+        preserveAspectRatio="none"
       >
         <defs>
           <pattern id="grid" width={scale} height={scale} patternUnits="userSpaceOnUse">
