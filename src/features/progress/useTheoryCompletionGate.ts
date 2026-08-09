@@ -19,6 +19,7 @@ export const useTheoryCompletionGate = ({
   const { loadProgressDetailed, saveProgress, saveProgressDetailed } = progress;
   const ownerId = "ownerId" in progress ? progress.ownerId : null;
   const [visitedSectionIds, setVisitedSectionIds] = useState<string[]>([]);
+  const [isHydrated, setIsHydrated] = useState(false);
   const visitedRef = useRef<readonly string[]>(visitedSectionIds);
   const completionPromiseRef = useRef<{ generation: number; promise: Promise<boolean> } | null>(null);
   const hydrationKeyRef = useRef<string | null>(null);
@@ -48,9 +49,16 @@ export const useTheoryCompletionGate = ({
     }
   }, [catalogueRevision, completionStorageKey, storageKey]);
 
-  const enqueueInProgressSave = useCallback((ids: string[], generation = hydrationGenerationRef.current) => {
+  const enqueueInProgressSave = useCallback((ids: string[], generation = hydrationGenerationRef.current): Promise<"failed" | void> => {
     pendingSaveRef.current = { generation, ids };
-    if (saveWorkerRef.current?.generation === generation) return saveWorkerRef.current.promise;
+    if (saveWorkerRef.current?.generation === generation) {
+      const activeWorker = saveWorkerRef.current.promise;
+      return activeWorker.then((outcome) => {
+        const pending = pendingSaveRef.current;
+        if (pending?.generation === generation) return enqueueInProgressSave(pending.ids, generation);
+        return outcome;
+      });
+    }
     const worker: { generation: number; promise: Promise<"failed" | void> } = { generation, promise: Promise.resolve() };
     worker.promise = (async (): Promise<"failed" | void> => {
       let outcome: "failed" | "saved" | "queued" | "local" = "saved";
@@ -93,7 +101,11 @@ export const useTheoryCompletionGate = ({
     visitedRef.current = [];
     setVisitedSectionIds([]);
     setSaveState("idle");
-    if (!storageKey) return;
+    setIsHydrated(false);
+    if (!storageKey) {
+      setIsHydrated(true);
+      return;
+    }
     const restore = async () => {
       let restored: string[] = [];
       let locallyCompleted = false;
@@ -130,6 +142,7 @@ export const useTheoryCompletionGate = ({
       const browserSaved = writeBrowserEvidence(merged, completed, completed ? outcome : undefined);
       if (completed) setSaveState(browserSaved ? outcome : remotelyCompleted ? "saved" : "failed");
       else if (merged.length > 0) await enqueueInProgressSave(merged, generation);
+      if (hydrationGenerationRef.current === generation) setIsHydrated(true);
     };
     void restore();
   }, [catalogueRevision, completionStorageKey, enqueueInProgressSave, loadProgressDetailed, ownerId, requiredSectionIds, storageKey, topicId, writeBrowserEvidence]);
@@ -140,8 +153,10 @@ export const useTheoryCompletionGate = ({
   );
 
   const persistInProgressIfNeeded = useCallback(
-    async (state: CompletionState, score: number, nextVisitedSectionIds: string[]) => {
-      if (state !== "in_progress") return;
+    async (_state: CompletionState, _score: number, nextVisitedSectionIds: string[]) => {
+      // The final objective is still evidence, not module completion. Persist
+      // the full 100% evidence snapshot with completed=false until the learner
+      // explicitly activates completion.
       return enqueueInProgressSave(nextVisitedSectionIds);
     },
     [enqueueInProgressSave]
@@ -216,6 +231,8 @@ export const useTheoryCompletionGate = ({
     score: decision.score,
     canComplete: decision.canComplete,
     visitedSectionIds,
+    isHydrated,
+    ownerId,
     markSectionVisited,
     markCompleted,
     saveState,

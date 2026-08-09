@@ -1,26 +1,42 @@
-import { describe, it, expect, vi } from "vitest";
-import { render, screen } from "@testing-library/react";
+import { beforeEach, describe, it, expect, vi } from "vitest";
+import { render, screen, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import ChartsTheory from "../src/pages/ChartsTheory";
 import TestRouter from "./TestRouter";
 
 // Mock dependencies to focus on component structure
 vi.mock("@/components/navigation/ChartSymbolQuiz", () => ({
-  default: () => <div data-testid="chart-symbol-quiz">Mock Quiz</div>,
+  default: ({ onMastery }: { onMastery?: () => void }) => <div data-testid="chart-symbol-quiz">Mock Quiz<button onClick={onMastery}>Master symbols</button></div>,
 }));
 
 vi.mock("@/components/navigation/VirtualChartPlotter", () => ({
-  default: () => <div data-testid="virtual-chart-plotter">Mock Plotter</div>,
+  default: ({ onMastery }: { onMastery?: () => void }) => <div data-testid="virtual-chart-plotter">Mock Plotter<button onClick={onMastery}>Master plotter</button></div>,
+}));
+
+vi.mock("@/components/navigation/TidalVisualizer", () => ({
+  default: ({ onMastery }: { onMastery?: () => void }) => <div data-testid="tidal-visualizer">Mock Tides<button onClick={onMastery}>Master tides</button></div>,
 }));
 
 // Mock hooks
+const progressMocks = vi.hoisted(() => ({
+  loadProgressDetailed: vi.fn(),
+  saveProgressDetailed: vi.fn(),
+}));
 vi.mock("@/hooks/useProgress", () => ({
   useProgress: () => ({
+    ownerId: "account-a",
+    loadProgressDetailed: progressMocks.loadProgressDetailed,
+    saveProgressDetailed: progressMocks.saveProgressDetailed,
     saveProgress: vi.fn(),
   }),
 }));
 
 describe("ChartsTheory Page", () => {
+  beforeEach(() => {
+    localStorage.clear();
+    progressMocks.loadProgressDetailed.mockReset().mockResolvedValue({ status: "missing", record: null });
+    progressMocks.saveProgressDetailed.mockReset().mockResolvedValue("remote");
+  });
   it("renders all main educational sections via tabs", async () => {
     const user = userEvent.setup();
     render(
@@ -70,12 +86,13 @@ describe("ChartsTheory Page", () => {
     expect(await screen.findByTestId("chart-symbol-quiz")).toBeDefined();
   });
 
-  it("teaches Mercator graticule and local latitude distance accurately", () => {
+  it("teaches Mercator graticule and local latitude distance accurately", async () => {
     render(
       <TestRouter>
         <ChartsTheory />
       </TestRouter>
     );
+    await screen.findByText("Complete each practical outcome to unlock module completion.");
 
     expect(screen.getByText(/mathematical transformation, not a perspective view/i)).toBeDefined();
     expect(screen.getByText(/meridians are parallel on the chart even though they converge on the globe/i)).toBeDefined();
@@ -107,5 +124,49 @@ describe("ChartsTheory Page", () => {
     expect(
       screen.getByRole("link", { name: /IHO S-4, edition 4.10.0/i }).getAttribute("href")
     ).toContain("S-4%20Ed%204.10.0_FINAL.pdf");
+  });
+
+  it("requires practical outcomes, persists each evidence snapshot, and only navigates after durable completion", async () => {
+    const user = userEvent.setup();
+    render(<TestRouter><ChartsTheory /></TestRouter>);
+
+    await screen.findByText("Complete each practical outcome to unlock module completion.");
+    const complete = screen.getByRole("button", { name: "Complete all practical outcomes" });
+    expect(complete.hasAttribute("disabled")).toBe(true);
+
+    await user.click(screen.getByRole("button", { name: "Master plotter" }));
+    await user.click(screen.getByRole("tab", { name: /Depths & Tides/i }));
+    await user.click(screen.getByRole("button", { name: "Master tides" }));
+    await user.click(screen.getByRole("tab", { name: /Symbols & Keys/i }));
+    await user.click(screen.getByRole("button", { name: "Master symbols" }));
+
+    await waitFor(() => expect(progressMocks.saveProgressDetailed).toHaveBeenLastCalledWith(
+      "charts-theory", false, 100, 0,
+      expect.objectContaining({
+        completionState: "in_progress",
+        catalogueRevision: "chart-evidence-v1",
+        visitedSectionIds: ["plotter-mastery", "tidal-depth-mastery", "symbol-mastery"],
+      }),
+    ));
+    await user.click(screen.getByRole("button", { name: "Complete Module" }));
+    await waitFor(() => expect(progressMocks.saveProgressDetailed).toHaveBeenLastCalledWith(
+      "charts-theory", true, 100, 10,
+      expect.objectContaining({ completionState: "completed", catalogueRevision: "chart-evidence-v1" }),
+    ));
+  });
+
+  it("hydrates owner-scoped partial evidence and keeps completion available for retry after a failed save", async () => {
+    localStorage.setItem("theory-gate:account-a:charts-theory:chart-evidence-v1", JSON.stringify({
+      catalogueRevision: "chart-evidence-v1",
+      visitedSectionIds: ["plotter-mastery", "tidal-depth-mastery", "symbol-mastery", "retired-outcome"],
+    }));
+    progressMocks.saveProgressDetailed.mockResolvedValueOnce("remote").mockResolvedValueOnce("failed");
+    const user = userEvent.setup();
+    render(<TestRouter><ChartsTheory /></TestRouter>);
+
+    await waitFor(() => expect(screen.getAllByText(/: recorded$/)).toHaveLength(3));
+    await user.click(screen.getByRole("button", { name: "Complete Module" }));
+    expect(await screen.findByText("Completion was not saved. Your evidence remains here; retry when ready.")).toBeDefined();
+    expect(screen.getByRole("button", { name: "Retry completion" })).toBeDefined();
   });
 });

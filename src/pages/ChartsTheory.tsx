@@ -1,8 +1,8 @@
 import { useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
-import { ArrowLeft, Map, Anchor, Waves, Info, Ruler, Mountain, Globe, Eye } from "lucide-react";
-import { useEffect, useState } from "react";
+import { ArrowLeft, Map, Anchor, Waves, Info, Ruler, Mountain, Globe, Eye, CheckCircle2 } from "lucide-react";
+import { useState } from "react";
 import { useTheoryCompletionGate } from "@/features/progress/useTheoryCompletionGate";
 import ChartSymbolQuiz from "@/components/navigation/ChartSymbolQuiz";
 import VirtualChartPlotter from "@/components/navigation/VirtualChartPlotter";
@@ -13,15 +13,20 @@ import { TOPIC_IDS } from "@/constants/topicRegistry";
 const ChartsTheory = () => {
   const navigate = useNavigate();
   const [activeTab, setActiveTab] = useState("coordinates");
-  const { canComplete, markCompleted, markSectionVisited } = useTheoryCompletionGate({
+  const [announcement, setAnnouncement] = useState("");
+  const { canComplete, markCompleted, markSectionVisited, visitedSectionIds, saveState, isHydrated, ownerId } = useTheoryCompletionGate({
     topicId: TOPIC_IDS.CHARTS_THEORY,
-    requiredSectionIds: ["coordinates", "depths", "symbols"],
+    requiredSectionIds: ["plotter-mastery", "tidal-depth-mastery", "symbol-mastery"],
     pointsOnComplete: 10,
+    catalogueRevision: "chart-evidence-v1",
   });
-
-  useEffect(() => {
-    void markSectionVisited("coordinates");
-  }, [markSectionVisited]);
+  const recordEvidence = async (id: string, label: string) => {
+    if (visitedSectionIds.includes(id)) return;
+    const outcome = await markSectionVisited(id);
+    setAnnouncement(outcome === "failed"
+      ? `${label} evidence was retained in this browser, but could not be saved. It will be retried with your next evidence or completion save.`
+      : `${label} evidence recorded.`);
+  };
 
   return (
     <div className="min-h-screen bg-slate-50 pb-20 text-slate-900">
@@ -45,7 +50,6 @@ const ChartsTheory = () => {
           value={activeTab}
           onValueChange={(value) => {
             setActiveTab(value);
-            void markSectionVisited(value);
           }}
           className="space-y-8"
         >
@@ -196,7 +200,7 @@ const ChartsTheory = () => {
 
               <Card className="border-2 border-indigo-100 shadow-md">
                 <CardContent className="pt-6">
-                  <VirtualChartPlotter />
+                  <VirtualChartPlotter onMastery={() => void recordEvidence("plotter-mastery", "Chart plotting mastery")} />
                 </CardContent>
               </Card>
             </section>
@@ -328,7 +332,7 @@ const ChartsTheory = () => {
                     Use the tool below to visualize how the tide level (blue water) rises above Chart Datum, adding to
                     your available depth.
                   </p>
-                  <TidalVisualizer />
+                  <TidalVisualizer onMastery={() => void recordEvidence("tidal-depth-mastery", "Tidal depth mastery")} />
                 </div>
               </div>
             </section>
@@ -387,7 +391,11 @@ const ChartsTheory = () => {
                     The best way to learn symbols is repetition. Test yourself with common symbols found on Admiralty
                     Charts.
                   </p>
-                  <ChartSymbolQuiz />
+                  <ChartSymbolQuiz
+                    evidenceOwnerId={ownerId}
+                    catalogueRevision="chart-symbols-v1"
+                    onMastery={() => void recordEvidence("symbol-mastery", "Chart symbol mastery")}
+                  />
                 </div>
 
                 <aside className="mt-10 border-t pt-4 text-sm text-slate-600" aria-label="Authoritative references">
@@ -403,17 +411,33 @@ const ChartsTheory = () => {
           </TabsContent>
         </Tabs>
 
-        <div className="flex justify-center pt-12 pb-8">
+        <section className="mt-12 space-y-4 rounded-lg border bg-white p-6" aria-labelledby="chart-completion-heading">
+          <h2 id="chart-completion-heading" className="text-xl font-bold">Completion evidence</h2>
+          <ul className="space-y-2">
+            {[
+              ["plotter-mastery", "Complete all eight chart-plotting challenges"],
+              ["tidal-depth-mastery", "Achieve mastery in the tidal-depth drill"],
+              ["symbol-mastery", "Achieve mastery in the chart-symbol assessment"],
+            ].map(([id, label]) => <li key={id} className="flex items-center gap-2">
+              <CheckCircle2 className={`h-5 w-5 ${visitedSectionIds.includes(id) ? "text-green-700" : "text-slate-300"}`} aria-hidden="true" />
+              <span>{label}: {visitedSectionIds.includes(id) ? "recorded" : "not yet recorded"}</span>
+            </li>)}
+          </ul>
+          <p role="status" aria-live="polite">{announcement || (saveState === "saving" ? "Saving evidence…" : saveState === "queued" ? "Progress is durably queued on this device and will sync when you reconnect." : saveState === "saved" ? "Progress saved to your account." : saveState === "failed" ? "Progress could not be saved. Your browser evidence is retained; retry completion or another exercise." : !isHydrated ? "Loading saved evidence…" : "Complete each practical outcome to unlock module completion.")}</p>
+        </section>
+
+        <div className="flex justify-center pt-6 pb-8">
           <Button
             size="lg"
             className="px-8"
-            disabled={!canComplete}
+            disabled={!isHydrated || !canComplete || saveState === "saving"}
             onClick={async () => {
-              await markCompleted();
-              navigate("/navigation");
+              const saved = await markCompleted();
+              if (saved) navigate("/navigation");
+              else setAnnouncement("Completion was not saved. Your evidence remains here; retry when ready.");
             }}
           >
-            {canComplete ? "Complete Module" : "Explore all sections to complete"}
+            {!isHydrated ? "Loading saved evidence…" : canComplete ? saveState === "failed" ? "Retry completion" : "Complete Module" : "Complete all practical outcomes"}
           </Button>
         </div>
       </main>

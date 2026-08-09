@@ -67,7 +67,11 @@ const formatCoordinate = (point: Point) => {
   return `50°${((lat - 50) * 60).toFixed(1)}′N 001°${((Math.abs(lon) - 1) * 60).toFixed(1)}′W`;
 };
 
-export default function VirtualChartPlotter() {
+interface VirtualChartPlotterProps {
+  onMastery?: () => void;
+}
+
+export default function VirtualChartPlotter({ onMastery }: VirtualChartPlotterProps) {
   const [tool, setTool] = useState<PlotterTool>("pan");
   const [view, setView] = useState({ x: 0, y: 0, scale: 1 });
   const [drag, setDrag] = useState<{ start: Point; current: Point } | null>(null);
@@ -108,7 +112,7 @@ export default function VirtualChartPlotter() {
     assess(value);
   };
   const start = () => { setActive(true); setIndex(0); setAttempts(0); setCorrect(0); setChallengeSolved(false); setFeedback(null); setFormValue(""); announceTool("pan"); };
-  const next = () => { if (!challengeSolved) return; if (index === 7) { setActive(false); setFeedback({ ok: true, text: `Mastery achieved: ${correct}/8 correct challenges. Retry the drill any time to improve accuracy.` }); } else { setIndex((n) => n + 1); setChallengeSolved(false); setFeedback(null); setFormValue(""); setMeasurement(""); setTool("pan"); } };
+  const next = () => { if (!challengeSolved) return; if (index === 7) { setActive(false); setFeedback({ ok: true, text: `Mastery achieved: ${correct}/8 correct challenges. Retry the drill any time to improve accuracy.` }); onMastery?.(); } else { setIndex((n) => n + 1); setChallengeSolved(false); setFeedback(null); setFormValue(""); setMeasurement(""); setTool("pan"); } };
   const reset = () => { setMarks([]); setMeasurement(""); setFeedback(null); setView({ x: 0, y: 0, scale: 1 }); };
   const meridians = useMemo(() => Array.from({ length: 20 }, (_, i) => chartModel.toPoint(ORIGIN_LAT, ORIGIN_LON + i * .5 / 60).x), []);
 

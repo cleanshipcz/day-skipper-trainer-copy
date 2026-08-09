@@ -1,6 +1,6 @@
 import { cleanup, render, screen } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
-import { beforeEach, describe, expect, it } from "vitest";
+import { beforeEach, describe, expect, it, vi } from "vitest";
 import ChartSymbolQuiz, { CHART_SYMBOL_ATTEMPT_KEY, chartSymbolQuestions, symbolDescriptions } from "@/components/navigation/ChartSymbolQuiz";
 
 const answerCurrent = async (user: ReturnType<typeof userEvent.setup>, answer: string) => {
@@ -46,7 +46,8 @@ describe("ChartSymbolQuiz", () => {
 
   it("records 11-of-13 mastery, restores completed evidence, and only resets on explicit retry", async () => {
     const user = userEvent.setup();
-    const view = render(<ChartSymbolQuiz/>);
+    const onMastery = vi.fn();
+    const view = render(<ChartSymbolQuiz onMastery={onMastery}/>);
     for (const [index, question] of chartSymbolQuestions.entries()) {
       const answer = index < 11 ? question.answer : question.options.find(option => option !== question.answer)!;
       await answerCurrent(user, answer);
@@ -54,6 +55,7 @@ describe("ChartSymbolQuiz", () => {
     }
     expect(screen.getByRole("status").textContent).toContain("Mastery achieved: at least 11 of 13 correct");
     expect(screen.getByText("11 / 13")).toBeDefined();
+    expect(onMastery).toHaveBeenCalledOnce();
     const stored = JSON.parse(localStorage.getItem(CHART_SYMBOL_ATTEMPT_KEY)!);
     expect(stored).toMatchObject({ version: 1, complete: true });
     expect(stored.correctIds).toHaveLength(11);
@@ -72,5 +74,16 @@ describe("ChartSymbolQuiz", () => {
   it("exposes semantic progress", () => {
     render(<ChartSymbolQuiz/>);
     expect(screen.getByRole("progressbar", { name: "Assessment progress" }).getAttribute("value")).toBe("1");
+  });
+
+  it("does not hydrate another owner's completed assessment or a retired catalogue", () => {
+    const completed = { version: 1, index: 12, choice: "", checked: true, correctIds: chartSymbolQuestions.slice(0, 11).map(({ id }) => id), complete: true };
+    localStorage.setItem(`${CHART_SYMBOL_ATTEMPT_KEY}:account-a:chart-symbols-v1`, JSON.stringify(completed));
+
+    const view = render(<ChartSymbolQuiz evidenceOwnerId="account-b" catalogueRevision="chart-symbols-v1" />);
+    expect(screen.getByText("Question 1 of 13")).toBeDefined();
+    view.unmount();
+    render(<ChartSymbolQuiz evidenceOwnerId="account-a" catalogueRevision="chart-symbols-v2" />);
+    expect(screen.getByText("Question 1 of 13")).toBeDefined();
   });
 });
