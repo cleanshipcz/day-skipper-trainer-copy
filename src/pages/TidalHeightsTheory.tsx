@@ -47,7 +47,7 @@ const TidalHeightsTheory = () => {
               </p>
             </div>
           </div>
-          <div className="min-w-0 sm:max-w-xs">
+          <div className="min-w-0 break-words sm:max-w-xs [&_button]:h-auto [&_button]:max-w-full [&_button]:min-h-10 [&_button]:whitespace-normal">
             <TheoryCompletionButton
               topicId={TOPIC_IDS.TIDES_HEIGHTS_THEORY}
               catalogueRevision="tides-heights-theory-v2"
@@ -314,7 +314,7 @@ const TidalHeightsTheory = () => {
           </CardContent>
         </Card>
 
-        <div className="grid gap-6 lg:grid-cols-2">
+        <div className="grid min-w-0 grid-cols-1 gap-6 lg:grid-cols-2">
           <Card>
             <CardHeader>
               <CardTitle>Worked 1: height at time</CardTitle>
@@ -404,7 +404,10 @@ const TidalHeightsTheory = () => {
             <CardTitle>Datums, clearance and limits</CardTitle>
           </CardHeader>
           <CardContent className="grid gap-5 text-sm md:grid-cols-2">
-            <section aria-labelledby="clearance-heading" className="space-y-2">
+            <section
+              aria-labelledby="clearance-heading"
+              className="min-w-0 space-y-2"
+            >
               <h3 id="clearance-heading" className="font-semibold">
                 Clearance formulas
               </h3>
@@ -427,40 +430,49 @@ const TidalHeightsTheory = () => {
                 datums.
               </p>
             </section>
-            <section aria-labelledby="twelves-heading" className="space-y-2">
+            <section
+              aria-labelledby="twelves-heading"
+              className="min-w-0 space-y-2"
+            >
               <h3 id="twelves-heading" className="font-semibold">
                 Rule of Twelves rough check
               </h3>
-              <table className="w-full border-collapse text-center">
-                <caption className="pb-2 text-left">
-                  Approximate share of total range during each hour of a regular
-                  six-hour tide
-                </caption>
-                <thead>
-                  <tr>
-                    <th scope="col" className="border p-2">
-                      Hour
-                    </th>
-                    {[1, 2, 3, 4, 5, 6].map((hour) => (
-                      <th scope="col" className="border p-2" key={hour}>
-                        {hour}
+              <div
+                className="max-w-full overflow-x-auto"
+                tabIndex={0}
+                aria-label="Scrollable Rule of Twelves table"
+              >
+                <table className="w-full min-w-[26rem] border-collapse text-center">
+                  <caption className="pb-2 text-left">
+                    Approximate share of total range during each hour of a
+                    regular six-hour tide
+                  </caption>
+                  <thead>
+                    <tr>
+                      <th scope="col" className="border p-2">
+                        Hour
                       </th>
-                    ))}
-                  </tr>
-                </thead>
-                <tbody>
-                  <tr>
-                    <th scope="row" className="border p-2 text-left">
-                      Twelfths
-                    </th>
-                    {[1, 2, 3, 3, 2, 1].map((share, index) => (
-                      <td className="border p-2" key={index}>
-                        {share}
-                      </td>
-                    ))}
-                  </tr>
-                </tbody>
-              </table>
+                      {[1, 2, 3, 4, 5, 6].map((hour) => (
+                        <th scope="col" className="border p-2" key={hour}>
+                          {hour}
+                        </th>
+                      ))}
+                    </tr>
+                  </thead>
+                  <tbody>
+                    <tr>
+                      <th scope="row" className="border p-2 text-left">
+                        Twelfths
+                      </th>
+                      {[1, 2, 3, 3, 2, 1].map((share, index) => (
+                        <td className="border p-2" key={index}>
+                          {share}
+                        </td>
+                      ))}
+                    </tr>
+                  </tbody>
+                </table>
+              </div>
               <p>
                 The sequence is 1, 2, 3, 3, 2, 1 twelfths per hour. The third
                 and fourth hours have the greatest change. Use it only as a
@@ -563,7 +575,7 @@ const TidalHeightsTheory = () => {
           <Button
             size="lg"
             onClick={() => navigate("/navigation/tides/heights-calc")}
-            className="bg-emerald-600 hover:bg-emerald-700"
+            className="h-auto max-w-full whitespace-normal bg-emerald-600 hover:bg-emerald-700"
           >
             Open the practice tool <ChevronRight className="ml-2 h-4 w-4" />
           </Button>
