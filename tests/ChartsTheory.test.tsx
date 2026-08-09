@@ -95,7 +95,10 @@ describe("ChartsTheory Page", () => {
     await user.click(screen.getByRole("tab", { name: /Depths & Tides/i }));
     expect(await screen.findByText(/never assume that Chart Datum is LAT/i)).toBeDefined();
     expect(screen.getByText(/Predictions are estimates, not observations/i)).toBeDefined();
-    expect(screen.getByText(/usable UKC = 4.6 − 2.0 − 0.3 − 0.2 − 0.5 =/i)).toBeDefined();
+    expect(screen.getByText(/predicted\/static UKC = 4.6 − 2.0 =/i)).toBeDefined();
+    expect(screen.getByText(/allowance-adjusted\/dynamic UKC = 2.6 − 0.3 − 0.2 =/i)).toBeDefined();
+    expect(screen.getByText(/1.6 m excess above the required reserve/i)).toBeDefined();
+    expect(screen.queryByText(/usable UKC/i)).toBeNull();
     expect(screen.queryByText(/practically guaranteed/i)).toBeNull();
 
     await user.click(screen.getByRole("tab", { name: /Symbols & Keys/i }));

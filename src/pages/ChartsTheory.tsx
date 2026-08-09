@@ -310,8 +310,10 @@ const ChartsTheory = () => {
                       <li>At the planned position, read a <strong>3.2 m</strong> sounding and confirm soundings are metres below CD.</li>
                       <li>From the applicable tide table/curve, interpolate the time between printed values: predicted height is <strong>1.4 m above the same CD</strong>. Apply any published secondary-port correction.</li>
                       <li>Estimated depth: <strong>3.2 m + 1.4 m = 4.6 m</strong>. Check that adding a positive tide height must produce a plausible value deeper than the charted sounding.</li>
-                      <li>For draught <strong>2.0 m</strong>, allow <strong>0.3 m</strong> squat, <strong>0.2 m</strong> wave/heel response and a <strong>0.5 m</strong> policy margin: usable UKC = 4.6 − 2.0 − 0.3 − 0.2 − 0.5 = <strong>1.6 m</strong>.</li>
-                      <li>Compare with the vessel/operator minimum. Recheck the route for shallower soundings, drying dangers, contours and recent notices; delay or reroute if any input or margin is doubtful.</li>
+                      <li>For draught <strong>2.0 m</strong>, predicted/static UKC = 4.6 − 2.0 = <strong>2.6 m</strong>.</li>
+                      <li>After allowing <strong>0.3 m</strong> for squat and <strong>0.2 m</strong> for wave/heel response, allowance-adjusted/dynamic UKC = 2.6 − 0.3 − 0.2 = <strong>2.1 m</strong>.</li>
+                      <li>Compare that 2.1 m with the vessel/operator required minimum or policy reserve of <strong>0.5 m</strong>. It leaves <strong>1.6 m excess above the required reserve</strong>; this excess is not itself UKC.</li>
+                      <li>Recheck the route for shallower soundings, drying dangers, contours and recent notices; delay or reroute if any input or margin is doubtful.</li>
                     </ol>
                     <p className="font-medium text-emerald-900">Predictions are estimates, not observations. Verify actual conditions and maintain a margin appropriate to the vessel, weather, survey quality and consequences of grounding.</p>
                   </CardContent>
