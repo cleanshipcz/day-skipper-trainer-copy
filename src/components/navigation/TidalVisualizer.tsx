@@ -1,4 +1,4 @@
-import { useId, useMemo, useState } from "react";
+import { useEffect, useId, useMemo, useState } from "react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Slider } from "@/components/ui/slider";
 import { Button } from "@/components/ui/button";
@@ -26,6 +26,8 @@ const TidalVisualizer = () => {
   const [feedback, setFeedback] = useState<{ ok: boolean; text: string } | null>(null);
   const [score, setScore] = useState(0);
   const [answered, setAnswered] = useState(0);
+  const [layout, setLayout] = useState<"compact" | "standard" | "wide">(() =>
+    window.innerWidth < 768 ? "compact" : window.innerWidth < 1280 ? "standard" : "wide");
   const scenario = SCENARIOS[index];
   const result = waterOverFeature(scenario);
   const tide = drillActive ? scenario.tide : manualTide[0];
@@ -34,6 +36,12 @@ const TidalVisualizer = () => {
   const diagramResult = feature === "sounding" ? tide + featureValue : tide - featureValue;
   const finished = drillActive && index >= SCENARIOS.length - 1 && feedback?.ok;
   const completed = finished || feedback?.text.startsWith("Drill complete");
+
+  useEffect(() => {
+    const updateLayout = () => setLayout(window.innerWidth < 768 ? "compact" : window.innerWidth < 1280 ? "standard" : "wide");
+    window.addEventListener("resize", updateLayout);
+    return () => window.removeEventListener("resize", updateLayout);
+  }, []);
 
   const diagram = useMemo(() => {
     const datumY = 190;
@@ -52,16 +60,18 @@ const TidalVisualizer = () => {
     setDrillActive(true); setScore(0); setAnswered(0); resetQuestion(0);
   };
   const check = () => {
+    if (feedback?.ok || completed) return;
     const error = validateDepthAnswer(answer, result);
     if (error) { setFeedback({ ok: false, text: error }); return; }
     setScore((value) => value + 1);
     setAnswered((value) => value + 1);
-    const uncovered = result < 0;
-    setFeedback({ ok: true, text: uncovered
+    setFeedback({ ok: true, text: result < 0
       ? `Correct: water depth is 0.0 m; the feature remains ${Math.abs(result).toFixed(1)} m uncovered.`
+      : result === 0 ? "Correct: the feature is awash, with 0.0 m water depth."
       : `Correct: ${result.toFixed(1)} m of water covers the feature.` });
   };
   const skip = () => {
+    if (feedback?.ok || completed) return;
     setAnswered((value) => value + 1);
     if (index < SCENARIOS.length - 1) resetQuestion(index + 1);
     else setFeedback({ ok: false, text: "Drill complete. Retry to practise skipped or missed cases." });
@@ -78,7 +88,7 @@ const TidalVisualizer = () => {
           <p className="text-sm"><strong>Worked drying height:</strong> 0.8 m tide − 1.4 m drying height = −0.6 m, so water depth is 0 m and the feature is 0.6 m uncovered.</p>
         </section>
 
-        <div className="grid gap-5 md:grid-cols-[minmax(0,1fr)_minmax(17rem,0.8fr)]">
+        <div data-testid="tidal-layout" data-layout={layout} className="grid gap-5 md:grid-cols-[minmax(0,1fr)_minmax(17rem,0.8fr)]">
           <div className="min-w-0 space-y-3">
             <Label id="tide-slider-label">Height of Tide: <strong>{tide.toFixed(1)} m above CD</strong></Label>
             <Slider aria-labelledby="tide-slider-label" value={[tide]} min={0} max={6} step={0.1} disabled={drillActive}
@@ -91,7 +101,7 @@ const TidalVisualizer = () => {
               <p>{feature === "drying" ? `Drying height ${featureValue.toFixed(1)} m` : `Charted sounding ${featureValue.toFixed(1)} m`}; tide {tide.toFixed(1)} m. What is the water depth?</p>
               <Label htmlFor="depth-answer">Water depth (m)</Label>
               <div className="flex flex-wrap gap-2"><Input id="depth-answer" inputMode="decimal" placeholder="Depth (m)" value={answer} onChange={(event) => { setAnswer(event.target.value); setFeedback(null); }} className="w-28" />
-                <Button onClick={check} disabled={feedback?.ok}>Check</Button><Button variant="ghost" onClick={skip}>Skip</Button></div>
+                <Button onClick={check} disabled={feedback?.ok || Boolean(completed)}>Check</Button><Button variant="ghost" onClick={skip} disabled={feedback?.ok || Boolean(completed)}>Skip</Button></div>
               {feedback && <p role="status" className={feedback.ok ? "text-green-700" : "text-red-700"}>{feedback.ok ? <CheckCircle2 className="mr-1 inline h-4 w-4" /> : <XCircle className="mr-1 inline h-4 w-4" />}{feedback.text}</p>}
               {feedback?.ok && !finished && <Button variant="outline" onClick={() => resetQuestion(index + 1)}>Next question</Button>}
               {completed && <div className="space-y-2"><p className="font-semibold">Complete: {score}/{SCENARIOS.length}. {score >= 5 ? "Mastery achieved." : "Review the worked examples and retry."}</p><Button onClick={start}>Retry drill</Button></div>}
@@ -101,7 +111,7 @@ const TidalVisualizer = () => {
         <figure className="overflow-hidden rounded-xl border bg-sky-50">
           <svg role="img" aria-labelledby={`${titleId} ${descId}`} viewBox="0 0 600 390" className="block h-auto w-full min-w-0">
             <title id={titleId}>Tidal depth cross-section for scenario {drillActive ? scenario.id : "example"}</title>
-            <desc id={descId}>Chart Datum, sea surface at {tide.toFixed(1)} metres above datum, and a {feature} of {featureValue.toFixed(1)} metres. {diagramResult > 0 ? `${diagramResult.toFixed(1)} metres of water covers it.` : `It is ${Math.abs(diagramResult).toFixed(1)} metres uncovered.`}</desc>
+            <desc id={descId}>Chart Datum, sea surface at {tide.toFixed(1)} metres above datum, and a {feature} of {featureValue.toFixed(1)} metres. {diagramResult > 0 ? `${diagramResult.toFixed(1)} metres of water covers it.` : diagramResult === 0 ? "The feature is awash, with zero metres of water depth." : `There is zero metres of water depth; it is ${Math.abs(diagramResult).toFixed(1)} metres uncovered.`}</desc>
             <rect width="600" height="390" fill="#e0f2fe"/><rect y={Math.max(0, diagram.surfaceY)} width="600" height={390 - Math.max(0, diagram.surfaceY)} fill="#60a5fa" opacity=".48"/>
             <path d="M0 340 L600 340 L600 390 L0 390Z" fill="#c8bda1"/>
             {feature === "sounding" ? <path d={`M0 340 L600 ${Math.min(370, diagram.featureY)} L600 390 L0 390Z`} fill="#a89d82"/> : <path d={`M390 340 Q470 ${diagram.featureY} 550 340Z`} fill="#78716c"/>}

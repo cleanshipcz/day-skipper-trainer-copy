@@ -54,15 +54,58 @@ describe("TidalVisualizer Component", () => {
     expect(screen.getByText(/drying height 1.1 m; tide 2.3 m/i)).toBeTruthy();
   });
 
-  it.each([375, 768, 1280])("remains operable at %ipx with keyboard and pointer input", async (width) => {
-    Object.defineProperty(window, "innerWidth", { configurable: true, value: width });
+  it("runs all six questions once, guards settled questions, teaches awash, and supports mastery retry", async () => {
+    const user = userEvent.setup();
+    render(<TidalVisualizer />);
+    await user.click(screen.getByRole("button", { name: /start drill/i }));
+    const answers = ["4.6", "1.2", "0", "0", "4.0", "0"];
+
+    for (let question = 0; question < answers.length; question += 1) {
+      const input = screen.getByRole("textbox", { name: "Water depth (m)" });
+      await user.type(input, answers[question]);
+      await user.click(screen.getByRole("button", { name: "Check" }));
+      expect(screen.getByText(new RegExp(`score ${question + 1}/${question + 1}`, "i"))).toBeTruthy();
+      expect(screen.getByRole("button", { name: /skip/i }).hasAttribute("disabled")).toBe(true);
+      if (question === 0) {
+        await user.click(screen.getByRole("button", { name: /skip/i }));
+        expect(screen.getByText(/question 1 of 6/i)).toBeTruthy();
+        expect(screen.getByText(/score 1\/1/i)).toBeTruthy();
+      }
+      if (question === 5) {
+        expect(screen.getByRole("status").textContent).toMatch(/awash.*0.0 m water depth/i);
+        expect(screen.getByRole("img").getAttribute("aria-labelledby")).toBeTruthy();
+        expect(screen.getByRole("img", { name: /awash, with zero metres of water depth/i })).toBeTruthy();
+      } else {
+        await user.click(screen.getByRole("button", { name: /next question/i }));
+      }
+    }
+
+    expect(screen.getByText(/complete: 6\/6.*mastery achieved/i)).toBeTruthy();
+    await user.click(screen.getByRole("button", { name: /retry drill/i }));
+    expect(screen.getByText(/question 1 of 6.*score 0\/0/i)).toBeTruthy();
+  });
+
+  it("responds to actual resize events with an observable layout contract", () => {
+    Object.defineProperty(window, "innerWidth", { configurable: true, value: 375 });
+    render(<TidalVisualizer />);
+    const layout = screen.getByTestId("tidal-layout");
+    expect(layout.getAttribute("data-layout")).toBe("compact");
+    Object.defineProperty(window, "innerWidth", { configurable: true, value: 768 });
+    fireEvent(window, new Event("resize"));
+    expect(layout.getAttribute("data-layout")).toBe("standard");
+    Object.defineProperty(window, "innerWidth", { configurable: true, value: 1280 });
+    fireEvent(window, new Event("resize"));
+    expect(layout.getAttribute("data-layout")).toBe("wide");
+  });
+
+  it("supports keyboard slider adjustment and pointer-driven drill entry", async () => {
+    const user = userEvent.setup();
     render(<TidalVisualizer />);
     const slider = screen.getByRole("slider", { name: /height of tide/i });
     slider.focus();
-    fireEvent.keyDown(slider, { key: "ArrowRight" });
-    fireEvent.pointerDown(screen.getByRole("button", { name: /start drill/i }), { pointerId: 1 });
-    fireEvent.click(screen.getByRole("button", { name: /start drill/i }));
-    expect(slider.getAttribute("aria-valuenow")).not.toBeNull();
-    expect(screen.getByRole("img").getAttribute("viewBox")).toBe("0 0 600 390");
+    await user.keyboard("{ArrowRight}");
+    expect(slider.getAttribute("aria-valuenow")).toBe("2.6");
+    await user.click(screen.getByRole("button", { name: /start drill/i }));
+    expect(screen.getByText(/question 1 of 6/i)).toBeTruthy();
   });
 });
