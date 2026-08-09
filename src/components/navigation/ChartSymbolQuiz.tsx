@@ -2,17 +2,37 @@
 /*
  * Original, code-drawn teaching diagrams based on the symbol meanings in IHO INT 1,
  * 8th edition (2020), sections C–N. They are not scans or reproductions of UKHO
- * artwork. IHO standards are available under the IHO publication permission policy:
- * https://iho.int/en/int1. UKHO Chart 5011 is the UK chart-user catalogue; learners
- * should confirm the exact presentation on the chart edition in use.
+ * artwork. Catalogue identifiers are supplied for lookup, not as a claim that these
+ * drawings are official reproductions. Sources: https://iho.int/en/int1 and UKHO's
+ * ADMIRALTY copyright/licensing terms at https://www.admiralty.co.uk/copyright.
  */
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { CheckCircle2, XCircle, RefreshCcw } from "lucide-react";
 
 type SymbolKind = "sounding" | "drying" | "rock" | "wreck" | "obstruction" | "lateral" | "safe-water" | "cardinal" | "light" | "cable" | "pipeline" | "anchorage" | "chart-note";
 type Question = { id: string; kind: SymbolKind; prompt: string; answer: string; options: string[]; explanation: string; reference: string };
+
+export const CHART_SYMBOL_ATTEMPT_KEY = "day-skipper:chart-symbol-assessment:v1";
+type StoredAttempt = { version: 1; index: number; choice: string; checked: boolean; correctIds: string[]; complete: boolean };
+const emptyAttempt: StoredAttempt = { version: 1, index: 0, choice: "", checked: false, correctIds: [], complete: false };
+const loadAttempt = (): StoredAttempt => {
+  try {
+    const value = JSON.parse(localStorage.getItem(CHART_SYMBOL_ATTEMPT_KEY) ?? "null") as Partial<StoredAttempt> | null;
+    if (value?.version === 1 && Number.isInteger(value.index) && Number(value.index) >= 0 && Number(value.index) < 13 && Array.isArray(value.correctIds)) {
+      return {
+        version: 1,
+        index: Number(value.index),
+        choice: typeof value.choice === "string" ? value.choice : "",
+        checked: value.checked === true,
+        correctIds: [...new Set(value.correctIds.filter((id): id is string => typeof id === "string"))],
+        complete: value.complete === true && value.index === 12,
+      };
+    }
+  } catch { /* Invalid or unavailable storage starts a new attempt safely. */ }
+  return emptyAttempt;
+};
 
 export const chartSymbolQuestions: Question[] = [
   { id: "sounding", kind: "sounding", prompt: "What does this black italic figure mean?", answer: "A charted depth of 3.7 m below chart datum", options: ["A charted depth of 3.7 m below chart datum", "A drying height of 3.7 m", "A least overhead clearance of 3.7 m", "A spot height 3.7 m above land datum"], explanation: "Soundings are depths below the chart's stated Chart Datum (CD), in the units stated in the title. A small subscript is the decimal digit: 3₇ means 3.7 m.", reference: "INT 1 I 10; Chart 5011 I" },
@@ -30,9 +50,26 @@ export const chartSymbolQuestions: Question[] = [
   { id: "chart-note", kind: "chart-note", prompt: "A magenta legend says ‘See Note — restricted area’. What must the navigator do?", answer: "Read the referenced note and apply its limits before planning the passage", options: ["Read the referenced note and apply its limits before planning the passage", "Treat the text as historical information only", "Assume entry is permitted when no danger symbol is present", "Use the colour alone to decide whether the area is safe"], explanation: "A charted legend or note is part of the charted information. Read its geographic limits, restrictions, dates and authority together with the symbols; never infer permission from colour or an uncluttered area.", reference: "INT 1 A 16 and N 2; Chart 5011 A/N" },
 ];
 
+export const symbolDescriptions: Record<SymbolKind, string> = {
+  sounding: "Black italic 3 with a smaller subscript 7 on pale blue",
+  drying: "Underlined black italic 1 with a smaller subscript 2 on green tint",
+  rock: "Black upright and diagonal strokes crossing at a central dot",
+  wreck: "Black hull outline inside a dotted magenta oval",
+  obstruction: "The abbreviation Obstn inside a dotted magenta circle",
+  lateral: "Red floating can shape with a red rectangular topmark and Fl R text",
+  "safe-water": "Floating spherical-topped mark with vertical red and white body stripes",
+  cardinal: "Black-over-yellow floating mark with two black cones pointing upward",
+  light: "Black tower with magenta flare and the legend Fl(2) R 6s, 8m, 5M",
+  cable: "Magenta wavy line labelled Cable",
+  pipeline: "Magenta line interrupted by repeated open circles and labelled Pipeline",
+  anchorage: "Magenta anchor inside a magenta circle",
+  "chart-note": "Magenta words See Note and Restricted area",
+};
+
 const SymbolDiagram = ({ kind }: { kind: SymbolKind }) => {
   const common = { stroke: "currentColor", strokeWidth: 2, fill: "none" } as const;
-  return <svg viewBox="0 0 180 100" className="h-28 w-full max-w-[220px] text-slate-950" role="img" aria-label={`Chart-style ${kind.replace("-", " ")} diagram`}>
+  return <svg viewBox="0 0 180 100" className="h-28 w-full max-w-[220px] text-slate-950" role="img" aria-label={symbolDescriptions[kind]}>
+    <defs><clipPath id="safe-water-body"><path d="M73 78l6-43h22l6 43z"/></clipPath></defs>
     <rect width="180" height="100" fill={kind === "drying" ? "#b7dcc0" : "#d9f1f5"} />
     {kind === "sounding" && <text x="75" y="62" fontFamily="serif" fontStyle="italic" fontSize="30">3<tspan dy="6" fontSize="18">7</tspan></text>}
     {kind === "drying" && <><text x="75" y="60" fontFamily="serif" fontStyle="italic" fontSize="28">1<tspan dy="6" fontSize="17">2</tspan></text><line x1="72" y1="68" x2="102" y2="68" {...common}/></>}
@@ -40,7 +77,7 @@ const SymbolDiagram = ({ kind }: { kind: SymbolKind }) => {
     {kind === "wreck" && <g><ellipse cx="90" cy="52" rx="55" ry="35" fill="none" stroke="#b00082" strokeWidth="2" strokeDasharray="3 3"/><path d="M62 38l11 30h34l11-30-28 12zM90 24v26" {...common}/></g>}
     {kind === "obstruction" && <g><circle cx="90" cy="48" r="28" fill="none" stroke="#b00082" strokeWidth="2" strokeDasharray="3 3"/><text x="66" y="55" fontSize="17">Obstn</text></g>}
     {kind === "lateral" && <g><path d="M70 78l7-42h26l7 42z" fill="#d4202f" stroke="#6e1019" strokeWidth="2"/><path d="M76 24h28v12H76z" fill="#d4202f"/><text x="118" y="58" fontSize="15">Fl R</text></g>}
-    {kind === "safe-water" && <g><path d="M73 78l6-43h22l6 43z" fill="#fff" stroke="#222" strokeWidth="2"/><path d="M78 42l27 20M76 58l25 19M81 35l23 18" stroke="#d4202f" strokeWidth="8"/><circle cx="90" cy="23" r="10" fill="#d4202f" stroke="#6e1019" strokeWidth="2"/></g>}
+    {kind === "safe-water" && <g><path d="M73 78l6-43h22l6 43z" fill="#fff" stroke="#222" strokeWidth="2"/><g clipPath="url(#safe-water-body)"><rect x="79" y="34" width="7" height="45" fill="#d4202f"/><rect x="94" y="34" width="7" height="45" fill="#d4202f"/></g><circle cx="90" cy="23" r="10" fill="#d4202f" stroke="#6e1019" strokeWidth="2"/></g>}
     {kind === "cardinal" && <g><path d="M72 78l6-37h24l6 37z" fill="#f3d326" stroke="#222" strokeWidth="2"/><path d="M77 42h26l3 17H74z" fill="#111"/><path d="M90 5l-12 18h24zM90 22L78 40h24z" fill="#111"/></g>}
     {kind === "light" && <g><path d="M35 75h35M42 75l8-42 8 42M44 58h12" {...common}/><path d="M50 30l-12-10M50 30l12-10M50 30V14" stroke="#b00082" strokeWidth="2"/><text x="76" y="48" fill="#b00082" fontSize="13">Fl(2) R 6s</text><text x="86" y="66" fontSize="12">8m 5M</text></g>}
     {kind === "cable" && <g><path d="M15 55q15-25 30 0t30 0t30 0t30 0t30 0" fill="none" stroke="#b00082" strokeWidth="3"/><text x="62" y="25" fill="#b00082">Cable</text></g>}
@@ -51,11 +88,12 @@ const SymbolDiagram = ({ kind }: { kind: SymbolKind }) => {
 };
 
 const ChartSymbolQuiz = () => {
-  const [index, setIndex] = useState(0);
-  const [choice, setChoice] = useState("");
-  const [checked, setChecked] = useState(false);
-  const [correctIds, setCorrectIds] = useState<string[]>([]);
-  const [complete, setComplete] = useState(false);
+  const [initialAttempt] = useState(loadAttempt);
+  const [index, setIndex] = useState(initialAttempt.index);
+  const [choice, setChoice] = useState(initialAttempt.choice);
+  const [checked, setChecked] = useState(initialAttempt.checked);
+  const [correctIds, setCorrectIds] = useState<string[]>(initialAttempt.correctIds);
+  const [complete, setComplete] = useState(initialAttempt.complete);
   const question = chartSymbolQuestions[index];
   const optionOffset = index % question.options.length;
   const displayedOptions = [...question.options.slice(optionOffset), ...question.options.slice(0, optionOffset)];
@@ -66,9 +104,14 @@ const ChartSymbolQuiz = () => {
   const masteryTarget = 11;
   const mastered = correctIds.length >= masteryTarget;
 
+  useEffect(() => {
+    try { localStorage.setItem(CHART_SYMBOL_ATTEMPT_KEY, JSON.stringify({ version: 1, index, choice, checked, correctIds, complete } satisfies StoredAttempt)); }
+    catch { /* Assessment remains usable when storage is blocked. */ }
+  }, [index, choice, checked, correctIds, complete]);
+
   if (complete) return <Card className="mx-auto mt-8 w-full max-w-2xl border-2 border-primary"><CardContent className="space-y-4 pt-6 text-center"><h2 className="text-2xl font-bold">Assessment complete</h2><p className="text-4xl font-bold text-primary">{correctIds.length} / {chartSymbolQuestions.length}</p><p role="status">{mastered ? "Mastery achieved: at least 11 of 13 correct." : "Mastery needs 11 of 13. Review the explanations and retry the full set."}</p><Button onClick={retry}><RefreshCcw className="mr-2 h-4 w-4"/>Retry assessment</Button></CardContent></Card>;
 
-  return <Card className="mx-auto mt-8 w-full max-w-2xl border-2 border-secondary/20"><CardHeader><CardTitle className="flex flex-wrap items-center justify-between gap-2"><span>Authoritative chart-symbol assessment</span><span className="text-sm font-normal">Question {index + 1} of {chartSymbolQuestions.length}</span></CardTitle><progress className="w-full" aria-label="Assessment progress" value={index + 1} max={chartSymbolQuestions.length}/></CardHeader><CardContent className="space-y-5"><div className="rounded-xl border bg-muted p-3"><SymbolDiagram kind={question.kind}/></div><form onSubmit={e => { e.preventDefault(); submit(); }}><fieldset disabled={checked} className="space-y-3"><legend className="mb-3 font-medium">{question.prompt}</legend>{displayedOptions.map(option => <label key={option} className="flex min-h-11 cursor-pointer items-start gap-3 rounded-md border p-3 has-[:focus-visible]:ring-2 has-[:checked]:border-primary"><input type="radio" name={`question-${question.id}`} value={option} checked={choice === option} onChange={e => setChoice(e.target.value)} className="mt-1"/><span>{option}</span></label>)}</fieldset>{!checked && <Button className="mt-4 w-full" type="submit" disabled={!choice}>Check answer</Button>}</form>{checked && <div className={`rounded-md border p-4 ${correct ? "border-green-600 bg-green-50 text-green-950" : "border-red-600 bg-red-50 text-red-950"}`} role="status"><p className="flex items-center gap-2 font-semibold">{correct ? <CheckCircle2 aria-hidden="true"/> : <XCircle aria-hidden="true"/>}{correct ? "Correct" : `Not quite. Correct answer: ${question.answer}`}</p><p className="mt-2">{question.explanation}</p><p className="mt-2 text-sm"><strong>Catalogue:</strong> {question.reference}</p><Button onClick={next} className="mt-4 w-full">{index < chartSymbolQuestions.length - 1 ? "Next question" : "See results"}</Button></div>}<aside className="text-xs text-muted-foreground"><strong>Source note:</strong> Original teaching diagrams derived from IHO INT 1 (8th ed., 2020), IALA Maritime Buoyage System and UKHO Chart 5011 catalogue references. Confirm details, notes and corrections on the current chart in use.</aside></CardContent></Card>;
+  return <Card className="mx-auto mt-8 w-full max-w-2xl border-2 border-secondary/20"><CardHeader><CardTitle className="flex flex-wrap items-center justify-between gap-2"><span>Authoritative chart-symbol assessment</span><span className="text-sm font-normal">Question {index + 1} of {chartSymbolQuestions.length}</span></CardTitle><progress className="w-full" aria-label="Assessment progress" value={index + 1} max={chartSymbolQuestions.length}/></CardHeader><CardContent className="space-y-5"><div className="rounded-xl border bg-muted p-3"><SymbolDiagram kind={question.kind}/></div><form onSubmit={e => { e.preventDefault(); submit(); }}><fieldset disabled={checked} className="space-y-3"><legend className="mb-3 font-medium">{question.prompt}</legend>{displayedOptions.map(option => <label key={option} className="flex min-h-11 cursor-pointer items-start gap-3 rounded-md border p-3 has-[:focus-visible]:ring-2 has-[:checked]:border-primary"><input type="radio" name={`question-${question.id}`} value={option} checked={choice === option} onChange={e => setChoice(e.target.value)} className="mt-1"/><span>{option}</span></label>)}</fieldset>{!checked && <Button className="mt-4 w-full" type="submit" disabled={!choice}>Check answer</Button>}</form>{checked && <div className={`rounded-md border p-4 ${correct ? "border-green-600 bg-green-50 text-green-950" : "border-red-600 bg-red-50 text-red-950"}`} role="status"><p className="flex items-center gap-2 font-semibold">{correct ? <CheckCircle2 aria-hidden="true"/> : <XCircle aria-hidden="true"/>}{correct ? "Correct" : `Not quite. Correct answer: ${question.answer}`}</p><p className="mt-2">{question.explanation}</p><p className="mt-2 text-sm"><strong>Catalogue:</strong> {question.reference}</p><Button onClick={next} className="mt-4 w-full">{index < chartSymbolQuestions.length - 1 ? "Next question" : "See results"}</Button></div>}<aside className="text-xs text-muted-foreground"><strong>Source and rights:</strong> These are original schematic teaching drawings, not UKHO or IHO catalogue artwork. Catalogue references identify where to verify the meaning in <a className="underline" href="https://iho.int/en/int1" target="_blank" rel="noreferrer">IHO INT 1</a>, the IALA Maritime Buoyage System and the separately published UKHO Chart 5011. Use is subject to the publisher's <a className="underline" href="https://www.admiralty.co.uk/copyright" target="_blank" rel="noreferrer">ADMIRALTY copyright and licensing terms</a>. Confirm the current chart's edition, corrections, symbols and notes.</aside></CardContent></Card>;
 };
 
 export default ChartSymbolQuiz;
