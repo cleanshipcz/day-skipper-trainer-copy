@@ -163,5 +163,5 @@ export const useProgress = () => {
     [user]
   );
 
-  return { loadProgress, loadProgressDetailed, saveProgress, saveProgressDetailed, resetProgress };
+  return { ownerId: user?.id ?? null, loadProgress, loadProgressDetailed, saveProgress, saveProgressDetailed, resetProgress };
 };
