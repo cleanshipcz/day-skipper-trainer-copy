@@ -20,7 +20,6 @@ export const useTheoryCompletionGate = ({
   const ownerId = "ownerId" in progress ? progress.ownerId : null;
   const [visitedSectionIds, setVisitedSectionIds] = useState<string[]>([]);
   const visitedRef = useRef<readonly string[]>(visitedSectionIds);
-  const inProgressPersistedRef = useRef(false);
   const completionPromiseRef = useRef<Promise<boolean> | null>(null);
   const hydrationKeyRef = useRef<string | null>(null);
   const hydrationGenerationRef = useRef(0);
@@ -54,26 +53,30 @@ export const useTheoryCompletionGate = ({
     if (saveWorkerRef.current?.generation === generation) return saveWorkerRef.current.promise;
     const worker: { generation: number; promise: Promise<"failed" | void> } = { generation, promise: Promise.resolve() };
     worker.promise = (async (): Promise<"failed" | void> => {
-      let failed = false;
+      let outcome: "failed" | "saved" | "queued" | "local" = "saved";
       while (pendingSaveRef.current?.generation === generation) {
         const snapshot = pendingSaveRef.current;
         pendingSaveRef.current = null;
         const score = deriveCompletionGateDecision({ visitedSectionIds: snapshot.ids, requiredSectionIds }).score;
-        setSaveState("saving");
+        if (hydrationGenerationRef.current === generation) setSaveState("saving");
         let result;
         try {
-          result = saveProgressDetailed
-            ? await saveProgressDetailed(topicId, false, score, 0, { completionState: "in_progress", catalogueRevision, visitedSectionIds: snapshot.ids })
-            : await saveProgress(topicId, false, score, 0, { completionState: "in_progress", catalogueRevision, visitedSectionIds: snapshot.ids });
+          const history = catalogueRevision
+            ? { completionState: "in_progress", catalogueRevision, visitedSectionIds: snapshot.ids }
+            : { completionState: "in_progress", visitedSectionIds: snapshot.ids };
+          result = catalogueRevision && saveProgressDetailed
+            ? await saveProgressDetailed(topicId, false, score, 0, history)
+            : await saveProgress(topicId, false, score, 0, history);
         } catch {
-          setSaveState("failed");
-          return "failed";
+          outcome = "failed";
+          if (hydrationGenerationRef.current === generation) setSaveState("failed");
+          continue;
         }
         const ok = result !== false && result !== "failed" && result !== "conflict";
-        if (!ok) failed = true;
-        setSaveState(result === "queued" ? "queued" : result === "anonymous" ? localDurableRef.current ? "local" : "failed" : ok ? "saved" : "failed");
+        outcome = result === "queued" ? "queued" : result === "anonymous" ? localDurableRef.current ? "local" : "failed" : ok ? "saved" : "failed";
+        if (hydrationGenerationRef.current === generation) setSaveState(outcome);
       }
-      if (failed) return "failed";
+      if (outcome === "failed") return "failed";
     })().finally(() => { if (saveWorkerRef.current === worker) saveWorkerRef.current = null; });
     saveWorkerRef.current = worker;
     return worker.promise;
@@ -84,10 +87,12 @@ export const useTheoryCompletionGate = ({
     const hydrationKey = `${ownerId ?? "anonymous"}:${topicId}:${catalogueRevision}`;
     if (hydrationKeyRef.current === hydrationKey) return;
     hydrationKeyRef.current = hydrationKey;
+    const generation = ++hydrationGenerationRef.current;
+    pendingSaveRef.current = null;
+    saveWorkerRef.current = null;
     visitedRef.current = [];
     setVisitedSectionIds([]);
-    inProgressPersistedRef.current = false;
-    const generation = ++hydrationGenerationRef.current;
+    setSaveState("idle");
     const restore = async () => {
       let restored: string[] = [];
       let locallyCompleted = false;
@@ -119,7 +124,6 @@ export const useTheoryCompletionGate = ({
       const merged = [...new Set([...restored, ...visitedRef.current])];
       visitedRef.current = merged;
       setVisitedSectionIds(merged);
-      inProgressPersistedRef.current = merged.length > 0;
       const completed = (locallyCompleted || remotelyCompleted) && merged.length === requiredSectionIds.length;
       const outcome = remotelyCompleted ? "saved" : localCompletionOutcome ?? "local";
       const browserSaved = writeBrowserEvidence(merged, completed, completed ? outcome : undefined);
@@ -136,28 +140,10 @@ export const useTheoryCompletionGate = ({
 
   const persistInProgressIfNeeded = useCallback(
     async (state: CompletionState, score: number, nextVisitedSectionIds: string[]) => {
-      if (state !== "in_progress" || (!catalogueRevision && inProgressPersistedRef.current)) return;
-
-      if (catalogueRevision) return enqueueInProgressSave(nextVisitedSectionIds);
-      else {
-        inProgressPersistedRef.current = true;
-        let saved;
-        try {
-          saved = await saveProgress(topicId, false, score, 0, { completionState: "in_progress", visitedSectionIds: nextVisitedSectionIds });
-        } catch {
-          inProgressPersistedRef.current = false;
-          setSaveState("failed");
-          return "failed" as const;
-        }
-        const ok = saved !== false && saved !== "failed" && saved !== "conflict";
-        if (!ok) {
-          inProgressPersistedRef.current = false;
-          setSaveState("failed");
-          return "failed" as const;
-        }
-      }
+      if (state !== "in_progress") return;
+      return enqueueInProgressSave(nextVisitedSectionIds);
     },
-    [catalogueRevision, enqueueInProgressSave, saveProgress, topicId]
+    [enqueueInProgressSave]
   );
 
   const markSectionVisited = useCallback(
