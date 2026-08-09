@@ -36,6 +36,31 @@ const buildSupabaseMock = () => {
 };
 
 describe("saveProgressRecord", () => {
+  it("routes revisioned Lights evidence through its completed-row refresh RPC", async () => {
+    const { client, rpc } = buildSupabaseMock();
+    const evidence = { catalogueRevision: "colregs-parts-c-d-annex-iv-v1", completionState: "in_progress", visitedSectionIds: ["part-c-recognition"] };
+    await saveProgressRecord({ supabaseClient: client as never, userId: "user-1", topicId: "lights-theory", score: 33, answersHistory: evidence });
+    expect(rpc).toHaveBeenCalledWith("save_lights_theory_progress", { p_completed: false, p_score: 33, p_answers_history: evidence });
+    expect(rpc).not.toHaveBeenCalledWith("save_topic_progress", expect.anything());
+  });
+
+  it("rejects forged or inconsistent Lights revision evidence before persistence", async () => {
+    const { client, rpc } = buildSupabaseMock();
+    await expect(saveProgressRecord({
+      supabaseClient: client as never, userId: "user-1", topicId: "lights-theory", completed: true, score: 100,
+      answersHistory: { catalogueRevision: "old", completionState: "completed", visitedSectionIds: ["unknown"] },
+    })).rejects.toThrow("valid revisioned evidence");
+    expect(rpc).not.toHaveBeenCalled();
+  });
+
+  it("rejects Lights score/evidence mismatches before the specialized RPC", async () => {
+    const { client, rpc } = buildSupabaseMock();
+    await expect(saveProgressRecord({
+      supabaseClient: client as never, userId: "user-1", topicId: "lights-theory", score: 99,
+      answersHistory: { catalogueRevision: "colregs-parts-c-d-annex-iv-v1", completionState: "in_progress", visitedSectionIds: ["part-c-recognition"] },
+    })).rejects.toThrow("valid revisioned evidence");
+    expect(rpc).not.toHaveBeenCalled();
+  });
   it("routes zero-reward Engine catalogue snapshots to the checklist RPC", async () => {
     const { client, rpc } = buildSupabaseMock();
     await saveProgressRecord({ supabaseClient: client as never, userId: "user-1", topicId: "engine-checklist",
