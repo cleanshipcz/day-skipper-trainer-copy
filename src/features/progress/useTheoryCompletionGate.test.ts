@@ -6,10 +6,11 @@ const mocks = vi.hoisted(() => ({
   saveProgressDetailed: vi.fn(),
   loadProgressDetailed: vi.fn(),
   ownerId: null as string | null,
+  detailed: true,
 }));
 
 vi.mock("@/hooks/useProgress", () => ({
-  useProgress: () => ({ ownerId: mocks.ownerId, saveProgress: mocks.saveProgress, saveProgressDetailed: mocks.saveProgressDetailed, loadProgressDetailed: mocks.loadProgressDetailed }),
+  useProgress: () => ({ ownerId: mocks.ownerId, saveProgress: mocks.saveProgress, saveProgressDetailed: mocks.detailed ? mocks.saveProgressDetailed : undefined, loadProgressDetailed: mocks.loadProgressDetailed }),
 }));
 
 import { useTheoryCompletionGate } from "./useTheoryCompletionGate";
@@ -24,6 +25,7 @@ describe("useTheoryCompletionGate", () => {
     mocks.saveProgressDetailed.mockResolvedValue("remote");
     mocks.loadProgressDetailed.mockResolvedValue({ status: "anonymous", record: null });
     mocks.ownerId = null;
+    mocks.detailed = true;
     localStorage.clear();
   });
 
@@ -268,6 +270,38 @@ describe("useTheoryCompletionGate", () => {
     expect(result.current.saveState).toBe("failed");
     await act(async () => { const one = result.current.markCompleted(); const two = result.current.markCompleted(); expect(await one).toBe(true); expect(await two).toBe(true); });
     expect(mocks.saveProgressDetailed).toHaveBeenCalledTimes(2);
+  });
+
+  it.each([false, "failed", "conflict"])("marks revisioned in-progress persistence result %s as failed", async (saveResult) => {
+    const { result } = renderHook(() => useTheoryCompletionGate({ topicId, requiredSectionIds, catalogueRevision: "v1" }));
+    await act(async () => {});
+    mocks.saveProgressDetailed.mockResolvedValueOnce(saveResult);
+    await act(async () => { await result.current.markSectionVisited("s1"); });
+    expect(result.current.visitedSectionIds).toEqual(["s1"]);
+    expect(result.current.saveState).toBe("failed");
+  });
+
+  it("uses the legacy persistence transport for revisioned evidence when the detailed API is unavailable", async () => {
+    mocks.detailed = false;
+    const { result } = renderHook(() => useTheoryCompletionGate({ topicId, requiredSectionIds, catalogueRevision: "v1" }));
+    await waitFor(() => expect(localStorage.getItem(`theory-gate:anonymous:${topicId}:v1`)).not.toBeNull());
+    mocks.saveProgress.mockClear();
+    mocks.saveProgress.mockResolvedValueOnce("remote");
+    await act(async () => { await result.current.markSectionVisited("s1"); });
+    expect(mocks.saveProgress).toHaveBeenCalledWith(topicId, false, 33, 0, expect.objectContaining({ visitedSectionIds: ["s1"] }));
+    expect(result.current.saveState).toBe("saved");
+  });
+
+  it("turns a rejected completion persistence request into a retryable failure", async () => {
+    const { result } = renderHook(() => useTheoryCompletionGate({ topicId, requiredSectionIds: ["s1"], catalogueRevision: "v1" }));
+    await act(async () => { await result.current.markSectionVisited("s1"); });
+    mocks.saveProgressDetailed.mockRejectedValueOnce(new Error("network unavailable"));
+    await act(async () => { expect(await result.current.markCompleted()).toBe(false); });
+    expect(result.current.saveState).toBe("failed");
+
+    mocks.saveProgressDetailed.mockResolvedValueOnce("remote");
+    await act(async () => { expect(await result.current.markCompleted()).toBe(true); });
+    expect(result.current.saveState).toBe("saved");
   });
 
   it("treats the legacy saveProgress Boolean false result as a completion failure", async () => {
