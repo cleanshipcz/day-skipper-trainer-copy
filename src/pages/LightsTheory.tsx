@@ -11,6 +11,14 @@ import { PartDSoundSignals } from "@/components/colregs/PartDSoundSignals";
 import { AnnexIVDistressSignals } from "@/components/colregs/AnnexIVDistressSignals";
 
 const LIGHTS_CATALOGUE_REVISION = "colregs-parts-c-d-annex-iv-v1";
+const persistenceMessage = (state: string) => {
+  if (state === "saved") return "Progress saved to the server.";
+  if (state === "queued") return "Progress is durably queued on this device and will sync when you reconnect.";
+  if (state === "local") return "Progress saved only in this browser profile.";
+  if (state === "failed") return "Progress could not be saved. Retry when ready.";
+  if (state === "saving") return "Saving progress.";
+  return "";
+};
 const objectives = [
   {
     id: "part-c-recognition",
@@ -355,25 +363,24 @@ const LightsTheory = () => {
           </div>
           {objectives.map((objective) => {
             const complete = visitedSectionIds.includes(objective.id);
-            return <fieldset key={objective.id} className="space-y-3 rounded-md border p-4" disabled={complete}>
+            return <fieldset key={objective.id} className="space-y-3 rounded-md border p-4">
               <legend className="px-1 font-semibold">{objective.title}{complete ? " — complete" : ""}</legend>
               <label className="flex min-h-11 items-start gap-3">
-                <input type="checkbox" checked={reviewed[objective.id] ?? complete} onChange={(event) => setReviewed((current) => ({ ...current, [objective.id]: event.target.checked }))} />
+                <input type="checkbox" disabled={complete} checked={reviewed[objective.id] ?? complete} onChange={(event) => setReviewed((current) => ({ ...current, [objective.id]: event.target.checked }))} />
                 <span>{objective.review}</span>
               </label>
               <p>{objective.question}</p>
               {objective.options.map((option) => <label key={option} className="flex min-h-11 items-start gap-3">
-                <input type="radio" name={objective.id} value={option} checked={answers[objective.id] === option || (complete && option === objective.answer)} onChange={() => setAnswers((current) => ({ ...current, [objective.id]: option }))} />
+                <input type="radio" disabled={complete} name={objective.id} value={option} checked={answers[objective.id] === option || (complete && option === objective.answer)} onChange={() => setAnswers((current) => ({ ...current, [objective.id]: option }))} />
                 <span>{option}</span>
               </label>)}
               {!complete && answers[objective.id] && answers[objective.id] !== objective.answer && <p role="alert" className="text-sm text-destructive">Review the lesson and try this recognition check again.</p>}
-              <Button type="button" variant="outline" disabled={!reviewed[objective.id] || answers[objective.id] !== objective.answer} onClick={async () => {
-                try {
-                  await markSectionVisited(objective.id);
-                  setAnnouncement(`${objective.title} evidence recorded.`);
-                } catch {
-                  setAnnouncement(`${objective.title} evidence could not be recorded. Try again.`);
-                }
+              <Button type="button" variant="outline" aria-disabled={complete || !reviewed[objective.id] || answers[objective.id] !== objective.answer} disabled={!complete && (!reviewed[objective.id] || answers[objective.id] !== objective.answer)} onClick={async () => {
+                if (complete) return;
+                const outcome = await markSectionVisited(objective.id);
+                setAnnouncement(outcome === "failed"
+                  ? `${objective.title} evidence was retained in this page, but could not be saved. Retry the objective when ready.`
+                  : `${objective.title} evidence recorded. ${persistenceMessage(outcome)}`);
               }}>
                 {complete ? "Evidence recorded" : "Record objective evidence"}
               </Button>
@@ -387,9 +394,8 @@ const LightsTheory = () => {
             className="w-full md:w-auto"
             disabled={!canComplete || saveState === "saving"}
             onClick={async () => {
-              setAnnouncement("Saving module completion.");
-              if (await markCompleted()) navigate("/rules/lights");
-              else setAnnouncement("Module completion could not be saved. Your focus has not moved; retry when ready.");
+              setAnnouncement("");
+              await markCompleted();
             }}
           >
             {saveState === "saving" ? "Saving…" : canComplete ? saveState === "failed" ? "Retry save" : "Complete Module" : "Complete the evidence checks"}
@@ -403,11 +409,7 @@ const LightsTheory = () => {
             Take the Quiz
           </Button>
           <p className="w-full text-center text-sm" role="status" aria-live="polite" aria-atomic="true">
-            {announcement || (!canComplete ? "Complete all three evidence checks to unlock module completion." : "")}
-            {saveState === "saved" && "Progress saved to the server."}
-            {saveState === "queued" && "Progress is durably queued on this device and will sync when you reconnect."}
-            {saveState === "local" && "Progress saved only in this browser profile."}
-            {saveState === "failed" && "Progress could not be saved. Retry when ready."}
+            {announcement || persistenceMessage(saveState) || (!canComplete ? "Complete all three evidence checks to unlock module completion." : "")}
           </p>
         </div>
       </main>

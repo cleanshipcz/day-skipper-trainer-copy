@@ -22,7 +22,7 @@ describe("LightsTheory accessibility contract", () => {
     mocks.canComplete = false;
     mocks.saveState = "idle";
     mocks.visitedSectionIds = [];
-    mocks.markSectionVisited.mockReset().mockResolvedValue(undefined);
+    mocks.markSectionVisited.mockReset().mockResolvedValue("saved");
     mocks.markCompleted.mockReset().mockResolvedValue(false);
   });
 
@@ -48,19 +48,21 @@ describe("LightsTheory accessibility contract", () => {
     expect(screen.getByRole("status").textContent).toContain("evidence recorded");
     expect(document.activeElement).toBe(record);
 
-    mocks.markSectionVisited.mockRejectedValueOnce(new Error("offline"));
+    mocks.markSectionVisited.mockResolvedValueOnce("failed");
     await user.click(record);
-    expect(screen.getByRole("status").textContent).toContain("could not be recorded");
+    expect(screen.getByRole("status").textContent).toContain("could not be saved");
     expect(document.activeElement).toBe(record);
   });
 
   it("announces failed completion and retains focus for retry", async () => {
     mocks.canComplete = true;
     const user = userEvent.setup();
-    render(<MemoryRouter><LightsTheory /></MemoryRouter>);
+    const view = render(<MemoryRouter><LightsTheory /></MemoryRouter>);
     const complete = screen.getByRole("button", { name: "Complete Module" });
     complete.focus();
     await user.click(complete);
+    mocks.saveState = "failed";
+    view.rerender(<MemoryRouter><LightsTheory /></MemoryRouter>);
     await waitFor(() => expect(screen.getByRole("status").textContent).toContain("could not be saved"));
     expect(document.activeElement).toBe(complete);
   });

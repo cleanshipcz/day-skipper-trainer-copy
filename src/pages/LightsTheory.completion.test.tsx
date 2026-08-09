@@ -71,18 +71,22 @@ describe("LightsTheory evidence-based completion", () => {
     expect(mocks.markSectionVisited).toHaveBeenCalledWith("part-d-recognition");
   });
 
-  it("navigates only after confirmed or durably queued completion and allows retry after failure", async () => {
+  it("keeps focus in place after completion so the persistence outcome can be announced", async () => {
     mocks.canComplete = true;
     mocks.markCompleted.mockResolvedValueOnce(false).mockResolvedValueOnce(true);
     const view = renderPage();
-    fireEvent.click(screen.getByRole("button", { name: "Complete Module" }));
+    const complete = screen.getByRole("button", { name: "Complete Module" });
+    complete.focus();
+    fireEvent.click(complete);
     await waitFor(() => expect(mocks.markCompleted).toHaveBeenCalledTimes(1));
     expect(screen.queryByText("Route: /rules/lights")).toBeNull();
+    expect(document.activeElement).toBe(complete);
 
     mocks.saveState = "failed";
     view.rerender(<MemoryRouter initialEntries={["/rules/lights/theory"]}><Routes><Route path="/rules/lights/theory" element={<LightsTheory />} /><Route path="*" element={<LocationProbe />} /></Routes></MemoryRouter>);
     fireEvent.click(screen.getByRole("button", { name: "Retry save" }));
-    expect(await screen.findByText("Route: /rules/lights")).toBeTruthy();
+    await waitFor(() => expect(mocks.markCompleted).toHaveBeenCalledTimes(2));
+    expect(screen.queryByText("Route: /rules/lights")).toBeNull();
   });
 
   it.each([
