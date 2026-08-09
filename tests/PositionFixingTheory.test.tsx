@@ -36,8 +36,8 @@ describe("PositionFixingTheory", () => {
     render(<TestRouter><PositionFixingTheory /></TestRouter>);
     expect(screen.getByText(/50° 45.5′ N, 001° 30.2′ W/)).toBeDefined();
     expect(screen.getByText(/horizontal datum.*datum shift/i)).toBeDefined();
-    expect(screen.getByText(/steer 090°T at 5 kn for 2 hours/i)).toBeDefined();
-    expect(screen.getByText(/apply a 2 NM south-going vector/i)).toBeDefined();
+    expect(screen.getByText(/steer 090°T at 5 kn for 2 hours.*10 NM along 090°T/i)).toBeDefined();
+    expect(screen.getByText(/start again at the 0900 fix and plot the 10 NM water-track vector on 095°T.*From that water-track endpoint—not from the 090°T DR—apply.*2 NM south-going vector.*9.96 NM east and 2.87 NM south.*10.37 NM on 106.1°T/i)).toBeDefined();
     expect(screen.getByText(/Offshore in stable conditions.*near hazards/i)).toBeDefined();
     expect(screen.getByText(/Cross-check visual bearings with a transit/i)).toBeDefined();
   });
