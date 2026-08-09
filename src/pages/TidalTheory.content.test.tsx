@@ -19,7 +19,7 @@ describe("Understanding Tides lesson", () => {
     const { container } = render(<MemoryRouter><TidalTheory /></MemoryRouter>);
     expect(screen.getByRole("img", { name: /North Sea amphidromic system teaching schematic/i })).toBeTruthy();
     expect(screen.getAllByText(/anti-clockwise propagation/i).length).toBeGreaterThan(0);
-    expect(screen.getByText(/Original teaching schematic.*not for navigation/i)).toBeTruthy();
+    expect(screen.getByText(/created in-project for issue #244.*Licensed CC BY 4.0/i)).toBeTruthy();
     const arrows = [...container.querySelectorAll('g[marker-end="url(#tidal-arrow)"] path')];
     expect(arrows).toHaveLength(2);
     expect(arrows.map((arrow) => arrow.getAttribute("d"))).toEqual([

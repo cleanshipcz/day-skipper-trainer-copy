@@ -56,9 +56,10 @@ const NorthSeaAmphidromicDiagram = () => (
       <text x="224" y="416" fontSize="15" fontWeight="700" fill="#075985">anti-clockwise propagation</text>
     </svg>
     <figcaption className="text-xs text-muted-foreground">
-      Original teaching schematic (project licence), not for navigation. Blue lines join places at the same tidal
-      phase, expressed here as lunar hours after a notional reference-port HW; orange contours join equal ranges in
-      metres. The values explain how to read the symbols and are not predictions for a real port.
+      Original teaching schematic created in-project for issue #244 on 9 August 2026; no external chart or dataset was
+      copied. Licensed CC BY 4.0: attribute “Day Skipper Trainer tides schematic, Cleanship, 2026”. Not for navigation.
+      Blue lines join places at the same tidal phase, expressed here as lunar hours after a notional reference-port
+      HW; orange contours join equal ranges in metres. The values explain the symbols and are not real-port predictions.
     </figcaption>
   </figure>
 );
