@@ -1,340 +1,116 @@
-import { useMemo, useState } from "react";
-import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
+import { useId, useMemo, useState } from "react";
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Slider } from "@/components/ui/slider";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { PlayCircle, CheckCircle2, XCircle } from "lucide-react";
+import { CheckCircle2, PlayCircle, XCircle } from "lucide-react";
+import { validateDepthAnswer, waterOverFeature, type TidalDepthScenario } from "./tidalDepth";
 
-interface Challenge {
-  tide: number;
-  chartedDepth: number;
-  isDrying?: boolean;
-  dryingHeight?: number;
-}
+const SCENARIOS: readonly TidalDepthScenario[] = [
+  { id: "A", tide: 1.4, chartValue: 3.2, feature: "sounding" },
+  { id: "B", tide: 2.3, chartValue: 1.1, feature: "drying" },
+  { id: "C", tide: 0.8, chartValue: 1.4, feature: "drying" },
+  { id: "D", tide: 0, chartValue: 0.6, feature: "drying" },
+  { id: "E", tide: 3.1, chartValue: 0.9, feature: "sounding" },
+  { id: "F", tide: 1.7, chartValue: 1.7, feature: "drying" },
+];
 
 const TidalVisualizer = () => {
-  // Model State
-  const [tideHeight, setTideHeight] = useState([2.5]); // Meters above CD
-
-  // Constants for Visuals
-  const SVG_HEIGHT = 400;
-  const SVG_WIDTH = 600;
-  const PIXELS_PER_METER = 40;
-  const CHART_DATUM_Y = 200; // Y position of Chart Datum (0m)
-
-  // Drill State
+  const titleId = useId();
+  const descId = useId();
+  const [manualTide, setManualTide] = useState([2.5]);
   const [drillActive, setDrillActive] = useState(false);
-  const [currentChallenge, setCurrentChallenge] = useState<Challenge>({ tide: 3.0, chartedDepth: 2.0 });
-  const [userAnswer, setUserAnswer] = useState("");
-  const [feedback, setFeedback] = useState<{ success: boolean; text: string } | null>(null);
+  const [index, setIndex] = useState(0);
+  const [answer, setAnswer] = useState("");
+  const [feedback, setFeedback] = useState<{ ok: boolean; text: string } | null>(null);
+  const [score, setScore] = useState(0);
+  const [answered, setAnswered] = useState(0);
+  const scenario = SCENARIOS[index];
+  const result = waterOverFeature(scenario);
+  const tide = drillActive ? scenario.tide : manualTide[0];
+  const featureValue = drillActive ? scenario.chartValue : 3.2;
+  const feature = drillActive ? scenario.feature : "sounding";
+  const diagramResult = feature === "sounding" ? tide + featureValue : tide - featureValue;
+  const finished = drillActive && index >= SCENARIOS.length - 1 && feedback?.ok;
+  const completed = finished || feedback?.text.startsWith("Drill complete");
 
-  const startDrill = () => {
-    setDrillActive(true);
-    generateChallenge();
-  };
+  const diagram = useMemo(() => {
+    const datumY = 190;
+    const scale = 38;
+    const surfaceY = datumY - tide * scale;
+    const featureY = feature === "sounding" ? datumY + featureValue * scale : datumY - featureValue * scale;
+    return { datumY, surfaceY, featureY };
+  }, [feature, featureValue, tide]);
 
-  const generateChallenge = () => {
-    const isDrying = Math.random() > 0.5;
-    const tide = Number((Math.random() * 5 + 0.5).toFixed(1));
-
-    if (isDrying) {
-      const dryingHeight = Number((Math.random() * 2 + 0.5).toFixed(1));
-      setCurrentChallenge({ tide, isDrying: true, dryingHeight, chartedDepth: 0 });
-      // Set visual to match
-      setTideHeight([tide]);
-    } else {
-      const chartedDepth = Number((Math.random() * 5 + 1).toFixed(1));
-      setCurrentChallenge({ tide, isDrying: false, chartedDepth });
-      setTideHeight([tide]);
-    }
-    setUserAnswer("");
+  const resetQuestion = (next: number) => {
+    setIndex(next);
+    setAnswer("");
     setFeedback(null);
   };
-
-  const checkAnswer = () => {
-    const ans = parseFloat(userAnswer);
-    if (isNaN(ans)) return;
-
-    let correct = 0;
-    if (currentChallenge.isDrying) {
-      // Actual Depth = Tide - Drying Height
-      // If Tide < Drying Height, it's dry (negative or 0 depth? Usually we say "Dries X meters" or "Covered by Y meters")
-      // Question: "What is the depth of water?"
-      // If Tide (3m) - Drying (1m) = 2m water.
-      correct = currentChallenge.tide - (currentChallenge.dryingHeight || 0);
-    } else {
-      // Actual Depth = Charted Depth + Tide
-      correct = currentChallenge.chartedDepth + currentChallenge.tide;
-    }
-
-    // Tolerance 0.1
-    if (Math.abs(ans - correct) < 0.15) {
-      setFeedback({ success: true, text: "Correct!" });
-      // Auto next after delay? Or button.
-    } else {
-      setFeedback({ success: false, text: `Incorrect. Expected ${correct.toFixed(1)}m` });
-    }
+  const start = () => {
+    setDrillActive(true); setScore(0); setAnswered(0); resetQuestion(0);
   };
-
-  const tideMeters = tideHeight[0];
-
-  const visualModel = useMemo(() => {
-    const waterLevelY = CHART_DATUM_Y - tideMeters * PIXELS_PER_METER;
-    const chartedDepthMeters = 3.75;
-    const actualDepthMeters = chartedDepthMeters + tideMeters;
-
-    return {
-      waterLevelY,
-      chartedDepthMeters,
-      actualDepthMeters,
-      chartedDepthLineY: CHART_DATUM_Y + 150,
-    };
-  }, [CHART_DATUM_Y, PIXELS_PER_METER, tideMeters]);
+  const check = () => {
+    const error = validateDepthAnswer(answer, result);
+    if (error) { setFeedback({ ok: false, text: error }); return; }
+    setScore((value) => value + 1);
+    setAnswered((value) => value + 1);
+    const uncovered = result < 0;
+    setFeedback({ ok: true, text: uncovered
+      ? `Correct: water depth is 0.0 m; the feature remains ${Math.abs(result).toFixed(1)} m uncovered.`
+      : `Correct: ${result.toFixed(1)} m of water covers the feature.` });
+  };
+  const skip = () => {
+    setAnswered((value) => value + 1);
+    if (index < SCENARIOS.length - 1) resetQuestion(index + 1);
+    else setFeedback({ ok: false, text: "Drill complete. Retry to practise skipped or missed cases." });
+  };
 
   return (
     <Card className="w-full border-blue-200 bg-slate-50">
-      <CardHeader>
-        <CardTitle className="text-blue-900">Interactive Tidal Curves</CardTitle>
-        <CardDescription>
-          Visualize how the <strong>Height of Tide</strong> adds to the <strong>Charted Depth</strong>.
-        </CardDescription>
-      </CardHeader>
-      <CardContent>
-        <div className="flex flex-col gap-6">
-          {/* Controls */}
-          <div className="flex flex-col items-stretch gap-4 bg-white p-4 rounded-lg border shadow-sm sm:flex-row sm:items-center">
-            <div className="flex-1 space-y-2">
-              <Label>
-                Height of Tide: <span className="text-blue-600 font-bold text-lg">{tideHeight[0].toFixed(1)}m</span>
-              </Label>
-              <Slider
-                value={tideHeight}
-                min={0}
-                max={6}
-                step={0.1}
-                onValueChange={(val) => {
-                  setTideHeight(val);
-                  if (drillActive) setDrillActive(false); // Reset drill if user plays manually
-                }}
-              />
-            </div>
+      <CardHeader><CardTitle>Interactive Tidal Curves</CardTitle><CardDescription><span className="sr-only">Interactive tidal depth drill. </span>Use Chart Datum consistently: a sounding is below datum; a drying height is above it.</CardDescription></CardHeader>
+      <CardContent className="space-y-6">
+        <section className="rounded-lg border bg-white p-4 space-y-3" aria-labelledby="depth-method">
+          <h3 id="depth-method" className="font-semibold">Depth, clearance and UKC are different values</h3>
+          <p className="text-sm">Water depth = charted sounding + predicted height of tide. For a drying height, subtract the drying height from the tide. A zero or negative result means no water covers the feature; report 0 m water and the amount still uncovered.</p>
+          <p className="text-sm"><strong>Worked sounding:</strong> 3.2 m + 1.4 m tide = 4.6 m water depth. With 2.0 m draught, static UKC is 2.6 m. After 0.3 m squat and 0.2 m wave/heel allowances, dynamic UKC is 2.1 m.</p>
+          <p className="text-sm"><strong>Worked drying height:</strong> 0.8 m tide − 1.4 m drying height = −0.6 m, so water depth is 0 m and the feature is 0.6 m uncovered.</p>
+        </section>
 
-            <div className="hidden h-10 w-px bg-slate-200 mx-2 sm:block"></div>
-
-            <div className="flex-1 flex flex-col gap-2">
-              {!drillActive ? (
-                <Button
-                  onClick={startDrill}
-                  variant="outline"
-                  className="w-full border-blue-300 text-blue-700 hover:bg-blue-50"
-                >
-                  <PlayCircle className="w-4 h-4 mr-2" /> Start Drill
-                </Button>
-              ) : (
-                <div className="space-y-2">
-                  <p className="text-sm font-medium">
-                    {currentChallenge.isDrying
-                      ? `Rock dries ${currentChallenge.dryingHeight}m. Tide is ${currentChallenge.tide}m.`
-                      : `Chart depth ${currentChallenge.chartedDepth}m. Tide is ${currentChallenge.tide}m.`}
-                    <br />
-                    Depth of water?
-                  </p>
-                  <div className="flex flex-wrap gap-2">
-                    <Input
-                      type="number"
-                      placeholder="Depth (m)"
-                      value={userAnswer}
-                      onChange={(e) => setUserAnswer(e.target.value)}
-                      className="w-24 bg-white"
-                    />
-                    <Button onClick={checkAnswer}>Check</Button>
-                    <Button variant="ghost" onClick={generateChallenge}>
-                      Skip
-                    </Button>
-                  </div>
-                  {feedback && (
-                    <p
-                      className={`text-sm flex items-center gap-1 ${
-                        feedback.success ? "text-green-600" : "text-red-500"
-                      }`}
-                    >
-                      {feedback.success ? <CheckCircle2 className="w-4 h-4" /> : <XCircle className="w-4 h-4" />}
-                      {feedback.text}
-                    </p>
-                  )}
-                </div>
-              )}
-            </div>
+        <div className="grid gap-5 md:grid-cols-[minmax(0,1fr)_minmax(17rem,0.8fr)]">
+          <div className="min-w-0 space-y-3">
+            <Label id="tide-slider-label">Height of Tide: <strong>{tide.toFixed(1)} m above CD</strong></Label>
+            <Slider aria-labelledby="tide-slider-label" value={[tide]} min={0} max={6} step={0.1} disabled={drillActive}
+              onValueChange={setManualTide} />
+            <p className="text-sm" aria-live="polite">Diagram result: {diagramResult > 0 ? `${diagramResult.toFixed(1)} m covered` : diagramResult === 0 ? "awash: 0.0 m covered" : `${Math.abs(diagramResult).toFixed(1)} m uncovered; 0.0 m water depth`}.</p>
           </div>
-
-          {/* Visualization */}
-          <div className="w-full overflow-hidden rounded-xl border bg-[#eef6fc] relative">
-            <svg
-              width="100%"
-              height={SVG_HEIGHT}
-              viewBox={`0 0 ${SVG_WIDTH} ${SVG_HEIGHT}`}
-              className="mx-auto select-none"
-            >
-              <defs>
-                <pattern id="water" width="20" height="20" patternUnits="userSpaceOnUse">
-                  <path d="M0 20 Q 5 5 10 20 T 20 20" fill="none" stroke="#60a5fa" strokeOpacity="0.3" />
-                </pattern>
-              </defs>
-
-              {/* 1. Sky/Background */}
-              <rect width={SVG_WIDTH} height={SVG_HEIGHT} fill="#e0f2fe" />
-
-              {/* 2. Seabed (Fixed) */}
-              {/* Sloping bottom from left to right */}
-              <path
-                d={`M 0 ${CHART_DATUM_Y} L 0 ${SVG_HEIGHT} L ${SVG_WIDTH} ${SVG_HEIGHT} L ${SVG_WIDTH} ${
-                  CHART_DATUM_Y + 120
-                } L 400 ${CHART_DATUM_Y + 120} L 200 ${CHART_DATUM_Y + 150} Z`}
-                fill="#dcd7c1"
-                stroke="#a8a29e"
-              />
-
-              {/* 3. Rock (Drying Height) */}
-              {/* A rock that sticks up ABOVE CD. Let's say it dries 1.5m */}
-              {/* 1.5m above CD = CHART_DATUM_Y - 1.5*40 */}
-              <path
-                d={`M 450 ${CHART_DATUM_Y + 120} Q 480 ${CHART_DATUM_Y - 1.5 * PIXELS_PER_METER} 510 ${
-                  CHART_DATUM_Y + 120
-                } Z`}
-                fill="#78716c"
-                stroke="#44403c"
-              />
-              {/* Label Rock */}
-              <text
-                x={480}
-                y={CHART_DATUM_Y - 1.5 * PIXELS_PER_METER - 10}
-                textAnchor="middle"
-                fontSize="12"
-                fill="#44403c"
-                fontWeight="bold"
-              >
-                <tspan textDecoration="underline">1.5</tspan>
-              </text>
-
-              {/* 4. Chart Datum Line */}
-              <line
-                x1={0}
-                y1={CHART_DATUM_Y}
-                x2={SVG_WIDTH}
-                y2={CHART_DATUM_Y}
-                stroke="#94a3b8"
-                strokeWidth="2"
-                strokeDasharray="5,5"
-              />
-              <text x={10} y={CHART_DATUM_Y - 5} fontSize="12" fill="#64748b" fontWeight="bold">
-                CHART DATUM (LAT)
-              </text>
-
-              {/* 5. Water (Dynamic) */}
-              <rect
-                x={0}
-                y={visualModel.waterLevelY}
-                width={SVG_WIDTH}
-                height={SVG_HEIGHT - visualModel.waterLevelY}
-                fill="#3b82f6"
-                fillOpacity="0.4"
-              />
-              <line
-                x1={0}
-                y1={visualModel.waterLevelY}
-                x2={SVG_WIDTH}
-                y2={visualModel.waterLevelY}
-                stroke="#2563eb"
-                strokeWidth="2"
-              />
-              <text
-                x={SVG_WIDTH - 100}
-                y={visualModel.waterLevelY - 5}
-                fontSize="12"
-                fill="#1e40af"
-                fontWeight="bold"
-              >
-                SEA SURFACE
-              </text>
-
-              {/* 6. Measurement Arrows */}
-
-              {/* A: Height of Tide (CD to Surface) */}
-              <g transform="translate(100, 0)">
-                <line
-                  x1={0}
-                  y1={CHART_DATUM_Y}
-                  x2={0}
-                  y2={visualModel.waterLevelY}
-                  stroke="#1e40af"
-                  strokeWidth="2"
-                  markerEnd="url(#arrowhead)"
-                  markerStart="url(#arrowhead)"
-                />
-                <text
-                  x={10}
-                  y={(CHART_DATUM_Y + visualModel.waterLevelY) / 2}
-                  fill="#1e40af"
-                  fontWeight="bold"
-                  fontSize="14"
-                >
-                  Height of Tide {tideHeight[0].toFixed(1)}m
-                </text>
-              </g>
-
-              {/* B: Charted Depth (CD to Seabed) */}
-              {/* At x=200, Seabed is at +150px (approx 3.75m) */}
-              <g transform="translate(200, 0)">
-                <line
-                  x1={0}
-                  y1={CHART_DATUM_Y}
-                  x2={0}
-                  y2={visualModel.chartedDepthLineY}
-                  stroke="#ca8a04"
-                  strokeWidth="2"
-                />
-                <text x={5} y={CHART_DATUM_Y + 75} fill="#ca8a04" fontWeight="bold" fontSize="14">
-                  Charted Depth {visualModel.chartedDepthMeters.toFixed(1)}m
-                </text>
-              </g>
-
-              {/* C: Actual Depth (Surface to Seabed) */}
-              <g transform="translate(250, 0)">
-                <line
-                  x1={0}
-                  y1={visualModel.waterLevelY}
-                  x2={0}
-                  y2={visualModel.chartedDepthLineY}
-                  stroke="#15803d"
-                  strokeWidth="3"
-                  pointerEvents="none"
-                />
-                {/* Horizontal indicators */}
-                <line
-                  x1={-5}
-                  y1={visualModel.waterLevelY}
-                  x2={5}
-                  y2={visualModel.waterLevelY}
-                  stroke="#15803d"
-                  strokeWidth="3"
-                />
-                <line
-                  x1={-5}
-                  y1={visualModel.chartedDepthLineY}
-                  x2={5}
-                  y2={visualModel.chartedDepthLineY}
-                  stroke="#15803d"
-                  strokeWidth="3"
-                />
-
-                <text x={10} y={visualModel.waterLevelY + 100} fill="#15803d" fontWeight="bold" fontSize="14">
-                  Actual Depth {visualModel.actualDepthMeters.toFixed(1)}m
-                </text>
-              </g>
-            </svg>
-          </div>
+          {!drillActive ? <Button onClick={start} variant="outline"><PlayCircle className="mr-2 h-4 w-4" />Start drill</Button> :
+            <div className="space-y-2" data-testid="drill-panel">
+              <p className="font-medium">Question {index + 1} of {SCENARIOS.length} · score {score}/{answered}</p>
+              <p>{feature === "drying" ? `Drying height ${featureValue.toFixed(1)} m` : `Charted sounding ${featureValue.toFixed(1)} m`}; tide {tide.toFixed(1)} m. What is the water depth?</p>
+              <Label htmlFor="depth-answer">Water depth (m)</Label>
+              <div className="flex flex-wrap gap-2"><Input id="depth-answer" inputMode="decimal" placeholder="Depth (m)" value={answer} onChange={(event) => { setAnswer(event.target.value); setFeedback(null); }} className="w-28" />
+                <Button onClick={check} disabled={feedback?.ok}>Check</Button><Button variant="ghost" onClick={skip}>Skip</Button></div>
+              {feedback && <p role="status" className={feedback.ok ? "text-green-700" : "text-red-700"}>{feedback.ok ? <CheckCircle2 className="mr-1 inline h-4 w-4" /> : <XCircle className="mr-1 inline h-4 w-4" />}{feedback.text}</p>}
+              {feedback?.ok && !finished && <Button variant="outline" onClick={() => resetQuestion(index + 1)}>Next question</Button>}
+              {completed && <div className="space-y-2"><p className="font-semibold">Complete: {score}/{SCENARIOS.length}. {score >= 5 ? "Mastery achieved." : "Review the worked examples and retry."}</p><Button onClick={start}>Retry drill</Button></div>}
+            </div>}
         </div>
+
+        <figure className="overflow-hidden rounded-xl border bg-sky-50">
+          <svg role="img" aria-labelledby={`${titleId} ${descId}`} viewBox="0 0 600 390" className="block h-auto w-full min-w-0">
+            <title id={titleId}>Tidal depth cross-section for scenario {drillActive ? scenario.id : "example"}</title>
+            <desc id={descId}>Chart Datum, sea surface at {tide.toFixed(1)} metres above datum, and a {feature} of {featureValue.toFixed(1)} metres. {diagramResult > 0 ? `${diagramResult.toFixed(1)} metres of water covers it.` : `It is ${Math.abs(diagramResult).toFixed(1)} metres uncovered.`}</desc>
+            <rect width="600" height="390" fill="#e0f2fe"/><rect y={Math.max(0, diagram.surfaceY)} width="600" height={390 - Math.max(0, diagram.surfaceY)} fill="#60a5fa" opacity=".48"/>
+            <path d="M0 340 L600 340 L600 390 L0 390Z" fill="#c8bda1"/>
+            {feature === "sounding" ? <path d={`M0 340 L600 ${Math.min(370, diagram.featureY)} L600 390 L0 390Z`} fill="#a89d82"/> : <path d={`M390 340 Q470 ${diagram.featureY} 550 340Z`} fill="#78716c"/>}
+            <line x1="0" x2="600" y1={diagram.datumY} y2={diagram.datumY} stroke="#475569" strokeDasharray="8 6"/><text x="12" y={diagram.datumY - 8}>Chart Datum (CD)</text>
+            <line x1="0" x2="600" y1={diagram.surfaceY} y2={diagram.surfaceY} stroke="#1d4ed8" strokeWidth="3"/><text x="410" y={Math.max(18, diagram.surfaceY - 8)}>Sea surface {tide.toFixed(1)} m</text>
+            <text x="20" y="370">{feature === "sounding" ? `Sounding ${featureValue.toFixed(1)} m below CD` : `Drying height ${featureValue.toFixed(1)} m above CD`}</text>
+          </svg>
+          <figcaption className="p-3 text-sm"><dl className="grid gap-1 sm:grid-cols-[auto_1fr]"><dt className="font-semibold">Predicted tide</dt><dd>{tide.toFixed(1)} m above CD</dd><dt className="font-semibold">Charted feature</dt><dd>{featureValue.toFixed(1)} m {feature === "sounding" ? "below" : "above"} CD</dd><dt className="font-semibold">Water over feature</dt><dd>{Math.max(0, diagramResult).toFixed(1)} m{diagramResult < 0 ? ` (${Math.abs(diagramResult).toFixed(1)} m uncovered)` : ""}</dd></dl></figcaption>
+        </figure>
       </CardContent>
     </Card>
   );
