@@ -33,16 +33,16 @@ const ChartsTheory = () => {
   };
 
   return (
-    <div className="min-h-screen bg-slate-50 pb-20 text-slate-900">
+    <div className="min-h-screen overflow-x-clip bg-slate-50 pb-20 text-slate-900">
       {/* Header */}
       <header className="bg-white border-b sticky top-0 z-40 shadow-sm">
         <div className="container mx-auto px-4 py-4">
           <div className="flex items-center gap-3">
-            <Button variant="ghost" size="icon" onClick={() => navigate("/navigation")}>
-              <ArrowLeft className="w-5 h-5" />
+            <Button variant="ghost" size="icon" aria-label="Back to Navigation" onClick={() => navigate("/navigation")}>
+              <ArrowLeft aria-hidden="true" className="w-5 h-5" />
             </Button>
             <div>
-              <h1 className="text-xl font-bold text-slate-900">The Nautical Chart</h1>
+              <h1 className="text-xl font-bold leading-tight text-slate-900">The Nautical Chart</h1>
               <p className="text-sm text-slate-500">Day Skipper Module 1: The Basics</p>
             </div>
           </div>
@@ -58,21 +58,21 @@ const ChartsTheory = () => {
           className="space-y-8"
         >
           <div className="sticky top-20 z-30 bg-slate-50 pt-2 pb-4 -mx-4 px-4 md:static md:bg-transparent md:p-0">
-            <TabsList className="grid w-full grid-cols-3 h-auto p-1 bg-slate-200">
+            <TabsList aria-label="Chart theory sections" className="grid h-auto w-full grid-cols-1 gap-1 bg-slate-200 p-1 sm:grid-cols-3">
               <TabsTrigger
                 value="coordinates"
-                className="py-3 data-[state=active]:bg-white data-[state=active]:shadow-sm"
+                className="min-w-0 whitespace-normal py-3 text-center data-[state=active]:bg-white data-[state=active]:shadow-sm"
               >
                 <Globe className="w-4 h-4 mr-2" />
                 <span className="hidden md:inline">Coordinates & Plotting</span>
                 <span className="md:hidden">Plotting</span>
               </TabsTrigger>
-              <TabsTrigger value="depths" className="py-3 data-[state=active]:bg-white data-[state=active]:shadow-sm">
+              <TabsTrigger value="depths" className="min-w-0 whitespace-normal py-3 text-center data-[state=active]:bg-white data-[state=active]:shadow-sm">
                 <Waves className="w-4 h-4 mr-2" />
                 <span className="hidden md:inline">Depths & Tides</span>
                 <span className="md:hidden">Tides</span>
               </TabsTrigger>
-              <TabsTrigger value="symbols" className="py-3 data-[state=active]:bg-white data-[state=active]:shadow-sm">
+              <TabsTrigger value="symbols" className="min-w-0 whitespace-normal py-3 text-center data-[state=active]:bg-white data-[state=active]:shadow-sm">
                 <Map className="w-4 h-4 mr-2" />
                 <span className="hidden md:inline">Symbols & Keys</span>
                 <span className="md:hidden">Symbols</span>
@@ -185,7 +185,7 @@ const ChartsTheory = () => {
                 </p>
                 <div className="bg-indigo-50 p-4 border-l-4 border-indigo-500 rounded-r my-4">
                   <h4 className="text-indigo-900 font-bold mb-2">Tool Guide:</h4>
-                  <ul className="grid grid-cols-2 gap-2 text-sm text-indigo-800">
+                  <ul className="grid grid-cols-1 gap-2 text-sm text-indigo-800 sm:grid-cols-2">
                     <li className="flex gap-2">
                       <Map className="w-4 h-4" /> <strong>Pan:</strong> Drag to move map.
                     </li>
@@ -202,8 +202,8 @@ const ChartsTheory = () => {
                 </div>
               </div>
 
-              <Card className="border-2 border-indigo-100 shadow-md">
-                <CardContent className="pt-6">
+              <Card className="min-w-0 border-2 border-indigo-100 shadow-md">
+                <CardContent className="min-w-0 px-3 pt-6 sm:px-6">
                   <VirtualChartPlotter key={`plotter:${evidenceOwnerKey}`} onMastery={() => void recordEvidence("plotter-mastery", "Chart plotting mastery")} />
                 </CardContent>
               </Card>
