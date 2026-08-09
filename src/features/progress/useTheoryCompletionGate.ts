@@ -20,7 +20,7 @@ export const useTheoryCompletionGate = ({
   const ownerId = "ownerId" in progress ? progress.ownerId : null;
   const [visitedSectionIds, setVisitedSectionIds] = useState<string[]>([]);
   const visitedRef = useRef<readonly string[]>(visitedSectionIds);
-  const completionPromiseRef = useRef<Promise<boolean> | null>(null);
+  const completionPromiseRef = useRef<{ generation: number; promise: Promise<boolean> } | null>(null);
   const hydrationKeyRef = useRef<string | null>(null);
   const hydrationGenerationRef = useRef(0);
   const pendingSaveRef = useRef<{ generation: number; ids: string[] } | null>(null);
@@ -90,6 +90,7 @@ export const useTheoryCompletionGate = ({
     const generation = ++hydrationGenerationRef.current;
     pendingSaveRef.current = null;
     saveWorkerRef.current = null;
+    completionPromiseRef.current = null;
     visitedRef.current = [];
     setVisitedSectionIds([]);
     setSaveState("idle");
@@ -176,18 +177,23 @@ export const useTheoryCompletionGate = ({
 
   const markCompleted = useCallback(async () => {
     if (!decision.canComplete) return false;
-    if (completionPromiseRef.current) return completionPromiseRef.current;
+    const generation = hydrationGenerationRef.current;
+    if (completionPromiseRef.current?.generation === generation) return completionPromiseRef.current.promise;
+    const operation: { generation: number; promise: Promise<boolean> } = { generation, promise: Promise.resolve(false) };
     const attempt = (async () => {
+      if (hydrationGenerationRef.current !== generation) return false;
       setSaveState("saving");
       try {
         // Revisioned evidence writes share one topic row/queue key with the
         // completion write. Drain them first so an older in-progress snapshot
         // can never overwrite a completed remote or queued snapshot.
         await saveWorkerRef.current?.promise;
+        if (hydrationGenerationRef.current !== generation) return false;
         const history = { completionState: "completed", catalogueRevision, visitedSectionIds: visitedRef.current };
         const result = catalogueRevision && saveProgressDetailed
           ? await saveProgressDetailed(topicId, true, 100, pointsOnComplete, history)
           : await saveProgress(topicId, true, 100, pointsOnComplete, history);
+        if (hydrationGenerationRef.current !== generation) return false;
         // Legacy saveProgress mocks/consumers historically resolved void on success.
         let ok = result !== false && result !== "failed" && result !== "conflict";
         if (result === "anonymous") ok = writeBrowserEvidence(visitedRef.current, true, "local");
@@ -196,11 +202,12 @@ export const useTheoryCompletionGate = ({
         setSaveState(result === "queued" ? "queued" : result === "anonymous" ? ok ? "local" : "failed" : ok ? "saved" : "failed");
         return ok;
       } catch {
-        setSaveState("failed");
+        if (hydrationGenerationRef.current === generation) setSaveState("failed");
         return false;
-      } finally { completionPromiseRef.current = null; }
+      } finally { if (completionPromiseRef.current === operation) completionPromiseRef.current = null; }
     })();
-    completionPromiseRef.current = attempt;
+    operation.promise = attempt;
+    completionPromiseRef.current = operation;
     return attempt;
   }, [catalogueRevision, decision.canComplete, pointsOnComplete, saveProgress, saveProgressDetailed, topicId, writeBrowserEvidence]);
 

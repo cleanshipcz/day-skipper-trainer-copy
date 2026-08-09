@@ -418,6 +418,66 @@ describe("useTheoryCompletionGate", () => {
     expect(result.current.visitedSectionIds).toEqual([]);
   });
 
+  it("aborts an old-owner completion before its RPC and lets the new owner complete independently", async () => {
+    mocks.ownerId = "owner-a";
+    let releaseEvidence!: () => void;
+    const { result, rerender } = renderHook(() => useTheoryCompletionGate({ topicId, requiredSectionIds: ["s1", "s2"], catalogueRevision: "v1" }));
+    await waitFor(() => expect(localStorage.getItem(`theory-gate:owner-a:${topicId}:v1`)).not.toBeNull());
+    mocks.saveProgressDetailed.mockClear();
+    mocks.saveProgressDetailed.mockImplementationOnce(() => new Promise(resolve => { releaseEvidence = () => resolve("remote"); })).mockResolvedValue("remote");
+    let evidenceA!: Promise<"failed" | void>;
+    let completionA!: Promise<boolean>;
+    let finalEvidenceA!: Promise<"failed" | void>;
+    act(() => { evidenceA = result.current.markSectionVisited("s1"); finalEvidenceA = result.current.markSectionVisited("s2"); });
+    await waitFor(() => expect(mocks.saveProgressDetailed).toHaveBeenCalledTimes(1));
+    act(() => { completionA = result.current.markCompleted(); });
+
+    mocks.ownerId = "owner-b";
+    rerender();
+    await waitFor(() => expect(result.current.saveState).toBe("idle"));
+    await act(async () => { releaseEvidence(); await Promise.all([evidenceA, finalEvidenceA]); expect(await completionA).toBe(false); });
+    expect(mocks.saveProgressDetailed.mock.calls.filter((call) => call[1] === true)).toHaveLength(0);
+
+    await act(async () => { await result.current.markSectionVisited("s1"); await result.current.markSectionVisited("s2"); });
+    await act(async () => { expect(await result.current.markCompleted()).toBe(true); });
+    expect(mocks.saveProgressDetailed.mock.calls.filter((call) => call[1] === true)).toHaveLength(1);
+    expect(result.current.saveState).toBe("saved");
+    expect(localStorage.getItem(`theory-gate:owner-b:${topicId}:v1:completion`)).not.toBeNull();
+  });
+
+  it("ignores an old-owner completion RPC result that arrives after the new owner completes", async () => {
+    mocks.ownerId = "owner-a";
+    let releaseCompletionA!: () => void;
+    let delayed = false;
+    const { result, rerender } = renderHook(() => useTheoryCompletionGate({ topicId, requiredSectionIds: ["s1"], catalogueRevision: "v1" }));
+    await waitFor(() => expect(localStorage.getItem(`theory-gate:owner-a:${topicId}:v1`)).not.toBeNull());
+    mocks.saveProgressDetailed.mockClear();
+    mocks.saveProgressDetailed.mockImplementation((_topic, completed) => {
+      if (completed && !delayed) {
+        delayed = true;
+        return new Promise(resolve => { releaseCompletionA = () => resolve("failed"); });
+      }
+      return Promise.resolve("remote");
+    });
+    await act(async () => { await result.current.markSectionVisited("s1"); });
+    let completionA!: Promise<boolean>;
+    act(() => { completionA = result.current.markCompleted(); });
+    await waitFor(() => expect(mocks.saveProgressDetailed.mock.calls.filter((call) => call[1] === true)).toHaveLength(1));
+
+    mocks.ownerId = "owner-b";
+    rerender();
+    await waitFor(() => expect(result.current.saveState).toBe("idle"));
+    await act(async () => { await result.current.markSectionVisited("s1"); });
+    await act(async () => { expect(await result.current.markCompleted()).toBe(true); });
+    expect(result.current.saveState).toBe("saved");
+    const ownerBMarker = localStorage.getItem(`theory-gate:owner-b:${topicId}:v1:completion`);
+
+    await act(async () => { releaseCompletionA(); expect(await completionA).toBe(false); });
+    expect(result.current.saveState).toBe("saved");
+    expect(localStorage.getItem(`theory-gate:owner-b:${topicId}:v1:completion`)).toBe(ownerBMarker);
+    expect(localStorage.getItem(`theory-gate:owner-a:${topicId}:v1:completion`)).toBeNull();
+  });
+
   it("ignores non-catalogue section IDs without producing evidence or a save", async () => {
     const { result } = renderHook(() => useTheoryCompletionGate({ topicId, requiredSectionIds, catalogueRevision: "v1" }));
     await act(async () => {});
