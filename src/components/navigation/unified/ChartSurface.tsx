@@ -108,7 +108,7 @@ const ChartSurface = forwardRef<SVGSVGElement, ChartSurfaceProps>(
         className={`w-full h-full bg-white select-none ${className}`}
         onClick={onClick}
         style={{ backgroundColor: COLORS.DEEP }}
-        preserveAspectRatio="none"
+        preserveAspectRatio="xMidYMid meet"
       >
         <defs>
           <pattern id="grid" width={scale} height={scale} patternUnits="userSpaceOnUse">

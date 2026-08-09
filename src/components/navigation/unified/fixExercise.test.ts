@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { angularDifference, clientToSvgPoint, expectedFix, intersectLines, landmarks, lineFromLandmark, magneticToTrue, normalizeBearing, reciprocal, solveFix } from "./fixExercise";
+import { angularDifference, clientToSvgPoint, intersectLines, landmarks, lineFromLandmark, magneticToTrue, normalizeBearing, reciprocal, SCENARIO_ORACLE, solveFix } from "./fixExercise";
 
 describe("position fix geometry", () => {
   it("normalizes wraparound and reciprocal bearings", () => {
@@ -18,11 +18,21 @@ describe("position fix geometry", () => {
     expect(intersectLines(east, lineFromLandmark({ ...landmarks[1], x: 0, y: 10 }, 90))).toBeNull();
   });
 
-  it("independently solves the published observations near the scenario fix", () => {
+  it("solves the published observations near the independently specified oracle", () => {
     const lops = landmarks.map((item) => lineFromLandmark(item, reciprocal(magneticToTrue(item.magneticBearing))));
     const solution = solveFix(lops);
-    expect(expectedFix()).toEqual(expect.objectContaining({ x: expect.closeTo(300, 1), y: expect.closeTo(300, 1) }));
+    expect(SCENARIO_ORACLE).toEqual({ x: 300, y: 300 });
+    expect(solution?.fix.x).toBeCloseTo(SCENARIO_ORACLE.x, 1);
+    expect(solution?.fix.y).toBeCloseTo(SCENARIO_ORACLE.y, 1);
     expect(solution?.uncertainty).toBeLessThan(0.1);
+  });
+
+  it("checks the scenario observations against oracle arithmetic without production helpers", () => {
+    const bearing = (object: { x: number; y: number }) => {
+      const degrees = Math.atan2(object.x - 300, 300 - object.y) * 180 / Math.PI;
+      return (degrees + 360) % 360 + 5;
+    };
+    expect(landmarks.map(bearing)).toEqual([expect.closeTo(311.87, 2), expect.closeTo(39.29, 2), expect.closeTo(109.04, 2)]);
   });
 
   it.each([
@@ -30,6 +40,8 @@ describe("position fix geometry", () => {
     [10, 20, 375, 240, 197.5, 140],
     [50, 100, 1280, 800, 690, 500],
     [0, 0, 1600, 1000, 800, 500],
+    [0, 0, 1000, 500, 500, 250],
+    [0, 0, 800, 800, 400, 400],
   ])("maps client coordinates at responsive and zoomed sizes", (left, top, width, height, clientX, clientY) => {
     expect(clientToSvgPoint(clientX, clientY, { left, top, width, height })).toEqual({ x: 400, y: 250 });
   });

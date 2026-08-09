@@ -5,6 +5,8 @@ export interface Lop { landmarkId: string; origin: Point; reciprocalBearing: num
 export const VARIATION_WEST = 5;
 export const CHART_WIDTH = 800;
 export const CHART_HEIGHT = 500;
+export const SCENARIO_ORACLE: Readonly<Point> = Object.freeze({ x: 300, y: 300 });
+export const FIX_TOLERANCE = 4;
 export const landmarks: Landmark[] = [
   { id: "L1", x: 100, y: 150, name: "Headland Light", magneticBearing: 311.87 },
   { id: "L2", x: 450, y: 80, name: "North Buoy", magneticBearing: 39.29 },
@@ -51,14 +53,20 @@ export const solveFix = (lops: Lop[]) => {
   return { fix, intersections, uncertainty };
 };
 
-export const expectedFix = () => solveFix(landmarks.map((landmark) =>
-  lineFromLandmark(landmark, reciprocal(magneticToTrue(landmark.magneticBearing))),
-))?.fix ?? { x: Number.NaN, y: Number.NaN };
-
 export const clientToSvgPoint = (
   clientX: number,
   clientY: number,
   rect: Pick<DOMRect, "left" | "top" | "width" | "height">,
   width = CHART_WIDTH,
   height = CHART_HEIGHT,
-): Point => ({ x: (clientX - rect.left) * width / rect.width, y: (clientY - rect.top) * height / rect.height });
+): Point => {
+  const scale = Math.min(rect.width / width, rect.height / height);
+  const renderedWidth = width * scale;
+  const renderedHeight = height * scale;
+  const offsetX = (rect.width - renderedWidth) / 2;
+  const offsetY = (rect.height - renderedHeight) / 2;
+  return {
+    x: (clientX - rect.left - offsetX) / scale,
+    y: (clientY - rect.top - offsetY) / scale,
+  };
+};
