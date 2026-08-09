@@ -66,6 +66,7 @@ describe("combined Rules diagnostic curriculum", () => {
     const text = (id: string) => JSON.stringify(questions.find((question) => question.id === id)?.scenario);
     expect(text("cr2")).toMatch(/30° abaft.*starboard beam/i);
     expect(text("cr3")).toMatch(/red sidelight.*35°.*starboard bow.*035°.*range decreases/i);
+    expect(text("cr3")).toMatch(/course and heading 000°.*35°.*035°/i);
     expect(text("cr5")).toMatch(/Boat A.*windward.*Boat B.*leeward/i);
     expect(text("cr7")).toMatch(/reciprocal.*masthead lights.*both sidelights/i);
     expect(text("cr13")).toMatch(/white masthead.*red sidelight.*green sidelight/i);

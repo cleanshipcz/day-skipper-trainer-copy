@@ -140,6 +140,8 @@ describe("Quiz accessible interaction and reflow", () => {
     const scenario = await screen.findByRole("figure", { name: "Same-tack sailing positions for question cr5" });
     expect(scenario.getAttribute("aria-describedby")).toBe("scenario-description-cr5");
     expect(scenario.textContent).toMatch(/Boat positions.*Wind.*port side.*Boat A.*Windward.*Boat B.*Leeward/i);
+    const heading = screen.getByRole("heading", { name: questions[0].question });
+    expect(heading.compareDocumentPosition(scenario) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
     const firstRadio = screen.getByRole("radio", { name: "First wrong" });
     firstRadio.focus();
     await user.keyboard("{ArrowDown}");

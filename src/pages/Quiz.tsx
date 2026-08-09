@@ -699,6 +699,7 @@ const Quiz = () => {
         </p>}
         <Card className="border-2">
           <CardHeader>
+            <CardTitle ref={questionHeadingRef} tabIndex={-1} className="text-2xl break-words [overflow-wrap:anywhere] focus:outline-none">{question.question}</CardTitle>
             {question.image && (
               <div className="mb-4 flex justify-center">
                 <img
@@ -718,7 +719,6 @@ const Quiz = () => {
                 </dl>
               </figure>
             )}
-            <CardTitle ref={questionHeadingRef} tabIndex={-1} className="text-2xl break-words [overflow-wrap:anywhere] focus:outline-none">{question.question}</CardTitle>
             {topicKey === "colregs" && question.learningObjective && <p className="text-sm text-muted-foreground">
               Objective: {question.learningObjective} · Prerequisite: {question.prerequisite}
             </p>}
