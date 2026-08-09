@@ -18,10 +18,12 @@ describe("CompassReference", () => {
     expect(screen.getAllByText(/−3° →/)).toHaveLength(2);
     expect(screen.queryByText(/course or heading/i)).toBeNull();
     expect(screen.getByText((_, node) => node?.tagName === "P" && /heading.*direction in which the vessel’s bow points/i.test(node.textContent ?? ""))).toBeDefined();
-    expect(screen.getByText((_, node) => node?.tagName === "P" && /course to steer.*direction the helm should maintain/i.test(node.textContent ?? ""))).toBeDefined();
+    expect(screen.getByText((_, node) => node?.tagName === "P" && /course to steer.*heading-to-maintain/i.test(node.textContent ?? ""))).toBeDefined();
     expect(screen.getByText((_, node) => node?.tagName === "P" && /Course made good.*actual direction of travel over the ground/i.test(node.textContent ?? ""))).toBeDefined();
-    expect(screen.getByText((_, node) => node?.tagName === "P" && /Wind and current.*compass heading different values/i.test(node.textContent ?? ""))).toBeDefined();
-    expect(screen.getByText((_, node) => node?.tagName === "P" && /deviation card is indexed only.*compass heading.*never substitute/i.test(node.textContent ?? ""))).toBeDefined();
+    expect(screen.getByText((_, node) => node?.tagName === "P" && /Wind and current.*desired track.*differ from the heading to steer/i.test(node.textContent ?? ""))).toBeDefined();
+    expect(screen.getByText((_, node) => node?.tagName === "P" && /true CTS.*T→M→C.*compass CTS is the compass heading\/course the helm maintains/i.test(node.textContent ?? ""))).toBeDefined();
+    expect(screen.getByText((_, node) => node?.tagName === "P" && /deviation card is indexed by the current estimated or actual compass heading/i.test(node.textContent ?? ""))).toBeDefined();
+    expect(screen.getByText((_, node) => node?.tagName === "P" && /Never index.*unconverted true or magnetic plotted course, CTS, or course made good/i.test(node.textContent ?? ""))).toBeDefined();
     expect(screen.getByText((_, node) => node?.tagName === "P" && /bearing.*direction from the observer to an object/i.test(node.textContent ?? ""))).toBeDefined();
   });
 
