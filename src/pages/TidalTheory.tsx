@@ -12,7 +12,7 @@ const NorthSeaAmphidromicDiagram = () => (
       viewBox="0 0 640 430"
       role="img"
       aria-labelledby="amphidromic-title amphidromic-description"
-      className="block h-auto max-w-full rounded-lg border bg-slate-50 forced-colors:[forced-color-adjust:none] forced-colors:border-[CanvasText] forced-colors:bg-[Canvas] forced-colors:text-[CanvasText]"
+      className="block h-auto max-w-full rounded-lg border bg-slate-50 forced-colors:border-[CanvasText] forced-colors:bg-[Canvas] forced-colors:text-[CanvasText]"
     >
       <title id="amphidromic-title">North Sea amphidromic system teaching schematic</title>
       <desc id="amphidromic-description">
@@ -22,36 +22,36 @@ const NorthSeaAmphidromicDiagram = () => (
       </desc>
       <defs>
         <marker id="tidal-arrow" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
-          <path d="M 0 0 L 10 5 L 0 10 z" fill="#075985" />
+          <path className="forced-colors:fill-[LinkText]" d="M 0 0 L 10 5 L 0 10 z" fill="#075985" />
         </marker>
       </defs>
-      <rect width="640" height="430" fill="#e0f2fe" />
-      <path d="M72 20 L157 33 176 85 151 135 167 194 144 255 100 303 69 374 20 407 20 20Z" fill="#d6d3d1" stroke="#78716c" />
-      <path d="M493 18 L620 18 620 408 471 408 491 352 465 305 502 256 475 203 513 149 485 91Z" fill="#d6d3d1" stroke="#78716c" />
-      <text x="48" y="93" fontSize="18" fill="#44403c">Great Britain</text>
-      <text x="520" y="85" fontSize="18" fill="#44403c">Europe</text>
+      <rect className="forced-colors:fill-[Canvas]" width="640" height="430" fill="#e0f2fe" />
+      <path className="forced-colors:fill-[ButtonFace] forced-colors:stroke-[CanvasText]" d="M72 20 L157 33 176 85 151 135 167 194 144 255 100 303 69 374 20 407 20 20Z" fill="#d6d3d1" stroke="#78716c" />
+      <path className="forced-colors:fill-[ButtonFace] forced-colors:stroke-[CanvasText]" d="M493 18 L620 18 620 408 471 408 491 352 465 305 502 256 475 203 513 149 485 91Z" fill="#d6d3d1" stroke="#78716c" />
+      <text className="forced-colors:fill-[CanvasText]" x="48" y="93" fontSize="18" fill="#44403c">Great Britain</text>
+      <text className="forced-colors:fill-[CanvasText]" x="520" y="85" fontSize="18" fill="#44403c">Europe</text>
 
-      <circle cx="330" cy="218" r="8" fill="#111827" />
+      <circle className="forced-colors:fill-[CanvasText]" cx="330" cy="218" r="8" fill="#111827" />
       <text x="342" y="214" fontSize="15" fontWeight="600">amphidromic point</text>
       <text x="342" y="233" fontSize="13">range approaches 0 m</text>
 
-      <g fill="none" stroke="#ea580c" strokeWidth="3">
+      <g className="forced-colors:stroke-[VisitedText]" fill="none" stroke="#ea580c" strokeWidth="3" strokeDasharray="8 5">
         <ellipse cx="330" cy="218" rx="55" ry="39" />
         <ellipse cx="330" cy="218" rx="112" ry="79" />
         <ellipse cx="330" cy="218" rx="176" ry="124" />
       </g>
-      <g fill="#9a3412" fontSize="14" fontWeight="600">
+      <g className="forced-colors:fill-[VisitedText]" fill="#9a3412" fontSize="14" fontWeight="600">
         <text x="318" y="170">0.5 m</text><text x="318" y="127">1 m</text><text x="318" y="83">2 m</text>
       </g>
 
-      <g stroke="#0369a1" strokeWidth="2">
+      <g className="forced-colors:stroke-[LinkText]" stroke="#0369a1" strokeWidth="2">
         <line x1="330" y1="218" x2="330" y2="52" /><line x1="330" y1="218" x2="494" y2="218" />
         <line x1="330" y1="218" x2="330" y2="383" /><line x1="330" y1="218" x2="166" y2="218" />
       </g>
-      <g fill="#075985" fontSize="14" fontWeight="600">
+      <g className="forced-colors:fill-[LinkText]" fill="#075985" fontSize="14" fontWeight="600">
         <text x="337" y="66">0 h</text><text x="174" y="211">3 h</text><text x="337" y="375">6 h</text><text x="463" y="211">9 h</text>
       </g>
-      <g aria-hidden="true" className="motion-safe:animate-pulse motion-reduce:animate-none" fill="none" stroke="#075985" strokeWidth="5" markerEnd="url(#tidal-arrow)">
+      <g aria-hidden="true" className="forced-colors:stroke-[LinkText]" fill="none" stroke="#075985" strokeWidth="5" markerEnd="url(#tidal-arrow)">
         <path d="M223 306 A150 115 0 0 0 448 304" /><path d="M437 132 A150 115 0 0 0 213 135" />
       </g>
       <text x="224" y="416" fontSize="15" fontWeight="700" fill="#075985">anti-clockwise propagation</text>
