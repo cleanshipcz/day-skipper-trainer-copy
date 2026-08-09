@@ -53,6 +53,7 @@ const LightsTheory = () => {
   });
   const [reviewed, setReviewed] = useState<Record<string, boolean>>({});
   const [answers, setAnswers] = useState<Record<string, string>>({});
+  const [announcement, setAnnouncement] = useState("");
 
   useEffect(() => {
     const targetId = location.hash.slice(1);
@@ -68,8 +69,8 @@ const LightsTheory = () => {
       <header className="border-b border-border bg-card/50 backdrop-blur-sm sticky top-0 z-40">
         <div className="container mx-auto px-4 py-4">
           <div className="flex items-center gap-3">
-            <Button variant="ghost" size="icon" onClick={() => navigate("/rules/lights")}>
-              <ArrowLeft className="w-5 h-5" />
+            <Button variant="ghost" size="icon" aria-label="Back to lights and signals menu" onClick={() => navigate("/rules/lights")}>
+              <ArrowLeft aria-hidden="true" className="w-5 h-5" />
             </Button>
             <div>
               <h1 className="text-xl font-bold">Lights, Shapes & Sounds</h1>
@@ -80,24 +81,24 @@ const LightsTheory = () => {
       </header>
 
       <main className="container mx-auto px-4 py-8 max-w-4xl">
-        <Tabs value={activeSection} className="space-y-6" onValueChange={(value) => {
+        <Tabs value={activeSection} className="min-w-0 space-y-6" onValueChange={(value) => {
           setSearchParams({ section: value });
         }}>
-          <TabsList className="grid w-full grid-cols-2 md:grid-cols-4 h-auto">
-            <TabsTrigger value="lights" className="py-2">
-              <Lightbulb className="w-4 h-4 mr-2" />
+          <TabsList aria-label="Lights theory sections" className="grid h-auto w-full min-w-0 grid-cols-2 sm:grid-cols-4">
+            <TabsTrigger value="lights" className="min-w-0 gap-1 px-2 py-2 sm:gap-2">
+              <Lightbulb aria-hidden="true" className="h-4 w-4 shrink-0" />
               Lights
             </TabsTrigger>
-            <TabsTrigger value="shapes" className="py-2">
-              <AlertTriangle className="w-4 h-4 mr-2" />
+            <TabsTrigger value="shapes" className="min-w-0 gap-1 px-2 py-2 sm:gap-2">
+              <AlertTriangle aria-hidden="true" className="h-4 w-4 shrink-0" />
               Shapes
             </TabsTrigger>
-            <TabsTrigger value="sounds" className="py-2">
-              <Volume2 className="w-4 h-4 mr-2" />
+            <TabsTrigger value="sounds" className="min-w-0 gap-1 px-2 py-2 sm:gap-2">
+              <Volume2 aria-hidden="true" className="h-4 w-4 shrink-0" />
               Sounds
             </TabsTrigger>
-            <TabsTrigger value="distress" className="py-2">
-              <Flame className="w-4 h-4 mr-2" />
+            <TabsTrigger value="distress" className="min-w-0 gap-1 px-2 py-2 sm:gap-2">
+              <Flame aria-hidden="true" className="h-4 w-4 shrink-0" />
               Distress
             </TabsTrigger>
           </TabsList>
@@ -366,7 +367,14 @@ const LightsTheory = () => {
                 <span>{option}</span>
               </label>)}
               {!complete && answers[objective.id] && answers[objective.id] !== objective.answer && <p role="alert" className="text-sm text-destructive">Review the lesson and try this recognition check again.</p>}
-              <Button type="button" variant="outline" disabled={!reviewed[objective.id] || answers[objective.id] !== objective.answer} onClick={() => void markSectionVisited(objective.id)}>
+              <Button type="button" variant="outline" disabled={!reviewed[objective.id] || answers[objective.id] !== objective.answer} onClick={async () => {
+                try {
+                  await markSectionVisited(objective.id);
+                  setAnnouncement(`${objective.title} evidence recorded.`);
+                } catch {
+                  setAnnouncement(`${objective.title} evidence could not be recorded. Try again.`);
+                }
+              }}>
                 {complete ? "Evidence recorded" : "Record objective evidence"}
               </Button>
             </fieldset>;
@@ -379,7 +387,9 @@ const LightsTheory = () => {
             className="w-full md:w-auto"
             disabled={!canComplete || saveState === "saving"}
             onClick={async () => {
+              setAnnouncement("Saving module completion.");
               if (await markCompleted()) navigate("/rules/lights");
+              else setAnnouncement("Module completion could not be saved. Your focus has not moved; retry when ready.");
             }}
           >
             {saveState === "saving" ? "Saving…" : canComplete ? saveState === "failed" ? "Retry save" : "Complete Module" : "Complete the evidence checks"}
@@ -392,7 +402,8 @@ const LightsTheory = () => {
           >
             Take the Quiz
           </Button>
-          <p className="w-full text-center text-sm" role="status" aria-live="polite">
+          <p className="w-full text-center text-sm" role="status" aria-live="polite" aria-atomic="true">
+            {announcement || (!canComplete ? "Complete all three evidence checks to unlock module completion." : "")}
             {saveState === "saved" && "Progress saved to the server."}
             {saveState === "queued" && "Progress is durably queued on this device and will sync when you reconnect."}
             {saveState === "local" && "Progress saved only in this browser profile."}
