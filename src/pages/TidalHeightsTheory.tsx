@@ -47,7 +47,7 @@ const TidalHeightsTheory = () => {
               </p>
             </div>
           </div>
-          <div className="min-w-0 break-words sm:max-w-xs [&_button]:h-auto [&_button]:max-w-full [&_button]:min-h-10 [&_button]:whitespace-normal">
+          <div className="min-w-0 break-words sm:max-w-xs [&_button]:h-auto [&_button]:max-w-full [&_button]:min-h-11 [&_button]:whitespace-normal">
             <TheoryCompletionButton
               topicId={TOPIC_IDS.TIDES_HEIGHTS_THEORY}
               catalogueRevision="tides-heights-theory-v2"

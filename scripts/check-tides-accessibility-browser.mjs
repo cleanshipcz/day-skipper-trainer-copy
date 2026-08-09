@@ -311,6 +311,8 @@ try {
       layout.headingRight > layout.viewport + 1 ||
       layout.back.width < 44 ||
       layout.back.height < 44 ||
+      layout.completion.width < 44 ||
+      layout.completion.height < 44 ||
       layout.completion.right > layout.viewport + 1 ||
       layout.completion.bottom > layout.headerBottom + 1 ||
       !layout.touch
