@@ -1,6 +1,7 @@
 import type { SupabaseClient } from "@supabase/supabase-js";
 import { saveProgressRecord } from "@/features/progress/progressPersistence";
 import { isVictuallingChecklistConflict, VICTUALLING_CHECKLIST_PROGRESS_ID } from "@/features/progress/victuallingProgress";
+import { ENGINE_CHECKLIST_PROGRESS_ID, isEngineChecklistConflict } from "@/features/progress/engineChecklistProgress";
 
 const DATABASE_NAME = "day-skipper-offline";
 const STORE_NAME = "progress-queue";
@@ -176,7 +177,8 @@ export const replayProgressQueue = async (
       synced += 1;
     } catch (error) {
       const staleChecklist = entry.topicId === VICTUALLING_CHECKLIST_PROGRESS_ID
-        && isVictuallingChecklistConflict(error);
+        && isVictuallingChecklistConflict(error)
+        || entry.topicId === ENGINE_CHECKLIST_PROGRESS_ID && isEngineChecklistConflict(error);
       await updateQueuedProgress(entry, {
         ...entry,
         attempts: entry.attempts + 1,
