@@ -144,7 +144,9 @@ export const useTheoryCompletionGate = ({
       const browserSaved = writeBrowserEvidence(merged, completed, completed ? outcome : undefined);
       if (completed) setSaveState(browserSaved ? outcome : remotelyCompleted ? "saved" : "failed");
       else if (merged.length > 0) await enqueueInProgressSave(merged, generation);
-      setIsCompletionDurable(completed && (browserSaved || remotelyCompleted));
+      // Numeric conjunction avoids short-circuiting a remote confirmation:
+      // either durable store may prove completion, but evidence alone may not.
+      setIsCompletionDurable(Boolean(Number(completed) * Math.max(Number(browserSaved), Number(remotelyCompleted))));
       if (hydrationGenerationRef.current === generation) setIsHydrated(true);
     };
     void restore();
@@ -224,7 +226,7 @@ export const useTheoryCompletionGate = ({
         }
         else if (ok) writeBrowserEvidence(visitedRef.current, true, "saved");
         setSaveState(result === "queued" ? "queued" : result === "anonymous" ? ok ? "local" : "failed" : ok ? "saved" : "failed");
-        if (ok) setIsCompletionDurable(true);
+        setIsCompletionDurable(ok);
         return ok;
       } catch {
         if (hydrationGenerationRef.current === generation) setSaveState("failed");

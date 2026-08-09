@@ -19,6 +19,9 @@ describe("offline progress queue", () => {
       id: "tides-owner:tides-heights-calc", topicId: "tides-heights-calc", score: 80,
       answersHistory: { evidence: "stronger-legacy" }, revision: 4,
     }));
+    expect(mergeQueuedAlias(undefined, legacy)).toEqual(expect.objectContaining({ topicId: "tides-heights-calc" }));
+    expect(mergeQueuedAlias(canonical, { ...legacy, completed: canonical.completed, score: canonical.score, updatedAt: canonical.updatedAt, revision: canonical.revision }))
+      .toEqual(expect.objectContaining({ answersHistory: { evidence: "canonical" } }));
 
     await queueProgress({ userId: "legacy-write", topicId: "vector-triangle", completed: true, score: 100, pointsEarned: 10 });
     expect(await getQueuedProgress("legacy-write")).toEqual([expect.objectContaining({ topicId: "tides-vector-tool", id: "legacy-write:tides-vector-tool" })]);
