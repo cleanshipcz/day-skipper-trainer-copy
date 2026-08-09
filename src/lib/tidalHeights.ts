@@ -26,7 +26,7 @@ export const heightAtTime = (start: TidalEvent, end: TidalEvent, time: number) =
 export const timeForHeight = (start: TidalEvent, end: TidalEvent, targetHeight: number) => {
   const low = Math.min(start.height, end.height);
   const high = Math.max(start.height, end.height);
-  if (end.minutes <= start.minutes || targetHeight < low || targetHeight > high) {
+  if (end.minutes <= start.minutes || start.height === end.height || targetHeight < low || targetHeight > high) {
     throw new RangeError("Height must fall within the selected tidal limb");
   }
   const curveFraction = (targetHeight - start.height) / (end.height - start.height);
@@ -35,8 +35,9 @@ export const timeForHeight = (start: TidalEvent, end: TidalEvent, targetHeight: 
 };
 
 export const formatTidalTime = (minutes: number) => {
-  const dayOffset = Math.floor(minutes / (24 * 60));
-  const inDay = ((Math.round(minutes) % (24 * 60)) + 24 * 60) % (24 * 60);
+  const roundedMinutes = Math.round(minutes);
+  const dayOffset = Math.floor(roundedMinutes / (24 * 60));
+  const inDay = ((roundedMinutes % (24 * 60)) + 24 * 60) % (24 * 60);
   const value = `${String(Math.floor(inDay / 60)).padStart(2, "0")}:${String(inDay % 60).padStart(2, "0")}`;
   return dayOffset > 0 ? `${value} (+${dayOffset} day)` : value;
 };

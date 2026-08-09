@@ -9,7 +9,7 @@ describe("tidal height calculations", () => {
 
   it("solves both rising and falling times for the same height", () => {
     expect(timeForHeight({ minutes: 600, height: 4.8 }, { minutes: 960, height: 1.2 }, 3)).toBe(780);
-    expect(timeForHeight({ minutes: 960, height: 1.2 }, { minutes: 1320, height: 4.8 }, 3)).toBe(1140);
+    expect(timeForHeight({ minutes: 960, height: 1.2 }, { minutes: 1300, height: 4.6 }, 3)).toBeCloseTo(1136.37, 2);
   });
 
   it("keeps a following event and answer on the next date", () => {
@@ -22,5 +22,10 @@ describe("tidal height calculations", () => {
   it("rejects requests outside the selected published limb", () => {
     expect(() => heightAtTime({ minutes: 600, height: 4 }, { minutes: 960, height: 1 }, 990)).toThrow(RangeError);
     expect(() => timeForHeight({ minutes: 600, height: 4 }, { minutes: 960, height: 1 }, 5)).toThrow(RangeError);
+    expect(() => timeForHeight({ minutes: 600, height: 2 }, { minutes: 960, height: 2 }, 2)).toThrow(RangeError);
+  });
+
+  it("carries a rounded minute into the following day", () => {
+    expect(formatTidalTime(1439.6)).toBe("00:00 (+1 day)");
   });
 });
