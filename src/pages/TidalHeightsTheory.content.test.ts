@@ -7,7 +7,7 @@ describe("tidal heights theory content contract", () => {
   it("retains the publication workflow and both solution directions", () => {
     expect(source).toContain("Height at time:");
     expect(source).toContain("Time for height:");
-    expect(source).toContain("both adjacent limbs");
+    expect(source).toMatch(/both\s+adjacent limbs/);
     expect(source).toContain("(+1 day)");
   });
 
