@@ -1,10 +1,11 @@
 import type { MaintenanceCheck } from "@/data/engineChecks";
 
 export const ENGINE_CHECKLIST_PROGRESS_ID = "engine-checklist";
-export const ENGINE_CHECKLIST_CATALOGUE_ID = "engine-maintenance-v1";
-export const ENGINE_CHECKLIST_PROGRESS_VERSION = 1;
+export const ENGINE_CHECKLIST_CATALOGUE_ID = "engine-maintenance-v2";
+export const ENGINE_CHECKLIST_PROGRESS_VERSION = 2;
 export const ANONYMOUS_ENGINE_CHECKLIST_MAX_AGE_MS = 24 * 60 * 60 * 1000;
-const ANONYMOUS_KEY = "engine-checklist-anonymous-v1";
+const ANONYMOUS_KEY = "engine-checklist-anonymous-v2";
+const LEGACY_ANONYMOUS_KEY = "engine-checklist-anonymous-v1";
 
 export type EngineChecklistProgress = { checkedItemIds: string[]; revision: number };
 export type EngineChecklistSaveState = "saved" | "queued" | "anonymous" | "conflict" | "failed";
@@ -44,6 +45,12 @@ export const parseEngineChecklistProgress = (value: unknown, validIds: ReadonlyS
   if (typeof value === "string") { try { value = JSON.parse(value); } catch { return null; } }
   if (!value || typeof value !== "object") return null;
   const candidate = value as Record<string, unknown>;
+  if (candidate.version === 1 && candidate.catalogueId === "engine-maintenance-v1"
+    && Number.isSafeInteger(candidate.revision) && (candidate.revision as number) >= 0) {
+    // Every v1 ID was repurposed by the corrected safety catalogue. Preserve
+    // only the CAS revision so an authenticated user can safely write v2.
+    return { checkedItemIds: [], revision: candidate.revision as number };
+  }
   if (candidate.version !== ENGINE_CHECKLIST_PROGRESS_VERSION
     || candidate.catalogueId !== ENGINE_CHECKLIST_CATALOGUE_ID
     || !Array.isArray(candidate.checkedItemIds)
@@ -66,7 +73,10 @@ export const saveAnonymousEngineChecklist = (storage: Storage, checkedItemIds: s
 
 export const restoreAnonymousEngineChecklist = (storage: Storage, validIds: ReadonlySet<string>, now = Date.now()): EngineChecklistProgress | null => {
   let raw: string | null;
-  try { raw = storage.getItem(ANONYMOUS_KEY); } catch { return null; }
+  try {
+    raw = storage.getItem(ANONYMOUS_KEY);
+    if (!raw && storage.getItem(LEGACY_ANONYMOUS_KEY)) storage.removeItem(LEGACY_ANONYMOUS_KEY);
+  } catch { return null; }
   if (!raw) return null;
   try {
     const candidate = JSON.parse(raw) as { expiresAt?: unknown };
