@@ -3,7 +3,7 @@ import { Card, CardContent } from "@/components/ui/card";
 
 export const COMPASS_SOURCES = [
   {
-    label: "NOAA U.S. Coast Pilot, Chapter 1 (January 2026)",
+    label: "NOAA U.S. Coast Pilot 1, Chapter 1, revision 02 August 2026, Compass Roses paragraphs 134–135",
     href: "https://nauticalcharts.noaa.gov/publications/coast-pilot/files/cp1/CPB1_C01_WEB.pdf",
   },
   {
@@ -77,15 +77,15 @@ const CompassReference = () => <div className="space-y-8">
     <h2 id="procedure-heading" className="text-2xl font-semibold">A neutral conversion procedure</h2>
     <p>Assign signs first: <strong>east is positive (+), west is negative (−)</strong>. Going C→M→T, add deviation then variation: M = C + D; T = M + V. Going T→M→C, subtract variation then deviation: M = T − V; C = M − D. Normalize only after each calculation: add or subtract 360° until the result is 000°–359°.</p>
     <div className="grid gap-4 md:grid-cols-2">
-      <Card><CardContent className="space-y-2 pt-6"><h3 className="font-semibold">Worked C→M→T (wraps north)</h3><p>Compass course 358°C; card deviation 3°E (+3°); current variation 4°W (−4°).</p><p>M = 358° + (+3°) = 361° → <strong>001°M</strong></p><p>T = 001° + (−4°) = −3° → <strong>357°T</strong></p></CardContent></Card>
+      <Card><CardContent className="space-y-2 pt-6"><h3 className="font-semibold">Worked C→M→T (wraps north)</h3><p>Compass heading 358°C; card deviation 3°E (+3°); current variation 4°W (−4°).</p><p>M = 358° + (+3°) = 361° → <strong>001°M</strong></p><p>T = 001° + (−4°) = −3° → <strong>357°T</strong></p></CardContent></Card>
       <Card><CardContent className="space-y-2 pt-6"><h3 className="font-semibold">Worked T→M→C (wraps north)</h3><p>True course 002°T; variation 5°E (+5°); deviation at the solved compass heading is 2°W (−2°).</p><p>M = 002° − (+5°) = −3° → <strong>357°M</strong></p><p>C = 357° − (−2°) = 359° → <strong>359°C</strong>. Confirm −2° deviation at 359°C on the card.</p></CardContent></Card>
     </div>
-    <aside className="rounded-lg border bg-muted/30 p-4"><h3 className="font-semibold">Courses and bearings</h3><p>A <strong>course or heading</strong> is the direction the vessel is intended to travel or is pointing. A <strong>bearing</strong> is the direction from the observer to an object. Both may be true, magnetic, or compass, so label every value (for example 090°T bearing or 090°C course) and convert like-for-like before comparing them.</p></aside>
+    <aside className="rounded-lg border bg-muted/30 p-4 space-y-2"><h3 className="font-semibold">Headings, courses and bearings are different</h3><p>A <strong>heading</strong> is the direction in which the vessel’s bow points. A <strong>course</strong> is a direction of travel; when planning, the <strong>course to steer</strong> is the direction the helm should maintain to achieve the intended track after allowing for effects such as current and leeway. <strong>Course made good</strong> is the actual direction of travel over the ground between two positions.</p><p>Wind and current can make the plotted or intended course, course to steer, course made good, and compass heading different values. A deviation card is indexed only by the vessel’s <strong>compass heading</strong>: never substitute a plotted course, course to steer, or course made good when reading it.</p><p>A <strong>bearing</strong> is the direction from the observer to an object. Headings, courses, and bearings may each use true, magnetic, or compass reference, so label every value and convert like-for-like before comparing them.</p></aside>
   </section>
 
   <section aria-labelledby="sources-heading" className="space-y-2 text-sm">
     <h2 id="sources-heading" className="text-xl font-semibold">Authoritative sources</h2>
-    <p>Accessed 9 August 2026. NOAA states that chart compass roses show their date, magnetic variation and annual change. MCA guidance requires a residual-deviation table or curve, regular checks, and adjustment after changes that can affect magnetism.</p>
+    <p>Accessed 9 August 2026. NOAA Coast Pilot 1, revision 02 August 2026, paragraphs 134–135 states that chart compass roses show their date, magnetic variation and annual change. The Coast Pilot is updated weekly, so verify the displayed revision when following the link. MCA guidance requires a residual-deviation table or curve, regular checks, and adjustment after changes that can affect magnetism.</p>
     <ul className="list-disc pl-5">{COMPASS_SOURCES.map((source) => <li key={source.href}><a className="text-primary underline underline-offset-4" href={source.href} target="_blank" rel="noreferrer">{source.label}</a></li>)}</ul>
   </section>
 </div>;

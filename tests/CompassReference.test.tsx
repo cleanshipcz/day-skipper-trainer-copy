@@ -11,12 +11,17 @@ describe("CompassReference", () => {
     expect(screen.getByText((_, node) => node?.tagName === "P" && /east is positive \(\+\), west is negative/i.test(node.textContent ?? ""))).toBeDefined();
   });
 
-  it("contains both conversion directions, wraparound, and course/bearing definitions", () => {
+  it("contains both conversion directions, wraparound, and separate navigation definitions", () => {
     render(<CompassReference />);
     expect(screen.getByRole("heading", { name: /Worked C→M→T/ })).toBeDefined();
     expect(screen.getByRole("heading", { name: /Worked T→M→C/ })).toBeDefined();
     expect(screen.getAllByText(/−3° →/)).toHaveLength(2);
-    expect(screen.getByText((_, node) => node?.tagName === "P" && /course or heading/i.test(node.textContent ?? ""))).toBeDefined();
+    expect(screen.queryByText(/course or heading/i)).toBeNull();
+    expect(screen.getByText((_, node) => node?.tagName === "P" && /heading.*direction in which the vessel’s bow points/i.test(node.textContent ?? ""))).toBeDefined();
+    expect(screen.getByText((_, node) => node?.tagName === "P" && /course to steer.*direction the helm should maintain/i.test(node.textContent ?? ""))).toBeDefined();
+    expect(screen.getByText((_, node) => node?.tagName === "P" && /Course made good.*actual direction of travel over the ground/i.test(node.textContent ?? ""))).toBeDefined();
+    expect(screen.getByText((_, node) => node?.tagName === "P" && /Wind and current.*compass heading different values/i.test(node.textContent ?? ""))).toBeDefined();
+    expect(screen.getByText((_, node) => node?.tagName === "P" && /deviation card is indexed only.*compass heading.*never substitute/i.test(node.textContent ?? ""))).toBeDefined();
     expect(screen.getByText((_, node) => node?.tagName === "P" && /bearing.*direction from the observer to an object/i.test(node.textContent ?? ""))).toBeDefined();
   });
 
@@ -28,5 +33,7 @@ describe("CompassReference", () => {
       expect(screen.getByRole("link", { name: source.label }).getAttribute("href")).toBe(source.href);
       expect(source.label).toMatch(/20\d{2}/);
     }
+    expect(screen.getByRole("link", { name: /NOAA.*revision 02 August 2026.*paragraphs 134–135/ })).toBeDefined();
+    expect(screen.getByText(/Accessed 9 August 2026.*revision 02 August 2026.*paragraphs 134–135/i)).toBeDefined();
   });
 });
