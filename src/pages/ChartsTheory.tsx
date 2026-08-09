@@ -91,15 +91,15 @@ const ChartsTheory = () => {
 
                 <h3 className="text-xl font-semibold text-slate-900 mt-6">The Mercator Projection</h3>
                 <p>
-                  Most nautical charts use the <strong>Mercator Projection</strong>. Imagine a light bulb in the center
-                  of the Earth projecting the continents onto a cylinder wrapped around the Equator. Use this
-                  projection, and <strong>Latitudes</strong> and <strong>Longitudes</strong> become straight lines
-                  intersecting at 90°.
+                  Mercator is the normal projection for many nautical charts. It is a mathematical transformation,
+                  not a perspective view made by shining a light through the Earth. On its graticule, meridians and
+                  parallels are straight and cross at right angles; meridians are parallel on the chart even though
+                  they converge on the globe.
                 </p>
                 <p className="border-l-4 border-blue-200 pl-4 italic text-slate-600">
-                  This distortion means that landmasses near the poles look much larger than they are. However, it
-                  preserves <strong>Direction</strong> (bearings are straight lines) and strictly defines{" "}
-                  <strong>Distance</strong> via the Latitude scale.
+                  Mercator preserves local angles, so a constant-direction rhumb line plots straight. It does not make
+                  every straight line the shortest route. Scale increases toward the poles, so use the latitude scale
+                  beside the area being measured; high-latitude shapes and distances are increasingly distorted.
                 </p>
 
                 <div className="grid md:grid-cols-2 gap-8 my-8">
@@ -108,19 +108,18 @@ const ChartsTheory = () => {
                       <ArrowLeft className="w-4 h-4 rotate-90" /> The Parallel of Latitude
                     </h4>
                     <p className="text-sm">
-                      Horizontal lines that run East-West parallel to the Equator. They never touch.
+                      Parallels run east-west. They are farther apart toward the poles on a Mercator chart, although
+                      latitude is measured in the same angular degrees and minutes everywhere.
                     </p>
                     <ul className="list-disc list-inside text-sm font-medium text-blue-900 bg-blue-50 p-3 rounded">
                       <li>
-                        They are <strong>Equidistant</strong> everywhere on Earth.
+                        1 degree (°) = 60 minutes (′).
                       </li>
-                      <li>1 Degree (°) = 60 Minutes (').</li>
-                      <li>
-                        <strong>1 Minute of Latitude = 1 Nautical Mile (1852m).</strong>
-                      </li>
+                      <li>A nautical mile is defined as exactly 1,852 metres.</li>
+                      <li>For practical chartwork, 1 minute of latitude represents approximately 1 NM.</li>
                     </ul>
                     <p className="text-sm font-bold text-red-600">
-                      Therefore, ALWAYS use the vertical Latitude scale on the side of the chart to measure DISTANCE.
+                      Measure a short distance on the latitude scale beside the same latitude as the route.
                     </p>
                   </div>
 
@@ -129,15 +128,16 @@ const ChartsTheory = () => {
                       <ArrowLeft className="w-4 h-4" /> The Meridian of Longitude
                     </h4>
                     <p className="text-sm">
-                      Vertical lines that run North-South and converge at the Poles (like segments of an orange).
+                      Meridians run north-south. They converge on the globe, but plot as parallel, equally spaced
+                      vertical lines on a Mercator graticule.
                     </p>
                     <ul className="list-disc list-inside text-sm font-medium text-slate-700 bg-slate-50 p-3 rounded">
-                      <li>They get closer together as you go North.</li>
-                      <li>1 Minute of Longitude is NOT a Nautical Mile (except at the Equator).</li>
+                      <li>One minute of longitude covers less ground as latitude increases.</li>
+                      <li>Do not transfer a distance to the longitude border.</li>
                     </ul>
                     <p className="text-sm font-bold text-slate-500">
-                      NEVER use the horizontal Longitude scale to measure distance. It is only for defining Position
-                      (East/West).
+                      Longitude identifies east/west position; the nearby latitude border supplies the local distance
+                      scale.
                     </p>
                   </div>
                 </div>
@@ -157,7 +157,7 @@ const ChartsTheory = () => {
                         the chart roughly inline with the area you are working.
                       </li>
                       <li>
-                        Read off the minutes. <strong>1 Minute = 1 Mile</strong>.
+                        Read the latitude minutes locally: <strong>1′ is approximately 1 NM</strong> for chartwork.
                       </li>
                     </ol>
                   </CardContent>
@@ -211,11 +211,11 @@ const ChartsTheory = () => {
               </div>
 
               <div className="prose max-w-none text-slate-700 space-y-4">
-                <h3 className="text-xl font-semibold text-slate-900">The Tale of Two Datums</h3>
+                <h3 className="text-xl font-semibold text-slate-900">Read Every Datum from the Chart</h3>
                 <p>
-                  On a chart, we can't just use one "Zero" level because the sea level is constantly changing.
-                  Therefore, nautical charts use <strong>two different reference levels (Datums)</strong> to keep you
-                  safe.
+                  A chart can use different reference planes for depths, drying heights, land and light elevations,
+                  and overhead clearances. Read the title, notes and legend: never assume that Chart Datum is LAT or
+                  that every height or clearance is referred to MHWS.
                 </p>
 
                 <div className="grid md:grid-cols-2 gap-8 my-8">
@@ -225,16 +225,18 @@ const ChartsTheory = () => {
                       <CardTitle className="text-blue-800 flex items-center gap-2">
                         <Anchor className="w-5 h-5" /> Chart Datum (CD)
                       </CardTitle>
-                      <CardDescription className="text-blue-600 font-medium">"The Safety Datum"</CardDescription>
+                      <CardDescription className="text-blue-600 font-medium">Reference for depths and drying heights</CardDescription>
                     </CardHeader>
                     <CardContent className="space-y-3 text-sm text-slate-700">
                       <p>
-                        <strong>What is it?</strong> The level of <em>Lowest Astronomical Tide (LAT)</em>. The tide will
-                        almost NEVER fall below this level.
+                        <strong>What is it?</strong> The chart's stated reference plane. IHO guidance recommends LAT or
+                        a close equivalent in many tidal waters, but local policy or non-tidal conditions may use a
+                        different datum, including MSL.
                       </p>
                       <p>
-                        <strong>Why use it?</strong> It frames the "Worst Case Scenario". If the chart says 5m depth,
-                        you are practically guaranteed 5m of water even at low tide.
+                        <strong>What it does not mean:</strong> A charted sounding is not guaranteed water. Tide
+                        predictions exclude weather effects, while pressure, wind and waves can lower levels. Survey
+                        age/quality, seabed change, vessel motion and calculation uncertainty also require margins.
                       </p>
                       <ul className="list-disc list-inside bg-white p-3 rounded border border-blue-100 shadow-sm">
                         <li>
@@ -242,7 +244,7 @@ const ChartsTheory = () => {
                         </li>
                         <li>
                           <strong>Drying Heights:</strong> Features that get wet and dry (rocks, banks). Height is
-                          measured UP from CD. shown as <u>underlined</u> figures.
+                          measured UP from CD and normally printed as <u>underlined</u> figures.
                         </li>
                       </ul>
                     </CardContent>
@@ -252,26 +254,29 @@ const ChartsTheory = () => {
                   <Card className="border-l-4 border-l-orange-500 bg-orange-50/50">
                     <CardHeader className="pb-2">
                       <CardTitle className="text-orange-800 flex items-center gap-2">
-                        <Mountain className="w-5 h-5" /> Height Datum (MHWS)
+                        <Mountain className="w-5 h-5" /> Elevation & Clearance Datums
                       </CardTitle>
-                      <CardDescription className="text-orange-600 font-medium">"The Clearance Datum"</CardDescription>
+                      <CardDescription className="text-orange-600 font-medium">Check the charted reference plane</CardDescription>
                     </CardHeader>
                     <CardContent className="space-y-3 text-sm text-slate-700">
                       <p>
-                        <strong>What is it?</strong> Usually <em>Mean High Water Springs (MHWS)</em>. A high average
-                        tide level.
+                        <strong>Elevations:</strong> Land and light heights are normally referred to a stated
+                        high-water datum such as MHWS, MHHW or HAT. Geographic light range also depends on observer
+                        height and Earth curvature; luminous range depends on intensity and visibility.
                       </p>
                       <p>
-                        <strong>Why use it?</strong> It ensures you don't hit your mast. If a bridge has 20m clearance,
-                        that is calculated at a High Tide. At low tide, you will have <em>more</em> room.
+                        <strong>Clearances:</strong> IHO recommends HAT or an accepted equivalent for vertical
+                        clearances, but the adopted datum is stated in the chart title. Determine the predicted water
+                        level relative to that same datum before adjusting a charted bridge or cable clearance.
                       </p>
                       <ul className="list-disc list-inside bg-white p-3 rounded border border-orange-100 shadow-sm">
                         <li>
-                          <strong>Vertical Clearances:</strong> Bridges/Power lines. Measured DOWN from MHWS.
+                          <strong>Never mix datums:</strong> Convert or use published differences before combining
+                          figures referred to different planes.
                         </li>
                         <li>
-                          <strong>Light Heights:</strong> Lighthouses. Measured UP from MHWS (so you know when you can
-                          see them).
+                          <strong>Keep a margin:</strong> Include tide/weather uncertainty, vessel motion and a safe
+                          air-draught allowance; never treat the printed clearance as a guarantee.
                         </li>
                       </ul>
                     </CardContent>
@@ -284,15 +289,33 @@ const ChartsTheory = () => {
                     <h4 className="text-xl font-bold">The Skipper's Formula</h4>
                   </div>
                   <p className="text-slate-300">
-                    To find out how much water you ACTUALLY have under your keel at any specific time:
+                    Estimate water depth only after confirming that both terms use the same Chart Datum:
                   </p>
                   <div className="font-mono text-xl text-center bg-slate-800 p-4 rounded border border-slate-600">
-                    Actual Depth = Charted Depth + Height of Tide
+                    Estimated depth = charted sounding + predicted height of tide above CD
                   </div>
                   <p className="text-sm text-slate-400 italic text-center">
-                    (If it's a Drying Height, you SUBTRACT it from the Height of Tide)
+                    For a drying height, water over the feature = height of tide − drying height; a negative result
+                    means the feature is exposed by that amount.
                   </p>
                 </div>
+
+                <Card className="border-emerald-300 bg-emerald-50/40">
+                  <CardHeader>
+                    <CardTitle>Worked chart-use procedure: depth and under-keel clearance</CardTitle>
+                  </CardHeader>
+                  <CardContent className="space-y-3 text-sm text-slate-700">
+                    <ol className="list-decimal list-inside space-y-2">
+                      <li>Check the chart title, edition/corrections, scale, sounding units, CD note, cautions and survey quality.</li>
+                      <li>At the planned position, read a <strong>3.2 m</strong> sounding and confirm soundings are metres below CD.</li>
+                      <li>From the applicable tide table/curve, interpolate the time between printed values: predicted height is <strong>1.4 m above the same CD</strong>. Apply any published secondary-port correction.</li>
+                      <li>Estimated depth: <strong>3.2 m + 1.4 m = 4.6 m</strong>. Check that adding a positive tide height must produce a plausible value deeper than the charted sounding.</li>
+                      <li>For draught <strong>2.0 m</strong>, allow <strong>0.3 m</strong> squat, <strong>0.2 m</strong> wave/heel response and a <strong>0.5 m</strong> policy margin: usable UKC = 4.6 − 2.0 − 0.3 − 0.2 − 0.5 = <strong>1.6 m</strong>.</li>
+                      <li>Compare with the vessel/operator minimum. Recheck the route for shallower soundings, drying dangers, contours and recent notices; delay or reroute if any input or margin is doubtful.</li>
+                    </ol>
+                    <p className="font-medium text-emerald-900">Predictions are estimates, not observations. Verify actual conditions and maintain a margin appropriate to the vessel, weather, survey quality and consequences of grounding.</p>
+                  </CardContent>
+                </Card>
 
                 <div className="mt-12 space-y-4">
                   <h3 className="text-xl font-bold flex items-center gap-2">
@@ -320,52 +343,41 @@ const ChartsTheory = () => {
               <div className="prose max-w-none text-slate-700 space-y-4">
                 <h3 className="text-xl font-semibold text-slate-900">Reading the Language of the Sea</h3>
                 <p>
-                  Admiralty Charts use a standardized set of symbols (defined in publication <strong>Chart 5011</strong>
-                  ). While there are thousands of symbols, they follow a logical colour scheme designed to be read under
-                  red light at night.
+                  Use the chart's own legend and the current symbol catalogue: IHO <strong>INT 1, edition 8 (2020)</strong>
+                  and the relevant national equivalent (for UKHO charts, Chart 5011). Colour is supporting information,
+                  not a substitute for contours, symbols, abbreviations and notes.
                 </p>
 
                 <h4 className="font-bold text-lg mt-6">The 4-Colour Palette</h4>
                 <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 my-6">
                   <div className="p-4 bg-[#f2e8be] border border-stone-300 rounded shadow-sm">
                     <span className="font-bold text-stone-800 block mb-1">YELLOW</span>
-                    <p className="text-xs text-stone-700">Land. Always dry.</p>
-                    <div className="mt-2 text-xs italic text-stone-600">"If it's yellow, you can walk on it."</div>
+                    <p className="text-xs text-stone-700">A usual land tint; grey may also be used. Inspect symbols and notes.</p>
                   </div>
                   <div className="p-4 bg-[#1d9c60] text-white rounded shadow-sm">
                     <span className="font-bold block mb-1">GREEN</span>
-                    <p className="text-xs opacity-90">Drying Areas.</p>
-                    <div className="mt-2 text-xs italic opacity-80">"Wet at high tide, dry at low tide."</div>
+                    <p className="text-xs opacity-90">Common intertidal overprint; confirm limits, drying figures and symbols.</p>
                   </div>
                   <div className="p-4 bg-[#b2d3f0] border border-blue-300 rounded shadow-sm">
                     <span className="font-bold text-blue-900 block mb-1">BLUE</span>
-                    <p className="text-xs text-blue-800">Shallow Water.</p>
+                    <p className="text-xs text-blue-800">A shallow-water tint whose limiting contour varies.</p>
                     <div className="mt-2 text-xs italic text-blue-700">
-                      Usually &lt;5m depth (check the contour line!).
+                      Read the chart's depth contours and units.
                     </div>
                   </div>
                   <div className="p-4 bg-white border border-slate-200 rounded shadow-sm">
                     <span className="font-bold text-slate-900 block mb-1">WHITE</span>
-                    <p className="text-xs text-slate-600">Deep Water.</p>
-                    <div className="mt-2 text-xs italic text-slate-500">Kept white so text/courses are legible.</div>
+                    <p className="text-xs text-slate-600">Untinted water is not a promise of sufficient depth.</p>
+                    <div className="mt-2 text-xs italic text-slate-500">Check soundings, contours and hazards.</div>
                   </div>
                 </div>
 
-                <h4 className="font-bold text-lg mt-6">Common Hazards & Symbols</h4>
-                <ul className="space-y-2 text-sm bg-slate-50 p-4 rounded border border-slate-200">
-                  <li className="flex gap-2 items-start">
-                    <strong className="min-w-[4rem]">Star:</strong>
-                    <span>A navigational light/lighthouse. The magenta "flare" shows it is lit.</span>
-                  </li>
-                  <li className="flex gap-2 items-start">
-                    <strong className="min-w-[4rem]">Diamond:</strong>
-                    <span>A buoy (Beacon). The shape/colour tells you its purpose (Cardinal, Lateral).</span>
-                  </li>
-                  <li className="flex gap-2 items-start">
-                    <strong className="min-w-[4rem]">+</strong>
-                    <span>A dangerous rock (submerged).</span>
-                  </li>
-                </ul>
+                <p className="text-sm bg-slate-50 p-4 rounded border border-slate-200">
+                  There is no dependable generic “star”, “diamond” or “+” shortcut. Floating buoys and fixed beacons
+                  use different symbol families; rocks, wrecks and lights have variants whose exact form, colour,
+                  surrounding danger line and accompanying attributes matter. Identify the complete symbol in INT 1 or
+                  Chart 5011 before making a navigation decision.
+                </p>
 
                 <div className="mt-8 space-y-4">
                   <h3 className="text-xl font-bold">Chart Symbol Quiz</h3>
@@ -375,6 +387,15 @@ const ChartsTheory = () => {
                   </p>
                   <ChartSymbolQuiz />
                 </div>
+
+                <aside className="mt-10 border-t pt-4 text-sm text-slate-600" aria-label="Authoritative references">
+                  <h4 className="font-bold text-slate-900">Authoritative references (checked August 2026)</h4>
+                  <ul className="list-disc list-inside space-y-1">
+                    <li><a className="underline" href="https://iho.int/uploads/user/pubs/standards/s-4/S-4%20Ed%204.10.0_FINAL.pdf" target="_blank" rel="noreferrer">IHO S-4, edition 4.10.0 (March 2026)</a>: B-203, B-302, B-380, B-405, B-411 and B-412.</li>
+                    <li><a className="underline" href="https://iho.int/standards-and-specifications" target="_blank" rel="noreferrer">IHO Standards and Specifications</a>: INT 1, edition 8 (2020).</li>
+                    <li><a className="underline" href="https://assets.publishing.service.gov.uk/media/69973732bfdab2546272c016/OOW_-_500GT_NC_-_Chart-work_and_Practical_Navigation_-_Revised_Nov_24.pdf" target="_blank" rel="noreferrer">MCA chartwork and practical-navigation syllabus, revised November 2024</a>.</li>
+                  </ul>
+                </aside>
               </div>
             </section>
           </TabsContent>
