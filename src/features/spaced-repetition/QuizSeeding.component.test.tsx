@@ -44,6 +44,7 @@ const renderQuiz = () => render(
 describe("quiz review seeding identity isolation", () => {
   beforeEach(() => {
     localStorage.clear();
+    sessionStorage.clear();
     mocks.auth.user = { id: "a" };
     mocks.questions = [{ id: "a1", question: "Question?", options: ["Wrong", "Right"], correctAnswer: 1, explanation: "Why." }];
     mocks.loadProgress.mockReset().mockResolvedValue(null);
@@ -292,5 +293,51 @@ describe("quiz review seeding identity isolation", () => {
     const restarted = await screen.findByRole("radio", { name: "Right" }) as HTMLInputElement;
     await waitFor(() => expect(restarted.checked).toBe(false));
     expect(mocks.loadProgress).toHaveBeenCalledTimes(loadsBeforeRestart);
+  });
+
+  test("resumes an anonymous attempt after reload without remote persistence", async () => {
+    mocks.auth.user = null;
+    const first = renderQuiz();
+    fireEvent.click(await screen.findByRole("radio", { name: "Right" }));
+    fireEvent.click(screen.getByRole("button", { name: "Submit Answer" }));
+    await waitFor(() => expect(sessionStorage.getItem("quiz-anonymous-session-v1:test")).toContain('"questionId":"a1"'));
+    expect(screen.getAllByRole("status")).toHaveLength(1);
+    expect(screen.getByText(/anonymous progress is kept/i).getAttribute("aria-live")).toBe("polite");
+    const stored = sessionStorage.getItem("quiz-anonymous-session-v1:test") ?? "";
+    expect(stored).not.toContain("Question?");
+    expect(stored).not.toContain("Why.");
+    expect(stored).not.toContain('"owner"');
+    expect(mocks.saveProgress).not.toHaveBeenCalled();
+    first.unmount();
+
+    renderQuiz();
+    expect(await screen.findByText("Practice attempt resumed for this browser session.")).toBeTruthy();
+    expect(screen.getByText("Why.")).toBeTruthy();
+    fireEvent.click(screen.getByRole("button", { name: "View Results" }));
+    expect(await screen.findByText("Quiz Complete!")).toBeTruthy();
+    expect(sessionStorage.getItem("quiz-anonymous-session-v1:test")).toBeNull();
+    expect(mocks.rpc.mock.calls.some(([name]) => name === "submit_quiz_score")).toBe(false);
+  });
+
+  test("discards anonymous progress on sign-in instead of promoting it to a score", async () => {
+    mocks.auth.user = null;
+    const view = renderQuiz();
+    fireEvent.click(await screen.findByRole("radio", { name: "Right" }));
+    fireEvent.click(screen.getByRole("button", { name: "Submit Answer" }));
+    await waitFor(() => expect(sessionStorage.getItem("quiz-anonymous-session-v1:test")).not.toBeNull());
+    sessionStorage.setItem("quiz-anonymous-session-v1:weather", JSON.stringify({ unrelated: "anonymous quiz" }));
+
+    mocks.auth.user = { id: "a" };
+    view.rerender(<MemoryRouter initialEntries={["/quiz/test"]}><Routes><Route path="/quiz/:topicId" element={<Quiz />} /></Routes></MemoryRouter>);
+    await waitFor(() => expect(sessionStorage.getItem("quiz-anonymous-session-v1:test")).toBeNull());
+    expect(sessionStorage.getItem("quiz-anonymous-session-v1:weather")).toBeNull();
+    await waitFor(() => expect(mocks.rpc).toHaveBeenCalledWith("start_quiz_attempt", { p_topic_id: "test" }));
+    expect(mocks.rpc.mock.calls.some(([name]) => name === "submit_quiz_score")).toBe(false);
+    expect(mocks.saveProgress.mock.calls.some((call) => call[1] === true)).toBe(false);
+
+    mocks.auth.user = null;
+    view.rerender(<MemoryRouter initialEntries={["/quiz/test"]}><Routes><Route path="/quiz/:topicId" element={<Quiz />} /></Routes></MemoryRouter>);
+    await waitFor(() => expect(screen.queryByText("Practice attempt resumed for this browser session.")).toBeNull());
+    expect((screen.getByRole("radio", { name: "Right" }) as HTMLInputElement).checked).toBe(false);
   });
 });
