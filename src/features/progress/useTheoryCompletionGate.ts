@@ -83,8 +83,7 @@ export const useTheoryCompletionGate = ({
   }, [catalogueRevision, requiredSectionIds, saveProgress, saveProgressDetailed, topicId]);
 
   useEffect(() => {
-    if (!storageKey) return;
-    const hydrationKey = `${ownerId ?? "anonymous"}:${topicId}:${catalogueRevision}`;
+    const hydrationKey = `${ownerId ?? "anonymous"}:${topicId}:${catalogueRevision ?? "legacy"}`;
     if (hydrationKeyRef.current === hydrationKey) return;
     hydrationKeyRef.current = hydrationKey;
     const generation = ++hydrationGenerationRef.current;
@@ -94,6 +93,7 @@ export const useTheoryCompletionGate = ({
     visitedRef.current = [];
     setVisitedSectionIds([]);
     setSaveState("idle");
+    if (!storageKey) return;
     const restore = async () => {
       let restored: string[] = [];
       let locallyCompleted = false;

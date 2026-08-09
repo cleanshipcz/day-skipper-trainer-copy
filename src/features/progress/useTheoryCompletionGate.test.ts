@@ -478,6 +478,63 @@ describe("useTheoryCompletionGate", () => {
     expect(localStorage.getItem(`theory-gate:owner-a:${topicId}:v1:completion`)).toBeNull();
   });
 
+  it("aborts a legacy old-owner completion before RPC and lets the new owner complete independently", async () => {
+    mocks.ownerId = "owner-a";
+    const { result, rerender } = renderHook(() => useTheoryCompletionGate({ topicId, requiredSectionIds: ["s1", "s2"] }));
+    await act(async () => {});
+    let releaseEvidence!: () => void;
+    mocks.saveProgress.mockClear();
+    mocks.saveProgress.mockImplementationOnce(() => new Promise(resolve => { releaseEvidence = () => resolve("remote"); })).mockResolvedValue("remote");
+    let evidenceA!: Promise<"failed" | void>;
+    let finalEvidenceA!: Promise<"failed" | void>;
+    let completionA!: Promise<boolean>;
+    act(() => { evidenceA = result.current.markSectionVisited("s1"); finalEvidenceA = result.current.markSectionVisited("s2"); });
+    await waitFor(() => expect(mocks.saveProgress).toHaveBeenCalledTimes(1));
+    act(() => { completionA = result.current.markCompleted(); });
+
+    mocks.ownerId = "owner-b";
+    rerender();
+    await waitFor(() => expect(result.current.visitedSectionIds).toEqual([]));
+    await act(async () => { releaseEvidence(); await Promise.all([evidenceA, finalEvidenceA]); expect(await completionA).toBe(false); });
+    expect(mocks.saveProgress.mock.calls.filter((call) => call[1] === true)).toHaveLength(0);
+
+    await act(async () => { await result.current.markSectionVisited("s1"); await result.current.markSectionVisited("s2"); });
+    await act(async () => { expect(await result.current.markCompleted()).toBe(true); });
+    expect(mocks.saveProgress.mock.calls.filter((call) => call[1] === true)).toHaveLength(1);
+    expect(result.current.saveState).toBe("saved");
+  });
+
+  it("ignores a late legacy old-owner completion result without mutating or blocking the new owner", async () => {
+    mocks.ownerId = "owner-a";
+    const { result, rerender } = renderHook(() => useTheoryCompletionGate({ topicId, requiredSectionIds: ["s1"] }));
+    await act(async () => {});
+    let releaseCompletionA!: () => void;
+    let delayed = false;
+    mocks.saveProgress.mockClear();
+    mocks.saveProgress.mockImplementation((_topic, completed) => {
+      if (completed && !delayed) {
+        delayed = true;
+        return new Promise(resolve => { releaseCompletionA = () => resolve("failed"); });
+      }
+      return Promise.resolve("remote");
+    });
+    await act(async () => { await result.current.markSectionVisited("s1"); });
+    let completionA!: Promise<boolean>;
+    act(() => { completionA = result.current.markCompleted(); });
+    await waitFor(() => expect(mocks.saveProgress.mock.calls.filter((call) => call[1] === true)).toHaveLength(1));
+
+    mocks.ownerId = "owner-b";
+    rerender();
+    await waitFor(() => expect(result.current.saveState).toBe("idle"));
+    await act(async () => { await result.current.markSectionVisited("s1"); });
+    await act(async () => { expect(await result.current.markCompleted()).toBe(true); });
+    expect(result.current.saveState).toBe("saved");
+    expect(mocks.saveProgress.mock.calls.filter((call) => call[1] === true)).toHaveLength(2);
+
+    await act(async () => { releaseCompletionA(); expect(await completionA).toBe(false); });
+    expect(result.current.saveState).toBe("saved");
+  });
+
   it("ignores non-catalogue section IDs without producing evidence or a save", async () => {
     const { result } = renderHook(() => useTheoryCompletionGate({ topicId, requiredSectionIds, catalogueRevision: "v1" }));
     await act(async () => {});
