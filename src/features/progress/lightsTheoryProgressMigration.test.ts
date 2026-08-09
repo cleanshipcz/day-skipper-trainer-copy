@@ -50,6 +50,7 @@ describe("revisioned Lights theory progress migration", () => {
     expect(hardenedSql).toContain("count(distinct evidence_id)::integer");
     expect(hardenedSql).toContain("p_score is distinct from v_expected_score");
     expect(hardenedSql).toContain("p_completed is distinct from (v_evidence_count = 3)");
+    expect(hardenedSql).toContain("is distinct from (case when p_completed then 'completed' else 'in_progress' end)");
   });
 
   it("preserves full completed evidence against delayed incomplete replay", () => {

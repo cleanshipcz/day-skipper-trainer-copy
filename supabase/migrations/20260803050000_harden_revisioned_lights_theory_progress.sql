@@ -54,7 +54,7 @@ begin
   if jsonb_typeof(p_answers_history) <> 'object'
      or pg_column_size(p_answers_history) > 4096
      or p_answers_history ->> 'catalogueRevision' is distinct from 'colregs-parts-c-d-annex-iv-v1'
-     or p_answers_history ->> 'completionState' is distinct from case when p_completed then 'completed' else 'in_progress' end
+     or p_answers_history ->> 'completionState' is distinct from (case when p_completed then 'completed' else 'in_progress' end)
      or jsonb_typeof(p_answers_history -> 'visitedSectionIds') is distinct from 'array' then
     raise exception 'Invalid lights theory evidence' using errcode = '22023';
   end if;
