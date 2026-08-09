@@ -91,42 +91,42 @@ const victuallingQuestions: readonly Question[] = [
   },
   {
     id: "v10",
-    question: "What is the main risk of using gas appliances for cooking at sea?",
+    question: "What should you do if LPG is detected or suspected aboard?",
     options: [
-      "They are too slow",
-      "Gas is heavier than air and collects in the bilge, creating an explosion risk",
-      "They require too much ventilation",
-      "Gas runs out too quickly",
+      "Operate the bilge pump immediately",
+      "Avoid switches, engines and flames; isolate only if safe, evacuate or ventilate from outside, and follow the vessel procedure",
+      "Search every joint with a match",
+      "Continue cooking until the cylinder is empty",
     ],
     correctAnswer: 1,
     explanation:
-      "LPG is heavier than air and sinks to the bilge. A leak can create an explosive atmosphere. Always turn off gas at the bottle when not in use.",
+      "LPG can collect low and ignite. Avoid ignition sources, follow the vessel's emergency and isolation procedure, and do not reuse the system until a competent person has made it safe.",
   },
   {
     id: "v11",
-    question: "What is the purpose of gimballing a stove on a sailing yacht?",
+    question: "When is a gimballed stove appropriate underway?",
     options: [
       "To save space",
-      "To keep pots level as the boat heels",
+      "When its locks and pot restraints are used as designed and conditions allow safe attended cooking",
       "To make the stove lighter",
       "To improve gas efficiency",
     ],
     correctAnswer: 1,
     explanation:
-      "A gimballed stove swings to remain level as the boat heels, preventing pots from sliding and spilling hot liquids.",
+      "Gimbals can help keep pots level, but they do not make every condition safe. Use designed locks and restraints, attend the flame, and choose prepared no-cook food when motion makes cooking hazardous.",
   },
   {
     id: "v12",
-    question: "Why should the cook wear oilskin trousers in rough weather?",
+    question: "What is the safest way to prevent galley scalds when conditions deteriorate?",
     options: [
-      "To stay dry from spray on deck",
-      "To protect against scalds from spilling hot liquids",
-      "It is a uniform requirement",
-      "To keep warm in the galley",
+      "Rely on ordinary waterproof trousers",
+      "Stop unsafe cooking; otherwise use lids, designed restraints and locks, secure handholds and keep people clear",
+      "Hold an open pan by hand",
+      "Keep cooking but add more crew to the galley",
     ],
     correctAnswer: 1,
     explanation:
-      "Oilskin trousers protect the cook's legs against scalds from hot liquids spilling in rough conditions.",
+      "Eliminate the hazard first: switch to prepared no-cook food when motion makes cooking unsafe. In manageable conditions use lids, designed pot restraints and gimbal locks, secure handholds and an exclusion area. Ordinary oilskins are not scald PPE; use only manufacturer-rated protective equipment where the task and instructions call for it.",
   },
   {
     id: "v13",

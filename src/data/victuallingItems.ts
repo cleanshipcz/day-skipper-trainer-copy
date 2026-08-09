@@ -15,7 +15,7 @@ const checklistItemSchema = z.object({
   quantity: text,
 }).strict();
 
-export const VICTUALLING_CATEGORY_ORDER = ["Food", "Safety", "Galley", "Personal"] as const;
+export const VICTUALLING_CATEGORY_ORDER = ["Food", "Galley"] as const;
 const categoryRank = new Map<string, number>(VICTUALLING_CATEGORY_ORDER.map((category, index) => [category, index]));
 
 /**
@@ -50,19 +50,11 @@ const rawChecklistData = [
   { id: "f3", category: "Food", item: "Snacks & energy food", quantity: "Choose portions for workload" },
   { id: "f4", category: "Food", item: "Drinks", quantity: "Record crew choices and water use" },
   { id: "f5", category: "Food", item: "Fresh produce", quantity: "Choose for climate and storage life" },
-  { id: "s1", category: "Safety", item: "First aid kit", quantity: "Complete kit" },
-  { id: "s2", category: "Safety", item: "Seasickness medication", quantity: "Record crew-specific requirement" },
-  { id: "s3", category: "Safety", item: "Sunscreen & lip balm", quantity: "High SPF" },
-  { id: "s4", category: "Safety", item: "Emergency flares", quantity: "In date" },
   { id: "g1", category: "Galley", item: "Cooking gas/fuel", quantity: "Calculate consumption and usable capacity" },
   { id: "g2", category: "Galley", item: "Matches/lighter", quantity: "Waterproof" },
   { id: "g3", category: "Galley", item: "Dishwashing supplies", quantity: "Eco-friendly" },
   { id: "g4", category: "Galley", item: "Trash bags", quantity: "Set count from meal and waste plan" },
   { id: "g5", category: "Galley", item: "Paper towels & cloths", quantity: "Set reusable/disposable count" },
-  { id: "p1", category: "Personal", item: "Warm clothing layers", quantity: "Per person" },
-  { id: "p2", category: "Personal", item: "Waterproof gear", quantity: "Per person" },
-  { id: "p3", category: "Personal", item: "Personal medications", quantity: "As prescribed" },
-  { id: "p4", category: "Personal", item: "Toiletries", quantity: "Biodegradable" },
 ];
 
 export const checklistData = normalizeVictuallingCatalogue(rawChecklistData);
