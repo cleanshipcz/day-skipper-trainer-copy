@@ -50,6 +50,7 @@ describe("TidalPassageCalculator rendering contract", () => {
     change("chartedDepth", "0");
     expect(screen.getByText(/No usable five-minute window/)).toBeTruthy();
     expect(screen.queryByText(/^about /)).toBeNull();
+    expect(screen.queryByText(/usable displayed limits are rounded inward/)).toBeNull();
   });
 
   it("does not call a nonzero interval usable when both inward-rounded endpoints are noon", () => {
