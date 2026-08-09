@@ -6,6 +6,7 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { useTheoryCompletionGate } from "@/features/progress/useTheoryCompletionGate";
 import { TOPIC_IDS } from "@/constants/topicRegistry";
+import { ColregScenarioExercise } from "@/components/colregs/ColregScenarioExercise";
 
 export type ColregRule = { rule: number; title: string; scope: string; points: string[] };
 
@@ -117,6 +118,7 @@ const ColregTheory = () => {
         <p>For a vessel detected by radar alone, determine whether close quarters or collision risk is developing and act in ample time. If altering course, so far as possible avoid port for a vessel forward of the beam (unless overtaking) and avoid altering toward a vessel abeam or abaft the beam.</p>
         <p>Except where satisfied no risk exists, a vessel hearing apparently forward of her beam another vessel's fog signal—or unable to avoid close quarters forward of the beam—reduces to the minimum speed at which she can keep course, takes all way off if necessary, and navigates with extreme caution until danger is over.</p>
       </CardContent></Card></section>
+      <ColregScenarioExercise />
       <aside className="rounded-lg border p-4 text-sm"><p><strong>Source and version:</strong> Convention on the International Regulations for Preventing Collisions at Sea, 1972 (COLREGs), as amended, consolidated in the U.S. Coast Guard <em>Navigation Rules and Regulations Handbook</em>, August 2014, Rules 2 and 4–19. These are learning summaries, not quoted rule text. Informal phrases and mnemonics are memory aids only and have no legal force.</p></aside>
       <div className="flex justify-center pt-8"><Button size="lg" disabled={!canComplete} onClick={async () => { await markCompleted(); navigate("/rules-of-the-road"); }}>{canComplete ? "Complete Module" : "Scroll through module to complete"}</Button></div>
     </main>
