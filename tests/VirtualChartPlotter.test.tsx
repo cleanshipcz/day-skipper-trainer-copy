@@ -70,14 +70,40 @@ describe("VirtualChartPlotter access paths", () => {
     render(<VirtualChartPlotter />);
     const svg = screen.getByRole("img");
     Object.defineProperty(svg, "getBoundingClientRect", { value: () => ({ left: 0, top: 0, width: 500, height: 300, right: 500, bottom: 300, x: 0, y: 0, toJSON() {} }) });
+    expect(svg.classList.contains("touch-pan-y")).toBe(true);
     fireEvent.click(screen.getByRole("button", { name: /start \/ retry/i }));
     fireEvent.click(screen.getByRole("button", { name: /^distance$/i }));
+    expect(svg.classList.contains("touch-none")).toBe(true);
     fireEvent.pointerDown(svg, { clientX: 100, clientY: 100, pointerId: 2, pointerType: "touch" });
     fireEvent.pointerMove(svg, { clientX: 400, clientY: 200, pointerId: 2, pointerType: "touch" });
     fireEvent.pointerUp(svg, { clientX: 400, clientY: 200, pointerId: 2, pointerType: "touch" });
     expect(screen.getAllByText(/correct within/i).length).toBeGreaterThan(0);
     fireEvent.pointerCancel(svg, { pointerId: 2, pointerType: "touch" });
-    expect(screen.getByText(/one-finger touch always scrolls the page/i)).toBeTruthy();
+    fireEvent.click(screen.getByRole("button", { name: /^pan$/i }));
+    expect(svg.classList.contains("touch-pan-y")).toBe(true);
+    expect(screen.getByText(/switch back to Pan to resume page scrolling/i)).toBeTruthy();
+  });
+
+  it("keeps a mostly vertical touch stream through challenge 3", () => {
+    render(<VirtualChartPlotter />);
+    const submit = (value: string) => {
+      fireEvent.change(screen.getByLabelText(/equivalent nonvisual answer/i), { target: { value } });
+      fireEvent.click(screen.getByRole("button", { name: /check answer/i }));
+      fireEvent.click(screen.getByRole("button", { name: /next challenge/i }));
+    };
+    fireEvent.click(screen.getByRole("button", { name: /start \/ retry/i }));
+    submit("3.1623");
+    submit("135");
+    const svg = screen.getByRole("img");
+    Object.defineProperty(svg, "getBoundingClientRect", { value: () => ({ left: 0, top: 0, width: 500, height: 300, right: 500, bottom: 300, x: 0, y: 0, toJSON() {} }) });
+    for (let i = 0; i < 6; i += 1) fireEvent.click(screen.getByRole("button", { name: /zoom out/i }));
+    fireEvent.click(screen.getByRole("button", { name: /^distance$/i }));
+    expect(svg.classList.contains("touch-none")).toBe(true);
+    // At 2.5× view scale L4 maps to (320,240), L5 to (240,120): vertical travel exceeds horizontal.
+    fireEvent.pointerDown(svg, { clientX: 320, clientY: 240, pointerId: 7, pointerType: "touch" });
+    fireEvent.pointerMove(svg, { clientX: 240, clientY: 120, pointerId: 7, pointerType: "touch" });
+    fireEvent.pointerUp(svg, { clientX: 240, clientY: 120, pointerId: 7, pointerType: "touch" });
+    expect(screen.getAllByText(/correct within/i).length).toBeGreaterThan(0);
   });
 
   it("counts each challenge once and reports exactly 8/8 mastery", () => {
