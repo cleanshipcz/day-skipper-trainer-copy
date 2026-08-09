@@ -3,18 +3,18 @@ import type { Question } from "./types";
 const victuallingQuestions: readonly Question[] = [
   {
     id: "v1",
-    question: "How much fresh water per person per day minimum?",
-    options: ["0.5L", "1L", "2L", "4L"],
-    correctAnswer: 2,
+    question: "How should a skipper choose a drinking-water allowance?",
+    options: ["Use one universal minimum", "Use a documented rate adjusted for crew, activity, climate, and guidance", "Count tank size only", "Exclude contingency days"],
+    correctAnswer: 1,
     explanation:
-      "Minimum 2 liters per person per day for drinking, with additional water needed for cooking and washing.",
+      "A documented planning rate must be checked against crew needs, activity, climate, vessel/operator advice, and local guidance; cooking, hygiene, and emergency reserve are separate inputs.",
   },
   {
     id: "v2",
-    question: "Why provision for 50% more days than planned?",
-    options: ["Crew eats more at sea", "Weather delays", "Food spoils faster", "Always hungry"],
+    question: "How should contingency be set for a passage?",
+    options: ["Always add 50%", "Choose and justify a margin from route, forecast, diversion, delay, and resupply risks", "Never carry contingency", "Use the same margin for every vessel"],
     correctAnswer: 1,
-    explanation: "Weather delays are common at sea. Always provision for 50% more days than your planned passage.",
+    explanation: "The margin is passage-specific: document why the route, weather, diversion options, likely delay, and resupply access justify it.",
   },
   {
     id: "v3",
@@ -32,10 +32,10 @@ const victuallingQuestions: readonly Question[] = [
   },
   {
     id: "v5",
-    question: "How long do fresh vegetables typically last without refrigeration?",
-    options: ["1 day", "2-3 days", "1 week", "2 weeks"],
+    question: "How should fresh-produce quantities be planned?",
+    options: ["Assume every item lasts 2–3 days", "Match selected foods to temperature, ventilation, storage, menu, and spoilage checks", "Buy the same list for every passage", "Stow all produce sealed and wet"],
     correctAnswer: 1,
-    explanation: "Most fresh vegetables last 2-3 days without refrigeration in warm conditions. Plan accordingly.",
+    explanation: "Storage life varies by produce and conditions. Choose quantities from the passage menu and the vessel's actual temperature, ventilation, and storage limits.",
   },
   {
     id: "v6",
