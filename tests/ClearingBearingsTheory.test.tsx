@@ -9,12 +9,12 @@ vi.mock("@/components/pilotage/ClearingBearingTool", () => ({
   ClearingBearingTool: ({
     onAllScenariosComplete,
   }: {
-    onAllScenariosComplete?: () => void;
+    onAllScenariosComplete?: () => boolean | Promise<boolean>;
   }) => (
     <div data-testid="clearing-bearing-tool">
       <button
         data-testid="simulate-all-complete"
-        onClick={() => onAllScenariosComplete?.()}
+        onClick={() => void onAllScenariosComplete?.()}
       >
         Complete All
       </button>
@@ -22,17 +22,18 @@ vi.mock("@/components/pilotage/ClearingBearingTool", () => ({
   ),
 }));
 
-const mockSaveProgress = vi.fn();
+const mockSaveProgressDetailed = vi.fn();
 
 vi.mock("@/hooks/useProgress", () => ({
   useProgress: () => ({
-    saveProgress: mockSaveProgress,
+    saveProgressDetailed: mockSaveProgressDetailed,
   }),
 }));
 
 describe("ClearingBearingsTheory Page", () => {
   beforeEach(() => {
     vi.clearAllMocks();
+    mockSaveProgressDetailed.mockResolvedValue("remote");
   });
 
   it("should render the page header with title and back navigation", () => {
@@ -208,11 +209,11 @@ describe("ClearingBearingsTheory Page", () => {
     );
 
     // then
-    expect(mockSaveProgress).not.toHaveBeenCalled();
+    expect(mockSaveProgressDetailed).not.toHaveBeenCalled();
   });
 
-  // AC-4: Mark complete button saves progress with correct topic ID and points
-  it("should save progress with correct topic ID when Mark as Complete is clicked", async () => {
+  // AC-4: Mastery completion saves progress with the detailed result contract.
+  it("should save progress with correct topic ID only after exercise mastery", async () => {
     // given
     const user = userEvent.setup();
     render(
@@ -222,13 +223,12 @@ describe("ClearingBearingsTheory Page", () => {
     );
 
     // when
-    const completeButton = screen.getByRole("button", {
-      name: /mark as complete/i,
-    });
-    await user.click(completeButton);
+    expect((screen.getByRole("button", { name: /complete both mastery scenarios/i }) as HTMLButtonElement).disabled).toBe(true);
+    await user.click(screen.getByRole("tab", { name: /practice/i }));
+    await user.click(await screen.findByTestId("simulate-all-complete"));
 
     // then
-    expect(mockSaveProgress).toHaveBeenCalledWith(
+    expect(mockSaveProgressDetailed).toHaveBeenCalledWith(
       "pilotage-clearing-bearings",
       true,
       100,
@@ -236,7 +236,7 @@ describe("ClearingBearingsTheory Page", () => {
     );
   });
 
-  it("should disable the complete button after completion", async () => {
+  it("should show saved completion only after mastery save succeeds", async () => {
     // given
     const user = userEvent.setup();
     render(
@@ -246,12 +246,11 @@ describe("ClearingBearingsTheory Page", () => {
     );
 
     // when
-    await user.click(
-      screen.getByRole("button", { name: /mark as complete/i }),
-    );
+    await user.click(screen.getByRole("tab", { name: /practice/i }));
+    await user.click(await screen.findByTestId("simulate-all-complete"));
 
     // then - button changes to "Completed" and is disabled
-    expect(screen.getByRole("button", { name: /completed/i })).toBeDefined();
+    expect(await screen.findByRole("button", { name: /completed/i })).toBeDefined();
     expect(
       (screen.getByRole("button", { name: /completed/i }) as HTMLButtonElement)
         .disabled,
