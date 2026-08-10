@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { fireEvent, render, screen } from "@testing-library/react";
+import { fireEvent, render, screen, waitFor } from "@testing-library/react";
 import DeviationDrill, { deviationAtCompassHeading, normalizeHeading, solveCompassHeading } from "@/components/navigation/DeviationDrill";
 
 describe("DeviationDrill calculation", () => {
@@ -38,10 +38,10 @@ describe("DeviationDrill presentation", () => {
     expect(screen.getByText((_, element) => element?.tagName === "P" && /first row is compass heading/i.test(element.textContent ?? ""))).toBeDefined();
     expect(screen.getByText((_, element) => element?.tagName === "P" && /C = M − deviation\(C\)/i.test(element.textContent ?? ""))).toBeDefined();
     expect(screen.getByRole("heading", { name: "Worked interpolation example" })).toBeDefined();
-    expect(screen.getByLabelText("Compass heading for 000 degrees true")).toBeDefined();
+    expect(screen.getByLabelText("Compass answer in degrees compass for 000 degrees true")).toBeDefined();
   });
 
-  it("does not reveal assessed lookup results before submission but explains them afterwards", () => {
+  it("does not reveal assessed lookup results before submission but explains them afterwards", async () => {
     render(<DeviationDrill />);
     expect(screen.getByTestId("bracket-0").textContent).toBe("Shown after check");
     expect(screen.getByTestId("deviation-0").textContent).toBe("Shown after check");
@@ -49,6 +49,9 @@ describe("DeviationDrill presentation", () => {
     fireEvent.click(screen.getByRole("button", { name: "Check answers" }));
     expect(screen.getByTestId("bracket-0").textContent).toBe("000–045°C");
     expect(screen.getByTestId("deviation-0").textContent).toMatch(/°W$/);
-    expect(screen.getByText("007°C")).toBeDefined();
+    expect(screen.getByText(/Expected 007°C/)).toBeDefined();
+    expect(screen.getByRole("status").textContent).toContain("Score: 0/8");
+    await waitFor(() => expect(document.activeElement).toBe(screen.getByRole("status")));
+    expect(screen.getByLabelText(/000 degrees true/).getAttribute("aria-describedby")).toBe("answer-feedback-0");
   });
 });
