@@ -1,5 +1,6 @@
 import { Card } from "@/components/ui/card";
 import { useState } from "react";
+import { resultingTrack, solveCourseToSteer } from "@/features/navigation/vectorSolver";
 
 interface VectorTriangleVisualizerProps {
   waterTrackHeading: number; // CTS (Input in Drill Mode, Result in Solver Mode)
@@ -61,7 +62,7 @@ export const VectorTriangleVisualizer = ({
   let validSolution = false;
   let calculatedResults = { heading: 0, speed: 0, groundHeading: 0 };
 
-  // Common Tide Vector
+  // Diagram coordinates use east as +x and north as -y.
   const tideVecX = tideRate * SCALE * Math.cos(toRad(tideSet));
   const tideVecY = tideRate * SCALE * Math.sin(toRad(tideSet));
 
@@ -73,9 +74,9 @@ export const VectorTriangleVisualizer = ({
 
     validSolution = true;
 
-    // B = A + WaterVector
-    const waterVecX = waterTrackSpeed * SCALE * Math.cos(toRad(waterTrackHeading));
-    const waterVecY = waterTrackSpeed * SCALE * Math.sin(toRad(waterTrackHeading));
+    const result = resultingTrack(waterTrackHeading, waterTrackSpeed, tideSet, tideRate);
+    const waterVecX = result.water.eastKn * SCALE;
+    const waterVecY = -result.water.northKn * SCALE;
 
     BX = AX + waterVecX;
     BY = AY + waterVecY;
@@ -89,49 +90,24 @@ export const VectorTriangleVisualizer = ({
     const gy = CY - AY;
     const gDist = Math.sqrt(gx * gx + gy * gy);
     const gSpeed = gDist / SCALE;
-    const gAngle = ((Math.atan2(gy, gx) * 180) / Math.PI + 90 + 360) % 360;
-
     calculatedResults = {
       heading: waterTrackHeading, // Input CTS
       speed: gSpeed, // Resulting SOG
-      groundHeading: gAngle, // Resulting COG
+      groundHeading: result.trackDeg ?? 0, // Resulting COG
     };
   } else {
-    // SOLVER MODE: Inverse Calculation (Find CTS)
-    // Existing Logic
-    const gDirX = Math.cos(toRad(groundTrackHeading));
-    const gDirY = Math.sin(toRad(groundTrackHeading));
-    const dotTD = gDirX * tideVecX + gDirY * tideVecY;
-    const lenT2 = tideVecX * tideVecX + tideVecY * tideVecY;
-    const R = waterTrackSpeed * SCALE;
-    const QA = 1;
-    const QB = -2 * dotTD;
-    const QC = lenT2 - R * R;
-    const discriminant = QB * QB - 4 * QA * QC;
-
-    if (discriminant >= 0) {
-      const t1 = (-QB + Math.sqrt(discriminant)) / (2 * QA);
-      const t2 = (-QB - Math.sqrt(discriminant)) / (2 * QA);
-      const t = Math.max(t1, t2);
-
-      if (t > 0) {
+    const solution = solveCourseToSteer({ desiredTrackDeg: groundTrackHeading, boatSpeedKn: waterTrackSpeed, tideSetDeg: tideSet, tideRateKn: tideRate });
+    if (solution.feasible) {
         validSolution = true;
-        CX = AX + t * gDirX;
-        CY = AY + t * gDirY;
+        CX = AX + solution.overGround.eastKn * SCALE;
+        CY = AY - solution.overGround.northKn * SCALE;
         BX = CX - tideVecX;
         BY = CY - tideVecY;
-
-        // Calculate Heading A->B
-        const dx = BX - AX;
-        const dy = BY - AY;
-        const hAngle = ((Math.atan2(dy, dx) * 180) / Math.PI + 90 + 360) % 360;
-
         calculatedResults = {
-          heading: hAngle, // Resulting CTS
-          speed: t / SCALE, // Resulting SOG
+          heading: solution.courseToSteerDeg,
+          speed: solution.speedOverGroundKn,
           groundHeading: groundTrackHeading, // Input COG
         };
-      }
     }
   }
 

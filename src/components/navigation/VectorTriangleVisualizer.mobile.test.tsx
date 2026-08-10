@@ -3,6 +3,23 @@ import { describe, expect, it } from "vitest";
 import { VectorTriangleVisualizer } from "./VectorTriangleVisualizer";
 
 describe("VectorTriangleVisualizer mobile interaction", () => {
+  it("renders the shared solver result and suppresses stale output when infeasible", () => {
+    const { rerender } = render(<VectorTriangleVisualizer waterTrackHeading={0} waterTrackSpeed={6} groundTrackHeading={90} tideSet={180} tideRate={2} />);
+    expect(screen.getByText("71°T")).toBeTruthy();
+    expect(screen.getByText("5.7 kn")).toBeTruthy();
+
+    rerender(<VectorTriangleVisualizer waterTrackHeading={0} waterTrackSpeed={5} groundTrackHeading={0} tideSet={90} tideRate={6} />);
+    expect(screen.getByText("Impossible scenario!")).toBeTruthy();
+    expect(screen.queryByText("71°T")).toBeNull();
+
+    rerender(<VectorTriangleVisualizer waterTrackHeading={0} waterTrackSpeed={5} groundTrackHeading={359} tideSet={90} tideRate={1} />);
+    expect(screen.getByText("347°T")).toBeTruthy();
+    rerender(<VectorTriangleVisualizer waterTrackHeading={0} waterTrackSpeed={6} groundTrackHeading={45} tideSet={180} tideRate={2} />);
+    expect(screen.getByText("31°T")).toBeTruthy();
+    rerender(<VectorTriangleVisualizer waterTrackHeading={0} waterTrackSpeed={5} groundTrackHeading={0} tideSet={45} tideRate={Math.sqrt(50)} />);
+    expect(screen.getByText("270°T")).toBeTruthy();
+  });
+
   it("supports pointer dragging and keyboard panning without losing accessible semantics", () => {
     render(<VectorTriangleVisualizer waterTrackHeading={90} waterTrackSpeed={5} groundTrackHeading={100} tideSet={180} tideRate={1} />);
     const diagram = screen.getByRole("img", { name: /vector triangle/i });
