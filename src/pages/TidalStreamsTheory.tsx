@@ -15,7 +15,7 @@ const workedCourse = workedSolution.courseTrue.toFixed(1);
 const workedDistance = workedSolution.distanceMadeGood.toFixed(3);
 const workedSog = workedSolution.speedOverGround.toFixed(3);
 const workedEtaHours = (workedSolution.etaMinutes / 60).toFixed(3);
-const workedEtaMinutes = workedSolution.etaMinutes.toFixed(1);
+const workedEtaMinutes = workedSolution.etaMinutes.toFixed(2);
 
 const TidalStreamsTheory = () => {
   const navigate = useNavigate();

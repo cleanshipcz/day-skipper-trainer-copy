@@ -16,6 +16,10 @@ describe("tidal course construction", () => {
     expect(solveCourseToSteer({ desiredTrackTrue: 90, boatSpeed: 6, streamSetTrue: 180, streamRate: 7, intervalHours: 1, legDistance: 5.7 })).toBeNull();
   });
 
+  it("rejects a zero-progress intersection and avoids an infinite ETA", () => {
+    expect(solveCourseToSteer({ desiredTrackTrue: 90, boatSpeed: 6, streamSetTrue: 270, streamRate: 6, intervalHours: 1, legDistance: 5.7 })).toBeNull();
+  });
+
   it("normalizes bearings across north", () => {
     expect(normalizeBearing(358 + 5)).toBe(3);
     expect(normalizeBearing(-1)).toBe(359);
