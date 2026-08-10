@@ -34,8 +34,8 @@ const subModules: ModuleMenuItem[] = [
   },
   {
     id: "tides-streams-theory",
-    title: "Course to Steer Theory",
-    description: "Vector triangles and tidal streams",
+    title: "Chart-ready Course to Steer",
+    description: "Worked tidal vectors, leeway, ETA and monitoring",
     icon: BookOpen,
     path: "/navigation/tides/streams-theory",
     type: "learn",
@@ -44,7 +44,7 @@ const subModules: ModuleMenuItem[] = [
   {
     id: "tides-vector-tool",
     title: "Vector Solution Tool",
-    description: "Interactive vector triangle plotting",
+    description: "Interactive follow-on vector plotting practice",
     icon: Navigation,
     path: "/navigation/tides/vector-tool",
     type: "practice",
