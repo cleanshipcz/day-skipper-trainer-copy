@@ -32,7 +32,8 @@ export const weatherForecastSections: readonly TheorySection[] = [
       <li>Confirm the <strong>product, route area and adjacent/upwind area</strong>; weather and seas can arrive across a boundary.</li>
       <li>Read the <strong>issue time, start time, valid period and time zone</strong>. A cached or expired forecast is not a current forecast.</li>
       <li>Check <strong>current gale, strong-wind and navigational warnings</strong> separately; do not assume the routine text is the latest warning.</li>
-      <li>Use <strong>two independent sources</strong>: obtain the official forecast/warnings through an appropriate MSI broadcast and cross-check with a refreshed official forecast, observations or another available broadcast.</li>
+      <li>Use <strong>two independent acquisition paths</strong> where practicable: for example, receive the official forecast and warnings by VHF or NAVTEX, then independently refresh the official Met Office product. These paths may carry the same bulletin—they reduce missed, stale or corrupted information but are not two independent forecasts.</li>
+      <li>Separately <strong>corroborate the official forecast against current observations</strong>: actual wind, pressure, sea state and visibility. Another forecast or model can expose uncertainty, but it is supplementary and never overrides an official warning.</li>
       <li>Record the forecast and the next reassessment time in the passage plan. Recheck before departure, at area boundaries and when actual conditions diverge.</li>
     </ol>,
   },
@@ -78,7 +79,7 @@ export const weatherForecastSections: readonly TheorySection[] = [
         <li><strong>Timing and uncertainty:</strong> translate “later” from the issue time. Compare forecast timing with departure, tidal gates and ETA; allow for the improvement arriving late and for slower progress in a head sea.</li>
         <li><strong>Boat and crew:</strong> compare force, waves, visibility and duration with written limits, crew experience, fatigue, reefing capability and navigation workload. Reef and secure early rather than after conditions peak.</li>
         <li><strong>Shelter and escape:</strong> identify sheltered water, a reachable diversion before the exposed leg, safe approaches in poor visibility and the last decision point from which turning back remains safe.</li>
-        <li><strong>Reassess:</strong> before departure and at the decision point, obtain current warnings plus a second source; compare actual wind, pressure, sea and visibility with the forecast.</li>
+        <li><strong>Reassess:</strong> before departure and at the decision point, obtain current warnings through a second independent acquisition path; then corroborate the official forecast against actual wind, pressure, sea and visibility. A model comparison may inform uncertainty, but official warnings retain primacy.</li>
       </ol>
       <p><strong>No-go or escalation triggers:</strong> a new gale/strong-wind warning affecting the route, observed conditions already above the plan, worsening wind against tide, visibility below the crew’s safe-navigation limit, loss of a reliable escape option, equipment defect, or crew concern. Delay, shorten, reroute or seek experienced advice rather than rationalising a breached limit.</p>
     </>,

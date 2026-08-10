@@ -16,11 +16,12 @@ describe("marine forecast safety guidance", () => {
     expect(text).toMatch(/Strong Wind Warning.*force 6.*22 knots.*not a gale warning/i);
   });
 
-  it("requires current timing, warnings, route coverage, and a two-source check", () => {
+  it("separates resilient acquisition from forecast corroboration", () => {
     render(<Content />);
     const acquisition = screen.getByRole("heading", { name: /disciplined acquisition/i }).closest("section")!;
     const text = acquisition.textContent ?? "";
-    for (const requirement of [/product, route area and adjacent/i, /issue time, start time, valid period and time zone/i, /current gale, strong-wind and navigational warnings/i, /two independent sources/i, /recheck before departure.*area boundaries.*diverge/i]) expect(text).toMatch(requirement);
+    for (const requirement of [/product, route area and adjacent/i, /issue time, start time, valid period and time zone/i, /current gale, strong-wind and navigational warnings/i, /two independent acquisition paths/i, /same bulletin.*not two independent forecasts/i, /corroborate the official forecast against current observations/i, /supplementary.*never overrides an official warning/i, /recheck before departure.*area boundaries.*diverge/i]) expect(text).toMatch(requirement);
+    expect(text).not.toMatch(/two independent sources/i);
   });
 
   it("distinguishes MSI reception from online and model aids", () => {
@@ -47,7 +48,7 @@ describe("marine forecast safety guidance", () => {
     render(<Content />);
     const worked = screen.getByRole("heading", { name: /worked passage decision/i }).closest("section")!;
     const text = worked.textContent ?? "";
-    for (const requirement of [/plan for southwest 7.*rough sea.*poor visibility/i, /translate “later” from the issue time/i, /written limits.*crew experience.*reef/i, /sheltered water.*diversion.*last decision point/i, /current warnings plus a second source/i, /No-go or escalation triggers.*new gale\/strong-wind warning.*wind against tide.*visibility.*escape option.*crew concern/i]) expect(text).toMatch(requirement);
+    for (const requirement of [/plan for southwest 7.*rough sea.*poor visibility/i, /translate “later” from the issue time/i, /written limits.*crew experience.*reef/i, /sheltered water.*diversion.*last decision point/i, /current warnings through a second independent acquisition path.*corroborate.*actual wind, pressure, sea and visibility/i, /official warnings retain primacy/i, /No-go or escalation triggers.*new gale\/strong-wind warning.*wind against tide.*visibility.*escape option.*crew concern/i]) expect(text).toMatch(requirement);
     expect(within(worked).getAllByRole("listitem")).toHaveLength(5);
   });
 
