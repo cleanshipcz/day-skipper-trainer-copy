@@ -8,7 +8,7 @@ const weatherModules: ModuleMenuItem[] = [
   { id: "weather-beaufort", title: "Beaufort Scale", description: "Wind force, sea state and a force drill", icon: Gauge, path: "/weather/beaufort", type: "practice", color: "from-cyan-500 to-teal-500" },
   { id: "weather-forecasts", title: "Marine Forecasts", description: "Forecast sources, sea areas and interpretation", icon: Radio, path: "/weather/forecasts", type: "practice", color: "from-indigo-500 to-blue-500" },
   { id: "weather-fog", title: "Fog & Visibility", description: "Fog formation, visibility and safe actions", icon: CloudFog, path: "/weather/fog", type: "learn", color: "from-slate-500 to-gray-600" },
-  { id: "quiz-weather", title: "Meteorology Quiz", description: "Twenty questions across the full module", icon: CircleHelp, path: "/quiz/weather", type: "quiz", color: "from-violet-500 to-purple-500" },
+  { id: "quiz-weather", title: "Meteorology Quiz", description: "Twenty-one questions across the full module", icon: CircleHelp, path: "/quiz/weather", type: "quiz", color: "from-violet-500 to-purple-500" },
 ];
 
 export default function WeatherMenu() {
