@@ -272,6 +272,34 @@ describe("useTheoryCompletionGate", () => {
     expect(result.current.isCompletionDurable).toBe(false);
   });
 
+  it("migrates a matching signed-in legacy queued completion when remote loading fails", async () => {
+    mocks.ownerId = "queued-owner";
+    mocks.loadProgressDetailed.mockResolvedValue({ status: "failed", record: null });
+    localStorage.setItem("weather-theory-queued:queued-owner:weather-fog", "true");
+    mocks.saveProgressDetailed.mockClear();
+    const { result } = renderHook(() => useTheoryCompletionGate({ topicId: "weather-fog", requiredSectionIds, catalogueRevision: "fog-v1", legacyQueuedCompletionStoragePrefix: "weather-theory-queued" }));
+    await waitFor(() => expect(result.current.isHydrated).toBe(true));
+    expect(result.current.loadState).toBe("ready");
+    expect(result.current.visitedSectionIds).toEqual(requiredSectionIds);
+    expect(result.current.isCompletionDurable).toBe(true);
+    expect(result.current.saveState).toBe("queued");
+    expect(mocks.saveProgressDetailed).not.toHaveBeenCalled();
+  });
+
+  it.each([
+    ["false", "queued-owner"],
+    ["true", "different-owner"],
+  ])("does not migrate a non-true or differently owned legacy queued marker", async (marker, markerOwner) => {
+    mocks.ownerId = "queued-owner";
+    mocks.loadProgressDetailed.mockResolvedValue({ status: "failed", record: null });
+    localStorage.setItem(`weather-theory-queued:${markerOwner}:weather-fog`, marker);
+    const { result } = renderHook(() => useTheoryCompletionGate({ topicId: "weather-fog", requiredSectionIds, catalogueRevision: "fog-v1", legacyQueuedCompletionStoragePrefix: "weather-theory-queued" }));
+    await waitFor(() => expect(result.current.isHydrated).toBe(true));
+    expect(result.current.loadState).toBe("failed");
+    expect(result.current.visitedSectionIds).toEqual([]);
+    expect(result.current.isCompletionDurable).toBe(false);
+  });
+
   it("surfaces a rejected revisioned load and recovers through an explicit retry", async () => {
     mocks.loadProgressDetailed.mockClear();
     mocks.loadProgressDetailed.mockRejectedValueOnce(new Error("request timed out"));

@@ -9,6 +9,8 @@ interface UseTheoryCompletionGateArgs {
   catalogueRevision?: string;
   /** Preserve completion earned before this lesson introduced revisioned evidence. */
   acceptLegacyCompleted?: boolean;
+  /** Optional prefix for a prior owner/topic-scoped offline completion marker. */
+  legacyQueuedCompletionStoragePrefix?: string;
 }
 
 export const useTheoryCompletionGate = ({
@@ -17,6 +19,7 @@ export const useTheoryCompletionGate = ({
   pointsOnComplete = 10,
   catalogueRevision,
   acceptLegacyCompleted = false,
+  legacyQueuedCompletionStoragePrefix,
 }: UseTheoryCompletionGateArgs) => {
   const progress = useProgress();
   const { loadProgressDetailed, saveProgress, saveProgressDetailed } = progress;
@@ -148,6 +151,20 @@ export const useTheoryCompletionGate = ({
       } finally {
         if (loadTimeout !== undefined) window.clearTimeout(loadTimeout);
       }
+      const legacyQueuedCompletion = load?.status === "failed" && ownerId !== null && legacyQueuedCompletionStoragePrefix !== undefined
+        && localStorage.getItem(`${legacyQueuedCompletionStoragePrefix}:${ownerId}:${topicId}`) === "true";
+      if (legacyQueuedCompletion) {
+        if (hydrationGenerationRef.current !== generation) return;
+        const migrated = [...requiredSectionIds];
+        visitedRef.current = migrated;
+        setVisitedSectionIds(migrated);
+        writeBrowserEvidence(migrated, true, "queued");
+        setSaveState("queued");
+        setIsCompletionDurable(true);
+        setIsHydrated(true);
+        setLoadState("ready");
+        return;
+      }
       if (load?.status === "failed" && !(locallyCompleted && localCompletionOutcome === "queued")) {
         if (hydrationGenerationRef.current !== generation) return;
         const retained = [...new Set([...restored, ...visitedRef.current])];
@@ -180,7 +197,7 @@ export const useTheoryCompletionGate = ({
       if (hydrationGenerationRef.current === generation) setLoadState("ready");
     };
     void restore();
-  }, [acceptLegacyCompleted, catalogueRevision, completionStorageKey, enqueueInProgressSave, loadAttempt, loadProgressDetailed, ownerId, requiredSectionIds, storageKey, topicId, writeBrowserEvidence]);
+  }, [acceptLegacyCompleted, catalogueRevision, completionStorageKey, enqueueInProgressSave, legacyQueuedCompletionStoragePrefix, loadAttempt, loadProgressDetailed, ownerId, requiredSectionIds, storageKey, topicId, writeBrowserEvidence]);
 
   const retryLoad = useCallback(() => setLoadAttempt((attempt) => attempt + 1), []);
   const retrySave = useCallback(() => enqueueInProgressSave([...visitedRef.current]), [enqueueInProgressSave]);

@@ -26,7 +26,7 @@ describe("FogScenarioPractice", () => {
     fogScenarios.forEach((scenario, index) => {
       fireEvent.click(screen.getByRole("button", { name: `Scenario ${index + 1}` }));
       expect(screen.getByRole("heading", { name: new RegExp(scenario.title) })).toBeTruthy();
-      expect(screen.getByRole("img", { name: "Operational situation diagram" })).toBeTruthy();
+      expect(screen.getByRole("img", { name: /Operational situation diagram.*Diagram meaning:/ })).toBeTruthy();
       expect(screen.getByRole("img").getAttribute("aria-labelledby")).not.toMatch(/correct|answer/i);
     });
     const captions = fogScenarios.map(({ visual }) => visual.caption).join(" ");

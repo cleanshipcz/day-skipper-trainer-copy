@@ -15,7 +15,7 @@ describe("FogTheory completion evidence", () => {
 
   it("uses revisioned fog evidence and explains the locked requirement", () => {
     render(<FogTheory />);
-    expect(mocks.useGate).toHaveBeenCalledWith({ topicId: "weather-fog", catalogueRevision: FOG_SCENARIO_GATE.revision, requiredSectionIds: [...FOG_SCENARIO_GATE.scenarioIds], pointsOnComplete: 10, acceptLegacyCompleted: true });
+    expect(mocks.useGate).toHaveBeenCalledWith({ topicId: "weather-fog", catalogueRevision: FOG_SCENARIO_GATE.revision, requiredSectionIds: [...FOG_SCENARIO_GATE.scenarioIds], pointsOnComplete: 10, acceptLegacyCompleted: true, legacyQueuedCompletionStoragePrefix: "weather-theory-queued" });
     expect((screen.getByRole("button", { name: "Save Fog completion" }) as HTMLButtonElement).disabled).toBe(true);
     expect(screen.getByRole("status").textContent).toMatch(/complete 5 more fog decision scenarios/i);
     fireEvent.click(screen.getByRole("button", { name: "Pass scenario" }));
