@@ -40,4 +40,22 @@ describe("visual pilotage mastery bank", () => {
     expect(svg).toMatch(/data-topmark-outline="special"[^>]+stroke="#111827"[^>]+stroke-width="16"/);
     expect(svg).toMatch(/data-topmark-outline="emergency-wreck"[^>]+stroke="#111827"[^>]+stroke-width="15"/);
   });
+
+  it("keys the transit correction to a specific direction and explains the track geometry", () => {
+    const correction = questions.find((item) => item.id === "pilotage-9");
+
+    expect(correction).toBeDefined();
+    expect(correction?.question).toMatch(/(?:heading|proceeding|steering).*(?:towards?|at) (?:the )?(?:leading )?marks/i);
+    expect(correction?.question).toMatch(/(?:approximately|roughly|substantially).*(?:along|parallel to).*(?:intended )?(?:leading[- ]line|track|course)/i);
+    expect(correction?.question).toMatch(/rear mark.*left.*front mark/i);
+
+    const keyedOption = correction?.options[correction.correctAnswer] ?? "";
+    const starboardDirection = /\b(?:starboard|right(?:ward|wards)?)\b/i;
+    expect(keyedOption).toMatch(starboardDirection);
+    expect(keyedOption).not.toMatch(/towards?.*(line|alignment)|restores? .*alignment/i);
+    expect(correction?.options.filter((option) => starboardDirection.test(option))).toEqual([keyedOption]);
+
+    expect(correction?.explanation).toMatch(/rear(?: mark)?[- ]left.*(?:vessel|boat).*(?:left|port) of (?:the )?(?:track|line)/i);
+    expect(correction?.explanation).toMatch(/(?:starboard|right(?:ward|wards)?).*(?:back )?towards? (?:the )?(?:leading )?line/i);
+  });
 });
