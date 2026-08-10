@@ -9,16 +9,39 @@ import { ForecastAreaMap } from "./ForecastAreaMap";
 describe("weather interactions", () => {
   it("supports keyboard answers and advances the synoptic scenario", async () => {
     const user = userEvent.setup();
-    render(<SynopticChartReader />);
+    const { container } = render(<SynopticChartReader />);
+    const integratedChart = screen.getByRole("img", { name: /frontal depression west of ireland.*labelled isobars.*connected fronts.*warm sector/i });
+    expect(integratedChart.tagName).toBe("svg");
+    expect(integratedChart.getAttribute("viewBox")).toBe("0 0 600 300");
+    expect(integratedChart.getAttribute("class")).toContain("w-full");
+    expect(integratedChart.querySelector('[data-chart-layer="geography"]')).toBeTruthy();
+    expect(integratedChart.querySelectorAll("[data-isobar]")).toHaveLength(3);
+    expect(integratedChart.textContent).toContain("988");
+    expect(integratedChart.textContent).toContain("992");
+    expect(integratedChart.textContent).toContain("996 hPa");
+    expect(integratedChart.querySelector('[data-warm-sector="true"]')).toBeTruthy();
+
+    for (const type of ["warm", "cold", "occluded"]) {
+      const front = integratedChart.querySelector(`[data-front-type="${type}"]`);
+      expect(front?.getAttribute("data-connected-to")).toBe("low");
+      expect(front?.querySelectorAll("path").length).toBeGreaterThanOrEqual(2);
+      expect(front?.getAttribute("aria-label")).toMatch(/attached/i);
+    }
+    expect(integratedChart.querySelector('[data-front-type="warm"]')?.getAttribute("aria-label")).toMatch(/semicircles/i);
+    expect(integratedChart.querySelector('[data-front-type="cold"]')?.getAttribute("aria-label")).toMatch(/triangles/i);
+    expect(integratedChart.querySelector('[data-front-type="occluded"]')?.getAttribute("aria-label")).toMatch(/alternating triangles and semicircles/i);
+    expect(container.textContent).not.toContain("▶");
+
     await user.tab();
     expect(document.activeElement).toBe(screen.getByRole("button", { name: "Low pressure" }));
     await user.keyboard("{Enter}");
     expect(screen.getByRole("status").textContent).toContain("Correct");
     await user.click(screen.getByRole("button", { name: "Next chart" }));
-    expect(screen.getByText(/blue triangles/i)).toBeTruthy();
+    expect(screen.getByRole("img", { name: /cold front moving east.*attached triangles/i })).toBeTruthy();
     const front = document.querySelector('[data-chart-marker="cold-front"]');
     expect(front?.getAttribute("data-direction")).toBe("east");
-    expect(front?.textContent).toContain("▶");
+    expect(front?.querySelectorAll("path")).toHaveLength(2);
+    expect(front?.textContent).not.toContain("▶");
   });
 
   it("gives drill feedback and moves to another observation", async () => {
