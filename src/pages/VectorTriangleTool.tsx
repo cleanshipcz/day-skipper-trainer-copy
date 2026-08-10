@@ -18,6 +18,10 @@ export const PreciseNumberInput = ({ id, label, value, onValidValue, onDraftVali
   useEffect(() => {
     if (lastEmitted.current === value) return;
     setDraft(String(value));
+    onDraftValidity?.(true);
+    lastEmitted.current = null;
+    // This synchronization is intentionally keyed only to a finite numeric prop change.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [value]);
   const parsed = draft.trim() === "" ? null : Number(draft);
   const error = parsed === null || !Number.isFinite(parsed)

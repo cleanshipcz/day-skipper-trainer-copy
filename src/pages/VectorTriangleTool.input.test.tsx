@@ -25,4 +25,20 @@ describe("PreciseNumberInput", () => {
     expect(consoleError).not.toHaveBeenCalled();
     consoleError.mockRestore();
   });
+
+  it("replaces an invalid draft and restores validity when a slider or reset supplies a new finite value", () => {
+    const onValidValue = vi.fn();
+    const onDraftValidity = vi.fn();
+    const { rerender } = render(<PreciseNumberInput id="track" label="Track" value={90} onValidValue={onValidValue} onDraftValidity={onDraftValidity} min={0} max={359.9} step={0.1} unit="°T" />);
+    const input = screen.getByLabelText("Track") as HTMLInputElement;
+    fireEvent.change(input, { target: { value: "" } });
+    expect(input.value).toBe("");
+    expect(onDraftValidity).toHaveBeenLastCalledWith(false);
+
+    rerender(<PreciseNumberInput id="track" label="Track" value={120} onValidValue={onValidValue} onDraftValidity={onDraftValidity} min={0} max={359.9} step={0.1} unit="°T" />);
+    expect(input.value).toBe("120");
+    expect(input.getAttribute("aria-invalid")).toBe("false");
+    expect(onDraftValidity).toHaveBeenLastCalledWith(true);
+    expect(screen.queryByRole("alert")).toBeNull();
+  });
 });
