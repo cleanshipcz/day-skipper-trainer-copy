@@ -1,375 +1,55 @@
-import { useState, useRef, useCallback } from "react";
-import {
-  Card,
-  CardContent,
-  CardHeader,
-  CardTitle,
-  CardDescription,
-} from "@/components/ui/card";
+import { useCallback, useState } from "react";
+import { CheckCircle2, Map as MapIcon, XCircle } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Badge } from "@/components/ui/badge";
-import {
-  CheckCircle2,
-  XCircle,
-  Map as MapIcon,
-  Navigation,
-} from "lucide-react";
 import ChartSurface from "@/components/navigation/unified/ChartSurface";
+import { assessClearingBearing, CLEARING_BEARING_SCENARIOS, solutionFor, type BearingRule } from "./clearingBearingScenarios";
 
-// ── Types ────────────────────────────────────────────────────────────────
+interface Props { readonly onAllScenariosComplete?: () => void }
 
-interface Point {
-  readonly x: number;
-  readonly y: number;
-}
+export const ClearingBearingTool = ({ onAllScenariosComplete }: Props) => {
+  const [index, setIndex] = useState(0);
+  const [bearing, setBearing] = useState("");
+  const [rule, setRule] = useState<BearingRule | "">("");
+  const [result, setResult] = useState<ReturnType<typeof assessClearingBearing> | null>(null);
+  const scenario = CLEARING_BEARING_SCENARIOS[index];
+  const solution = solutionFor(scenario);
+  const solved = result?.kind === "correct";
+  const last = index === CLEARING_BEARING_SCENARIOS.length - 1;
 
-type Convention = "NLT" | "NMT";
+  const submit = useCallback(() => setResult(assessClearingBearing(bearing, rule, scenario)), [bearing, rule, scenario]);
+  const next = () => { setIndex((value) => value + 1); setBearing(""); setRule(""); setResult(null); };
 
-interface ClearingBearingScenario {
-  readonly id: number;
-  readonly title: string;
-  readonly description: string;
-  readonly convention: Convention;
-  readonly conventionLabel: string;
-  /** Landmark the user should take the bearing FROM (observation point). */
-  readonly landmark: { readonly name: string; readonly position: Point };
-  /** The hazard to avoid. */
-  readonly hazard: { readonly name: string; readonly position: Point; readonly radius: number };
-  /** The vessel's intended track area. */
-  readonly vesselArea: Point;
-  /** Correct clearing bearing in degrees True. */
-  readonly correctBearing: number;
-  /** Acceptable tolerance in degrees. */
-  readonly tolerance: number;
-  readonly hint: string;
-}
-
-interface Feedback {
-  readonly success: boolean;
-  readonly text: string;
-}
-
-interface ClearingBearingToolProps {
-  readonly onAllScenariosComplete?: () => void;
-}
-
-// ── Scenario Data ────────────────────────────────────────────────────────
-
-const SCENARIOS: readonly ClearingBearingScenario[] = [
-  {
-    id: 1,
-    title: "Avoiding the Rocky Shoal",
-    description:
-      "You are approaching a harbour from the south. A rocky shoal lies to the east of the safe channel. " +
-      "Plot a clearing bearing from the Church Spire to keep clear of the rocks. " +
-      "The bearing of the Church Spire must be Not Less Than (NLT) 045°T to remain in safe water.",
-    convention: "NLT",
-    conventionLabel: "Not Less Than (NLT)",
-    landmark: { name: "Church Spire", position: { x: 200, y: 80 } },
-    hazard: { name: "Rocky Shoal", position: { x: 350, y: 180 }, radius: 30 },
-    vesselArea: { x: 200, y: 250 },
-    correctBearing: 45,
-    tolerance: 5,
-    hint: "Draw a line from the Church Spire that just clears the east side of the hazard. The bearing must be ≥ 045°T.",
-  },
-  {
-    id: 2,
-    title: "Passing the Submerged Wreck",
-    description:
-      "You are sailing west along the coast. A submerged wreck lies south of your planned track. " +
-      "Plot a clearing bearing from the Lighthouse to stay north of the wreck. " +
-      "The bearing of the Lighthouse must be Not More Than (NMT) 320°T to remain safe.",
-    convention: "NMT",
-    conventionLabel: "Not More Than (NMT)",
-    landmark: { name: "Lighthouse", position: { x: 380, y: 60 } },
-    hazard: { name: "Submerged Wreck", position: { x: 280, y: 200 }, radius: 25 },
-    vesselArea: { x: 150, y: 120 },
-    correctBearing: 320,
-    tolerance: 5,
-    hint: "Draw a line from the Lighthouse that just clears the north side of the wreck. The bearing must be ≤ 320°T.",
-  },
-] as const;
-
-const SCALE_PX_PER_NM = 100;
-const CHART_WIDTH = 500;
-const CHART_HEIGHT = 300;
-
-// ── Component ────────────────────────────────────────────────────────────
-
-export const ClearingBearingTool = ({
-  onAllScenariosComplete,
-}: ClearingBearingToolProps) => {
-  const [currentIndex, setCurrentIndex] = useState(0);
-  const [bearingInput, setBearingInput] = useState("");
-  const [feedback, setFeedback] = useState<Feedback | null>(null);
-  const [solvedScenarios, setSolvedScenarios] = useState<ReadonlySet<number>>(
-    new Set(),
-  );
-  const svgRef = useRef<SVGSVGElement>(null);
-
-  const scenario = SCENARIOS[currentIndex];
-  const isLastScenario = currentIndex === SCENARIOS.length - 1;
-  const allSolved =
-    solvedScenarios.size === SCENARIOS.length ||
-    (solvedScenarios.size === SCENARIOS.length - 1 &&
-      feedback?.success === true);
-
-  const checkBearing = useCallback(() => {
-    const value = parseFloat(bearingInput);
-    if (Number.isNaN(value) || value < 0 || value >= 360) {
-      setFeedback({
-        success: false,
-        text: "Please enter a valid bearing between 0 and 359.",
-      });
-      return;
-    }
-
-    // Calculate bearing difference accounting for 360° wrap
-    const rawDiff = Math.abs(value - scenario.correctBearing);
-    const diff = Math.min(rawDiff, 360 - rawDiff);
-
-    if (diff <= scenario.tolerance) {
-      setFeedback({
-        success: true,
-        text: `Correct! The clearing bearing is ${scenario.correctBearing}°T (${scenario.convention}). Your answer of ${value}°T is within tolerance.`,
-      });
-      setSolvedScenarios((prev) => new Set([...prev, scenario.id]));
-    } else {
-      setFeedback({
-        success: false,
-        text: `Incorrect. Your bearing of ${value}°T does not match the expected clearing bearing. Remember the ${scenario.conventionLabel} convention. Try again.`,
-      });
-    }
-  }, [bearingInput, scenario]);
-
-  const handleNextScenario = useCallback(() => {
-    if (isLastScenario) return;
-    setCurrentIndex((prev) => prev + 1);
-    setBearingInput("");
-    setFeedback(null);
-  }, [isLastScenario]);
-
-  const handleFinish = useCallback(() => {
-    onAllScenariosComplete?.();
-  }, [onAllScenariosComplete]);
-
-  /** Draw a bearing line from landmark at the given angle. */
-  const bearingLineEnd = (
-    origin: Point,
-    bearingDeg: number,
-    length: number,
-  ): Point => {
-    // True bearing: 0° = North (up), clockwise.
-    // SVG: x-right, y-down. Convert bearing to SVG angle.
-    const rad = ((bearingDeg - 90) * Math.PI) / 180;
-    return {
-      x: origin.x + Math.cos(rad) * length,
-      y: origin.y + Math.sin(rad) * length,
-    };
-  };
-
-  // Show the solution line only after a correct answer
-  const showSolution = feedback?.success === true;
-  const solutionEnd = bearingLineEnd(
-    scenario.landmark.position,
-    scenario.correctBearing,
-    300,
-  );
-
-  return (
-    <Card className="w-full border-2 border-primary/20 bg-card">
-      <CardHeader>
-        <CardTitle className="flex items-center gap-2">
-          <MapIcon className="w-5 h-5 text-primary" />
-          Clearing Bearing Exercise
-        </CardTitle>
-        <CardDescription>
-          <span className="font-semibold">
-            Scenario {scenario.id} of {SCENARIOS.length}:
-          </span>{" "}
-          {scenario.title}
-        </CardDescription>
-      </CardHeader>
-
-      <CardContent className="space-y-4">
-        {/* Scenario description */}
-        <div className="p-3 bg-secondary/20 rounded-lg border border-secondary text-sm">
-          <p>{scenario.description}</p>
-          <p className="mt-2 text-xs text-muted-foreground italic">
-            Hint: {scenario.hint}
-          </p>
-        </div>
-
-        {/* Convention badge */}
-        <div className="flex items-center gap-2">
-          <Badge
-            variant="outline"
-            className={
-              scenario.convention === "NLT"
-                ? "border-green-500 text-green-700"
-                : "border-amber-500 text-amber-700"
-            }
-          >
-            <Navigation className="w-3 h-3 mr-1" />
-            {scenario.conventionLabel}
-          </Badge>
-          <span className="text-xs text-muted-foreground">
-            {scenario.convention === "NLT"
-              ? "Bearing must be greater than or equal to the clearing bearing"
-              : "Bearing must be less than or equal to the clearing bearing"}
-          </span>
-        </div>
-
-        {/* Chart */}
-        <div className="bg-blue-50/50 rounded-xl border overflow-hidden relative select-none">
-          <ChartSurface
-            ref={svgRef}
-            width={CHART_WIDTH}
-            height={CHART_HEIGHT}
-            scale={SCALE_PX_PER_NM}
-            viewBox={`0 0 ${CHART_WIDTH} ${CHART_HEIGHT}`}
-          >
-            {/* Hazard zone (red circle) */}
-            <circle
-              cx={scenario.hazard.position.x}
-              cy={scenario.hazard.position.y}
-              r={scenario.hazard.radius}
-              fill="rgba(239, 68, 68, 0.3)"
-              stroke="#ef4444"
-              strokeWidth={2}
-              strokeDasharray="4,4"
-            />
-            <text
-              x={scenario.hazard.position.x}
-              y={scenario.hazard.position.y + scenario.hazard.radius + 14}
-              textAnchor="middle"
-              fontSize={10}
-              fill="#ef4444"
-              fontWeight="bold"
-            >
-              {scenario.hazard.name}
-            </text>
-
-            {/* Landmark (magenta diamond) */}
-            <g
-              transform={`translate(${scenario.landmark.position.x}, ${scenario.landmark.position.y})`}
-            >
-              <polygon
-                points="0,-8 6,0 0,8 -6,0"
-                fill="#d04297"
-                stroke="white"
-                strokeWidth={1}
-              />
-              <text
-                y={-12}
-                textAnchor="middle"
-                fontSize={11}
-                fill="#d04297"
-                fontWeight="bold"
-                stroke="white"
-                strokeWidth={0.4}
-                paintOrder="stroke"
-              >
-                {scenario.landmark.name}
-              </text>
-            </g>
-
-            {/* Vessel area marker */}
-            <g
-              transform={`translate(${scenario.vesselArea.x}, ${scenario.vesselArea.y})`}
-            >
-              <circle r={5} fill="#3b82f6" stroke="white" strokeWidth={1} />
-              <text
-                y={16}
-                textAnchor="middle"
-                fontSize={9}
-                fill="#3b82f6"
-                fontWeight="bold"
-              >
-                Your Vessel
-              </text>
-            </g>
-
-            {/* Solution line (shown after correct answer) */}
-            {showSolution && (
-              <line
-                x1={scenario.landmark.position.x}
-                y1={scenario.landmark.position.y}
-                x2={solutionEnd.x}
-                y2={solutionEnd.y}
-                stroke="#16a34a"
-                strokeWidth={2}
-                strokeDasharray="6,3"
-              />
-            )}
+  return <Card className="w-full border-2 border-primary/20">
+    <CardHeader><CardTitle className="flex items-center gap-2"><MapIcon aria-hidden="true" className="h-5 w-5" />Clearing-bearing mastery</CardTitle>
+      <CardDescription>Scenario {index + 1} of {CLEARING_BEARING_SCENARIOS.length}: {scenario.title}</CardDescription></CardHeader>
+    <CardContent className="space-y-5">
+      <div className="rounded-lg border bg-secondary/20 p-3 text-sm"><p>{scenario.task}</p><p className="mt-2 font-medium">Bearing reference: true north (000°T), measured clockwise at the vessel towards the named mark.</p></div>
+      <figure>
+        <div className="overflow-hidden rounded-xl border bg-blue-50/50">
+          <ChartSurface width={500} height={300} scale={100} viewBox="0 0 500 300" role="img" aria-label={`Practice chart: ${scenario.landmark.name}, ${scenario.hazard.name}, clearance margin and safe-water area`}>
+            <title>{`Practice chart: ${scenario.landmark.name}, ${scenario.hazard.name}, clearance margin and safe-water area`}</title>
+            <path d="M0 25 Q120 100 190 25 L0 0 Z" fill="#d6c39a" stroke="#765f36" strokeWidth="2" />
+            <path d="M35 270 Q210 235 465 270" fill="none" stroke="#60a5fa" strokeWidth="32" opacity=".18" />
+            <text x="20" y="22" fontSize="11" fill="#604b28">Coastline</text>
+            <text x={scenario.safeObserver.x} y={scenario.safeObserver.y + 24} textAnchor="middle" fontSize="11" fill="#1d4ed8">{scenario.chartNote}</text>
+            <circle cx={scenario.safeObserver.x} cy={scenario.safeObserver.y} r="6" fill="#2563eb" /><text x={scenario.safeObserver.x} y={scenario.safeObserver.y - 10} textAnchor="middle" fontSize="10">Test position</text>
+            <circle cx={scenario.hazard.position.x} cy={scenario.hazard.position.y} r={scenario.hazard.radius + scenario.hazard.margin} fill="#fca5a555" stroke="#dc2626" strokeDasharray="5 4" />
+            <circle cx={scenario.hazard.position.x} cy={scenario.hazard.position.y} r={scenario.hazard.radius} fill="#ef444466" stroke="#991b1b" />
+            <text x={scenario.hazard.position.x} y={scenario.hazard.position.y + 4} textAnchor="middle" fontSize="10" fontWeight="bold">{scenario.hazard.name}</text>
+            <g transform={`translate(${scenario.landmark.position.x} ${scenario.landmark.position.y})`}><polygon points="0,-9 7,0 0,9 -7,0" fill="#c026d3" /><text y="-13" textAnchor="middle" fontSize="11" fontWeight="bold">{scenario.landmark.name}</text></g>
+            <path d="M455 25v35m-8-25 8-10 8 10" stroke="#111827" fill="none" /><text x="455" y="75" textAnchor="middle" fontSize="10">TRUE NORTH</text>
+            {solved && <line x1={scenario.landmark.position.x} y1={scenario.landmark.position.y} x2={solution.boundary.x} y2={solution.boundary.y} stroke="#15803d" strokeWidth="3" strokeDasharray="7 4" />}
           </ChartSurface>
-        </div>
-
-        {/* Bearing input */}
-        <div className="flex items-end gap-3">
-          <div className="flex-1">
-            <Label htmlFor="bearing-input">
-              Your Clearing Bearing (°T)
-            </Label>
-            <Input
-              id="bearing-input"
-              type="number"
-              min={0}
-              max={359}
-              step={1}
-              placeholder="e.g. 045"
-              value={bearingInput}
-              onChange={(e) => setBearingInput(e.target.value)}
-              disabled={feedback?.success === true}
-            />
-          </div>
-          <Button
-            onClick={checkBearing}
-            disabled={!bearingInput || feedback?.success === true}
-          >
-            Check Answer
-          </Button>
-        </div>
-
-        {/* Plot a clearing bearing to keep in safe water. */}
-        <p className="text-xs text-muted-foreground">
-          Plot the clearing bearing on the chart above and enter your answer.
-        </p>
-
-        {/* Feedback */}
-        {feedback && (
-          <div
-            className={`p-3 rounded-lg flex items-start gap-2 ${
-              feedback.success
-                ? "bg-green-100 dark:bg-green-900/30 text-green-700 dark:text-green-300"
-                : "bg-red-100 dark:bg-red-900/30 text-red-700 dark:text-red-300"
-            }`}
-          >
-            {feedback.success ? (
-              <CheckCircle2 className="w-5 h-5 mt-0.5 shrink-0" />
-            ) : (
-              <XCircle className="w-5 h-5 mt-0.5 shrink-0" />
-            )}
-            <span className="text-sm">{feedback.text}</span>
-          </div>
-        )}
-
-        {/* Navigation buttons */}
-        <div className="flex justify-end gap-2">
-          {feedback?.success && !isLastScenario && (
-            <Button onClick={handleNextScenario} variant="default">
-              Next Scenario &rarr;
-            </Button>
-          )}
-          {feedback?.success && isLastScenario && allSolved && (
-            <Button onClick={handleFinish} variant="default">
-              Complete Exercises
-            </Button>
-          )}
-        </div>
-      </CardContent>
-    </Card>
-  );
+        </div><figcaption className="mt-2 text-xs text-muted-foreground">The dashed red perimeter includes the required clearing margin. The green limiting line appears only after a correct answer.</figcaption>
+      </figure>
+      <div className="grid gap-4 sm:grid-cols-[1fr_auto] sm:items-end"><div><Label htmlFor="clearing-bearing">Measured bearing (°T)</Label><Input id="clearing-bearing" inputMode="decimal" placeholder="000–359" value={bearing} disabled={solved} onChange={(event) => { setBearing(event.target.value); setResult(null); }} /></div>
+        <fieldset disabled={solved}><legend className="mb-2 text-sm font-medium">Safe-side rule</legend><div className="flex gap-2">{(["NLT", "NMT"] as const).map((value) => <Button key={value} type="button" variant={rule === value ? "default" : "outline"} aria-pressed={rule === value} onClick={() => { setRule(value); setResult(null); }}>{value}</Button>)}</div></fieldset></div>
+      <Button onClick={submit} disabled={solved}>Check plotted answer</Button>
+      {result && <div role={result.kind === "incorrect" || result.kind === "invalid" ? "alert" : "status"} className={`flex gap-2 rounded-lg p-3 text-sm ${solved ? "bg-green-100 text-green-800" : "bg-red-100 text-red-800"}`}>{solved ? <CheckCircle2 aria-hidden="true" className="h-5 w-5 shrink-0" /> : <XCircle aria-hidden="true" className="h-5 w-5 shrink-0" />}<span>{result.message}</span></div>}
+      {solved && (last ? <Button onClick={onAllScenariosComplete}>Record mastery</Button> : <Button onClick={next}>Next scenario</Button>)}
+    </CardContent>
+  </Card>;
 };

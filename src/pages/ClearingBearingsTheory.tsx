@@ -471,7 +471,7 @@ const ClearingBearingsTheory = () => {
               </p>
             </div>
 
-            <ClearingBearingTool />
+            <ClearingBearingTool onAllScenariosComplete={handleMarkComplete} />
           </TabsContent>
         </Tabs>
 
@@ -481,8 +481,7 @@ const ClearingBearingsTheory = () => {
             size="lg"
             className="w-full md:w-auto gap-2"
             variant={theoryCompleted ? "outline" : "default"}
-            disabled={theoryCompleted}
-            onClick={handleMarkComplete}
+            disabled
           >
             {theoryCompleted ? (
               <>
@@ -490,7 +489,7 @@ const ClearingBearingsTheory = () => {
                 Completed
               </>
             ) : (
-              "Mark as Complete"
+              "Complete both mastery scenarios"
             )}
           </Button>
           <Button
