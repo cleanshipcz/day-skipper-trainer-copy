@@ -1,4 +1,5 @@
 import { fireEvent, render, screen } from "@testing-library/react";
+import userEvent from "@testing-library/user-event";
 import { MemoryRouter } from "react-router-dom";
 import { describe, expect, it, vi } from "vitest";
 import TidalStreamsTheory from "./TidalStreamsTheory";
@@ -19,10 +20,15 @@ describe("chart-ready course-to-steer lesson", () => {
     expect(handoff.hasAttribute("disabled")).toBe(true);
   });
 
-  it("enables this lesson's handoff after the correct answer with explanatory feedback", () => {
+  it("enables this lesson's handoff after a keyboard answer while preserving native radio focus", async () => {
+    const user = userEvent.setup();
     renderLesson();
-    fireEvent.click(screen.getByLabelText("071°T"));
-    expect(screen.getByRole("status", { name: "Readiness feedback" }).textContent).toMatch(/boat's direction through the water.*leeway/i);
+    const answer = screen.getByLabelText("071°T");
+    answer.focus();
+    await user.keyboard(" ");
+    const feedback = screen.getByRole("status", { name: "Readiness feedback" });
+    expect(feedback.textContent).toMatch(/boat's direction through the water.*leeway/i);
+    expect(document.activeElement).toBe(answer);
     expect(screen.getByRole("button", { name: /Open Vector Solution Tool/i }).hasAttribute("disabled")).toBe(false);
   });
 
@@ -31,7 +37,19 @@ describe("chart-ready course-to-steer lesson", () => {
     const diagram = screen.getByRole("img", { name: /Course-to-steer vector triangle/i });
     expect(diagram.getAttribute("aria-labelledby")).toBe("cts-diagram-title cts-diagram-desc");
     expect(document.getElementById("cts-diagram-desc")?.textContent).toMatch(/071 degrees true.*5.7 nautical miles/i);
-    expect(screen.getByRole("table", { name: "Structured record matching the diagram" }).textContent).toContain("070.5° → 071°");
+    const table = screen.getByRole("table", { name: /Structured record matching the diagram; line styles/i });
+    expect(table.textContent).toContain("070.5° → 071°");
+    expect(screen.getByRole("rowheader", { name: /dotted stream/i })).toBeTruthy();
+    expect(diagram.getAttribute("class")).toContain("forced-colors:bg-[Canvas]");
     expect(document.body.textContent).toMatch(/5\.7 NM ÷ 5\.657 kn = 1\.008 h/i);
+  });
+
+  it("keeps sticky controls and dense equivalents adaptable without relying on colour", () => {
+    renderLesson();
+    expect(document.querySelector("header")?.className).toContain("min-height:40rem");
+    expect(screen.getByRole("button", { name: /Open Vector Solution Tool/i }).parentElement?.className).toContain("min-height:40rem");
+    expect(screen.getByRole("region", { name: /Scrollable structured vector record/i }).getAttribute("tabindex")).toBe("0");
+    const paths = [...screen.getByRole("img", { name: /Course-to-steer vector triangle/i }).querySelectorAll("path[stroke-dasharray]")];
+    expect(new Set(paths.map((path) => path.getAttribute("stroke-dasharray"))).size).toBe(2);
   });
 });
