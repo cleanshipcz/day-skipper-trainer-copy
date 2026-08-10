@@ -3,7 +3,9 @@ import { calculatePlanSummary, GUIDED_WAYPOINTS, validatePilotageWaypoint, type 
 
 const leg = (overrides: Partial<PilotageWaypoint> = {}): PilotageWaypoint => ({
   id: "a", name: "Outer mark to entrance", bearing: 30, distance: 1,
-  speedOverGround: 5, notes: "", ...overrides,
+  speedOverGround: 5, mark: "Safe-water mark", hazards: "Shoal",
+  safeLimits: "Keep in channel", monitoring: "Watch transit", depthAndTide: "3 m, rising",
+  communications: "Call harbour", abortAndContingency: "Return seaward", notes: "", ...overrides,
 });
 
 describe("pilotage plan model", () => {
@@ -31,11 +33,11 @@ describe("pilotage plan model", () => {
   });
 
   it("ships a coherent explicitly fictional Region A example", () => {
-    const text = GUIDED_WAYPOINTS.map((item) => `${item.name} ${item.notes}`).join(" ");
+    const text = GUIDED_WAYPOINTS.map((item) => Object.values(item).join(" ")).join(" ");
     expect(GUIDED_WAYPOINTS.every((item) => validatePilotageWaypoint(item) === null)).toBe(true);
     expect(text).toContain("safe-water mark");
-    expect(text).toContain("Iso.10s");
-    expect(text).toContain("port-hand red can (Fl R 4s)");
-    expect(text).toContain("starboard-hand green conical mark (Fl G 4s)");
+    expect(text).toContain("Iso.W.10s");
+    expect(text).toContain("Red can Fl.R.4s");
+    expect(text).toContain("green cone Fl.G.4s");
   });
 });

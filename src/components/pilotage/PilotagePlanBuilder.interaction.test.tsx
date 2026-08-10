@@ -1,9 +1,14 @@
 import { render, screen, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
-import { describe, expect, it, vi } from "vitest";
+import { beforeEach, describe, expect, it, vi } from "vitest";
 import { PilotagePlanBuilder } from "./PilotagePlanBuilder";
 
 describe("PilotagePlanBuilder completion", () => {
+  beforeEach(() => localStorage.clear());
+  const brief = async (user: ReturnType<typeof userEvent.setup>) => {
+    await user.click(screen.getByRole("checkbox"));
+  };
+
   it("shows fractional leg time while explaining that only the total is rounded", async () => {
     const user = userEvent.setup();
     render(<PilotagePlanBuilder onComplete={vi.fn()} />);
@@ -13,10 +18,13 @@ describe("PilotagePlanBuilder completion", () => {
     await user.type(screen.getByLabelText("Distance (NM)"), "0.1");
     await user.clear(screen.getByLabelText("Planned SOG (knots)"));
     await user.type(screen.getByLabelText("Planned SOG (knots)"), "20");
+    for (const label of ["Mark or feature", "Hazards", "Safe limits", "Monitoring", "Depth and tide", "Communications", "Abort and contingency"]) {
+      await user.type(screen.getByLabelText(label), "Checked");
+    }
     await user.click(screen.getByRole("button", { name: "Add waypoint" }));
 
     expect(screen.getByText(/SOG 20 kn · 0\.3 min/)).toBeTruthy();
-    expect(screen.getByText(/total uses unrounded leg times and is rounded to the nearest minute/i)).toBeTruthy();
+    expect(screen.getByText(/cumulative time uses full precision/i)).toBeTruthy();
   });
 
   it("locks all plan mutations while a save is pending", async () => {
@@ -26,6 +34,7 @@ describe("PilotagePlanBuilder completion", () => {
     const onComplete = vi.fn().mockReturnValue(pendingSave);
     render(<PilotagePlanBuilder onComplete={onComplete} />);
 
+    await brief(user);
     await user.click(screen.getByRole("button", { name: "Complete pilotage plan" }));
     expect(screen.getByRole("button", { name: "Saving plan…" })).toBeTruthy();
 
@@ -40,7 +49,7 @@ describe("PilotagePlanBuilder completion", () => {
 
     await user.click(removeButtons[0]);
     await user.type(sog, "4");
-    expect(screen.getAllByRole("button", { name: "Remove" })).toHaveLength(3);
+    expect(screen.getAllByRole("button", { name: "Remove" })).toHaveLength(removeButtons.length);
     expect(sog.value).toBe("5");
 
     resolveSave(true);
@@ -55,6 +64,7 @@ describe("PilotagePlanBuilder completion", () => {
       .mockResolvedValueOnce(true);
     render(<PilotagePlanBuilder onComplete={onComplete} />);
 
+    await brief(user);
     await user.click(screen.getByRole("button", { name: "Complete pilotage plan" }));
     await waitFor(() => expect(onComplete).toHaveBeenCalledTimes(1));
     expect((screen.getByRole("button", { name: "Complete pilotage plan" }) as HTMLButtonElement).disabled).toBe(false);
@@ -69,9 +79,31 @@ describe("PilotagePlanBuilder completion", () => {
     const onComplete = vi.fn().mockResolvedValue(true);
     render(<PilotagePlanBuilder onComplete={onComplete} />);
 
+    await brief(user);
     await user.click(screen.getByRole("button", { name: "Complete pilotage plan" }));
     await waitFor(() => expect((screen.getByRole("button", { name: "Plan completed" }) as HTMLButtonElement).disabled).toBe(true));
     await user.click(screen.getAllByRole("button", { name: "Remove" })[0]);
+    expect((screen.getByRole("button", { name: "Complete pilotage plan" }) as HTMLButtonElement).disabled).toBe(true);
+    expect((screen.getByRole("checkbox") as HTMLInputElement).checked).toBe(false);
+    await brief(user);
     expect((screen.getByRole("button", { name: "Complete pilotage plan" }) as HTMLButtonElement).disabled).toBe(false);
+  });
+
+  it("edits, reorders, and reopens a versioned draft", async () => {
+    const user = userEvent.setup();
+    const view = render(<PilotagePlanBuilder onComplete={vi.fn()} />);
+    await user.click(screen.getAllByRole("button", { name: "Edit" })[0]);
+    await user.clear(screen.getByLabelText("Leg name"));
+    await user.type(screen.getByLabelText("Leg name"), "Revised safe-water leg");
+    await user.click(screen.getByRole("button", { name: "Save leg" }));
+    expect(screen.getByText("1. Revised safe-water leg")).toBeTruthy();
+
+    await user.click(screen.getByRole("button", { name: "Move Revised safe-water leg down" }));
+    expect(screen.getByText("2. Revised safe-water leg")).toBeTruthy();
+    expect(JSON.parse(localStorage.getItem("day-skipper:pilotage-plan:draft") ?? "null").version).toBe(2);
+
+    view.unmount();
+    render(<PilotagePlanBuilder onComplete={vi.fn()} />);
+    expect(screen.getByText("2. Revised safe-water leg")).toBeTruthy();
   });
 });
