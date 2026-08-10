@@ -117,14 +117,17 @@ describe("weather interactions", () => {
     expect(screen.getByText("Chart 1 of 3")).toBeTruthy();
   });
 
-  it("gives drill feedback and moves to another observation", async () => {
+  it("requires Beaufort drill submission before moving to another recall direction", async () => {
     const user = userEvent.setup();
     render(<BeaufortDrill />);
     await user.click(screen.getByRole("button", { name: "0" }));
-    expect(screen.getByRole("status").textContent).toContain("Correct");
-    await user.click(screen.getByRole("button", { name: /next observation/i }));
     expect(screen.queryByRole("status")).toBeNull();
-    expect(screen.getByText(/Wind speed:/)).toBeTruthy();
+    expect((screen.getByRole("button", { name: /next question/i }) as HTMLButtonElement).disabled).toBe(true);
+    await user.click(screen.getByRole("button", { name: /check answer/i }));
+    expect(screen.getByRole("status").textContent).toContain("Correct");
+    await user.click(screen.getByRole("button", { name: /next question/i }));
+    expect(screen.queryByRole("status")).toBeNull();
+    expect(screen.getByRole("heading", { level: 3, name: /^Which Beaufort force/ }).textContent).toMatch(/sea observations/i);
     expect(screen.getByRole("button", { name: "11" })).toBeTruthy();
     expect(screen.getByRole("button", { name: "12" })).toBeTruthy();
   });
