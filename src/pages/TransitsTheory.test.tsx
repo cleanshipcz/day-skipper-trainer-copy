@@ -143,7 +143,7 @@ describe("TransitsTheory", () => {
     // then
     // - the exercise should be embedded in the theory page
     expect(html).toContain("Exercise");
-    expect(html).toContain("Check Alignment");
+    expect(html).toContain("Choose the sight picture");
   });
 
   it("should render a back navigation button to pilotage menu", () => {
