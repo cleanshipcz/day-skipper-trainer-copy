@@ -88,7 +88,7 @@ describe("TidalPassageCalculator rendering contract", () => {
     fireEvent.click(screen.getByRole("button", { name: "Check answer" }));
     expect((answer.closest("fieldset") as HTMLFieldSetElement).disabled).toBe(true);
     expect(screen.getByRole("alert").textContent).toContain("You entered 1.0 m");
-    expect(screen.getByRole("alert").textContent).toContain("= 2.0 m");
+    expect(screen.getByRole("alert").textContent).toContain("= 1.8 m");
     fireEvent.click(screen.getByRole("button", { name: "Retry this scenario" }));
     expect(answer.disabled).toBe(false);
   });
@@ -96,12 +96,20 @@ describe("TidalPassageCalculator rendering contract", () => {
   it("records mastery only for a correct checked answer and advances explicitly", () => {
     const onMastery = vi.fn();
     render(<TidalPassageCalculator onMastery={onMastery} />);
-    fireEvent.change(screen.getByLabelText("Required height of tide, in metres"), { target: { value: "2.0" } });
+    fireEvent.change(screen.getByLabelText("Required height of tide, in metres"), { target: { value: "1.8" } });
     fireEvent.click(screen.getByRole("button", { name: "Check answer" }));
     expect(onMastery).toHaveBeenCalledOnce();
-    expect(screen.getByRole("status").textContent).toContain("margin is 0.0 m");
+    expect(screen.getByRole("status").textContent).toContain("margin is 0.6 m");
     fireEvent.click(screen.getByRole("button", { name: "New scenario" }));
     expect(screen.getByText(/Scenario 2 of 3: Drying bank/)).toBeTruthy();
+  });
+
+  it("keeps the signed-value convention associated when an error is present", () => {
+    render(<TidalPassageCalculator />);
+    change("chartedDepth", "");
+    const describedBy = screen.getByLabelText("Signed charted value (m)").getAttribute("aria-describedby");
+    expect(describedBy).toContain("charted-value-hint");
+    expect(describedBy).toContain("chartedDepth-error");
   });
 
   it("provides an SVG description and structured text alternative", () => {

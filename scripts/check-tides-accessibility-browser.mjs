@@ -416,10 +416,43 @@ try {
     throw new Error(
       `Tidal heights forced colours failed: ${JSON.stringify(heightsForcedColours)}`,
     );
+
+  // The passage planner combines a calculator, a locked practice attempt,
+  // graphical/text-equivalent results, and durable completion evidence.
+  await send("Emulation.setEmulatedMedia", { features: [{ name: "forced-colors", value: "none" }] });
+  await send("Page.navigate", { url: `http://127.0.0.1:${port}/navigation/tides/heights-calc` });
+  await waitFor(() => evaluate("document.querySelector('button[aria-label=\"Back to Tides\"]') !== null"), "tidal passage planner");
+  const plannerSemantics = await evaluate(`(() => {
+    const answer = [...document.querySelectorAll('input')].find((node) => node.labels?.[0]?.textContent.includes('Required height of tide'));
+    const chart = document.querySelector('svg[role=img]');
+    const table = [...document.querySelectorAll('table')].find((node) => /Text alternative/.test(node.caption?.textContent));
+    const charted = document.getElementById('chartedDepth');
+    return { back: document.querySelector('button[aria-label="Back to Tides"]')?.ariaLabel, answerName: answer?.labels?.[0]?.textContent, answerDescription: answer?.getAttribute('aria-describedby'), chartName: chart?.querySelector('title')?.textContent, chartDescription: chart?.querySelector('desc')?.textContent, tableRows: table?.querySelectorAll('th[scope=row]').length, signedHint: charted?.getAttribute('aria-describedby'), touch: [...document.querySelectorAll('button')].every((node) => node.getBoundingClientRect().height >= 44) };
+  })()`);
+  if (plannerSemantics.back !== "Back to Tides" || !/Required height/.test(plannerSemantics.answerName) || !plannerSemantics.answerDescription || !/Predicted tidal height/.test(plannerSemantics.chartName) || !/Safe intervals/.test(plannerSemantics.chartDescription) || plannerSemantics.tableRows !== 3 || !plannerSemantics.signedHint?.includes("charted-value-hint") || !plannerSemantics.touch) throw new Error(`Planner semantics failed: ${JSON.stringify(plannerSemantics)}`);
+
+  for (const [width, textZoom] of [[320, 100], [375, 100], [375, 200], [768, 100], [1280, 100]]) {
+    await send("Emulation.setDeviceMetricsOverride", { width, height: 900, deviceScaleFactor: 1, mobile: width <= 375 });
+    await evaluate(`document.documentElement.style.fontSize='${textZoom}%'`);
+    const layout = await evaluate(`(() => { const viewport=document.documentElement.clientWidth; const offenders=[...document.querySelectorAll('main, main > *, header, header *')].filter((node) => { const box=node.getBoundingClientRect(); return box.right>viewport+1 || box.left < -1; }).map((node)=>({tag:node.tagName,right:node.getBoundingClientRect().right})); return { viewport, scrollWidth: document.documentElement.scrollWidth, offenders }; })()`);
+    if (layout.scrollWidth > layout.viewport + 1 || layout.offenders.length) throw new Error(`Planner layout failed at ${width}px/${textZoom}%: ${JSON.stringify(layout)}`);
+  }
+  await evaluate(`document.documentElement.style.fontSize='100%'; (() => { const input=[...document.querySelectorAll('input')].find((node)=>node.labels?.[0]?.textContent.includes('Required height of tide')); Object.getOwnPropertyDescriptor(HTMLInputElement.prototype, 'value').set.call(input, '1.8'); input.dispatchEvent(new Event('input',{bubbles:true})); input.focus(); })()`);
+  await waitFor(() => evaluate("[...document.querySelectorAll('button')].find((node)=>node.textContent.includes('Check answer'))?.disabled === false"), "enabled practice check");
+  const keyboardTarget = await evaluate(`(() => { const button=[...document.querySelectorAll('button')].find((node)=>node.textContent.includes('Check answer')); button.focus(); return { name:button.textContent.trim(), focused:document.activeElement===button, ring:getComputedStyle(button).boxShadow, outline:getComputedStyle(button).outlineStyle }; })()`);
+  if (!keyboardTarget.focused || keyboardTarget.name !== "Check answer") throw new Error(`Planner keyboard focus failed: ${JSON.stringify(keyboardTarget)}`);
+  await send("Input.dispatchKeyEvent", { type: "keyDown", key: " ", code: "Space", text: " ", windowsVirtualKeyCode: 32, nativeVirtualKeyCode: 32 });
+  await send("Input.dispatchKeyEvent", { type: "keyUp", key: " ", code: "Space", windowsVirtualKeyCode: 32, nativeVirtualKeyCode: 32 });
+  await waitFor(() => evaluate("[...document.querySelectorAll('[role=status]')].some((node)=>node.textContent.includes('Correct'))"), "keyboard practice feedback");
+  const locked = await evaluate(`(() => { const input=[...document.querySelectorAll('input')].find((node)=>node.labels?.[0]?.textContent.includes('Required height of tide')); return { locked: input.closest('fieldset').disabled, feedback: [...document.querySelectorAll('[role=status]')].some((node)=>/margin is 0.6 m.*positive margin/i.test(node.textContent)), stayed: location.pathname === '/navigation/tides/heights-calc' }; })()`);
+  if (!locked.locked || !locked.feedback || !locked.stayed) throw new Error(`Planner keyboard/lock failed: ${JSON.stringify(locked)}`);
+  await send("Emulation.setEmulatedMedia", { features: [{ name: "forced-colors", value: "active" }] });
+  const plannerForced = await evaluate(`(() => { const svg=document.querySelector('svg[role=img]'); const curve=svg.querySelector('path'); return { active:matchMedia('(forced-colors: active)').matches, visible:svg.getBoundingClientRect().width>0, curveWidth:getComputedStyle(curve).strokeWidth, textAlternative:document.querySelector('table caption')?.textContent }; })()`);
+  if (!plannerForced.active || !plannerForced.visible || plannerForced.curveWidth === "0px" || !/Text alternative/.test(plannerForced.textAlternative)) throw new Error(`Planner forced colours failed: ${JSON.stringify(plannerForced)}`);
   await send("Browser.close");
   socket.close();
   console.log(
-    "Tides browser accessibility passed for both theory lessons: semantics, keyboard focus and activation, touch targets, reduced motion, forced colours, 320/375/768/1280 layouts, 200% text, and a 320px effective viewport equivalent to 400% browser zoom at 1280px.",
+    "Tides browser accessibility passed for both theory lessons and the passage planner: semantics, keyboard focus and locking, touch targets, reduced motion, forced colours, chart alternatives, 320/375/768/1280 layouts, 200% text, and a 320px effective viewport equivalent to 400% browser zoom at 1280px.",
   );
 } finally {
   for (const child of children.reverse()) {

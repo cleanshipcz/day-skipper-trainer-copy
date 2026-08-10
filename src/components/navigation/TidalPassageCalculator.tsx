@@ -16,9 +16,9 @@ const numberOrNaN = (value: string) => value.trim() === "" ? Number.NaN : Number
 
 type Props = { onMastery?: () => void };
 const scenarios = [
-  { id: "harbour-bar", name: "Harbour bar", draft: 1.5, clearance: 1, charted: 0.5, tide: 2, note: "a charted depth, entered as a positive value" },
-  { id: "drying-bank", name: "Drying bank", draft: 1.2, clearance: 0.8, charted: -1, tide: 3, note: "a 1.0 m drying height, entered as a negative value" },
-  { id: "shallow-channel", name: "Shallow channel", draft: 1.8, clearance: 0.7, charted: 1.1, tide: 1.4, note: "a charted depth, entered as a positive value" },
+  { id: "harbour-bar", name: "Harbour bar", draft: 1.4, clearance: 0.7, charted: 0.3, tide: 2.4, outcome: "safe with a positive margin", note: "a charted depth, entered as a positive value" },
+  { id: "drying-bank", name: "Drying bank", draft: 1.3, clearance: 0.9, charted: -1, tide: 2.7, outcome: "unsafe with a negative margin", note: "a 1.0 m drying height, entered as a negative value" },
+  { id: "shallow-channel", name: "Shallow channel", draft: 1.8, clearance: 0.6, charted: 0.9, tide: 1.5, outcome: "exactly at the boundary with no spare margin", note: "a charted depth, entered as a positive value" },
 ] as const;
 
 const TidalPassageCalculator = ({ onMastery }: Props) => {
@@ -110,8 +110,8 @@ const TidalPassageCalculator = ({ onMastery }: Props) => {
     invalid: "Invalid input: correct the highlighted fields before using a result.",
   }[model.plan.status];
 
-  return <div className="space-y-6">
-    <Card className="border-amber-200 bg-amber-50/50">
+  return <div className="min-w-0 space-y-6">
+    <Card className="min-w-0 border-amber-200 bg-amber-50/50">
       <CardHeader><CardTitle className="flex items-center gap-2 text-lg"><AlertTriangle className="h-5 w-5" /> Scope and assumptions</CardTitle></CardHeader>
       <CardContent className="space-y-2 text-sm">
         <p>This teaching aid applies smooth harmonic interpolation only between a preceding LW, the intervening HW, and the following LW from one official tide table. It does not extrapolate beyond those events and is not a navigational prediction.</p>
@@ -120,23 +120,23 @@ const TidalPassageCalculator = ({ onMastery }: Props) => {
       </CardContent>
     </Card>
 
-    <div className="grid gap-6 md:grid-cols-2">
-      <Card><CardHeader><CardTitle className="text-lg">Vessel and charted value</CardTitle></CardHeader><CardContent className="space-y-4">
+    <div className="grid min-w-0 gap-6 md:grid-cols-2">
+      <Card className="min-w-0"><CardHeader><CardTitle className="text-lg">Vessel and charted value</CardTitle></CardHeader><CardContent className="space-y-4">
         {([["draft", "Draft (m)", draft, setDraft], ["clearance", "Under-keel clearance (m)", clearance, setClearance], ["chartedDepth", "Signed charted value (m)", chartedDepth, setChartedDepth]] as const).map(([key, label, value, setter]) => <div className="space-y-1" key={key}>
-          <Label htmlFor={key}>{label}</Label><Input id={key} type="number" step="0.1" value={value} aria-invalid={Boolean(model.plan.errors[key])} aria-describedby={model.plan.errors[key] ? `${key}-error` : key === "chartedDepth" ? "charted-value-hint" : undefined} onChange={(event) => setter(event.target.value)} />
+          <Label htmlFor={key}>{label}</Label><Input id={key} type="number" step="0.1" value={value} aria-invalid={Boolean(model.plan.errors[key])} aria-describedby={[key === "chartedDepth" ? "charted-value-hint" : "", model.plan.errors[key] ? `${key}-error` : ""].filter(Boolean).join(" ") || undefined} onChange={(event) => setter(event.target.value)} />
           {model.plan.errors[key] && <p id={`${key}-error`} className="text-xs text-red-700">{model.plan.errors[key]}</p>}
         </div>)}
         <div id="charted-value-hint" className="rounded-md bg-slate-100 p-3 text-sm"><p><strong>Signed convention:</strong> charted depths are positive; drying heights are negative.</p><p>2.0 m depth → +2.0. 1.2 m drying height → −1.2.</p></div>
         {model.plan.requiredTide !== null && <p className="font-medium">Required height of tide: {model.plan.requiredTide.toFixed(1)} m</p>}
       </CardContent></Card>
-      <Card><CardHeader><CardTitle className="text-lg">Bounding tidal events</CardTitle><CardDescription>Enter consecutive LW–HW–LW events in chronological order.</CardDescription></CardHeader><CardContent className="space-y-4">
+      <Card className="min-w-0"><CardHeader><CardTitle className="text-lg">Bounding tidal events</CardTitle><CardDescription>Enter consecutive LW–HW–LW events in chronological order.</CardDescription></CardHeader><CardContent className="space-y-4">
         {eventInput("Preceding Low Water", <ArrowDown className="h-4 w-4" />, previousLow, setPreviousLow, "previousLow")}
         {eventInput("High Water", <ArrowUp className="h-4 w-4" />, high, setHigh, "high")}
         {eventInput("Following Low Water", <ArrowDown className="h-4 w-4" />, followingLow, setFollowingLow, "followingLow")}
       </CardContent></Card>
     </div>
 
-    <Card><CardHeader><CardTitle>Required-tide practice</CardTitle><CardDescription>Calculate before checking. The planner stays locked after checking so the submitted attempt is unambiguous.</CardDescription></CardHeader><CardContent className="space-y-4">
+    <Card className="min-w-0"><CardHeader><CardTitle>Required-tide practice</CardTitle><CardDescription>Calculate before checking. The planner stays locked after checking so the submitted attempt is unambiguous.</CardDescription></CardHeader><CardContent className="space-y-4">
       <section aria-labelledby={`${practiceId}-scenario`} className="rounded-md border p-4">
         <h3 id={`${practiceId}-scenario`} className="font-semibold">Scenario {scenarioIndex + 1} of {scenarios.length}: {scenario.name}</h3>
         <p className="text-sm">Draft {scenario.draft.toFixed(1)} m; clearance {scenario.clearance.toFixed(1)} m; signed charted value {scenario.charted > 0 ? "+" : ""}{scenario.charted.toFixed(1)} m ({scenario.note}).</p>
@@ -145,19 +145,19 @@ const TidalPassageCalculator = ({ onMastery }: Props) => {
         <Label htmlFor={`${practiceId}-answer`}>Required height of tide, in metres</Label>
         <Input id={`${practiceId}-answer`} type="number" inputMode="decimal" step="0.1" value={practiceAnswer} aria-describedby={`${practiceId}-constraint`} onChange={(event) => setPracticeAnswer(event.target.value)} />
         <p id={`${practiceId}-constraint`} className="text-sm text-muted-foreground">Enter to the nearest 0.1 m. Answers within 0.05 m are accepted.</p>
-        <Button type="button" disabled={!Number.isFinite(entered)} onClick={() => { setChecked(true); setAttempts((value) => value + 1); if (Math.abs(entered - expected) <= 0.05) onMastery?.(); }}>Check answer</Button>
+        <Button type="button" className="min-h-11" disabled={!Number.isFinite(entered)} onClick={() => { setChecked(true); setAttempts((value) => value + 1); if (Math.abs(entered - expected) <= 0.05) onMastery?.(); }}>Check answer</Button>
       </fieldset>
       {checked && <div role={correct ? "status" : "alert"} className={`rounded-md border p-4 text-sm ${correct ? "border-green-700" : "border-red-700"}`}>
         <p className="font-semibold">{correct ? "Correct." : "Not yet correct."} Attempt {attempts}.</p>
         <p>You entered {entered.toFixed(1)} m. Required tide = draft {scenario.draft.toFixed(1)} m + clearance {scenario.clearance.toFixed(1)} m − signed charted value ({scenario.charted.toFixed(1)} m) = {expected.toFixed(1)} m.</p>
-        <p>At the scenario's predicted tide of {scenario.tide.toFixed(1)} m, the margin is {(scenario.tide - expected).toFixed(1)} m. Values are rounded to 0.1 m; use the unrounded calculation and conservative planning limits in practice.</p>
-        {!correct && <Button type="button" className="mt-3" onClick={() => { setPracticeAnswer(""); setChecked(false); }}>Retry this scenario</Button>}
-        {correct && <Button type="button" className="mt-3" onClick={() => { setScenarioIndex((value) => (value + 1) % scenarios.length); setPracticeAnswer(""); setChecked(false); setAttempts(0); }}>New scenario</Button>}
+        <p>At the scenario's predicted tide of {scenario.tide.toFixed(1)} m, the margin is {(scenario.tide - expected).toFixed(1)} m: {scenario.outcome}. Values are rounded to 0.1 m; use the unrounded calculation and conservative planning limits in practice.</p>
+        {!correct && <Button type="button" className="mt-3 min-h-11" onClick={() => { setPracticeAnswer(""); setChecked(false); }}>Retry this scenario</Button>}
+        {correct && <Button type="button" className="mt-3 min-h-11" onClick={() => { setScenarioIndex((value) => (value + 1) % scenarios.length); setPracticeAnswer(""); setChecked(false); setAttempts(0); }}>New scenario</Button>}
       </div>}
       <p className="text-sm">Completion evidence is earned by one correct checked attempt. Retry keeps this scenario; New scenario advances through a reproducible three-scenario set.</p>
     </CardContent></Card>
 
-    <Card><CardHeader><CardTitle>Passage planning window</CardTitle><CardDescription>{statusCopy}</CardDescription></CardHeader><CardContent>
+    <Card className="min-w-0"><CardHeader><CardTitle>Passage planning window</CardTitle><CardDescription>{statusCopy}</CardDescription></CardHeader><CardContent className="min-w-0">
       {chart ? <>
         <div className="w-full overflow-x-auto"><svg role="img" aria-labelledby="tidal-chart-title tidal-chart-description" width="100%" height={HEIGHT} viewBox={`0 0 ${WIDTH} ${HEIGHT}`} className="min-w-[36rem] rounded border bg-slate-50">
           <title id="tidal-chart-title">Predicted tidal height and required passage height</title><desc id="tidal-chart-description">The tide curve between the three entered events. Safe intervals are also listed in text below the chart.</desc>
