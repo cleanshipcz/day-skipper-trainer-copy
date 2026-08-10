@@ -72,5 +72,5 @@ export function scoreCourse(courseDeg: number, input: VectorInput, toleranceDeg 
   const actual = resultingTrack(courseDeg, input.boatSpeedKn, input.tideSetDeg, input.tideRateKn);
   if (actual.trackDeg === null) return { correct: false, errorDeg: null, actual };
   const errorDeg = Math.abs(((actual.trackDeg - input.desiredTrackDeg + 540) % 360) - 180);
-  return { correct: errorDeg < toleranceDeg, errorDeg, actual };
+  return { correct: errorDeg <= toleranceDeg, errorDeg, actual };
 }

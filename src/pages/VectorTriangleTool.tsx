@@ -8,7 +8,8 @@ import { Input } from "@/components/ui/input";
 import { VectorTriangleVisualizer } from "@/components/navigation/VectorTriangleVisualizer";
 import { TOPIC_IDS } from "@/constants/topicRegistry";
 import { TheoryCompletionButton } from "@/features/progress/TheoryCompletionButton";
-import { scoreCourse, solveCourseToSteer } from "@/features/navigation/vectorSolver";
+import { solveCourseToSteer } from "@/features/navigation/vectorSolver";
+import { describeVectorDrillReasoning, recordMasteredScenario, scoreVectorDrillAnswer, VECTOR_DRILL_MASTERY_TARGET, VECTOR_DRILL_SCENARIOS } from "@/features/navigation/vectorDrill";
 
 interface PreciseNumberInputProps { id: string; label: string; value: number; onValidValue: (value: number) => void; onDraftValidity?: (valid: boolean) => void; min: number; max: number; step: number; unit: string }
 
@@ -61,31 +62,34 @@ const VectorTriangleTool = () => {
   // Drill Mode State
   const [drillMode, setDrillMode] = useState(false);
   const [userHeading, setUserHeading] = useState(90); // User controls this in Drill Mode
-  const [targetHeading, setTargetHeading] = useState(90); // The random goal
-  const [drillFeedback, setDrillFeedback] = useState<"correct" | "incorrect" | null>(null);
+  const [scenarioIndex, setScenarioIndex] = useState(0);
+  const [drillFeedback, setDrillFeedback] = useState<ReturnType<typeof scoreVectorDrillAnswer> | null>(null);
+  const [attempts, setAttempts] = useState(0);
+  const [masteredScenarioIds, setMasteredScenarioIds] = useState<Set<string>>(() => new Set());
+  const [mastered, setMastered] = useState(false);
+  const [claimsInfeasible, setClaimsInfeasible] = useState(false);
   const [invalidDrafts, setInvalidDrafts] = useState<Record<string, boolean>>({});
   const [inputEpoch, setInputEpoch] = useState(0);
   const draftValidity = (id: string) => (valid: boolean) => setInvalidDrafts((current) => ({ ...current, [id]: !valid }));
   const hasInvalidDraft = Object.values(invalidDrafts).some(Boolean);
+  const masteryProgress = masteredScenarioIds.size;
+
+  const scenario = VECTOR_DRILL_SCENARIOS[scenarioIndex % VECTOR_DRILL_SCENARIOS.length];
+  const loadScenario = (index: number) => {
+    const next = VECTOR_DRILL_SCENARIOS[index % VECTOR_DRILL_SCENARIOS.length];
+    setScenarioIndex(index);
+    setGroundTrack(next.desiredTrackDeg);
+    setTideSet(next.tideSetDeg);
+    setTideRate(next.tideRateKn);
+    setBoatSpeed(next.boatSpeedKn);
+    setUserHeading((next.desiredTrackDeg + 180) % 360);
+    setAttempts(0);
+    setClaimsInfeasible(false);
+    setDrillFeedback(null);
+  };
 
   const startDrill = () => {
-    // Randomize Scenario
-    const rTarget = Math.floor(Math.random() * 360);
-    const rSet = Math.floor(Math.random() * 360);
-    const rRate = 1 + Math.floor(Math.random() * 30) / 10; // 1.0 - 4.0
-    const rSpeed = 4 + Math.floor(Math.random() * 40) / 10; // 4.0 - 8.0
-
-    setTargetHeading(rTarget);
-    setTideSet(rSet);
-    setTideRate(rRate);
-    setBoatSpeed(rSpeed);
-
-    // Reset User Heading to something random FAR from the likely solution
-    // Likely solution is vaguely near rTarget.
-    const randomOffset = 90 + Math.floor(Math.random() * 180);
-    setUserHeading((rTarget + randomOffset) % 360);
-
-    setDrillFeedback(null);
+    loadScenario(scenarioIndex);
     setDrillMode(true);
     setInvalidDrafts({});
     setInputEpoch((current) => current + 1);
@@ -99,7 +103,18 @@ const VectorTriangleTool = () => {
     setInputEpoch((current) => current + 1);
   };
 
-  const checkAnswer = () => setDrillFeedback(scoreCourse(userHeading, { desiredTrackDeg: targetHeading, boatSpeedKn: boatSpeed, tideSetDeg: tideSet, tideRateKn: tideRate }).correct ? "correct" : "incorrect");
+  const checkAnswer = () => {
+    const result = scoreVectorDrillAnswer(scenario, claimsInfeasible ? { kind: "infeasible" } : { kind: "heading", headingDeg: userHeading });
+    setAttempts((value) => value + 1);
+    setDrillFeedback(result);
+    if (result.correct) {
+      const nextIds = recordMasteredScenario(masteredScenarioIds, scenario.id);
+      setMasteredScenarioIds(nextIds);
+      if (nextIds.size >= VECTOR_DRILL_MASTERY_TARGET) setMastered(true);
+    }
+  };
+
+  const nextScenario = () => loadScenario(scenarioIndex + 1);
 
   const solution = solveCourseToSteer({ desiredTrackDeg: groundTrackHeading, boatSpeedKn: boatSpeed, tideSetDeg: tideSet, tideRateKn: tideRate });
 
@@ -116,17 +131,17 @@ const VectorTriangleTool = () => {
       {/* Header */}
       <header className="border-b border-border bg-card/50 backdrop-blur-sm sticky top-0 z-40">
         <div className="container mx-auto px-4 py-4">
-          <div className="flex items-center justify-between">
+          <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
             <div className="flex items-center gap-3">
-              <Button variant="ghost" size="icon" onClick={() => navigate("/navigation/tides")}>
-                <ArrowLeft className="w-5 h-5" />
+              <Button variant="ghost" size="icon" aria-label="Back to Tides" onClick={() => navigate("/navigation/tides")}>
+                <ArrowLeft aria-hidden="true" className="w-5 h-5" />
               </Button>
               <div>
                 <h1 className="text-xl font-bold">Vector Solution Tool</h1>
                 <p className="text-sm text-muted-foreground">Calculate Course to Steer</p>
               </div>
             </div>
-            <TheoryCompletionButton topicId={TOPIC_IDS.TIDES_VECTOR_TOOL} catalogueRevision="tides-vector-tool-v1" evidenceId="successful-heading-drill" evidenceSatisfied={drillFeedback === "correct"} lockedLabel="Solve the heading drill" />
+            <TheoryCompletionButton topicId={TOPIC_IDS.TIDES_VECTOR_TOOL} catalogueRevision="tides-vector-tool-v2" evidenceId="vector-drill-mastery" evidenceSatisfied={mastered} lockedLabel={`Master ${VECTOR_DRILL_MASTERY_TARGET} vector scenarios`} />
           </div>
         </div>
       </header>
@@ -154,50 +169,56 @@ const VectorTriangleTool = () => {
                 {drillMode ? (
                   /* DRILL MODE CONTROLS */
                   <div className="space-y-6">
-                    <div className="p-3 bg-yellow-50 border border-yellow-200 rounded text-yellow-800 text-sm">
-                      <strong>Goal:</strong> Adjust your Boat Heading until your <strong>Green Ground Track</strong>{" "}
-                      matches the <strong>Yellow Target ({targetHeading}°)</strong>.
+                    <div className="rounded border border-yellow-300 bg-yellow-50 p-3 text-sm text-yellow-950 forced-colors:border-[CanvasText]">
+                      <p><strong>Scenario {scenario.id}:</strong> make good a track of <strong>{scenario.desiredTrackDeg}°T</strong> with a boat speed of <strong>{scenario.boatSpeedKn} kn</strong> and tide setting toward <strong>{scenario.tideSetDeg}°T at {scenario.tideRateKn} kn</strong>.</p>
+                      <p className="mt-2">Enter a course to steer, or decide that no forward solution exists. The resultant vector stays hidden until you check. A heading is correct when its resulting track is within 5° of the target.</p>
                     </div>
 
                     <div className="space-y-2">
-                      <Label className="text-blue-600 font-bold">Your Heading (Water Track)</Label>
+                      <Label htmlFor="drill-heading" className="font-bold text-blue-700 forced-colors:text-[CanvasText]">Your course to steer (true)</Label>
                       <div className="flex items-center gap-4">
                         <Slider
+                          id="drill-heading"
+                          aria-label="Your course to steer in degrees true"
+                          aria-valuetext={`${userHeading} degrees true`}
                           value={[userHeading]}
                           max={359}
                           step={1}
-                          onValueChange={(v) => setUserHeading(v[0])}
+                          disabled={claimsInfeasible || Boolean(drillFeedback?.correct)}
+                          onValueChange={(v) => { setUserHeading(v[0]); setDrillFeedback(null); }}
                           className="flex-1"
                         />
-                        <span className="w-12 text-right font-mono font-bold text-blue-600">{userHeading}°</span>
+                        <span className="w-14 text-right font-mono font-bold text-blue-700 forced-colors:text-[CanvasText]">{userHeading}°T</span>
                       </div>
                     </div>
-                    <div className="text-sm text-slate-500">
-                      Boat Speed: {boatSpeed}kn <br />
-                      Tide: {tideSet}° @ {tideRate}kn
-                    </div>
+                    <label className="flex min-h-11 items-center gap-3 rounded border p-3 forced-colors:border-[CanvasText]">
+                      <input type="checkbox" checked={claimsInfeasible} disabled={Boolean(drillFeedback?.correct)} onChange={(event) => { setClaimsInfeasible(event.currentTarget.checked); setDrillFeedback(null); }} />
+                      No feasible course can make this track
+                    </label>
+                    <p aria-live="polite" role="status" className="text-sm font-medium">Mastery: {masteryProgress} of {VECTOR_DRILL_MASTERY_TARGET} scenarios correct. Attempts on this scenario: {attempts}.</p>
 
-                    {drillFeedback === "correct" ? (
-                      <div className="bg-green-100 text-green-800 p-3 rounded font-bold text-center border border-green-200">
-                        ✅ Correct! Good job.
-                        <Button className="w-full mt-2 bg-green-700 hover:bg-green-800" onClick={startDrill}>
-                          Next Scenario
-                        </Button>
+                    {drillFeedback?.correct ? (
+                      <div className="rounded border border-green-300 bg-green-100 p-3 text-green-950 forced-colors:border-[CanvasText]" role="status" aria-live="polite">
+                        <p className="font-bold">Correct. {describeVectorDrillReasoning(scenario)}</p>
+                        {mastered ? <Button className="mt-3 min-h-11 w-full" variant="outline" onClick={() => { setMasteredScenarioIds(new Set()); nextScenario(); }}>
+                          Retry for practice (saved mastery is preserved)
+                        </Button> : <Button className="mt-3 min-h-11 w-full bg-green-700 hover:bg-green-800" onClick={nextScenario}>
+                          Next scenario
+                        </Button>}
                       </div>
                     ) : (
                       <div className="space-y-2">
                         <Button
-                          className={`w-full ${
-                            drillFeedback === "incorrect" ? "bg-red-600 hover:bg-red-700" : "bg-blue-600"
-                          }`}
+                          className="min-h-11 w-full bg-blue-700"
                           onClick={checkAnswer}
                         >
-                          {drillFeedback === "incorrect" ? "❌ Try Again (Check Heading)" : "Check Answer"}
+                          {drillFeedback ? "Check revised answer" : "Check answer"}
                         </Button>
-                        {drillFeedback === "incorrect" && (
-                          <p className="text-xs text-red-600 text-center font-medium">
-                            Your Ground Track (Green) does not match the Target (Yellow).
-                          </p>
+                        {drillFeedback && (
+                          <div className="rounded border border-red-300 bg-red-50 p-3 text-sm text-red-950 forced-colors:border-[CanvasText]" role="alert">
+                            {drillFeedback.actualTrackDeg !== null && drillFeedback.errorDeg !== null ? <p>Your course produces {drillFeedback.actualTrackDeg.toFixed(1)}°T, an error of {drillFeedback.errorDeg.toFixed(1)}°. Adjust toward the target and check again.</p> : <p>{drillFeedback.solution.feasible ? "A feasible course exists; use the cross-tide correction to find it." : "This vector cannot produce forward motion on the requested track."}</p>}
+                            {attempts >= 2 && <p className="mt-2 font-semibold">Worked reasoning: {describeVectorDrillReasoning(scenario)}</p>}
+                          </div>
                         )}
                       </div>
                     )}
@@ -239,12 +260,7 @@ const VectorTriangleTool = () => {
                   </>
                 )}
 
-                {/* Tide Controls (Always visible but read-only in Drill?) No, usually standard controls. 
-                    In Drill Mode, let's hide or disable Tide Controls to keep focus on Heading? 
-                    Actually, keeping them visible helps user see what they are fighting.
-                    Let's disable them in Drill Mode.
-                */}
-                <div className={`pt-4 border-t space-y-4 ${drillMode ? "opacity-50 pointer-events-none" : ""}`}>
+                {!drillMode && <div className="space-y-4 border-t pt-4">
                   {!drillMode && <PreciseNumberInput key={`set-${inputEpoch}`} id="tide-set" label="Tidal set (toward, true)" value={tideSet} onValidValue={setTideSet} onDraftValidity={draftValidity("tide-set")} min={0} max={359.9} step={0.1} unit="°T" />}
                   {!drillMode && <PreciseNumberInput key={`rate-${inputEpoch}`} id="tide-rate" label="Tidal rate" value={tideRate} onValidValue={setTideRate} onDraftValidity={draftValidity("tide-rate")} min={0} max={20} step={0.1} unit="kn" />}
                   <div className="space-y-2">
@@ -275,7 +291,7 @@ const VectorTriangleTool = () => {
                       <span className="w-12 text-right font-mono font-bold text-red-700">{tideRate}kn</span>
                     </div>
                   </div>
-                </div>
+                </div>}
               </div>
 
               {!drillMode && (
@@ -326,7 +342,8 @@ const VectorTriangleTool = () => {
               tideSet={tideSet}
               tideRate={tideRate}
               mode={drillMode ? "drill" : "solver"}
-              drillTarget={targetHeading}
+              drillTarget={scenario.desiredTrackDeg}
+              showDrillResult={!drillMode || Boolean(drillFeedback)}
             />}
             {!drillMode && !hasInvalidDraft && <section aria-labelledby="solution-breakdown" className="mt-4 space-y-3 rounded-xl border bg-card p-5 text-sm">
               <h2 id="solution-breakdown" className="text-lg font-bold">Reproducible vector breakdown</h2>
