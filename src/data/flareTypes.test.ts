@@ -132,6 +132,24 @@ describe("flareTypes data", () => {
     expect(solasAndMakerBoundary).toMatch(/different questions/);
     expect(solasAndMakerBoundary).toMatch(/exact product's markings and instructions/);
   });
+
+  it("maps versioned performance and representative maker instructions across every form", async () => {
+    const { flareOperatingSequence, flareSources, flareStorageBoundary, representativeManufacturerInstructions, FLARE_IDS } = await import("./flareTypes");
+    expect(flareSources.map(({ id }) => id)).toEqual(expect.arrayContaining(["imo-solas-2020", "imo-lsa-2017", "imo-msc48-66"]));
+    const covered = new Set(representativeManufacturerInstructions.flatMap(({ flareIds }) => flareIds));
+    expect(covered).toEqual(new Set(Object.values(FLARE_IDS)));
+    expect(representativeManufacturerInstructions.every(({ href, version }) => href.startsWith("https://painswessex.com/our-products/") && /Product \d+/.test(version))).toBe(true);
+    const operations = flareOperatingSequence.join(" ");
+    expect(operations).toMatch(/different pull wires, tabs, delays and water deployment/i);
+    expect(operations).toMatch(/misfire.*manufacturer/i);
+    expect(flareStorageBoundary).toMatch(/temperature and container limits/i);
+    expect(flareStorageBoundary).toMatch(/check recalls.*printed expiry date/i);
+  });
+
+  it("records corrected MGN 599 publication provenance", async () => {
+    const { flareSources } = await import("./flareTypes");
+    expect(flareSources.find(({ id }) => id === "mca-mgn599")?.version).toContain("Published 14 November 2024; updated 10 December 2024");
+  });
 });
 
 describe("flareScenarios data", () => {

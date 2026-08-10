@@ -31,7 +31,7 @@ import {
 } from "@/components/safety/FlareIdentificationDrill";
 import { useProgress } from "@/hooks/useProgress";
 import { TOPIC_IDS } from "@/constants/topicRegistry";
-import { evdsGuidance, flareOperatingSequence, flareReview, flareSources, flareTypes, solasAndMakerBoundary, ukCarriageGuidance } from "@/data/flareTypes";
+import { evdsGuidance, flareOperatingSequence, flareReview, flareSources, flareStorageBoundary, flareTypes, representativeManufacturerInstructions, solasAndMakerBoundary, ukCarriageGuidance } from "@/data/flareTypes";
 import { FlareSchematic } from "@/components/safety/FlareSchematic";
 
 const FlaresTheory = () => {
@@ -261,10 +261,7 @@ const FlaresTheory = () => {
                 </CardHeader>
                 <CardContent className="text-sm text-muted-foreground space-y-2">
                   <p>
-                    Store flares in a cool, dry, readily accessible location —
-                    ideally a dedicated flare locker or waterproof container
-                    near the companionway. Every crew member should know where
-                    they are kept.
+                    {flareStorageBoundary}
                   </p>
                 </CardContent>
               </Card>
@@ -320,7 +317,7 @@ const FlaresTheory = () => {
                 </ul>
               </CardContent>
             </Card>
-            <Card><CardHeader><CardTitle>Sources, version and review boundary</CardTitle></CardHeader><CardContent className="space-y-3 text-sm"><p>{flareReview.reviewScope} Content version {flareReview.contentVersion}; reviewed {flareReview.reviewedOn}.</p><p className="font-medium">Manual verification limit: {flareReview.manualVerification}</p><ul className="list-disc space-y-2 pl-5">{flareSources.map((source) => <li key={source.id}><a href={source.href} target="_blank" rel="noreferrer" className="text-primary underline underline-offset-4">{source.label}</a><span className="text-muted-foreground"> — {source.version}</span></li>)}</ul></CardContent></Card>
+            <Card><CardHeader><CardTitle>Sources, version and review boundary</CardTitle></CardHeader><CardContent className="space-y-3 text-sm"><p>{flareReview.reviewScope} Content version {flareReview.contentVersion}; reviewed {flareReview.reviewedOn}.</p><p className="font-medium">Manual verification limit: {flareReview.manualVerification}</p><ul className="list-disc space-y-2 pl-5">{[...flareSources, ...representativeManufacturerInstructions].map((source) => <li key={source.id}><a href={source.href} target="_blank" rel="noreferrer" className="text-primary underline underline-offset-4">{source.label}</a><span className="text-muted-foreground"> — {source.version}</span></li>)}</ul></CardContent></Card>
           </TabsContent>
 
           {/* ── DRILL TAB ─────────────────────────────────────────── */}

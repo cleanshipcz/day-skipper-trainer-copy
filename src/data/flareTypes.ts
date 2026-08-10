@@ -25,12 +25,14 @@ export const flareTypes: readonly FlareType[] = [
 ];
 
 export const flareOperatingSequence = [
-  "Prepare: raise the distress alert by suitable radio/beacon means where possible; choose the signal for attraction or position marking; check expiry, condition and the exact printed instructions before removing caps.",
-  "Make safe: brief crew, secure yourself, clear people, fuel, sails/rigging and overhead aircraft; choose the safe working side and put on available eye/hand protection without delaying an emergency signal.",
-  "Operate: adopt only the grip, orientation, wind allowance and activation method printed on that unit. Point away from people and the vessel; never look into a launcher.",
+  "Prepare: raise the distress alert by suitable radio/beacon means where possible; choose the signal for attraction or position marking; check the unit's expiry, damage/recall status and exact casing instructions before removing any cap.",
+  "Make safe: brief crew, secure yourself, clear people, fuel, sails/rigging and overhead aircraft. Use protective equipment only as the product instructions and emergency permit; do not delay a necessary signal to find generic equipment.",
+  "Operate: use only the grip or deployment method, firing/smoke end, orientation, wind allowance and activation sequence printed on that unit. Representative products use materially different pull wires, tabs, delays and water deployment; never look into a launcher.",
   "After firing: keep the hot device clear for the label-specified time and monitor fire risk. Do not touch residue bare-handed.",
   "Misfire: keep it pointed safely away, do not inspect the firing end, and wait for the period stated by the manufacturer. Do not retry unless the instructions explicitly say to; isolate it and obtain manufacturer/supplier disposal advice.",
 ] as const;
+
+export const flareStorageBoundary = "Keep each unit readily accessible, dry, protected from damage and separated from ignition sources, within the temperature and container limits on its current label/SDS. Some representative products recommend a purpose-designed polybottle; that is not permission to substitute a generic airtight container or exceed another product's limits. Inspect and rotate stock as its maker directs, check recalls, and use the printed expiry date.";
 
 export const evdsGuidance = "An electronic visual distress signal (EVDS) may provide a reusable light, but colour, flash pattern, intensity and approval vary. MCA MIN 542 warns that advertised alternatives may not meet SOLAS performance or be an internationally recognised COLREG Annex IV distress signal. An EVDS does not automatically replace required pyrotechnics or radio/beacon alerting: check the device approval, vessel category, area of operation and applicable carriage rules.";
 
@@ -39,13 +41,24 @@ export const ukCarriageGuidance = "UK pleasure vessels 13.7 m and over are Class
 export const solasAndMakerBoundary = "SOLAS performance/type approval and the product manufacturer's current instructions answer different questions. Approval indicates a signal standard; it does not supply the grip, activation, orientation, misfire wait, storage or expiry instructions for the unit in hand. Confirm required approval for the vessel, then follow that exact product's markings and instructions.";
 
 export const flareSources = [
+  { id: "imo-solas-2020", label: "IMO SOLAS Consolidated Edition 2020 — Chapter III / Regulation 34", href: "https://www.imo.org/en/about/conventions/pages/international-convention-for-the-safety-of-life-at-sea-%28solas%29%2C-1974.aspx", version: "SOLAS Consolidated Edition 2020; Chapter III makes applicable LSA Code requirements mandatory; checked 10 August 2026" },
+  { id: "imo-lsa-2017", label: "IMO International Life-Saving Appliance (LSA) Code — visual-signal performance", href: "https://www.imo.org/en/ourwork/safety/pages/lifesavingappliances-default.aspx", version: "2017 Edition incorporating amendments; visual aids include parachute flares, hand flares and buoyant smoke; checked 10 August 2026" },
+  { id: "imo-msc48-66", label: "IMO Resolution MSC.48(66) — adoption and performance text of the LSA Code", href: "https://wwwcdn.imo.org/localresources/en/KnowledgeCentre/IndexofIMOResolutions/MSCResolutions/MSC.48%2866%29.pdf", version: "Adopted 4 June 1996; original Code sections 3.1–3.3, to be read with applicable amendments; checked 10 August 2026" },
   { id: "imo-colregs", label: "IMO, COLREG Annex IV distress signals", href: "https://www.imo.org/en/ourwork/safety/pages/preventing-collisions.aspx", version: "Annex IV text; page checked 10 August 2026" },
   { id: "mca-min542", label: "MCA MIN 542 (M+F) Amendment 3 — recognised distress signals and alternatives", href: "https://www.gov.uk/government/publications/min-542-mf-amendment-3-life-saving-appliances-recognised-distress-signals-and-advertised-alternatives-to-pyrotechnic-flares", version: "Published 12 April 2024; expires 1 March 2027; checked 10 August 2026" },
   { id: "gov-disposal", label: "GOV.UK — disposing of unwanted marine flares", href: "https://www.gov.uk/guidance/disposing-of-unwanted-marine-flares", version: "Updated 1 January 2023; checked 10 August 2026" },
   { id: "mca-min687", label: "MCA MIN 687 — changes to how individuals can dispose of marine flares", href: "https://www.gov.uk/government/publications/min-687-changes-to-how-individuals-can-dispose-of-marine-flares", version: "Published 13 October 2022; historic notice explaining the service withdrawal effective 31 December 2022; checked 10 August 2026" },
-  { id: "mca-mgn599", label: "MCA MGN 599 (M) Amendment 1 — pleasure-vessel regulations and Class XII exemptions", href: "https://www.gov.uk/government/publications/mgn-599-m-amendment-1-m-pleasure-vessels-regulations-and-exemptions-guidance-and-best-practice-advice", version: "Published 13 December 2024; checked 10 August 2026" },
+  { id: "mca-mgn599", label: "MCA MGN 599 (M) Amendment 1 — pleasure-vessel regulations and Class XII exemptions", href: "https://www.gov.uk/government/publications/mgn-599-m-amendment-1-m-pleasure-vessels-regulations-and-exemptions-guidance-and-best-practice-advice", version: "Published 14 November 2024; updated 10 December 2024; checked 10 August 2026" },
   { id: "rya-disposal", label: "RYA — disposing of out-of-date flares", href: "https://www.rya.org.uk/regulations/disposing-of-out-of-date-flares/", version: "Current web guidance; checked 10 August 2026" },
 ] as const;
+
+export const representativeManufacturerInstructions = [
+  { id: "pw-para-red-mk8a", flareIds: ["red-parachute-rocket"], label: "Pains Wessex Para Red Rocket Mk8A instructions", href: "https://painswessex.com/our-products/para-red-rocket-mk8a/", version: "Product 9506720, Mk8A product page/datasheet; checked 10 August 2026" },
+  { id: "pw-red-hand-mk8", flareIds: ["red-hand-flare"], label: "Pains Wessex Red Handflare Mk8 instructions", href: "https://painswessex.com/our-products/red-handflare-mk8/", version: "Product 9529000, Mk8 datasheet (2020); checked 10 August 2026" },
+  { id: "pw-handsmoke-mk8a", flareIds: ["orange-smoke-hand"], label: "Pains Wessex Handsmoke Mk8A instructions", href: "https://painswessex.com/our-products/handsmoke-mk8a/", version: "Product 9539300, Mk8A page/datasheet and SDS v2.1.1.1 (24 September 2021); checked 10 August 2026" },
+  { id: "pw-lifesmoke-mk9", flareIds: ["orange-smoke-buoyant"], label: "Pains Wessex Lifesmoke Mk9 instructions", href: "https://painswessex.com/our-products/lifesmoke-mk9/", version: "Product 9537000, Mk9 page/datasheet; checked 10 August 2026" },
+  { id: "pw-white-hand-mk8", flareIds: ["white-hand-flare"], label: "Pains Wessex White Handflare Mk8 instructions", href: "https://painswessex.com/our-products/white-handflare-mk8/", version: "Product 9527510, Mk8 page/datasheet and SDS v3.1.1.1 (24 September 2021); checked 10 August 2026" },
+] as const satisfies readonly { id: string; flareIds: readonly FlareId[]; label: string; href: string; version: string }[];
 
 export const flareReview = { contentVersion: "2026-08-10", reviewedOn: "2026-08-10", reviewScope: "Claims checked against the listed regulatory/guidance sources; illustrations are original repository-owned schematics.", manualVerification: "No qualified practitioner review is evidenced. A competent instructor should verify handling demonstrations against the actual products carried and current vessel requirements before practical use." } as const;
 
