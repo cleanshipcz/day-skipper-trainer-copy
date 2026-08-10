@@ -17,12 +17,12 @@ export const TransitSightPicture = ({scenario}:{readonly scenario:TransitScenari
     <polygon data-x={x(angle)} points={`${x(angle)},${horizon-(nearer?60:40)} ${x(angle)-(nearer?18:12)},${horizon} ${x(angle)+(nearer?18:12)},${horizon}`} fill={nearer?"#dc2626":"#7c3aed"}/>
     <text x={x(angle)} y={horizon+scenario.chartHeight*.07} textAnchor="middle">{label}</text>
   </g>;
-  return <svg viewBox={`0 0 ${scenario.chartWidth} ${scenario.chartHeight}`} className="w-full h-auto" role="img" aria-label="Observer sight picture of two transit marks">
+  const qualificationId = `transit-safety-${scenario.id}`;
+  return <figure className="space-y-2"><svg viewBox={`0 0 ${scenario.chartWidth} ${scenario.chartHeight}`} className="w-full h-auto" role="img" aria-label="Observer sight picture of two transit marks" aria-describedby={qualificationId}>
     <rect width={scenario.chartWidth} height={scenario.chartHeight} fill="#dbeafe"/><rect y={horizon} width={scenario.chartWidth} height={scenario.chartHeight-horizon} fill="#93c5fd"/>
     <line y1={horizon} y2={horizon} x2={scenario.chartWidth} stroke="#475569"/>
     {mark(rear,"Rear",false)}{mark(front,"Front",true)}
-    <text x={scenario.chartWidth*.03} y={scenario.chartHeight*.94} fontSize={scenario.chartHeight*.035}>Assessment applies only on the declared useful-water segment; no clearance elsewhere is implied.</text>
-  </svg>;
+  </svg><figcaption id={qualificationId} className="px-2 pb-2 text-sm text-muted-foreground whitespace-normal break-words">Assessment applies only on the declared useful-water segment; no clearance elsewhere is implied.</figcaption></figure>;
 };
 
 export const TransitExercise = ({onComplete}: TransitExerciseProps) => {

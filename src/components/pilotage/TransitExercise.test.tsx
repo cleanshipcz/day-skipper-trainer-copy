@@ -37,5 +37,10 @@ describe("TransitExercise", () => {
     expect(html).toContain('width="320"');
     expect(html).not.toContain("600");
     expect(html).not.toContain("400");
+    const svgEnd = html.indexOf("</svg>");
+    const qualification = html.indexOf("Assessment applies only");
+    expect(qualification).toBeGreaterThan(svgEnd);
+    expect(html).toContain("whitespace-normal break-words");
+    expect(html).toContain('aria-describedby="transit-safety-aligned"');
   });
 });
