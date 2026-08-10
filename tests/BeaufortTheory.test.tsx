@@ -54,6 +54,16 @@ describe("BeaufortTheory authoritative marine reference", () => {
     expect(source.getAttribute("rel")).toBe("noreferrer");
   });
 
+  it("teaches all sea states with responsive original visuals and a height caveat", async () => {
+    render(<TestRouter><BeaufortTheory /></TestRouter>);
+    await screen.findByRole("button", { name: /mark theory complete/i });
+
+    expect(screen.getByRole("heading", { name: "Sea-state visual guide" })).toBeTruthy();
+    expect(screen.getAllByTestId("beaufort-sea-visual")).toHaveLength(13);
+    expect(screen.getByText(/Compare wave scale, breaking crests, foam and spray—not height alone/i).textContent).toMatch(/Fetch.*duration.*depth.*swell/i);
+    expect(screen.getByText(/Artwork provenance:/i).closest("p")?.textContent).toMatch(/Original project SVG artwork.*no third-party image/i);
+  });
+
   it("explains and exposes decimal normalization when it changes the force", async () => {
     const user = userEvent.setup();
     render(<TestRouter><BeaufortTheory /></TestRouter>);
