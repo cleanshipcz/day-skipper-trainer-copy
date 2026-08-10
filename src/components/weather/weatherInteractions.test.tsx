@@ -1,7 +1,7 @@
 // @vitest-environment jsdom
 import { render, screen } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
-import { describe, expect, it } from "vitest";
+import { beforeEach, describe, expect, it } from "vitest";
 import { BeaufortDrill } from "./BeaufortDrill";
 import { SynopticChartReader } from "./SynopticChartReader";
 import { ForecastAreaMap } from "./ForecastAreaMap";
@@ -18,10 +18,12 @@ const expectSymbolPointsTowardMovement = (line: readonly [Point, Point], base: r
 };
 
 describe("weather interactions", () => {
+  beforeEach(() => window.localStorage.clear());
+
   it("supports keyboard answers and advances the synoptic scenario", async () => {
     const user = userEvent.setup();
     const { container } = render(<SynopticChartReader />);
-    const integratedChart = screen.getByRole("img", { name: /frontal depression west of ireland.*labelled isobars.*connected fronts.*warm sector/i });
+    const integratedChart = screen.getByRole("img", { name: /988 hPa centre inside 992 and 996 hPa isobars.*semicircle front.*triangle front.*warm sector/i });
     expect(integratedChart.tagName).toBe("svg");
     expect(integratedChart.getAttribute("viewBox")).toBe("0 0 600 300");
     expect(integratedChart.getAttribute("class")).toContain("w-full");
@@ -57,11 +59,17 @@ describe("weather interactions", () => {
     expect(container.textContent).not.toContain("▶");
 
     await user.tab();
-    expect(document.activeElement).toBe(screen.getByRole("button", { name: "Low pressure" }));
+    const correct = screen.getByRole("button", { name: /pressure bottoms then rises/i });
+    expect(document.activeElement).toBe(correct);
     await user.keyboard("{Enter}");
-    expect(screen.getByRole("status").textContent).toContain("Correct");
+    expect(correct.getAttribute("aria-pressed")).toBe("true");
+    expect(correct.getAttribute("data-answer-state")).toBe("selected");
+    await user.click(screen.getByRole("button", { name: /check answer/i }));
+    expect(screen.getByRole("status").textContent).toContain("Correct.");
+    expect(correct.getAttribute("data-answer-state")).toBe("correct");
+    expect((correct as HTMLButtonElement).disabled).toBe(true);
     await user.click(screen.getByRole("button", { name: "Next chart" }));
-    expect(screen.getByRole("img", { name: /cold front advancing north.*attached triangles/i })).toBeTruthy();
+    expect(screen.getByRole("img", { name: /front line running west-southwest.*triangle apexes point north/i })).toBeTruthy();
     const front = document.querySelector('[data-chart-marker="cold-front"]');
     expect(front?.getAttribute("data-direction")).toBe("north");
     expect(front?.querySelectorAll("path")).toHaveLength(2);
@@ -69,6 +77,44 @@ describe("weather interactions", () => {
     expect(front?.querySelectorAll("path")[1].getAttribute("d")).toContain("M165 155l18-22 11 19z");
     expectSymbolPointsTowardMovement([[105, 165], [505, 125]], [[165, 155], [194, 152]], [183, 133], [0, -1]);
     expect(front?.textContent).not.toContain("▶");
+  });
+
+  it("blocks unanswered progression and exposes locked incorrect feedback", async () => {
+    const user = userEvent.setup();
+    render(<SynopticChartReader />);
+    const next = screen.getByRole("button", { name: "Next chart" });
+    expect((next as HTMLButtonElement).disabled).toBe(true);
+    expect((screen.getByRole("button", { name: /check answer/i }) as HTMLButtonElement).disabled).toBe(true);
+
+    const wrong = screen.getByRole("button", { name: /pressure stays steady/i });
+    await user.click(wrong);
+    expect(wrong.getAttribute("data-answer-state")).toBe("selected");
+    await user.click(screen.getByRole("button", { name: /check answer/i }));
+    expect(screen.getByRole("status").textContent).toMatch(/not quite.*steady pressure and light variable wind.*best answer/is);
+    expect(wrong.getAttribute("data-answer-state")).toBe("incorrect");
+    expect((wrong as HTMLButtonElement).disabled).toBe(true);
+    expect((next as HTMLButtonElement).disabled).toBe(false);
+  });
+
+  it("persists progress through the final scenario and supports restart after reload", async () => {
+    const user = userEvent.setup();
+    const view = render(<SynopticChartReader />);
+    const correctAnswers = [/pressure bottoms then rises/i, /allow timing margin/i, /surface true wind circulates anticlockwise/i];
+    for (let index = 0; index < correctAnswers.length; index += 1) {
+      expect(screen.getByText(`Chart ${index + 1} of 3`)).toBeTruthy();
+      await user.click(screen.getByRole("button", { name: correctAnswers[index] }));
+      await user.click(screen.getByRole("button", { name: /check answer/i }));
+      expect(screen.getByRole("status").textContent).toContain("Correct.");
+      await user.click(screen.getByRole("button", { name: index === 2 ? "Finish reader" : "Next chart" }));
+    }
+    expect(screen.getByRole("status").textContent).toContain("completed all 3");
+    expect(screen.getByText(/does not mark.*theory lesson complete/i)).toBeTruthy();
+
+    view.unmount();
+    render(<SynopticChartReader />);
+    expect(screen.getByRole("heading", { name: /chart reader complete/i })).toBeTruthy();
+    await user.click(screen.getByRole("button", { name: /restart chart reader/i }));
+    expect(screen.getByText("Chart 1 of 3")).toBeTruthy();
   });
 
   it("gives drill feedback and moves to another observation", async () => {
