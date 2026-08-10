@@ -128,6 +128,26 @@ describe("Quiz accessible interaction and reflow", () => {
     expect(screen.queryByRole("button", { name: "Nautical Terms" })).toBeNull();
   });
 
+  it("exposes scenario observations as named structured text alongside keyboard-operable answers", async () => {
+    const user = userEvent.setup();
+    mocks.loadQuizTopic.mockResolvedValueOnce([{ ...questions[0], id: "cr5", scenario: {
+      accessibleName: "Same-tack sailing positions for question cr5",
+      description: "Boat positions relative to the wind.",
+      facts: [{ label: "Wind", value: "From the port side of both boats" }, { label: "Boat A", value: "Windward of Boat B" }, { label: "Boat B", value: "Leeward of Boat A" }],
+    } }]);
+    renderQuiz("/quiz/colregs");
+
+    const scenario = await screen.findByRole("figure", { name: "Same-tack sailing positions for question cr5" });
+    expect(scenario.getAttribute("aria-describedby")).toBe("scenario-description-cr5");
+    expect(scenario.textContent).toMatch(/Boat positions.*Wind.*port side.*Boat A.*Windward.*Boat B.*Leeward/i);
+    const heading = screen.getByRole("heading", { name: questions[0].question });
+    expect(heading.compareDocumentPosition(scenario) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
+    const firstRadio = screen.getByRole("radio", { name: "First wrong" });
+    firstRadio.focus();
+    await user.keyboard("{ArrowDown}");
+    expect((screen.getByRole("radio", { name: /First correct answer/i }) as HTMLInputElement).checked).toBe(true);
+  });
+
   it("returns completed quizzes to the exact registered parent path", async () => {
     const user = userEvent.setup();
     mocks.loadQuizTopic.mockResolvedValueOnce([questions[0]]);
