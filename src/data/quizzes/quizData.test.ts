@@ -35,7 +35,7 @@ const EXPECTED_QUESTION_COUNTS: Record<string, number> = {
   "safety-flares-quiz": 10,
   safety: 24,
   pilotage: 20,
-  weather: 20,
+  weather: 21,
   "passage-planning": 20,
 };
 
