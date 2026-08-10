@@ -1,4 +1,4 @@
-import { useId, useState } from "react";
+import { useId, useRef, useState } from "react";
 import { forecastAreas, SHIPPING_FORECAST_MAP_SOURCE, type ForecastArea } from "@/data/forecastAreas";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { areaInDirection, type ArrowKey } from "./weatherMapNavigation";
@@ -31,6 +31,7 @@ export const ForecastAreaMap = ({ createExerciseOrder = shuffledForecastAreas }:
   const [retries, setRetries] = useState(0);
   const [retriedCurrent, setRetriedCurrent] = useState(false);
   const [complete, setComplete] = useState(false);
+  const chooserRef = useRef<HTMLDivElement>(null);
   const idPrefix = useId().replaceAll(":", "");
   const target = order[questionIndex];
   const prompt = target ? forecastPrompt(target, questionIndex) : undefined;
@@ -71,6 +72,7 @@ export const ForecastAreaMap = ({ createExerciseOrder = shuffledForecastAreas }:
     setSelected(forecastAreas[0]);
     setFeedback(undefined);
     setRetriedCurrent(false);
+    queueMicrotask(() => chooserRef.current?.focus());
   };
   const selectedOptionId = `${idPrefix}-forecast-area-${optionSlug(selected.name)}`;
 
@@ -110,6 +112,7 @@ export const ForecastAreaMap = ({ createExerciseOrder = shuffledForecastAreas }:
         </div>
         <div className="flex flex-wrap gap-x-4 gap-y-2 text-xs" aria-label="Map legend"><span><span className="mr-1 inline-block size-3 border border-slate-700 bg-sky-200"/>Forecast area</span><span><span className="mr-1 inline-block size-3 border-[3px] border-slate-950 bg-amber-300"/>Selected area</span><span><span className="mr-1 inline-block size-3 border border-emerald-800 bg-emerald-200"/>Land/coastline</span></div>
         <div
+          ref={chooserRef}
           role="listbox"
           tabIndex={0}
           aria-label="Shipping forecast area chooser"
@@ -148,6 +151,7 @@ export const ForecastAreaMap = ({ createExerciseOrder = shuffledForecastAreas }:
               setSelected(forecastAreas.find(({ name }) => name !== target.name) ?? forecastAreas[0]);
               setRetries((count) => count + 1);
               setRetriedCurrent(true);
+              queueMicrotask(() => chooserRef.current?.focus());
             }} className="min-h-11 rounded-md border px-4 py-2">Retry area</button>}
         </div>}
         <p className="text-xs text-muted-foreground">Source: <a className="underline" href={SHIPPING_FORECAST_MAP_SOURCE.guide} target="_blank" rel="noreferrer">Met Office Guide to marine forecasts</a> and current <a className="underline" href={SHIPPING_FORECAST_MAP_SOURCE.liveForecast} target="_blank" rel="noreferrer">Shipping Forecast</a>. Project-native SVG trace checked {SHIPPING_FORECAST_MAP_SOURCE.checked}; see map maintenance documentation for tracing limits.</p>

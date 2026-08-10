@@ -188,6 +188,7 @@ describe("weather interactions", () => {
     expect(screen.getByRole("status").textContent).toMatch(/Correct.*correct area is Southeast Iceland/i);
     await user.click(screen.getByRole("button", { name: "Next area" }));
     expect(screen.getByText("Area 2 of 31")).toBeTruthy();
+    expect(document.activeElement).toBe(screen.getByRole("listbox", { name: "Shipping forecast area chooser" }));
     expect(screen.getByText(/shares boundaries with Southeast Iceland and Bailey/i)).toBeTruthy();
   });
 
@@ -201,7 +202,7 @@ describe("weather interactions", () => {
     await user.click(screen.getByRole("button", { name: "Retry area" }));
     expect(screen.getByTestId("selected-area-marker").getAttribute("data-area")).toBe("Faeroes");
     const chooser = screen.getByRole("listbox", { name: "Shipping forecast area chooser" });
-    chooser.focus();
+    expect(document.activeElement).toBe(chooser);
     await user.keyboard("{ArrowUp}{Enter}");
     expect(screen.getByRole("status").textContent).toMatch(/Correct.*Southeast Iceland/i);
   });
