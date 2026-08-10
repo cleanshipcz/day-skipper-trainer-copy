@@ -17,11 +17,12 @@ const optionSlug = (name: string) => name.toLowerCase().replaceAll(" ", "-");
 
 interface ForecastAreaMapProps {
   createExerciseOrder?: () => ForecastArea[];
+  onGuidedComplete?: () => void;
 }
 
 type AnswerFeedback = { correct: boolean; chosen: ForecastArea };
 
-export const ForecastAreaMap = ({ createExerciseOrder = shuffledForecastAreas }: ForecastAreaMapProps) => {
+export const ForecastAreaMap = ({ createExerciseOrder = shuffledForecastAreas, onGuidedComplete }: ForecastAreaMapProps) => {
   const [selected, setSelected] = useState(forecastAreas[0]);
   const [mode, setMode] = useState<"explore" | "guided">("explore");
   const [order, setOrder] = useState<ForecastArea[]>(() => createExerciseOrder());
@@ -67,6 +68,7 @@ export const ForecastAreaMap = ({ createExerciseOrder = shuffledForecastAreas }:
     if (questionIndex === order.length - 1) {
       setComplete(true);
       setFeedback(undefined);
+      onGuidedComplete?.();
       queueMicrotask(() => resultsHeadingRef.current?.focus());
       return;
     }

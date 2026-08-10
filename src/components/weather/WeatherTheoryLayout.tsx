@@ -11,12 +11,13 @@ export interface TheorySection {
   body: ReactNode;
 }
 
-export const WeatherTheoryLayout = ({ title, subtitle, topicId, sections, children }: {
+export const WeatherTheoryLayout = ({ title, subtitle, topicId, sections, children, completionControl }: {
   title: string;
   subtitle: string;
   topicId: string;
   sections: readonly TheorySection[];
   children?: ReactNode;
+  completionControl?: ReactNode;
 }) => {
   const navigate = useNavigate();
   const { ownerId, loadProgressDetailed, saveProgressDetailed } = useProgress();
@@ -28,7 +29,9 @@ export const WeatherTheoryLayout = ({ title, subtitle, topicId, sections, childr
   const [loadAttempt, setLoadAttempt] = useState(0);
   const savingRef = useRef(false);
   const queuedMarkerKey = ownerId ? `weather-theory-queued:${ownerId}:${topicId}` : null;
+  const managesCompletion = completionControl === undefined;
   useEffect(() => {
+    if (!managesCompletion) return;
     let active = true;
     setLoadState("loading");
     setSaveError(false);
@@ -64,9 +67,9 @@ export const WeatherTheoryLayout = ({ title, subtitle, topicId, sections, childr
     return () => {
       active = false;
     };
-  }, [loadAttempt, loadProgressDetailed, queuedMarkerKey, saveProgressDetailed, topicId]);
+  }, [loadAttempt, loadProgressDetailed, managesCompletion, queuedMarkerKey, saveProgressDetailed, topicId]);
   const finish = async () => {
-    if (complete || loadState !== "ready" || savingRef.current) return;
+    if (!managesCompletion || complete || loadState !== "ready" || savingRef.current) return;
     savingRef.current = true;
     setSaving(true);
     setSaveError(false);
@@ -104,12 +107,15 @@ export const WeatherTheoryLayout = ({ title, subtitle, topicId, sections, childr
           ))}
         </div>
         {children}
-        {loadState === "anonymous" && <div role="status" className="rounded-md border p-3 text-center">Sign in to save completion and earn progress for this lesson.</div>}
-        {loadState === "error" && <div role="alert" className="rounded-md border border-destructive p-3 text-center"><p>We couldn’t load your lesson progress. Completion is unavailable until the read succeeds.</p><Button className="mt-2" variant="outline" onClick={() => setLoadAttempt((attempt) => attempt + 1)}>Retry loading progress</Button></div>}
-        {saveError && <div role="alert" className="rounded-md border border-destructive p-3 text-center">We couldn’t save completion. Your completion was not marked; check your connection and retry.</div>}
-        {queuedOffline && <div role="status" className="rounded-md border p-3 text-center">Completion is queued offline for this account and will sync when you reconnect.</div>}
+        {managesCompletion && loadState === "anonymous" && <div role="status" className="rounded-md border p-3 text-center">Sign in to save completion and earn progress for this lesson.</div>}
+        {managesCompletion && loadState === "error" && <div role="alert" className="rounded-md border border-destructive p-3 text-center"><p>We couldn’t load your lesson progress. Completion is unavailable until the read succeeds.</p><Button className="mt-2" variant="outline" onClick={() => setLoadAttempt((attempt) => attempt + 1)}>Retry loading progress</Button></div>}
+        {managesCompletion && saveError && <div role="alert" className="rounded-md border border-destructive p-3 text-center">We couldn’t save completion. Your completion was not marked; check your connection and retry.</div>}
+        {managesCompletion && queuedOffline && <div role="status" className="rounded-md border p-3 text-center">Completion is queued offline for this account and will sync when you reconnect.</div>}
+        {completionControl}
         <div className="flex flex-col sm:flex-row gap-3 justify-center">
+          {managesCompletion &&
           <Button onClick={finish} disabled={loadState !== "ready" || saving || complete}>{queuedOffline ? <><CheckCircle2 className="mr-2" />Queued offline</> : complete ? <><CheckCircle2 className="mr-2" />Completed</> : loadState === "loading" ? "Loading progress…" : loadState === "anonymous" ? "Sign in to complete" : loadState === "error" ? "Progress unavailable" : saving ? "Saving completion…" : saveError ? "Retry saving completion" : "Mark theory complete"}</Button>
+          }
           <Button variant="outline" onClick={() => navigate("/weather")}>Back to Meteorology</Button>
         </div>
       </main>
