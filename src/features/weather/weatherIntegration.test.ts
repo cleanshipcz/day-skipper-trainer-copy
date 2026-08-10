@@ -34,5 +34,21 @@ describe("meteorology integration", () => {
     expect(byName.Dogger.neighbours).toEqual(expect.arrayContaining(["Forties", "Fisher", "Humber", "German Bight"]));
     expect(byName["Irish Sea"].neighbours).toEqual(expect.arrayContaining(["Malin", "Lundy", "Fastnet"]));
     expect(byName.Dover.neighbours).toEqual(expect.arrayContaining(["Thames", "Wight"]));
+    expect(byName["Irish Sea"].neighbours).not.toContain("Tyne");
+    expect(byName.Lundy.neighbours).not.toContain("Humber");
+    expect(byName.Portland.neighbours).not.toContain("Lundy");
+    expect(byName["South Utsire"].neighbours).not.toContain("Viking");
+  });
+
+  it("keeps every neighbour reference valid, unique, self-free and symmetric", () => {
+    const byName = new Map(forecastAreas.map((area) => [area.name, area]));
+    forecastAreas.forEach((area) => {
+      expect(new Set(area.neighbours).size, `${area.name} has duplicate neighbours`).toBe(area.neighbours.length);
+      expect(area.neighbours, `${area.name} references itself`).not.toContain(area.name);
+      area.neighbours.forEach((neighbour) => {
+        expect(byName.has(neighbour), `${area.name} references unknown ${neighbour}`).toBe(true);
+        expect(byName.get(neighbour)?.neighbours, `${area.name} → ${neighbour} is not reciprocal`).toContain(area.name);
+      });
+    });
   });
 });
