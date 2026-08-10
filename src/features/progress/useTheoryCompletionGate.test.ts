@@ -249,6 +249,20 @@ describe("useTheoryCompletionGate", () => {
     expect(mocks.saveProgressDetailed).toHaveBeenLastCalledWith(topicId, false, 67, 0, expect.objectContaining({ visitedSectionIds: ["s1", "s2"] }));
   });
 
+  it("surfaces a rejected revisioned load and recovers through an explicit retry", async () => {
+    mocks.loadProgressDetailed.mockClear();
+    mocks.loadProgressDetailed.mockRejectedValueOnce(new Error("request timed out"));
+    const { result } = renderHook(() => useTheoryCompletionGate({ topicId, requiredSectionIds, catalogueRevision: "v1" }));
+    await waitFor(() => expect(result.current.loadState).toBe("failed"));
+    expect(result.current.isCompletionDurable).toBe(false);
+    expect(mocks.loadProgressDetailed).toHaveBeenCalledTimes(1);
+
+    mocks.loadProgressDetailed.mockResolvedValueOnce({ status: "missing", record: null });
+    act(() => result.current.retryLoad());
+    await waitFor(() => expect(result.current.loadState).toBe("ready"));
+    expect(mocks.loadProgressDetailed).toHaveBeenCalledTimes(2);
+  });
+
   it("isolates browser evidence by owner", async () => {
     mocks.ownerId = "owner-a";
     localStorage.setItem(`theory-gate:owner-a:${topicId}:v1`, JSON.stringify({ visitedSectionIds: ["s1"] }));
