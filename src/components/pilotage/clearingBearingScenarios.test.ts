@@ -53,6 +53,30 @@ describe("clearing-bearing geometry", () => {
     expect(assessClearingBearing(String(bearing), rule === "NLT" ? "NMT" : "NLT", scenario).kind).toBe("incorrect");
   });
 
+  it("derives the intended tangent and rule for both scenarios from exposed geometry", () => {
+    const independentBearing = (from: { x: number; y: number }, to: { x: number; y: number }) =>
+      ((Math.atan2(to.x - from.x, from.y - to.y) * 180) / Math.PI + 360) % 360;
+    const angularDistance = (a: number, b: number) => Math.abs(((a - b + 540) % 360) - 180);
+
+    for (const scenario of CLEARING_BEARING_SCENARIOS) {
+      const dx = scenario.hazard.position.x - scenario.landmark.position.x;
+      const dy = scenario.hazard.position.y - scenario.landmark.position.y;
+      const distance = Math.hypot(dx, dy);
+      const centreRay = independentBearing(scenario.landmark.position, scenario.hazard.position);
+      const tangentOffset = (Math.asin((scenario.hazard.radius + scenario.hazard.margin) / distance) * 180) / Math.PI;
+      const candidates = [centreRay - tangentOffset + 180, centreRay + tangentOffset + 180]
+        .map((value) => (value + 360) % 360);
+      const safeBearing = independentBearing(scenario.safeObserver, scenario.landmark.position);
+      const [intended, other] = [...candidates].sort((a, b) => angularDistance(a, safeBearing) - angularDistance(b, safeBearing));
+      const rule = safeBearing > intended ? "NLT" : "NMT";
+      const assessable = rule === "NLT" ? Math.ceil(intended) : Math.floor(intended);
+
+      expect(angularDistance(intended, safeBearing)).toBeLessThan(angularDistance(other, safeBearing));
+      expect(assessClearingBearing(String(assessable), rule, scenario).kind).toBe("correct");
+      expect(assessClearingBearing(String(other), safeBearing > other ? "NLT" : "NMT", scenario).kind).toBe("incorrect");
+    }
+  });
+
   it.each(["", "north", "-1", "360", "12degrees"])("rejects invalid input %j", (input) => {
     expect(assessClearingBearing(input, "NLT", CLEARING_BEARING_SCENARIOS[0]).kind).toBe("invalid");
   });

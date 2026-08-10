@@ -61,10 +61,13 @@ describe("ClearingBearingTool mastery flow", () => {
   });
 
   it("provides nonvisual measurements and distinguishes crossing, clear and tangent states", () => {
-    render(<ClearingBearingTool />);
+    const { container } = render(<ClearingBearingTool />);
     expect(screen.getByRole("heading", { name: "Chart measurements" })).toBeTruthy();
     expect(screen.getByText(/clearance radius of 40 units/)).toBeTruthy();
-    expect(screen.getByText(/signed clearance margin is zero/)).toBeTruthy();
+    expect(screen.getByText(/Find both zero-margin tangents/)).toBeTruthy();
+    expect(screen.getByText(/known safe-water observation/)).toBeTruthy();
+    expect(screen.getByText(/if the safe bearing is numerically greater choose NLT/)).toBeTruthy();
+    expect(container.querySelector("ellipse[cx='302'][cy='90']")).toBeTruthy();
     const relation = document.getElementById("clearance-relation");
     expect(relation?.textContent).toMatch(/points away/);
     const control = screen.getByLabelText(/Rotate plotting line/);
