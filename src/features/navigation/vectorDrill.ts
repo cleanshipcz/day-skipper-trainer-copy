@@ -7,6 +7,11 @@ export interface VectorDrillScenario extends VectorInput {
 export const VECTOR_DRILL_TOLERANCE_DEG = 5;
 export const VECTOR_DRILL_MASTERY_TARGET = 3;
 
+export function recordMasteredScenario(currentIds: ReadonlySet<string>, scenarioId: string) {
+  if (currentIds.has(scenarioId)) return currentIds;
+  return new Set([...currentIds, scenarioId]);
+}
+
 /** A small, reproducible catalogue covers wrap-around, ordinary cross-tide, and impossible routes. */
 export const VECTOR_DRILL_SCENARIOS: readonly VectorDrillScenario[] = [
   { id: "north-east-cross", desiredTrackDeg: 0, boatSpeedKn: 5, tideSetDeg: 90, tideRateKn: 2 },

@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import { solveCourseToSteer } from "./vectorSolver";
-import { describeVectorDrillReasoning, scoreVectorDrillAnswer, VECTOR_DRILL_SCENARIOS, VECTOR_DRILL_TOLERANCE_DEG } from "./vectorDrill";
+import { describeVectorDrillReasoning, recordMasteredScenario, scoreVectorDrillAnswer, VECTOR_DRILL_SCENARIOS, VECTOR_DRILL_TOLERANCE_DEG } from "./vectorDrill";
 
 describe("vector drill assessment", () => {
   it("accepts solver headings across the reproducible feasible catalogue", () => {
@@ -25,5 +25,14 @@ describe("vector drill assessment", () => {
     expect(scoreVectorDrillAnswer(impossible, { kind: "heading", headingDeg: 0 }).correct).toBe(false);
     expect(scoreVectorDrillAnswer(VECTOR_DRILL_SCENARIOS[0], { kind: "infeasible" }).correct).toBe(false);
     expect(describeVectorDrillReasoning(impossible)).toContain("cross-track tide exceeds");
+  });
+
+  it("counts each scenario identity only once toward mastery", () => {
+    const first = recordMasteredScenario(new Set(), "north-east-cross");
+    const repeated = recordMasteredScenario(first, "north-east-cross");
+    const distinct = recordMasteredScenario(repeated, "bearing-wrap");
+    expect(first.size).toBe(1);
+    expect(repeated).toBe(first);
+    expect(distinct.size).toBe(2);
   });
 });

@@ -47,4 +47,22 @@ describe("VectorTriangleVisualizer Component", () => {
     fireEvent.click(screen.getByRole("button", { name: "Reset diagram position" }));
     expect(screen.getByRole("status").textContent).toContain("0 horizontal");
   });
+
+  it("keeps touch scrolling by default and enables deliberate two-dimensional touch panning", () => {
+    render(<VectorTriangleVisualizer waterTrackHeading={0} waterTrackSpeed={5} groundTrackHeading={90} tideSet={180} tideRate={2} />);
+    const diagram = screen.getByRole("img");
+    expect(diagram.getAttribute("class")).toContain("touch-pan-y");
+    fireEvent.pointerDown(diagram, { pointerId: 1, pointerType: "touch", clientX: 10, clientY: 10 });
+    fireEvent.pointerMove(diagram, { pointerId: 1, pointerType: "touch", clientX: 60, clientY: 70 });
+    expect(screen.getByRole("status").textContent).toContain("0 horizontal, 0 vertical");
+
+    const toggle = screen.getByRole("button", { name: "Pan diagram by touch" });
+    fireEvent.click(toggle);
+    expect(toggle.getAttribute("aria-pressed")).toBe("true");
+    expect(diagram.getAttribute("class")).toContain("touch-none");
+    fireEvent.pointerDown(diagram, { pointerId: 2, pointerType: "touch", clientX: 10, clientY: 10 });
+    fireEvent.pointerMove(diagram, { pointerId: 2, pointerType: "touch", clientX: 60, clientY: 70 });
+    expect(screen.getByRole("status").textContent).toContain("50 horizontal, 60 vertical");
+    fireEvent.pointerUp(diagram, { pointerId: 2, pointerType: "touch", clientX: 60, clientY: 70 });
+  });
 });

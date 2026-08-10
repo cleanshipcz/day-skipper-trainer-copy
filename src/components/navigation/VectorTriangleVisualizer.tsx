@@ -35,9 +35,11 @@ export const VectorTriangleVisualizer = ({
   const [pan, setPan] = useState({ x: 0, y: 0 });
   const [isDragging, setIsDragging] = useState(false);
   const [dragStart, setDragStart] = useState({ x: 0, y: 0 });
+  const [touchPanEnabled, setTouchPanEnabled] = useState(false);
   const clampPan = (value: number) => Math.max(-120, Math.min(120, value));
 
   const handlePointerDown = (e: React.PointerEvent<SVGSVGElement>) => {
+    if (e.pointerType === "touch" && !touchPanEnabled) return;
     setIsDragging(true);
     setDragStart({ x: e.clientX - pan.x, y: e.clientY - pan.y });
     e.currentTarget.setPointerCapture?.(e.pointerId);
@@ -170,16 +172,19 @@ export const VectorTriangleVisualizer = ({
             <div className="text-red-500 font-bold">Impossible scenario!</div>
           )}
         </div>
-        <button type="button" className="absolute right-3 top-3 z-10 min-h-11 rounded border bg-white px-3 text-sm font-medium shadow-sm forced-colors:border-[CanvasText]" onClick={() => setPan({ x: 0, y: 0 })}>Reset diagram position</button>
+        <div className="absolute right-3 top-3 z-10 flex max-w-[55%] flex-col items-stretch gap-2 sm:flex-row">
+          <button type="button" aria-pressed={touchPanEnabled} className="min-h-11 rounded border bg-white px-3 text-sm font-medium shadow-sm forced-colors:border-[CanvasText]" onClick={() => setTouchPanEnabled((current) => !current)}>{touchPanEnabled ? "Use page scrolling" : "Pan diagram by touch"}</button>
+          <button type="button" className="min-h-11 rounded border bg-white px-3 text-sm font-medium shadow-sm forced-colors:border-[CanvasText]" onClick={() => setPan({ x: 0, y: 0 })}>Reset diagram position</button>
+        </div>
         <p className="sr-only" role="status" aria-live="polite">Diagram offset: {pan.x} horizontal, {pan.y} vertical.</p>
 
         <svg
           width="100%"
           height="100%"
           viewBox={`0 0 ${WIDTH} ${HEIGHT}`}
-          className={`mx-auto touch-pan-y forced-colors:[filter:contrast(1.5)] ${isDragging ? "cursor-grabbing" : "cursor-grab"}`}
+          className={`mx-auto forced-colors:[filter:contrast(1.5)] ${touchPanEnabled ? "touch-none" : "touch-pan-y"} ${isDragging ? "cursor-grabbing" : "cursor-grab"}`}
           role="img"
-          aria-label={mode === "drill" ? `Vector drill diagram. Target track ${drillTarget} degrees true. ${showDrillResult ? `Entered course ${waterTrackHeading} degrees true; result is shown.` : "The entered course result is hidden until checked."} Use arrow keys to pan.` : `Course to steer vector triangle for desired track ${groundTrackHeading} degrees true, boat speed ${waterTrackSpeed} knots, tide set ${tideSet} degrees true at ${tideRate} knots. Use arrow keys to pan.`}
+          aria-label={(mode === "drill" ? `Vector drill diagram. Target track ${drillTarget} degrees true. ${showDrillResult ? `Entered course ${waterTrackHeading} degrees true; result is shown.` : "The entered course result is hidden until checked."}` : `Course to steer vector triangle for desired track ${groundTrackHeading} degrees true, boat speed ${waterTrackSpeed} knots, tide set ${tideSet} degrees true at ${tideRate} knots.`) + " Use arrow keys to pan. Vertical touch gestures scroll the page unless touch panning is enabled."}
           tabIndex={0}
           onPointerDown={handlePointerDown}
           onPointerMove={handlePointerMove}

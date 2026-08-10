@@ -9,7 +9,7 @@ import { VectorTriangleVisualizer } from "@/components/navigation/VectorTriangle
 import { TOPIC_IDS } from "@/constants/topicRegistry";
 import { TheoryCompletionButton } from "@/features/progress/TheoryCompletionButton";
 import { solveCourseToSteer } from "@/features/navigation/vectorSolver";
-import { describeVectorDrillReasoning, scoreVectorDrillAnswer, VECTOR_DRILL_MASTERY_TARGET, VECTOR_DRILL_SCENARIOS } from "@/features/navigation/vectorDrill";
+import { describeVectorDrillReasoning, recordMasteredScenario, scoreVectorDrillAnswer, VECTOR_DRILL_MASTERY_TARGET, VECTOR_DRILL_SCENARIOS } from "@/features/navigation/vectorDrill";
 
 interface PreciseNumberInputProps { id: string; label: string; value: number; onValidValue: (value: number) => void; onDraftValidity?: (valid: boolean) => void; min: number; max: number; step: number; unit: string }
 
@@ -65,13 +65,14 @@ const VectorTriangleTool = () => {
   const [scenarioIndex, setScenarioIndex] = useState(0);
   const [drillFeedback, setDrillFeedback] = useState<ReturnType<typeof scoreVectorDrillAnswer> | null>(null);
   const [attempts, setAttempts] = useState(0);
-  const [masteryProgress, setMasteryProgress] = useState(0);
+  const [masteredScenarioIds, setMasteredScenarioIds] = useState<Set<string>>(() => new Set());
   const [mastered, setMastered] = useState(false);
   const [claimsInfeasible, setClaimsInfeasible] = useState(false);
   const [invalidDrafts, setInvalidDrafts] = useState<Record<string, boolean>>({});
   const [inputEpoch, setInputEpoch] = useState(0);
   const draftValidity = (id: string) => (valid: boolean) => setInvalidDrafts((current) => ({ ...current, [id]: !valid }));
   const hasInvalidDraft = Object.values(invalidDrafts).some(Boolean);
+  const masteryProgress = masteredScenarioIds.size;
 
   const scenario = VECTOR_DRILL_SCENARIOS[scenarioIndex % VECTOR_DRILL_SCENARIOS.length];
   const loadScenario = (index: number) => {
@@ -107,9 +108,9 @@ const VectorTriangleTool = () => {
     setAttempts((value) => value + 1);
     setDrillFeedback(result);
     if (result.correct) {
-      const nextProgress = Math.min(VECTOR_DRILL_MASTERY_TARGET, masteryProgress + 1);
-      setMasteryProgress(nextProgress);
-      if (nextProgress === VECTOR_DRILL_MASTERY_TARGET) setMastered(true);
+      const nextIds = recordMasteredScenario(masteredScenarioIds, scenario.id);
+      setMasteredScenarioIds(nextIds);
+      if (nextIds.size >= VECTOR_DRILL_MASTERY_TARGET) setMastered(true);
     }
   };
 
@@ -199,7 +200,7 @@ const VectorTriangleTool = () => {
                     {drillFeedback?.correct ? (
                       <div className="rounded border border-green-300 bg-green-100 p-3 text-green-950 forced-colors:border-[CanvasText]" role="status" aria-live="polite">
                         <p className="font-bold">Correct. {describeVectorDrillReasoning(scenario)}</p>
-                        {mastered ? <Button className="mt-3 min-h-11 w-full" variant="outline" onClick={() => { setMasteryProgress(0); nextScenario(); }}>
+                        {mastered ? <Button className="mt-3 min-h-11 w-full" variant="outline" onClick={() => { setMasteredScenarioIds(new Set()); nextScenario(); }}>
                           Retry for practice (saved mastery is preserved)
                         </Button> : <Button className="mt-3 min-h-11 w-full bg-green-700 hover:bg-green-800" onClick={nextScenario}>
                           Next scenario
