@@ -115,18 +115,20 @@ export default function WeatherForecastsTheory() {
     const recorded = gate.visitedSectionIds.includes(evidenceId);
     return {
       ...section,
-      body: <>{section.body}<Button type="button" variant="outline" aria-label={`${recorded ? "Section reviewed" : "Record section as reviewed"}: ${section.title}`} disabled={!gate.isHydrated || recorded} onClick={() => void gate.markSectionVisited(evidenceId)}>{recorded ? "Section reviewed" : "Record this section as reviewed"}</Button></>,
+      body: <>{section.body}<Button type="button" variant="outline" aria-label={`${recorded ? "Section reviewed" : "Record section as reviewed"}: ${section.title}`} disabled={!gate.isHydrated || gate.loadState !== "ready" || recorded} onClick={() => void gate.markSectionVisited(evidenceId)}>{recorded ? "Section reviewed" : "Record this section as reviewed"}</Button></>,
     };
   });
   const missingContent = MARINE_FORECAST_GATE.contentSections.filter((id) => !gate.visitedSectionIds.includes(id)).length;
   const guidedDone = gate.visitedSectionIds.includes(MARINE_FORECAST_GATE.guidedCheck);
   const durable = gate.isCompletionDurable;
-  const status = !gate.isHydrated
+  const status = gate.loadState === "failed"
+    ? "Saved requirements could not be loaded. Retry before recording or completing this lesson."
+    : !gate.isHydrated
     ? "Loading saved requirements…"
     : durable
-      ? "Marine Forecasts completion is saved."
+      ? gate.saveState === "queued" ? "Marine Forecasts completion is queued offline and will sync when you reconnect." : gate.saveState === "local" ? "Marine Forecasts completion is saved on this device. Sign in to sync it to an account." : "Marine Forecasts completion is saved to your account."
       : gate.saveState === "failed"
-        ? "Completion was not saved. Your recorded requirements remain available; retry when ready."
+        ? "Progress was not saved. Your recorded requirements remain available on this device; retry saving before completion."
       : gate.canComplete
         ? "All requirements recorded. Save completion to award points."
         : `Remaining: ${missingContent} forecast content section${missingContent === 1 ? "" : "s"}; ${guidedDone ? "guided geography check complete" : "complete the guided geography exercise"}.`;
@@ -134,9 +136,11 @@ export default function WeatherForecastsTheory() {
   const completionControl = <section aria-labelledby="marine-forecast-completion-heading" className="space-y-3 rounded-lg border p-4">
     <h2 id="marine-forecast-completion-heading" className="text-lg font-semibold">Completion requirements</h2>
     <p>Review the six operational forecast sections and complete the full guided geography exercise. These requirements are saved for this account and lesson.</p>
-    <Button disabled={!gate.isHydrated || !gate.canComplete || gate.saveState === "saving" || durable} onClick={() => void gate.markCompleted()}>{durable ? "Completion saved" : gate.saveState === "saving" ? "Saving completion…" : "Save Marine Forecasts completion"}</Button>
+    {gate.loadState === "failed" && <Button type="button" variant="outline" onClick={gate.retryLoad}>Retry loading progress</Button>}
+    {gate.isHydrated && gate.saveState === "failed" && !gate.canComplete && <Button type="button" variant="outline" onClick={() => void gate.retrySave()}>Retry saving progress</Button>}
+    <Button disabled={!gate.isHydrated || gate.loadState !== "ready" || !gate.canComplete || gate.saveState === "saving" || durable} onClick={() => void gate.markCompleted()}>{durable ? gate.saveState === "queued" ? "Completion queued offline" : "Completion saved" : gate.saveState === "saving" ? "Saving completion…" : gate.saveState === "failed" ? "Retry Marine Forecasts completion" : "Save Marine Forecasts completion"}</Button>
     <p role="status" aria-live="polite">{status}</p>
   </section>;
 
-  return <WeatherTheoryLayout title="Marine Weather Forecasts" subtitle="Obtain, cross-check and interpret" topicId={TOPIC_IDS.WEATHER_FORECASTS} sections={gatedSections} completionControl={completionControl}><ForecastAreaMap onGuidedComplete={() => void gate.markSectionVisited(MARINE_FORECAST_GATE.guidedCheck)} /></WeatherTheoryLayout>;
+  return <WeatherTheoryLayout title="Marine Weather Forecasts" subtitle="Obtain, cross-check and interpret" topicId={TOPIC_IDS.WEATHER_FORECASTS} sections={gatedSections} completionControl={completionControl}><ForecastAreaMap onGuidedComplete={() => { if (gate.loadState === "ready") void gate.markSectionVisited(MARINE_FORECAST_GATE.guidedCheck); }} /></WeatherTheoryLayout>;
 }

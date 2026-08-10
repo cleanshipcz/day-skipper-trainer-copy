@@ -11,9 +11,12 @@ const mocks = vi.hoisted(() => ({
     visitedSectionIds: [] as string[],
     isHydrated: true,
     isCompletionDurable: false,
+    loadState: "ready",
     saveState: "idle",
     markSectionVisited: vi.fn(),
     markCompleted: vi.fn(async () => true),
+    retryLoad: vi.fn(),
+    retrySave: vi.fn(),
   },
   useGate: vi.fn(),
 }));
@@ -30,10 +33,13 @@ describe("Marine Forecasts completion gate", () => {
     mocks.gate.visitedSectionIds = [];
     mocks.gate.isHydrated = true;
     mocks.gate.isCompletionDurable = false;
+    mocks.gate.loadState = "ready";
     mocks.gate.saveState = "idle";
     mocks.gate.markSectionVisited.mockReset();
     mocks.gate.markCompleted.mockReset();
     mocks.gate.markCompleted.mockResolvedValue(true);
+    mocks.gate.retryLoad.mockReset();
+    mocks.gate.retrySave.mockReset();
     mocks.useGate.mockReset();
   });
 
@@ -93,5 +99,43 @@ describe("Marine Forecasts completion gate", () => {
     expect(remaining).toHaveLength(4);
     expect(new Set([...reviewed, ...remaining].map((button) => button.getAttribute("aria-label"))).size).toBe(6);
     expect(screen.getByRole("status").textContent).toMatch(/Remaining: 4 forecast content sections; guided geography check complete/i);
+  });
+
+  it("blocks evidence and completion after a rejected or timed-out load and offers recovery", () => {
+    mocks.gate.loadState = "failed";
+    render(<WeatherForecastsTheory />);
+    expect((screen.getAllByRole("button", { name: /Record section as reviewed:/ })[0] as HTMLButtonElement).disabled).toBe(true);
+    expect((screen.getByRole("button", { name: "Save Marine Forecasts completion" }) as HTMLButtonElement).disabled).toBe(true);
+    expect(screen.getByRole("status").textContent).toMatch(/could not be loaded.*retry/i);
+    fireEvent.click(screen.getByRole("button", { name: "Retry loading progress" }));
+    expect(mocks.gate.retryLoad).toHaveBeenCalledTimes(1);
+    fireEvent.click(screen.getByRole("button", { name: "Finish guided geography test" }));
+    expect(mocks.gate.markSectionVisited).not.toHaveBeenCalled();
+  });
+
+  it("announces an initial evidence-write failure and retries without moving focus", () => {
+    mocks.gate.saveState = "failed";
+    render(<WeatherForecastsTheory />);
+    const retry = screen.getByRole("button", { name: "Retry saving progress" });
+    retry.focus();
+    fireEvent.click(retry);
+    expect(mocks.gate.retrySave).toHaveBeenCalledTimes(1);
+    expect(document.activeElement).toBe(retry);
+    expect(screen.getByRole("status").textContent).toMatch(/progress was not saved.*retry/i);
+  });
+
+  it("distinguishes queued completion from account-saved completion", () => {
+    mocks.gate.canComplete = true;
+    mocks.gate.visitedSectionIds = [...MARINE_FORECAST_GATE.contentSections, MARINE_FORECAST_GATE.guidedCheck];
+    mocks.gate.isCompletionDurable = true;
+    mocks.gate.saveState = "queued";
+    const view = render(<WeatherForecastsTheory />);
+    expect(screen.getByRole("button", { name: "Completion queued offline" })).toBeTruthy();
+    expect(screen.getByRole("status").textContent).toMatch(/queued offline.*sync/i);
+
+    mocks.gate.saveState = "saved";
+    view.rerender(<WeatherForecastsTheory />);
+    expect(screen.getByRole("button", { name: "Completion saved" })).toBeTruthy();
+    expect(screen.getByRole("status").textContent).toMatch(/saved to your account/i);
   });
 });

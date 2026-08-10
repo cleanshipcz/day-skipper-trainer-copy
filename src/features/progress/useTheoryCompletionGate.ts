@@ -20,6 +20,8 @@ export const useTheoryCompletionGate = ({
   const ownerId = "ownerId" in progress ? progress.ownerId : null;
   const [visitedSectionIds, setVisitedSectionIds] = useState<string[]>([]);
   const [isHydrated, setIsHydrated] = useState(false);
+  const [loadState, setLoadState] = useState<"loading" | "ready" | "failed">("loading");
+  const [loadAttempt, setLoadAttempt] = useState(0);
   const [isCompletionDurable, setIsCompletionDurable] = useState(false);
   const visitedRef = useRef<readonly string[]>(visitedSectionIds);
   const completionPromiseRef = useRef<{ generation: number; promise: Promise<boolean> } | null>(null);
@@ -92,7 +94,7 @@ export const useTheoryCompletionGate = ({
   }, [catalogueRevision, requiredSectionIds, saveProgress, saveProgressDetailed, topicId]);
 
   useEffect(() => {
-    const hydrationKey = `${ownerId ?? "anonymous"}:${topicId}:${catalogueRevision ?? "legacy"}`;
+    const hydrationKey = `${ownerId ?? "anonymous"}:${topicId}:${catalogueRevision ?? "legacy"}:${loadAttempt}`;
     if (hydrationKeyRef.current === hydrationKey) return;
     hydrationKeyRef.current = hydrationKey;
     const generation = ++hydrationGenerationRef.current;
@@ -104,8 +106,10 @@ export const useTheoryCompletionGate = ({
     setSaveState("idle");
     setIsCompletionDurable(false);
     setIsHydrated(false);
+    setLoadState("loading");
     if (!storageKey) {
       setIsHydrated(true);
+      setLoadState("ready");
       return;
     }
     const restore = async () => {
@@ -129,7 +133,27 @@ export const useTheoryCompletionGate = ({
           }
         }
       } catch { /* Ignore corrupt legacy browser state. */ }
-      const load = loadProgressDetailed ? await loadProgressDetailed(topicId) : null;
+      let load = null;
+      let loadTimeout: number | undefined;
+      try {
+        load = loadProgressDetailed ? await Promise.race([
+          loadProgressDetailed(topicId),
+          new Promise<never>((_, reject) => { loadTimeout = window.setTimeout(() => reject(new Error("Progress load timed out")), 10_000); }),
+        ]) : null;
+      } catch {
+        load = { status: "failed" as const, record: null };
+      } finally {
+        if (loadTimeout !== undefined) window.clearTimeout(loadTimeout);
+      }
+      if (load?.status === "failed" && !(locallyCompleted && localCompletionOutcome === "queued")) {
+        if (hydrationGenerationRef.current !== generation) return;
+        const retained = [...new Set([...restored, ...visitedRef.current])];
+        visitedRef.current = retained;
+        setVisitedSectionIds(retained);
+        setIsHydrated(true);
+        setLoadState("failed");
+        return;
+      }
       const remoteHistory = load?.status === "remote" ? load.record.answers_history as { catalogueRevision?: string; visitedSectionIds?: unknown } | null : null;
       const remotelyCompleted = load?.status === "remote" && load.record.completed === true && remoteHistory?.catalogueRevision === catalogueRevision;
       if (remoteHistory?.catalogueRevision === catalogueRevision && Array.isArray(remoteHistory.visitedSectionIds)) {
@@ -148,9 +172,13 @@ export const useTheoryCompletionGate = ({
       // either durable store may prove completion, but evidence alone may not.
       setIsCompletionDurable(Boolean(Number(completed) * Math.max(Number(browserSaved), Number(remotelyCompleted))));
       if (hydrationGenerationRef.current === generation) setIsHydrated(true);
+      if (hydrationGenerationRef.current === generation) setLoadState("ready");
     };
     void restore();
-  }, [catalogueRevision, completionStorageKey, enqueueInProgressSave, loadProgressDetailed, ownerId, requiredSectionIds, storageKey, topicId, writeBrowserEvidence]);
+  }, [catalogueRevision, completionStorageKey, enqueueInProgressSave, loadAttempt, loadProgressDetailed, ownerId, requiredSectionIds, storageKey, topicId, writeBrowserEvidence]);
+
+  const retryLoad = useCallback(() => setLoadAttempt((attempt) => attempt + 1), []);
+  const retrySave = useCallback(() => enqueueInProgressSave([...visitedRef.current]), [enqueueInProgressSave]);
 
   const decision = useMemo(
     () => deriveCompletionGateDecision({ visitedSectionIds, requiredSectionIds }),
@@ -169,7 +197,7 @@ export const useTheoryCompletionGate = ({
 
   const markSectionVisited = useCallback(
     async (sectionId: string) => {
-      if (!sectionId || !requiredSectionIds.includes(sectionId)) return;
+      if (loadState === "failed" || !sectionId || !requiredSectionIds.includes(sectionId)) return;
 
       /**
        * Read the latest visited list from a ref rather than relying on
@@ -192,7 +220,7 @@ export const useTheoryCompletionGate = ({
       });
       return persistInProgressIfNeeded(nextDecision.state, nextDecision.score, nextVisitedSectionIds);
     },
-    [persistInProgressIfNeeded, requiredSectionIds, writeBrowserEvidence]
+    [loadState, persistInProgressIfNeeded, requiredSectionIds, writeBrowserEvidence]
   );
 
   const markCompleted = useCallback(async () => {
@@ -244,10 +272,13 @@ export const useTheoryCompletionGate = ({
     canComplete: decision.canComplete,
     visitedSectionIds,
     isHydrated,
+    loadState,
     isCompletionDurable,
     ownerId,
     markSectionVisited,
     markCompleted,
+    retryLoad,
+    retrySave,
     saveState,
   };
 };
