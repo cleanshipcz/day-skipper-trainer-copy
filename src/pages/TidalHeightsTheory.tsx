@@ -3,17 +3,12 @@ import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/com
 import { ArrowLeft, ChevronRight, CheckCircle2, TrendingUp, Calculator } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { useState } from "react";
-import { useCompletion } from "@/hooks/useCompletion";
+import { TOPIC_IDS } from "@/constants/topicRegistry";
+import { TheoryCompletionButton } from "@/features/progress/TheoryCompletionButton";
 
 const TidalHeightsTheory = () => {
   const navigate = useNavigate();
-  const { completeTopic } = useCompletion();
-  const [markedComplete, setMarkedComplete] = useState(false);
-
-  const handleComplete = () => {
-    completeTopic("tides-heights-theory");
-    setMarkedComplete(true);
-  };
+  const [conceptAnswer, setConceptAnswer] = useState<"" | "4.1" | "4.4">("");
 
   return (
     <div className="min-h-screen bg-background">
@@ -30,16 +25,7 @@ const TidalHeightsTheory = () => {
                 <p className="text-sm text-muted-foreground">Using curves and rules</p>
               </div>
             </div>
-            {markedComplete ? (
-              <Button variant="outline" className="text-green-600 border-green-200 bg-green-50" disabled>
-                <CheckCircle2 className="w-4 h-4 mr-2" />
-                Completed
-              </Button>
-            ) : (
-              <Button onClick={handleComplete}>
-                Mark as Complete <ChevronRight className="w-4 h-4 ml-2" />
-              </Button>
-            )}
+            <TheoryCompletionButton topicId={TOPIC_IDS.TIDES_HEIGHTS_THEORY} catalogueRevision="tides-heights-theory-v1" evidenceId="rule-of-twelves-check" evidenceSatisfied={conceptAnswer === "4.1"} lockedLabel="Complete the height check" />
           </div>
         </div>
       </header>
@@ -106,6 +92,8 @@ const TidalHeightsTheory = () => {
             </CardContent>
           </Card>
         </section>
+
+        <section className="rounded-lg border p-5 space-y-3"><h2 className="font-bold">Height concept check</h2><p>Using the worked 5.0 m HW and 3.6 m range, what is the estimated height two hours after HW?</p><label className="mr-5"><input type="radio" name="height-check" onChange={() => setConceptAnswer("4.1")} /> 4.1 m</label><label><input type="radio" name="height-check" onChange={() => setConceptAnswer("4.4")} /> 4.4 m</label>{conceptAnswer && <p role="status">{conceptAnswer === "4.1" ? "Correct — the first two drops total 3/12 of the range." : "Check the cumulative first- and second-hour fractions."}</p>}</section>
 
         {/* Section 1: Standard Ports & Curves */}
         <section className="space-y-4">

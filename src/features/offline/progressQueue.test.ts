@@ -1,6 +1,6 @@
 import { describe, expect, it, vi } from "vitest";
 import "fake-indexeddb/auto";
-import { getQueuedProgress, isRetryableProgressError, queueProgress, replayProgressQueue } from "./progressQueue";
+import { canonicalQueuedTopicId, getQueuedProgress, isRetryableProgressError, mergeQueuedAlias, queueProgress, replayProgressQueue } from "./progressQueue";
 
 const deferred = <T,>() => {
   let resolve!: (value: T) => void;
@@ -9,6 +9,23 @@ const deferred = <T,>() => {
 };
 
 describe("offline progress queue", () => {
+  it("canonicalizes legacy Tides aliases and monotonically merges a collision", async () => {
+    expect(canonicalQueuedTopicId("tidal-heights-calc")).toBe("tides-heights-calc");
+    expect(canonicalQueuedTopicId("vector-triangle")).toBe("tides-vector-tool");
+    const base = { userId: "tides-owner", completed: false, pointsEarned: 0, attempts: 2, status: "pending" as const };
+    const canonical = { ...base, id: "tides-owner:tides-heights-calc", topicId: "tides-heights-calc", score: 20, answersHistory: { evidence: "canonical" }, updatedAt: 20, revision: 3 };
+    const legacy = { ...base, id: "tides-owner:tidal-heights-calc", topicId: "tidal-heights-calc", score: 80, answersHistory: { evidence: "stronger-legacy" }, updatedAt: 10, revision: 2 };
+    expect(mergeQueuedAlias(canonical, legacy)).toEqual(expect.objectContaining({
+      id: "tides-owner:tides-heights-calc", topicId: "tides-heights-calc", score: 80,
+      answersHistory: { evidence: "stronger-legacy" }, revision: 4,
+    }));
+    expect(mergeQueuedAlias(undefined, legacy)).toEqual(expect.objectContaining({ topicId: "tides-heights-calc" }));
+    expect(mergeQueuedAlias(canonical, { ...legacy, completed: canonical.completed, score: canonical.score, updatedAt: canonical.updatedAt, revision: canonical.revision }))
+      .toEqual(expect.objectContaining({ answersHistory: { evidence: "canonical" } }));
+
+    await queueProgress({ userId: "legacy-write", topicId: "vector-triangle", completed: true, score: 100, pointsEarned: 10 });
+    expect(await getQueuedProgress("legacy-write")).toEqual([expect.objectContaining({ topicId: "tides-vector-tool", id: "legacy-write:tides-vector-tool" })]);
+  });
   it("keeps the newest update for a user and topic", async () => {
     await queueProgress({ userId: "queue-user", topicId: "charts", completed: false, score: 20, pointsEarned: 0 }, 10);
     await queueProgress({ userId: "queue-user", topicId: "charts", completed: true, score: 90, pointsEarned: 10 }, 20);

@@ -1,17 +1,16 @@
 import { Button } from "@/components/ui/button";
-import { ArrowLeft, CheckCircle2, ChevronRight, RotateCcw } from "lucide-react";
+import { ArrowLeft, RotateCcw } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { useState } from "react";
-import { useCompletion } from "@/hooks/useCompletion";
 import { Slider } from "@/components/ui/slider";
 import { Label } from "@/components/ui/label";
 import { Input } from "@/components/ui/input";
 import { VectorTriangleVisualizer } from "@/components/navigation/VectorTriangleVisualizer";
+import { TOPIC_IDS } from "@/constants/topicRegistry";
+import { TheoryCompletionButton } from "@/features/progress/TheoryCompletionButton";
 
 const VectorTriangleTool = () => {
   const navigate = useNavigate();
-  const { completeTopic } = useCompletion();
-  const [markedComplete, setMarkedComplete] = useState(false);
 
   // State for Vector Triangle Inputs
   const [groundTrackHeading, setGroundTrack] = useState(90); // Desired Course (Solver Mode) / Result (Drill Mode)
@@ -84,11 +83,6 @@ const VectorTriangleTool = () => {
     }
   };
 
-  const handleComplete = () => {
-    completeTopic("tides-vector-tool");
-    setMarkedComplete(true);
-  };
-
   // Check for success in drill mode
   // We need the ACTUAL Ground Track resulting from userHeading + Tide.
   // The Visualizer calculates this... but we don't have access to it here easily without moving logic up.
@@ -112,16 +106,7 @@ const VectorTriangleTool = () => {
                 <p className="text-sm text-muted-foreground">Calculate Course to Steer</p>
               </div>
             </div>
-            {markedComplete ? (
-              <Button variant="outline" className="text-green-600 border-green-200 bg-green-50" disabled>
-                <CheckCircle2 className="w-4 h-4 mr-2" />
-                Completed
-              </Button>
-            ) : (
-              <Button onClick={handleComplete}>
-                Mark as Complete <ChevronRight className="w-4 h-4 ml-2" />
-              </Button>
-            )}
+            <TheoryCompletionButton topicId={TOPIC_IDS.TIDES_VECTOR_TOOL} catalogueRevision="tides-vector-tool-v1" evidenceId="successful-heading-drill" evidenceSatisfied={drillFeedback === "correct"} lockedLabel="Solve the heading drill" />
           </div>
         </div>
       </header>

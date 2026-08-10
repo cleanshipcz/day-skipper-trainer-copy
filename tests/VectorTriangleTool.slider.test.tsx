@@ -4,7 +4,7 @@ import { MemoryRouter } from "react-router-dom";
 import { describe, expect, it, vi } from "vitest";
 import VectorTriangleTool from "@/pages/VectorTriangleTool";
 
-vi.mock("@/hooks/useCompletion", () => ({ useCompletion: () => ({ completeTopic: vi.fn() }) }));
+vi.mock("@/features/progress/TheoryCompletionButton", () => ({ TheoryCompletionButton: () => null }));
 
 describe("VectorTriangleTool shared Slider integration", () => {
   it("retains keyboard value changes for an existing unnamed slider consumer", async () => {

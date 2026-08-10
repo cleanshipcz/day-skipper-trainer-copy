@@ -1,17 +1,14 @@
 import { useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
-import { ArrowLeft, Calculator } from "lucide-react";
+import { ArrowLeft } from "lucide-react";
 import TidalPassageCalculator from "@/components/navigation/TidalPassageCalculator";
-import { useCompletion } from "@/hooks/useCompletion";
+import { TOPIC_IDS } from "@/constants/topicRegistry";
+import { TheoryCompletionButton } from "@/features/progress/TheoryCompletionButton";
+import { useState } from "react";
 
 const TidalHeightsCalculator = () => {
   const navigate = useNavigate();
-  const { completeTopic } = useCompletion();
-
-  const handleComplete = () => {
-    completeTopic("tidal-heights-calc");
-    navigate("/navigation/tides");
-  };
+  const [conceptAnswer, setConceptAnswer] = useState<"" | "sum" | "clearance">("");
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-blue-50 to-white pb-20">
@@ -49,11 +46,13 @@ const TidalHeightsCalculator = () => {
 
         <TidalPassageCalculator />
 
-        <div className="flex justify-center mt-12">
-          <Button size="lg" onClick={handleComplete} className="gap-2 bg-blue-600 hover:bg-blue-700">
-            <Calculator className="w-5 h-5" />
-            Mark Exercise as Complete
-          </Button>
+        <div className="mt-12 space-y-4 rounded-lg border bg-white p-5">
+          <h2 className="font-bold">Safe-window concept check</h2>
+          <p>Which test establishes that a predicted passage window meets the vessel requirement?</p>
+          <label className="mr-5"><input type="radio" name="calculator-check" onChange={() => setConceptAnswer("clearance")} /> Charted depth + predicted tide ≥ draft + clearance</label>
+          <label><input type="radio" name="calculator-check" onChange={() => setConceptAnswer("sum")} /> Predicted tide alone ≥ draft</label>
+          {conceptAnswer && <p role="status">{conceptAnswer === "clearance" ? "Correct — and the prediction still needs suitable uncertainty and observation checks." : "Not safe — charted depth and the chosen clearance are both part of the decision."}</p>}
+          <TheoryCompletionButton topicId={TOPIC_IDS.TIDES_HEIGHTS_CALCULATOR} catalogueRevision="tides-heights-calculator-v1" evidenceId="safe-window-check" evidenceSatisfied={conceptAnswer === "clearance"} lockedLabel="Complete the safe-window check" />
         </div>
       </main>
     </div>

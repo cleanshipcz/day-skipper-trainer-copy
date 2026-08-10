@@ -28,6 +28,7 @@
     "src/features/progress/progressPersistence.ts",
     "src/features/progress/progressClient.ts",
     "src/features/progress/rigProgress.ts",
+    "src/features/progress/TheoryCompletionButton.tsx",
     "src/features/progress/useTheoryCompletionGate.ts",
     "src/features/progress/victuallingProgress.ts",
     "src/features/quiz/progressKeys.ts",

@@ -571,6 +571,18 @@ describe("useTheoryCompletionGate", () => {
     setItem.mockRestore();
   });
 
+  it("does not restore a local completion when its durability marker cannot be refreshed", async () => {
+    localStorage.setItem(`theory-gate:anonymous:${topicId}:v1`, JSON.stringify({
+      catalogueRevision: "v1", visitedSectionIds: ["s1"], completed: true, completionOutcome: "local",
+    }));
+    const setItem = vi.spyOn(localStorage, "setItem").mockImplementation(() => { throw new Error("storage unavailable"); });
+    const { result } = renderHook(() => useTheoryCompletionGate({ topicId, requiredSectionIds: ["s1"], catalogueRevision: "v1" }));
+    await waitFor(() => expect(result.current.isHydrated).toBe(true));
+    expect(result.current.isCompletionDurable).toBe(false);
+    expect(result.current.saveState).toBe("failed");
+    setItem.mockRestore();
+  });
+
   it("confirms an authenticated durable queue even when its best-effort browser marker fails", async () => {
     mocks.ownerId = "owner-a";
     const { result } = renderHook(() => useTheoryCompletionGate({ topicId, requiredSectionIds: ["s1"], catalogueRevision: "v1" }));

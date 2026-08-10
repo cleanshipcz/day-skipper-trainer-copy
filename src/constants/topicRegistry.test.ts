@@ -81,7 +81,7 @@ describe("topicRegistry", () => {
 
   it("matches the complete durable progress ID compatibility snapshot (AC-4)", () => {
     expect(topicRegistry.map(({ id }) => id).sort()).toEqual([...DURABLE_PROGRESS_IDS].sort());
-    expect(new Set(DURABLE_PROGRESS_IDS).size).toBe(46);
+    expect(new Set(DURABLE_PROGRESS_IDS).size).toBe(50);
   });
 
   it("should have valid parentId references (every parentId must reference an existing topic)", () => {
