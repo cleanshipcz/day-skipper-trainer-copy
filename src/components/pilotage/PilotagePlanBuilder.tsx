@@ -40,7 +40,7 @@ export const PilotagePlanBuilder = ({ onComplete }: PilotagePlanBuilderProps) =>
         <CardHeader><CardTitle>1. Harbour approach</CardTitle></CardHeader>
         <CardContent className="space-y-3">
           <p className="text-sm text-muted-foreground">A fictional training approach is loaded. Names and characteristics are invented but use IALA Region A conventions; do not use it for navigation.</p>
-          <p className="text-sm">Each leg states a course to steer in degrees true (°T), distance, and planned speed over ground (SOG). Times are calculated as distance ÷ SOG × 60 and rounded to the nearest minute.</p>
+          <p className="text-sm">Each leg states a course to steer in degrees true (°T), distance, and planned speed over ground (SOG). Times are calculated as distance ÷ SOG × 60. Leg times are shown to 0.1 minute; the total uses unrounded leg times and is rounded to the nearest minute.</p>
         </CardContent>
       </Card>
 
@@ -50,7 +50,7 @@ export const PilotagePlanBuilder = ({ onComplete }: PilotagePlanBuilderProps) =>
           {waypoints.map((waypoint, index) => (
             <div key={waypoint.id} className="rounded-lg border p-3 text-sm">
               <div className="flex justify-between gap-3"><strong>{index + 1}. {waypoint.name}</strong><Button variant="ghost" size="sm" disabled={saving} onClick={() => { setWaypoints((current) => current.filter((item) => item.id !== waypoint.id)); setCompleted(false); }}>Remove</Button></div>
-              <p>CTS {waypoint.bearing.toString().padStart(3, "0")}°T · {waypoint.distance} NM · SOG {waypoint.speedOverGround} kn · {Math.round((waypoint.distance / waypoint.speedOverGround) * 60)} min</p>
+              <p>CTS {waypoint.bearing.toString().padStart(3, "0")}°T · {waypoint.distance} NM · SOG {waypoint.speedOverGround} kn · {((waypoint.distance / waypoint.speedOverGround) * 60).toFixed(1)} min</p>
               {waypoint.notes && <p className="text-muted-foreground">{waypoint.notes}</p>}
             </div>
           ))}

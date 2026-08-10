@@ -4,6 +4,21 @@ import { describe, expect, it, vi } from "vitest";
 import { PilotagePlanBuilder } from "./PilotagePlanBuilder";
 
 describe("PilotagePlanBuilder completion", () => {
+  it("shows fractional leg time while explaining that only the total is rounded", async () => {
+    const user = userEvent.setup();
+    render(<PilotagePlanBuilder onComplete={vi.fn()} />);
+
+    await user.type(screen.getByLabelText("Leg name"), "Short harbour leg");
+    await user.clear(screen.getByLabelText("Distance (NM)"));
+    await user.type(screen.getByLabelText("Distance (NM)"), "0.1");
+    await user.clear(screen.getByLabelText("Planned SOG (knots)"));
+    await user.type(screen.getByLabelText("Planned SOG (knots)"), "20");
+    await user.click(screen.getByRole("button", { name: "Add waypoint" }));
+
+    expect(screen.getByText(/SOG 20 kn · 0\.3 min/)).toBeTruthy();
+    expect(screen.getByText(/total uses unrounded leg times and is rounded to the nearest minute/i)).toBeTruthy();
+  });
+
   it("locks all plan mutations while a save is pending", async () => {
     const user = userEvent.setup();
     let resolveSave: (saved: boolean) => void = () => undefined;
