@@ -1,7 +1,7 @@
 // @vitest-environment jsdom
 import { render, screen } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
-import { beforeEach, describe, expect, it } from "vitest";
+import { beforeEach, describe, expect, it, vi } from "vitest";
 import { BeaufortDrill } from "./BeaufortDrill";
 import { SynopticChartReader } from "./SynopticChartReader";
 import { ForecastAreaMap } from "./ForecastAreaMap";
@@ -209,13 +209,15 @@ describe("weather interactions", () => {
 
   it("covers all areas, reports results, and resets cleanly", async () => {
     const user = userEvent.setup();
-    render(<ForecastAreaMap createExerciseOrder={() => [...forecastAreas]} />);
+    const onGuidedComplete = vi.fn();
+    render(<ForecastAreaMap createExerciseOrder={() => [...forecastAreas]} onGuidedComplete={onGuidedComplete} />);
     await user.click(screen.getByRole("button", { name: "Guided exercise" }));
     for (let index = 0; index < forecastAreas.length; index += 1) {
       await user.click(screen.getByRole("option", { name: forecastAreas[index].name }));
       await user.click(screen.getByRole("button", { name: index === forecastAreas.length - 1 ? "See results" : "Next area" }));
     }
     const resultsHeading = screen.getByRole("heading", { name: "Geography exercise complete" });
+    expect(onGuidedComplete).toHaveBeenCalledTimes(1);
     expect(document.activeElement).toBe(resultsHeading);
     expect(screen.getByRole("status").textContent).toContain("First-try correct: 31 of 31. Retries: 0");
     await user.click(screen.getByRole("button", { name: "Restart guided exercise" }));

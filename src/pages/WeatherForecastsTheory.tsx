@@ -1,6 +1,10 @@
 import type { TheorySection } from "@/components/weather/WeatherTheoryLayout";
 import { WeatherTheoryLayout } from "@/components/weather/WeatherTheoryLayout";
 import { ForecastAreaMap } from "@/components/weather/ForecastAreaMap";
+import { Button } from "@/components/ui/button";
+import { useTheoryCompletionGate } from "@/features/progress/useTheoryCompletionGate";
+import { TOPIC_IDS } from "@/constants/topicRegistry";
+import { MARINE_FORECAST_GATE } from "@/features/weather/marineForecastCompletion";
 
 const sources = {
   guide: "https://weather.metoffice.gov.uk/guides/coast-and-sea",
@@ -98,5 +102,41 @@ export const weatherForecastSections: readonly TheorySection[] = [
 ] as const;
 
 export default function WeatherForecastsTheory() {
-  return <WeatherTheoryLayout title="Marine Weather Forecasts" subtitle="Obtain, cross-check and interpret" topicId="weather-forecasts" sections={weatherForecastSections}><ForecastAreaMap /></WeatherTheoryLayout>;
+  const requiredSectionIds = [...MARINE_FORECAST_GATE.contentSections, MARINE_FORECAST_GATE.guidedCheck];
+  const gate = useTheoryCompletionGate({
+    topicId: TOPIC_IDS.WEATHER_FORECASTS,
+    catalogueRevision: MARINE_FORECAST_GATE.revision,
+    requiredSectionIds,
+    pointsOnComplete: 10,
+  });
+  const gatedSections = weatherForecastSections.map((section, index) => {
+    const evidenceId = MARINE_FORECAST_GATE.contentSections[index];
+    if (!evidenceId) return section;
+    const recorded = gate.visitedSectionIds.includes(evidenceId);
+    return {
+      ...section,
+      body: <>{section.body}<Button type="button" variant="outline" aria-label={`${recorded ? "Section reviewed" : "Record section as reviewed"}: ${section.title}`} disabled={!gate.isHydrated || recorded} onClick={() => void gate.markSectionVisited(evidenceId)}>{recorded ? "Section reviewed" : "Record this section as reviewed"}</Button></>,
+    };
+  });
+  const missingContent = MARINE_FORECAST_GATE.contentSections.filter((id) => !gate.visitedSectionIds.includes(id)).length;
+  const guidedDone = gate.visitedSectionIds.includes(MARINE_FORECAST_GATE.guidedCheck);
+  const durable = gate.isCompletionDurable;
+  const status = !gate.isHydrated
+    ? "Loading saved requirements…"
+    : durable
+      ? "Marine Forecasts completion is saved."
+      : gate.saveState === "failed"
+        ? "Completion was not saved. Your recorded requirements remain available; retry when ready."
+      : gate.canComplete
+        ? "All requirements recorded. Save completion to award points."
+        : `Remaining: ${missingContent} forecast content section${missingContent === 1 ? "" : "s"}; ${guidedDone ? "guided geography check complete" : "complete the guided geography exercise"}.`;
+
+  const completionControl = <section aria-labelledby="marine-forecast-completion-heading" className="space-y-3 rounded-lg border p-4">
+    <h2 id="marine-forecast-completion-heading" className="text-lg font-semibold">Completion requirements</h2>
+    <p>Review the six operational forecast sections and complete the full guided geography exercise. These requirements are saved for this account and lesson.</p>
+    <Button disabled={!gate.isHydrated || !gate.canComplete || gate.saveState === "saving" || durable} onClick={() => void gate.markCompleted()}>{durable ? "Completion saved" : gate.saveState === "saving" ? "Saving completion…" : "Save Marine Forecasts completion"}</Button>
+    <p role="status" aria-live="polite">{status}</p>
+  </section>;
+
+  return <WeatherTheoryLayout title="Marine Weather Forecasts" subtitle="Obtain, cross-check and interpret" topicId={TOPIC_IDS.WEATHER_FORECASTS} sections={gatedSections} completionControl={completionControl}><ForecastAreaMap onGuidedComplete={() => void gate.markSectionVisited(MARINE_FORECAST_GATE.guidedCheck)} /></WeatherTheoryLayout>;
 }
