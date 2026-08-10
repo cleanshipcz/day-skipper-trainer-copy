@@ -22,7 +22,7 @@ vi.mock("@/components/pilotage/BuoyIdentifier", () => ({
     <div data-testid="buoy-identifier-drill">
       <button
         data-testid="simulate-drill-complete"
-        onClick={() => onComplete?.({ correctCount: 10, totalAnswered: 12 })}
+        onClick={() => onComplete?.({ correctCount: 10, totalAnswered: 12, mastered: true, missedIds: [] })}
       >
         Complete Drill
       </button>
@@ -30,17 +30,21 @@ vi.mock("@/components/pilotage/BuoyIdentifier", () => ({
   ),
 }));
 
-const mockSaveProgress = vi.fn();
+const mockSaveProgress = vi.fn().mockResolvedValue("remote");
+const mockLoadProgress = vi.fn().mockResolvedValue({ status: "missing", record: null });
 
 vi.mock("@/hooks/useProgress", () => ({
   useProgress: () => ({
-    saveProgress: mockSaveProgress,
+    saveProgressDetailed: mockSaveProgress,
+    loadProgressDetailed: mockLoadProgress,
   }),
 }));
 
 describe("BuoyageTheory Page", () => {
   beforeEach(() => {
     vi.clearAllMocks();
+    mockSaveProgress.mockResolvedValue("remote");
+    mockLoadProgress.mockResolvedValue({ status: "missing", record: null });
   });
 
   // AC-1: Route renders theory content
@@ -178,7 +182,7 @@ describe("BuoyageTheory Page", () => {
     expect(mockSaveProgress).not.toHaveBeenCalled();
   });
 
-  it("should render a Mark as Complete button that saves progress when clicked", async () => {
+  it("saves declared mastery evidence only after the drill completes", async () => {
     // given
     const user = userEvent.setup();
     render(
@@ -188,11 +192,33 @@ describe("BuoyageTheory Page", () => {
     );
 
     // when
-    const completeButton = screen.getByRole("button", { name: /mark as complete/i });
-    await user.click(completeButton);
+    await user.click(screen.getByRole("tab", { name: /drill/i }));
+    await user.click(await screen.findByTestId("simulate-drill-complete"));
 
     // then - saves progress with topic ID pilotage-buoyage, completed=true, score=100, points=10
-    expect(mockSaveProgress).toHaveBeenCalledWith("pilotage-buoyage", true, 100, 10);
+    expect(mockSaveProgress).toHaveBeenCalledWith("pilotage-buoyage", true, 100, 10, expect.objectContaining({ revision: "iala-region-a-mastery-v1", mastered: true, coverageCount: 12 }));
+  });
+
+  it.each([
+    ["queued", /queued to sync/i],
+    ["failed", /could not be saved/i],
+  ])("announces an observable %s save result", async (result, announcement) => {
+    mockSaveProgress.mockResolvedValue(result);
+    const user = userEvent.setup();
+    render(<TestRouter><BuoyageTheory /></TestRouter>);
+    await user.click(screen.getByRole("tab", { name: /drill/i }));
+    await user.click(await screen.findByTestId("simulate-drill-complete"));
+    expect(await screen.findByText(announcement)).toBeDefined();
+  });
+
+  it("restores authoritative mastery and does not award it again", async () => {
+    mockLoadProgress.mockResolvedValue({ status: "remote", record: { completed: true, answers_history: { revision: "iala-region-a-mastery-v1", mastered: true } } });
+    const user = userEvent.setup();
+    render(<TestRouter><BuoyageTheory /></TestRouter>);
+    expect(await screen.findByText(/Buoy mastery saved/i)).toBeDefined();
+    await user.click(screen.getByRole("tab", { name: /drill/i }));
+    await user.click(await screen.findByTestId("simulate-drill-complete"));
+    expect(mockSaveProgress).not.toHaveBeenCalled();
   });
 
   it("should have a back to pilotage menu button", () => {

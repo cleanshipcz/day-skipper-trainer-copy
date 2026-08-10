@@ -1,16 +1,294 @@
-import { useCallback, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { ArrowLeft, CheckCircle2, Compass, Gamepad2, Navigation, AlertTriangle } from "lucide-react";
+import {
+  ArrowLeft,
+  CheckCircle2,
+  Compass,
+  Gamepad2,
+  Navigation,
+  AlertTriangle,
+} from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { BuoyIdentifier, type BuoyDrillResult } from "@/components/pilotage/BuoyIdentifier";
+import {
+  BuoyIdentifier,
+  type BuoyDrillResult,
+} from "@/components/pilotage/BuoyIdentifier";
 import { BuoyMarkDiagram } from "@/components/pilotage/BuoyMarkDiagram";
 import { useProgress } from "@/hooks/useProgress";
 import { ialaBuoys, type IalaBuoy } from "@/data/ialabuoys";
 
-const MarkCard=({buoy}:{buoy:IalaBuoy})=><Card className="min-w-0 forced-colors:border-[CanvasText]"><CardHeader className="min-w-0"><div className="flex min-w-0 flex-col gap-2 sm:flex-row sm:items-start sm:justify-between"><CardTitle className="break-words text-lg">{buoy.name}</CardTitle><Badge variant="outline" className="w-fit max-w-full whitespace-normal break-words forced-colors:border-[CanvasText]">{buoy.source}</Badge></div></CardHeader><CardContent className="grid min-w-0 gap-4 md:grid-cols-[minmax(0,14rem)_minmax(0,1fr)]"><BuoyMarkDiagram buoy={buoy}/><div className="min-w-0 space-y-3 text-sm"><dl className="grid min-w-0 gap-2 sm:grid-cols-2"><div><dt className="font-semibold">Day: colour/pattern</dt><dd className="break-words">{buoy.colour}</dd></div><div><dt className="font-semibold">Body shape</dt><dd className="break-words">{buoy.bodyShape}</dd></div><div><dt className="font-semibold">Topmark</dt><dd className="break-words">{buoy.topMarkShape}</dd></div><div><dt className="font-semibold">Night: light</dt><dd className="break-words">{buoy.lightCharacteristic}</dd></div></dl><p className="break-words"><strong>Meaning:</strong> {buoy.meaning}</p><p className="break-words rounded border-l-4 border-amber-600 bg-amber-50 p-3 text-amber-950 forced-colors:border-[CanvasText] forced-colors:bg-[Canvas] forced-colors:text-[CanvasText]"><strong>Chart and safety:</strong> {buoy.chartAndSafety}</p>{buoy.clockFaceMnemonic&&<p><strong>Clock cue:</strong> {buoy.clockFaceMnemonic}</p>}</div></CardContent></Card>;
+const MarkCard = ({ buoy }: { buoy: IalaBuoy }) => (
+  <Card className="min-w-0 forced-colors:border-[CanvasText]">
+    <CardHeader className="min-w-0">
+      <div className="flex min-w-0 flex-col gap-2 sm:flex-row sm:items-start sm:justify-between">
+        <CardTitle className="break-words text-lg">{buoy.name}</CardTitle>
+        <Badge
+          variant="outline"
+          className="w-fit max-w-full whitespace-normal break-words forced-colors:border-[CanvasText]"
+        >
+          {buoy.source}
+        </Badge>
+      </div>
+    </CardHeader>
+    <CardContent className="grid min-w-0 gap-4 md:grid-cols-[minmax(0,14rem)_minmax(0,1fr)]">
+      <BuoyMarkDiagram buoy={buoy} />
+      <div className="min-w-0 space-y-3 text-sm">
+        <dl className="grid min-w-0 gap-2 sm:grid-cols-2">
+          <div>
+            <dt className="font-semibold">Day: colour/pattern</dt>
+            <dd className="break-words">{buoy.colour}</dd>
+          </div>
+          <div>
+            <dt className="font-semibold">Body shape</dt>
+            <dd className="break-words">{buoy.bodyShape}</dd>
+          </div>
+          <div>
+            <dt className="font-semibold">Topmark</dt>
+            <dd className="break-words">{buoy.topMarkShape}</dd>
+          </div>
+          <div>
+            <dt className="font-semibold">Night: light</dt>
+            <dd className="break-words">{buoy.lightCharacteristic}</dd>
+          </div>
+        </dl>
+        <p className="break-words">
+          <strong>Meaning:</strong> {buoy.meaning}
+        </p>
+        <p className="break-words rounded border-l-4 border-amber-600 bg-amber-50 p-3 text-amber-950 forced-colors:border-[CanvasText] forced-colors:bg-[Canvas] forced-colors:text-[CanvasText]">
+          <strong>Chart and safety:</strong> {buoy.chartAndSafety}
+        </p>
+        {buoy.clockFaceMnemonic && (
+          <p>
+            <strong>Clock cue:</strong> {buoy.clockFaceMnemonic}
+          </p>
+        )}
+      </div>
+    </CardContent>
+  </Card>
+);
 
-const BuoyageTheory=()=>{const navigate=useNavigate();const {saveProgress}=useProgress();const [done,setDone]=useState(false);const complete=useCallback(()=>{saveProgress("pilotage-buoyage",true,100,10);setDone(true)},[saveProgress]);const noop=useCallback((_r:BuoyDrillResult)=>{},[]);const lateral=ialaBuoys.filter(b=>b.category==="lateral");const cardinal=ialaBuoys.filter(b=>b.category==="cardinal");const other=ialaBuoys.filter(b=>b.category!=="lateral"&&b.category!=="cardinal");return <div className="min-h-screen min-w-0 bg-gradient-to-br from-background via-ocean-light/10 to-background pb-20"><header className="sticky top-0 z-40 border-b bg-card/95 forced-colors:border-[CanvasText]"><div className="container mx-auto flex items-center gap-3 px-4 py-4"><Button variant="ghost" size="icon" aria-label="back" onClick={()=>navigate("/pilotage")}><ArrowLeft/></Button><div><h1 className="text-xl font-bold">IALA Buoyage</h1><p className="text-sm text-muted-foreground">Authoritative visual Region A lesson</p></div></div></header><main className="container mx-auto min-w-0 max-w-5xl px-4 py-8"><section className="mb-6 min-w-0 space-y-3"><h2 className="text-2xl font-bold">How to read a mark</h2><p>Identify four separate things: <strong>body shape</strong>, <strong>body colour/pattern</strong>, optional <strong>topmark</strong>, and—at night—the <strong>light colour and rhythm</strong>. A chart symbol is a charted representation, not a picture of the physical buoy. A permitted topmark may be absent, and an aid may be unlit, so combine cues and verify the chart.</p><p>The <strong>conventional direction of buoyage</strong> is normally the direction taken when approaching a harbour, river, estuary or waterway from seaward. Around land masses it proceeds clockwise; in other waterways the competent authority determines it in detail. Establish it from charted arrows, numbering and local publications—never guess it.</p><div className="rounded-lg border p-4 text-sm forced-colors:border-[CanvasText]"><h3 className="font-bold">Light abbreviation key (IALA R0110 ed.5.0, annex A)</h3><dl className="mt-2 grid gap-2 sm:grid-cols-2 lg:grid-cols-4"><div><dt className="font-semibold">Q / VQ</dt><dd>quick / very quick</dd></div><div><dt className="font-semibold">Fl / LFl</dt><dd>flash / long flash</dd></div><div><dt className="font-semibold">Oc / Iso</dt><dd>occulting / isophase</dd></div><div><dt className="font-semibold">Mo(A)</dt><dd>Morse A: short then long</dd></div></dl><p className="mt-2">Parentheses give flashes in a group; the final number such as 10s is the period for the complete cycle.</p></div></section><Tabs defaultValue="lateral" className="min-w-0 space-y-6"><TabsList className="grid h-auto w-full grid-cols-2 lg:grid-cols-4"><TabsTrigger value="lateral" className="min-h-11 whitespace-normal"><Navigation className="mr-2 size-4"/>Lateral</TabsTrigger><TabsTrigger value="cardinal" className="min-h-11 whitespace-normal"><Compass className="mr-2 size-4"/>Cardinal</TabsTrigger><TabsTrigger value="other" className="min-h-11 whitespace-normal"><AlertTriangle className="mr-2 size-4"/>Other Marks</TabsTrigger><TabsTrigger value="drill" className="min-h-11 whitespace-normal"><Gamepad2 className="mr-2 size-4"/>Drill</TabsTrigger></TabsList><TabsContent value="lateral" className="space-y-4"><h2 className="text-2xl font-bold">IALA Region A — Lateral Marks</h2><p>Region A uses red port-hand and green starboard-hand marks in the established conventional direction. Preferred-channel marks are named for the preferred channel, not for their base colour.</p>{lateral.map(b=><MarkCard key={b.id} buoy={b}/>)}</TabsContent><TabsContent value="cardinal" className="space-y-4"><h2 className="text-2xl font-bold">Cardinal Marks</h2><p>The name identifies the quadrant of safer water relative to the marked feature. The cones point toward the black band; the 3, 6 and 9 groups follow a clock face.</p><h3 className="text-xl font-bold">The Clock-Face Mnemonic</h3>{cardinal.map(b=><MarkCard key={b.id} buoy={b}/>)}</TabsContent><TabsContent value="other" className="space-y-4"><h2 className="text-2xl font-bold">Other marks and New Danger</h2><p><strong>New danger</strong> means a newly discovered hazard not yet sufficiently promulgated. It may be marked with suitable lateral, cardinal or isolated-danger marks, an Emergency Wreck Marking Buoy, or other aids. “New Danger Mark” is not the name of one universal buoy.</p><span className="sr-only">New Danger Mark</span>{other.map(b=><MarkCard key={b.id} buoy={b}/>)}</TabsContent><TabsContent value="drill" className="space-y-4"><h2 className="text-2xl font-bold">Buoy Identification Drill</h2><BuoyIdentifier onComplete={noop}/></TabsContent></Tabs><section className="mt-8 rounded-lg border p-4 text-sm forced-colors:border-[CanvasText]"><h2 className="text-lg font-bold">Authoritative references</h2><ul className="list-disc space-y-2 pl-5"><li><a className="break-all text-primary underline forced-colors:text-[LinkText]" href="https://www.iala.int/product/r1001/?download=true" target="_blank" rel="noreferrer">IALA Recommendation R1001, Maritime Buoyage System, edition 2.0</a> — §§2.1–2.7 and 3.</li><li><a className="break-all text-primary underline forced-colors:text-[LinkText]" href="https://www.iala.int/product/r0110/?download=true" target="_blank" rel="noreferrer">IALA Recommendation R0110, Rhythmic Characters, edition 5.0</a> — annex A.</li></ul><p className="mt-2">Training summary only. Use current official charts, notices and local directions for navigation; report an aid that is missing, damaged or off station.</p></section><div className="flex flex-col items-center gap-4 pt-10"><Button size="lg" className="min-h-11 w-full sm:w-auto" disabled={done} variant={done?"outline":"default"} onClick={complete}>{done?<><CheckCircle2 className="mr-2 size-5"/>Completed</>:"Mark as Complete"}</Button><Button size="lg" variant="outline" className="min-h-11 w-full sm:w-auto" onClick={()=>navigate("/pilotage")}>Back to Pilotage Menu</Button></div></main></div>};
+const BuoyageTheory = () => {
+  const navigate = useNavigate();
+  const { loadProgressDetailed, saveProgressDetailed } = useProgress();
+  const [saveState, setSaveState] = useState<"loading" | "ready" | "saving" | "saved" | "queued" | "failed">("loading");
+  const completedRef = useRef(false);
+  useEffect(() => {
+    let active = true;
+    void loadProgressDetailed("pilotage-buoyage").then((result) => {
+      if (!active) return;
+      const evidence = result.record?.answers_history as { revision?: unknown; mastered?: unknown } | null;
+      const restored = result.record?.completed === true && evidence?.revision === "iala-region-a-mastery-v1" && evidence.mastered === true;
+      completedRef.current = restored;
+      setSaveState(restored ? "saved" : "ready");
+    });
+    return () => { active = false; };
+  }, [loadProgressDetailed]);
+  const complete = useCallback(async (result: BuoyDrillResult) => {
+    if (!result.mastered || completedRef.current || saveState === "saving") return;
+    setSaveState("saving");
+    const saved = await saveProgressDetailed("pilotage-buoyage", true, 100, 10, {
+      revision: "iala-region-a-mastery-v1",
+      mastered: true,
+      initialCorrectCount: result.correctCount,
+      coverageCount: result.totalAnswered,
+    });
+    if (saved === "remote" || saved === "queued") completedRef.current = true;
+    setSaveState(saved === "remote" ? "saved" : saved === "queued" ? "queued" : "failed");
+  }, [saveProgressDetailed, saveState]);
+  const lateral = ialaBuoys.filter((b) => b.category === "lateral");
+  const cardinal = ialaBuoys.filter((b) => b.category === "cardinal");
+  const other = ialaBuoys.filter(
+    (b) => b.category !== "lateral" && b.category !== "cardinal",
+  );
+  return (
+    <div className="min-h-screen min-w-0 bg-gradient-to-br from-background via-ocean-light/10 to-background pb-20">
+      <header className="sticky top-0 z-40 border-b bg-card/95 forced-colors:border-[CanvasText]">
+        <div className="container mx-auto flex items-center gap-3 px-4 py-4">
+          <Button
+            variant="ghost"
+            size="icon"
+            aria-label="back"
+            onClick={() => navigate("/pilotage")}
+          >
+            <ArrowLeft />
+          </Button>
+          <div>
+            <h1 className="text-xl font-bold">IALA Buoyage</h1>
+            <p className="text-sm text-muted-foreground">
+              Authoritative visual Region A lesson
+            </p>
+          </div>
+        </div>
+      </header>
+      <main className="container mx-auto min-w-0 max-w-5xl px-4 py-8">
+        <section className="mb-6 min-w-0 space-y-3">
+          <h2 className="text-2xl font-bold">How to read a mark</h2>
+          <p>
+            Identify four separate things: <strong>body shape</strong>,{" "}
+            <strong>body colour/pattern</strong>, optional{" "}
+            <strong>topmark</strong>, and—at night—the{" "}
+            <strong>light colour and rhythm</strong>. A chart symbol is a
+            charted representation, not a picture of the physical buoy. A
+            permitted topmark may be absent, and an aid may be unlit, so combine
+            cues and verify the chart.
+          </p>
+          <p>
+            The <strong>conventional direction of buoyage</strong> is normally
+            the direction taken when approaching a harbour, river, estuary or
+            waterway from seaward. Around land masses it proceeds clockwise; in
+            other waterways the competent authority determines it in detail.
+            Establish it from charted arrows, numbering and local
+            publications—never guess it.
+          </p>
+          <div className="rounded-lg border p-4 text-sm forced-colors:border-[CanvasText]">
+            <h3 className="font-bold">
+              Light abbreviation key (IALA R0110 ed.5.0, annex A)
+            </h3>
+            <dl className="mt-2 grid gap-2 sm:grid-cols-2 lg:grid-cols-4">
+              <div>
+                <dt className="font-semibold">Q / VQ</dt>
+                <dd>quick / very quick</dd>
+              </div>
+              <div>
+                <dt className="font-semibold">Fl / LFl</dt>
+                <dd>flash / long flash</dd>
+              </div>
+              <div>
+                <dt className="font-semibold">Oc / Iso</dt>
+                <dd>occulting / isophase</dd>
+              </div>
+              <div>
+                <dt className="font-semibold">Mo(A)</dt>
+                <dd>Morse A: short then long</dd>
+              </div>
+            </dl>
+            <p className="mt-2">
+              Parentheses give flashes in a group; the final number such as 10s
+              is the period for the complete cycle.
+            </p>
+          </div>
+        </section>
+        <Tabs defaultValue="lateral" className="min-w-0 space-y-6">
+          <TabsList className="grid h-auto w-full grid-cols-2 lg:grid-cols-4">
+            <TabsTrigger value="lateral" className="min-h-11 whitespace-normal">
+              <Navigation className="mr-2 size-4" />
+              Lateral
+            </TabsTrigger>
+            <TabsTrigger
+              value="cardinal"
+              className="min-h-11 whitespace-normal"
+            >
+              <Compass className="mr-2 size-4" />
+              Cardinal
+            </TabsTrigger>
+            <TabsTrigger value="other" className="min-h-11 whitespace-normal">
+              <AlertTriangle className="mr-2 size-4" />
+              Other Marks
+            </TabsTrigger>
+            <TabsTrigger value="drill" className="min-h-11 whitespace-normal">
+              <Gamepad2 className="mr-2 size-4" />
+              Drill
+            </TabsTrigger>
+          </TabsList>
+          <TabsContent value="lateral" className="space-y-4">
+            <h2 className="text-2xl font-bold">
+              IALA Region A — Lateral Marks
+            </h2>
+            <p>
+              Region A uses red port-hand and green starboard-hand marks in the
+              established conventional direction. Preferred-channel marks are
+              named for the preferred channel, not for their base colour.
+            </p>
+            {lateral.map((b) => (
+              <MarkCard key={b.id} buoy={b} />
+            ))}
+          </TabsContent>
+          <TabsContent value="cardinal" className="space-y-4">
+            <h2 className="text-2xl font-bold">Cardinal Marks</h2>
+            <p>
+              The name identifies the quadrant of safer water relative to the
+              marked feature. The cones point toward the black band; the 3, 6
+              and 9 groups follow a clock face.
+            </p>
+            <h3 className="text-xl font-bold">The Clock-Face Mnemonic</h3>
+            {cardinal.map((b) => (
+              <MarkCard key={b.id} buoy={b} />
+            ))}
+          </TabsContent>
+          <TabsContent value="other" className="space-y-4">
+            <h2 className="text-2xl font-bold">Other marks and New Danger</h2>
+            <p>
+              <strong>New danger</strong> means a newly discovered hazard not
+              yet sufficiently promulgated. It may be marked with suitable
+              lateral, cardinal or isolated-danger marks, an Emergency Wreck
+              Marking Buoy, or other aids. “New Danger Mark” is not the name of
+              one universal buoy.
+            </p>
+            <span className="sr-only">New Danger Mark</span>
+            {other.map((b) => (
+              <MarkCard key={b.id} buoy={b} />
+            ))}
+          </TabsContent>
+          <TabsContent value="drill" className="space-y-4">
+            <h2 className="text-2xl font-bold">Buoy Identification Drill</h2>
+            <BuoyIdentifier onComplete={complete} />
+          </TabsContent>
+        </Tabs>
+        <section className="mt-8 rounded-lg border p-4 text-sm forced-colors:border-[CanvasText]">
+          <h2 className="text-lg font-bold">Authoritative references</h2>
+          <ul className="list-disc space-y-2 pl-5">
+            <li>
+              <a
+                className="break-all text-primary underline forced-colors:text-[LinkText]"
+                href="https://www.iala.int/product/r1001/?download=true"
+                target="_blank"
+                rel="noreferrer"
+              >
+                IALA Recommendation R1001, Maritime Buoyage System, edition 2.0
+              </a>{" "}
+              — §§2.1–2.7 and 3.
+            </li>
+            <li>
+              <a
+                className="break-all text-primary underline forced-colors:text-[LinkText]"
+                href="https://www.iala.int/product/r0110/?download=true"
+                target="_blank"
+                rel="noreferrer"
+              >
+                IALA Recommendation R0110, Rhythmic Characters, edition 5.0
+              </a>{" "}
+              — annex A.
+            </li>
+          </ul>
+          <p className="mt-2">
+            Training summary only. Use current official charts, notices and
+            local directions for navigation; report an aid that is missing,
+            damaged or off station.
+          </p>
+        </section>
+        <div className="flex flex-col items-center gap-4 pt-10">
+          <div role="status" aria-live="polite" className="max-w-xl text-center text-sm">
+            {saveState === "loading" && "Checking saved buoy mastery…"}
+            {saveState === "ready" && "Complete the drill and correct every retained miss to save buoy mastery."}
+            {saveState === "saving" && "Saving buoy mastery…"}
+            {saveState === "saved" && <><CheckCircle2 className="mr-1 inline size-5"/>Buoy mastery saved.</>}
+            {saveState === "queued" && "Buoy mastery is saved offline and queued to sync."}
+            {saveState === "failed" && "Buoy mastery could not be saved. Restart or revisit the drill to retry."}
+          </div>
+          <Button
+            size="lg"
+            variant="outline"
+            className="min-h-11 w-full sm:w-auto"
+            onClick={() => navigate("/pilotage")}
+          >
+            Back to Pilotage Menu
+          </Button>
+        </div>
+      </main>
+    </div>
+  );
+};
 export default BuoyageTheory;
