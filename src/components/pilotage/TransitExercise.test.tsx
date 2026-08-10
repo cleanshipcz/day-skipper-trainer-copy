@@ -43,4 +43,41 @@ describe("TransitExercise", () => {
     expect(html).toContain("whitespace-normal break-words");
     expect(html).toContain('aria-describedby="transit-safety-aligned"');
   });
+
+  it.each([375, 768, 1280])("keeps a scalable graphic and 44px controls at %ipx", (width) => {
+    Object.defineProperty(window, "innerWidth", { configurable: true, value: width });
+    const { container } = render(<TransitExercise onComplete={vi.fn()}/>);
+    expect(screen.getByRole("img", {name:/observer sight picture/i}).getAttribute("viewBox")).toBe("0 0 600 400");
+    expect(container.querySelector(".min-h-11")).toBeTruthy();
+    expect(container.querySelector(".touch-pan-y")).toBeTruthy();
+  });
+
+  it("announces feedback, moves focus to it, and exposes pressed control state", () => {
+    render(<TransitExercise onComplete={vi.fn()}/>);
+    const choice = screen.getByRole("button", {name:"Marks are in line"});
+    choice.focus();
+    fireEvent.keyDown(choice, {key:"Enter"});
+    fireEvent.click(choice);
+    const status = screen.getByRole("status");
+    expect(document.activeElement).toBe(status);
+    expect(choice.getAttribute("aria-pressed")).toBe("true");
+    expect(status.getAttribute("aria-live")).toBe("polite");
+  });
+
+  it("captures a touch swipe and ignores cancelled gestures", () => {
+    const { container } = render(<TransitExercise onComplete={vi.fn()}/>);
+    const surface = container.querySelector(".touch-pan-y") as HTMLDivElement;
+    let captured:number|null = null;
+    surface.setPointerCapture = vi.fn(id => { captured = id; });
+    surface.hasPointerCapture = vi.fn(id => captured === id);
+    surface.releasePointerCapture = vi.fn(() => { captured = null; });
+
+    fireEvent.pointerDown(surface, {pointerId:3,pointerType:"touch",isPrimary:true,clientX:120,clientY:80});
+    fireEvent.pointerCancel(surface, {pointerId:3,pointerType:"touch",isPrimary:true,clientX:20,clientY:80});
+    expect(screen.queryByRole("status")).toBeNull();
+
+    fireEvent.pointerDown(surface, {pointerId:4,pointerType:"touch",isPrimary:true,clientX:120,clientY:80});
+    fireEvent.pointerUp(surface, {pointerId:4,pointerType:"touch",isPrimary:true,clientX:20,clientY:82});
+    expect(screen.getByRole("status").textContent).toMatch(/not left/i);
+  });
 });
