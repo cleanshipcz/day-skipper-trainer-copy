@@ -26,6 +26,46 @@ import { ClearingBearingTool } from "@/components/pilotage/ClearingBearingTool";
 import { useProgress } from "@/hooks/useProgress";
 import { TOPIC_IDS } from "@/constants/topicRegistry";
 
+type WorkedLimitProps = {
+  title: string;
+  limit: string;
+  safeLabel: string;
+  mirror?: boolean;
+};
+
+const WorkedLimit = ({ title, limit, safeLabel, mirror = false }: WorkedLimitProps) => (
+  <figure className="space-y-2">
+    <svg
+      viewBox="0 0 420 230"
+      role="img"
+      aria-label={`${title}. Charted object, observer sector, hazard and safety margin. The blue shaded side is safe water: ${safeLabel}.`}
+      className="w-full rounded-md border bg-sky-50 dark:bg-slate-950"
+    >
+      <title>{title}</title>
+      <desc>Worked chart diagram. A limiting line runs from the charted object past the hazard and its margin. Blue hatching explicitly marks the safe observer sector.</desc>
+      <defs>
+        <pattern id={`safe-${mirror ? "right" : "left"}`} width="10" height="10" patternUnits="userSpaceOnUse" patternTransform="rotate(45)">
+          <rect width="10" height="10" fill="#dbeafe" />
+          <line x1="0" y1="0" x2="0" y2="10" stroke="#60a5fa" strokeWidth="3" />
+        </pattern>
+      </defs>
+      <polygon points={mirror ? "65,38 335,192 420,230 420,0 65,0" : "65,38 335,192 420,230 0,230 0,0 65,0"} fill={`url(#safe-${mirror ? "right" : "left"})`} opacity="0.9" />
+      <line x1="65" y1="38" x2="390" y2="223" stroke="currentColor" strokeWidth="3" />
+      <circle cx="65" cy="38" r="10" fill="#f59e0b" stroke="#713f12" strokeWidth="2" />
+      <text x="82" y="28" className="fill-current text-[13px] font-semibold">Charted object</text>
+      <circle cx="275" cy="153" r="24" fill="#ef4444" opacity="0.8" />
+      <circle cx="275" cy="153" r="38" fill="none" stroke="#dc2626" strokeWidth="3" strokeDasharray="7 5" />
+      <text x="245" y="158" className="fill-white text-[12px] font-bold">HAZARD</text>
+      <text x="284" y="112" className="fill-red-700 dark:fill-red-300 text-[12px]">margin</text>
+      <path d={mirror ? "M340 65 l8 18 l-16 0 z" : "M105 180 l8 18 l-16 0 z"} fill="#172554" />
+      <text x={mirror ? "300" : "45"} y={mirror ? "58" : "218"} className="fill-current text-[12px]">Observer sector</text>
+      <text x={mirror ? "270" : "12"} y="90" className="fill-blue-900 dark:fill-blue-100 text-[14px] font-bold">SAFE SIDE</text>
+      <text x="160" y="96" className="fill-current text-[12px] font-semibold">{limit}</text>
+    </svg>
+    <figcaption className="text-sm text-muted-foreground">{safeLabel}</figcaption>
+  </figure>
+);
+
 const ClearingBearingsTheory = () => {
   const navigate = useNavigate();
   const { saveProgress } = useProgress();
@@ -167,6 +207,11 @@ const ClearingBearingsTheory = () => {
               </p>
             </div>
 
+            <div className="grid gap-6 md:grid-cols-2">
+              <WorkedLimit title="Worked NLT 045 degrees True limit" limit="Limit 045°T" safeLabel="Safe in this plotted observer sector: NLT 045°T; danger is below the line." />
+              <WorkedLimit title="Worked NMT 320 degrees True limit" limit="Limit 320°T" safeLabel="Safe in this plotted observer sector: NMT 320°T; danger is above the line." mirror />
+            </div>
+
             <Card>
               <CardHeader>
                 <CardTitle className="text-lg">Step-by-Step Plotting</CardTitle>
@@ -192,6 +237,9 @@ const ClearingBearingsTheory = () => {
                     (True).
                   </li>
                   <li>
+                    <strong>Shade and label the safe observer sector</strong> from the chart geometry. NLT/NMT records that plotted side; it does not determine it.
+                  </li>
+                  <li>
                     <strong>Convert to Magnetic</strong> if using a hand-bearing
                     compass (apply variation and any deviation).
                   </li>
@@ -206,9 +254,7 @@ const ClearingBearingsTheory = () => {
             <Card className="bg-muted/50">
               <CardContent className="pt-6">
                 <p className="text-sm">
-                  <strong>Tip:</strong> Always add a safety margin beyond the
-                  hazard when drawing your clearing bearing line. Chart
-                  accuracy and tidal height can shift actual danger zones.
+                  <strong>Safety margin:</strong> Allow for draught, height of tide above chart datum, under-keel clearance, survey quality and chart/position uncertainty. Tide changes available depth, not the charted hazard's position. If the margin can no longer be assured, use the pre-planned safe action, slow or stop where safe, and obtain a reliable fix—while still accounting for traffic, depth and collision risk.
                 </p>
               </CardContent>
             </Card>
@@ -225,7 +271,16 @@ const ClearingBearingsTheory = () => {
                 of the bearing is safe. Understanding these is critical to
                 avoid sailing into danger.
               </p>
+              <p className="font-medium">The inequality is valid only inside the observer sector drawn on the chart. Bearings are circular, not an ordinary number line.</p>
             </div>
+
+            <Card>
+              <CardHeader><CardTitle className="text-lg">North-wrap example: 359° / 000°</CardTitle></CardHeader>
+              <CardContent className="text-sm text-muted-foreground space-y-2">
+                <p>A plotted safe sector runs clockwise from 355°T through north to 005°T. An observation of 359°T, then 001°T, remains in that sector: it has crossed 000°, not jumped to the other side of the hazard.</p>
+                <p><strong>Never decide this case with raw “359 ≥ 005” arithmetic.</strong> Follow the explicitly shaded chart side and compare angular movement within the planned sector.</p>
+              </CardContent>
+            </Card>
 
             <div className="grid gap-4 md:grid-cols-2">
               <Card className="border-l-4 border-l-green-600">
@@ -296,11 +351,23 @@ const ClearingBearingsTheory = () => {
             </div>
 
             <Card>
+              <CardHeader><CardTitle className="text-lg">Worked conversion for the observing instrument</CardTitle></CardHeader>
+              <CardContent className="text-sm text-muted-foreground space-y-2">
+                <p><strong>Chart limit 045° True → 041° Magnetic → 043° Compass.</strong></p>
+                <p>Example corrections for the <strong>hand-bearing compass actually used</strong>: variation 4°W, so 045°T − 4° = 041°M; that instrument's checked deviation is 2°W, so 041°M + 2° = 043°C. Reverse check: 043°C − 2° = 041°M + 4° = 045°T.</p>
+                <p>Write the signs and reference beside every value. Do not borrow the steering-compass deviation card: deviation is specific to the instrument, heading, installation and nearby magnetic influences. If the hand-bearing compass error is not known, establish it or compare in True/Magnetic using another suitable observation.</p>
+              </CardContent>
+            </Card>
+
+            <Card>
               <CardHeader>
                 <CardTitle className="text-lg">Monitoring Procedure</CardTitle>
               </CardHeader>
               <CardContent className="text-sm text-muted-foreground space-y-3">
                 <ol className="list-decimal list-inside space-y-2">
+                  <li>
+                    <strong>Positively identify the object</strong> by appearance, charted position, bearing and another feature; never accept a plausible silhouette alone.
+                  </li>
                   <li>
                     <strong>Take regular bearings</strong> of the landmark using
                     a hand-bearing compass — every few minutes, or more
@@ -322,8 +389,13 @@ const ClearingBearingsTheory = () => {
                     </ul>
                   </li>
                   <li>
-                    <strong>If the bearing drifts</strong> to the wrong side,
-                    alter course immediately to move back into safe water.
+                    <strong>Monitor the trend</strong>, not just one reading. Increasing frequency near the limit gives time to act before the margin is consumed.
+                  </li>
+                  <li>
+                    <strong>Cross-check</strong> with fixes, depth/soundings, transits, radar or GNSS as appropriate. One clearing limit protects one side only; it is neither a position fix nor proof that every hazard is clear.
+                  </li>
+                  <li>
+                    <strong>If the trend approaches or crosses the unsafe side</strong>, execute the pre-planned corrective course or contingency only when consistent with traffic, collision regulations, depth and channel limits; reduce speed or stop where safe and regain a reliable position.
                   </li>
                 </ol>
               </CardContent>
@@ -358,6 +430,19 @@ const ClearingBearingsTheory = () => {
                 </CardContent>
               </Card>
             </div>
+
+            <Card className="bg-muted/50">
+              <CardHeader><CardTitle className="text-lg">Keep the plan current</CardTitle></CardHeader>
+              <CardContent className="text-sm text-muted-foreground space-y-2">
+                <p>Before relying on the limit, check the chart edition and corrections, chart notes and source/quality information, the relevant Sailing Directions and current Notices to Mariners. Confirm the object remains conspicuous and the planned sector is usable at the expected tide and visibility.</p>
+                <p className="font-medium">Authoritative references</p>
+                <ul className="list-disc list-inside space-y-1">
+                  <li><a className="underline" href="https://www.admiralty.co.uk/maritime-safety-information/admiralty-notices-to-mariners" target="_blank" rel="noreferrer">UK Hydrographic Office — ADMIRALTY Notices to Mariners</a></li>
+                  <li><a className="underline" href="https://www.gov.uk/government/publications/mgn-379-mf-navigation-use-of-electronic-navigation-aids" target="_blank" rel="noreferrer">MCA MGN 379 (M+F) — use of electronic navigation aids</a></li>
+                  <li><a className="underline" href="https://www.gov.uk/government/publications/solas-v-regulations-safety-of-navigation" target="_blank" rel="noreferrer">MCA — SOLAS Chapter V safety of navigation guidance</a></li>
+                </ul>
+              </CardContent>
+            </Card>
           </TabsContent>
 
           {/* ── PRACTICE ──────────────────────────────────────────── */}

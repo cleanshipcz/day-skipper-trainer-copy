@@ -94,6 +94,9 @@ describe("ClearingBearingsTheory Page", () => {
     // then
     expect(await screen.findByText("Plotting Clearing Bearings on a Chart")).toBeDefined();
     expect(await screen.findByText(/identify the hazard/i)).toBeDefined();
+    expect(screen.getByRole("img", { name: /worked NLT 045 degrees True limit/i })).toBeDefined();
+    expect(screen.getAllByText(/SAFE SIDE/i).length).toBe(2);
+    expect(screen.getByText(/Tide changes available depth, not the charted hazard's position/i)).toBeDefined();
   });
 
   // AC-1: Theory covering not-less-than / not-more-than conventions
@@ -112,6 +115,8 @@ describe("ClearingBearingsTheory Page", () => {
     // then
     expect(await screen.findByText(/not less than/i)).toBeDefined();
     expect(await screen.findByText(/not more than/i)).toBeDefined();
+    expect(screen.getByText(/North-wrap example: 359° \/ 000°/i)).toBeDefined();
+    expect(screen.getByText(/Never decide this case with raw/i)).toBeDefined();
   });
 
   // AC-1: Theory covering using a compass to monitor
@@ -130,6 +135,11 @@ describe("ClearingBearingsTheory Page", () => {
     // then
     expect(await screen.findByText("Using a Compass to Monitor Clearing Bearings")).toBeDefined();
     expect(await screen.findByText(/monitoring procedure/i)).toBeDefined();
+    expect(screen.getByText(/045° True → 041° Magnetic → 043° Compass/i)).toBeDefined();
+    expect(screen.getByText(/Positively identify the object/i)).toBeDefined();
+    expect(screen.getByText(/Monitor the trend/i)).toBeDefined();
+    expect(screen.getAllByText(/Notices to Mariners/i).length).toBeGreaterThanOrEqual(1);
+    expect(screen.getByText(/One clearing limit protects one side only/i)).toBeDefined();
   });
 
   // AC-2: Interactive ClearingBearingTool rendered in Practice tab
