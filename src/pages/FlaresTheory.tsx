@@ -31,7 +31,7 @@ import {
 } from "@/components/safety/FlareIdentificationDrill";
 import { useProgress } from "@/hooks/useProgress";
 import { TOPIC_IDS } from "@/constants/topicRegistry";
-import { evdsGuidance, flareOperatingSequence, flareReview, flareSources, flareTypes } from "@/data/flareTypes";
+import { evdsGuidance, flareOperatingSequence, flareReview, flareSources, flareTypes, solasAndMakerBoundary, ukCarriageGuidance } from "@/data/flareTypes";
 import { FlareSchematic } from "@/components/safety/FlareSchematic";
 
 const FlaresTheory = () => {
@@ -226,6 +226,7 @@ const FlaresTheory = () => {
             </div>
             <Card><CardHeader><CardTitle>Prepare, operate and handle a misfire</CardTitle></CardHeader><CardContent><ol className="list-decimal space-y-2 pl-5 text-sm">{flareOperatingSequence.map((step) => <li key={step}>{step}</li>)}</ol></CardContent></Card>
             <Card><CardHeader><CardTitle>Electronic visual distress signals (EVDS)</CardTitle></CardHeader><CardContent><p className="text-sm text-muted-foreground">{evdsGuidance}</p></CardContent></Card>
+            <Card><CardHeader><CardTitle>Approval and product instructions</CardTitle></CardHeader><CardContent><p className="text-sm text-muted-foreground">{solasAndMakerBoundary}</p></CardContent></Card>
           </TabsContent>
 
           {/* ── EXPIRY & STORAGE ──────────────────────────────────── */}
@@ -286,7 +287,7 @@ const FlaresTheory = () => {
                 </CardHeader>
                 <CardContent className="text-sm text-muted-foreground space-y-2">
                   <p>
-                    Requirements depend on vessel size, use, coding/class and area of operation. Check the current rules for this vessel and voyage; an outfit recommended for one category is not a universal minimum.
+                    {ukCarriageGuidance}
                   </p>
                 </CardContent>
               </Card>

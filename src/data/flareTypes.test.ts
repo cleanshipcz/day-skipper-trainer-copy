@@ -113,13 +113,24 @@ describe("flareTypes data", () => {
     expect(whiteFlare.description.toLowerCase()).toContain("not one of");
   });
 
-  it("records sources, review limits, EVDS boundaries and safe operating stages", async () => {
-    const { evdsGuidance, flareOperatingSequence, flareReview, flareSources } = await import("./flareTypes");
-    expect(flareSources.length).toBeGreaterThanOrEqual(4);
+  it("records authoritative sources, EVDS boundaries and safe operating stages", async () => {
+    const { evdsGuidance, flareOperatingSequence, flareSources } = await import("./flareTypes");
+    expect(flareSources.length).toBeGreaterThanOrEqual(6);
     expect(flareSources.every((source) => source.href.startsWith("https://"))).toBe(true);
-    expect(flareReview.manualVerification).toMatch(/no qualified practitioner review/i);
+    expect(flareSources.map(({ id }) => id)).toEqual(expect.arrayContaining(["mca-min542", "mca-min687", "mca-mgn599", "imo-colregs"]));
     expect(evdsGuidance).toMatch(/does not automatically replace/i);
     expect(flareOperatingSequence.join(" ")).toMatch(/misfire/i);
+  });
+
+  it("states the current Class XII outfit without generalising it to other vessels", async () => {
+    const { solasAndMakerBoundary, ukCarriageGuidance } = await import("./flareTypes");
+    expect(ukCarriageGuidance).toMatch(/13\.7 m and over are Class XII/i);
+    expect(ukCarriageGuidance).toMatch(/Category C waters and seaward/);
+    expect(ukCarriageGuidance).toMatch(/4 red hand flares plus 2 orange smoke flares/);
+    expect(ukCarriageGuidance).toMatch(/under 13\.7 m have no specific statutory flare-carriage requirement/i);
+    expect(ukCarriageGuidance).toMatch(/different requirements/);
+    expect(solasAndMakerBoundary).toMatch(/different questions/);
+    expect(solasAndMakerBoundary).toMatch(/exact product's markings and instructions/);
   });
 });
 
