@@ -78,7 +78,7 @@ describe("flareTypes data", () => {
     expect(uniqueIds.size).toBe(ids.length);
   });
 
-  it("should have at least one day-only, one night-only, and one day+night flare", async () => {
+  it("should distinguish daylight smoke from red/white signals that remain visible by day", async () => {
     // given
     const { flareTypes } = await import("./flareTypes");
 
@@ -87,10 +87,6 @@ describe("flareTypes data", () => {
       (f: { daySuitability: boolean; nightSuitability: boolean }) =>
         f.daySuitability && !f.nightSuitability,
     );
-    const nightOnly = flareTypes.filter(
-      (f: { daySuitability: boolean; nightSuitability: boolean }) =>
-        !f.daySuitability && f.nightSuitability,
-    );
     const dayAndNight = flareTypes.filter(
       (f: { daySuitability: boolean; nightSuitability: boolean }) =>
         f.daySuitability && f.nightSuitability,
@@ -98,8 +94,8 @@ describe("flareTypes data", () => {
 
     // then
     expect(dayOnly.length).toBeGreaterThanOrEqual(1);
-    expect(nightOnly.length).toBeGreaterThanOrEqual(1);
     expect(dayAndNight.length).toBeGreaterThanOrEqual(1);
+    expect(flareTypes.filter((f) => f.id.includes("smoke")).every((f) => f.daySuitability && !f.nightSuitability)).toBe(true);
   });
 
   it("should mark white hand flare as collision warning, not distress", async () => {
@@ -114,7 +110,16 @@ describe("flareTypes data", () => {
     // then
     expect(whiteFlare).toBeDefined();
     expect(whiteFlare.usage.toLowerCase()).toContain("collision");
-    expect(whiteFlare.usage.toLowerCase()).not.toContain("distress");
+    expect(whiteFlare.description.toLowerCase()).toContain("not one of");
+  });
+
+  it("records sources, review limits, EVDS boundaries and safe operating stages", async () => {
+    const { evdsGuidance, flareOperatingSequence, flareReview, flareSources } = await import("./flareTypes");
+    expect(flareSources.length).toBeGreaterThanOrEqual(4);
+    expect(flareSources.every((source) => source.href.startsWith("https://"))).toBe(true);
+    expect(flareReview.manualVerification).toMatch(/no qualified practitioner review/i);
+    expect(evdsGuidance).toMatch(/does not automatically replace/i);
+    expect(flareOperatingSequence.join(" ")).toMatch(/misfire/i);
   });
 });
 

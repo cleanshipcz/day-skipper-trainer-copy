@@ -1,191 +1,54 @@
-/**
- * Flare types data for the Flares & Pyrotechnics sub-module.
- *
- * Covers the five flare types a Day Skipper student must know:
- * red parachute rocket, red hand flare, orange smoke (hand),
- * orange smoke (buoyant), and white hand flare (collision warning).
- *
- * Each entry lists range, burn time, day/night suitability, expiry rules,
- * and intended usage.
- *
- * @see docs/FEATURE_TASKS.md — Story E1-S3, AC-2
- */
-
-/** Known flare IDs — used for compile-time validation of scenario data. */
-export type FlareId =
-  | "red-parachute-rocket"
-  | "red-hand-flare"
-  | "orange-smoke-hand"
-  | "orange-smoke-buoyant"
-  | "white-hand-flare";
+/** Reviewed recognition guidance, not a substitute for the exact device label. */
+export type FlareId = "red-parachute-rocket" | "red-hand-flare" | "orange-smoke-hand" | "orange-smoke-buoyant" | "white-hand-flare";
 
 export const FLARE_IDS = {
-  RED_PARACHUTE_ROCKET: "red-parachute-rocket",
-  RED_HAND_FLARE: "red-hand-flare",
-  ORANGE_SMOKE_HAND: "orange-smoke-hand",
-  ORANGE_SMOKE_BUOYANT: "orange-smoke-buoyant",
+  RED_PARACHUTE_ROCKET: "red-parachute-rocket", RED_HAND_FLARE: "red-hand-flare",
+  ORANGE_SMOKE_HAND: "orange-smoke-hand", ORANGE_SMOKE_BUOYANT: "orange-smoke-buoyant",
   WHITE_HAND_FLARE: "white-hand-flare",
 } as const satisfies Record<string, FlareId>;
 
 export interface FlareType {
-  readonly id: FlareId;
-  readonly name: string;
-  readonly description: string;
-  readonly range: string;
-  readonly burnTime: string;
-  readonly daySuitability: boolean;
-  readonly nightSuitability: boolean;
-  readonly expiryRules: string;
-  readonly usage: string;
+  readonly id: FlareId; readonly name: string; readonly description: string;
+  readonly recognition: string; readonly visualLabel: string; readonly range: string;
+  readonly burnTime: string; readonly daySuitability: boolean; readonly nightSuitability: boolean;
+  readonly expiryRules: string; readonly usage: string;
 }
+
+const commonExpiry = "Use the expiry/service-life date printed on this product; there is no universal life. Replace expired, damaged or suspect units. In the UK, HM Coastguard and RNLI stations do not accept unwanted flares: arrange acceptance first with a registered disposal point, supplier, marina/port, local authority or specialist contractor. Never abandon, bin or fire one for disposal.";
 
 export const flareTypes: readonly FlareType[] = [
-  {
-    id: "red-parachute-rocket",
-    name: "Red Parachute Rocket",
-    description:
-      "Fires a bright red flare to approximately 300 m (1,000 ft) altitude, where a parachute deploys and the flare descends slowly. The most effective long-range distress signal at sea.",
-    range: "Up to 40 km (25 miles) in clear visibility at night; 10–15 km by day",
-    burnTime: "40 seconds under parachute",
-    daySuitability: true,
-    nightSuitability: true,
-    expiryRules:
-      "Stamped with a manufacture date. Must be replaced before the expiry date printed on the casing (typically 3 years from manufacture). Expired flares should be returned to a coastguard station or chandlery for safe disposal — never thrown overboard.",
-    usage:
-      "Primary long-range distress signal. Fire vertically in calm conditions; at an angle of 15° downwind in strong wind to prevent the parachute drifting back over the vessel. Use when you need to attract attention from a distant vessel or aircraft.",
-  },
-  {
-    id: "red-hand-flare",
-    name: "Red Hand Flare",
-    description:
-      "A handheld flare that burns bright red. Used to pinpoint your position once a rescue vessel or aircraft is within visual range.",
-    range: "5–7 km (3–4 miles) at night; shorter by day",
-    burnTime: "60 seconds",
-    daySuitability: false,
-    nightSuitability: true,
-    expiryRules:
-      "Stamped with a manufacture date. Must be replaced before the expiry date (typically 3 years). Expired flares should be disposed of safely through a coastguard station or chandlery.",
-    usage:
-      "Short-range distress pinpointing signal. Hold at arm's length on the downwind side to avoid burns and dripping residue. Use once rescue services are in the area and you need to guide them to your exact position.",
-  },
-  {
-    id: "orange-smoke-hand",
-    name: "Orange Smoke (Hand)",
-    description:
-      "A handheld canister that produces dense orange smoke. Most effective for daytime signalling and for indicating wind direction to helicopter pilots.",
-    range: "3–5 km (2–3 miles) in daylight",
-    burnTime: "60 seconds",
-    daySuitability: true,
-    nightSuitability: false,
-    expiryRules:
-      "Stamped with a manufacture date. Must be replaced before the expiry date (typically 3 years). Dispose of expired units via coastguard or chandlery.",
-    usage:
-      "Daytime distress signal and wind direction indicator. Hold at arm's length downwind. Particularly useful for guiding helicopter rescue — the smoke shows wind direction for approach. Less effective in strong wind as smoke disperses quickly.",
-  },
-  {
-    id: "orange-smoke-buoyant",
-    name: "Orange Smoke (Buoyant)",
-    description:
-      "A floating canister thrown into the water that produces dense orange smoke. Designed for use from life rafts or when a handheld flare cannot be safely held.",
-    range: "3–5 km (2–3 miles) in daylight",
-    burnTime: "3 minutes",
-    daySuitability: true,
-    nightSuitability: false,
-    expiryRules:
-      "Stamped with a manufacture date. Must be replaced before the expiry date (typically 3 years). Dispose of expired units safely — never dump at sea.",
-    usage:
-      "Daytime distress signal deployed from life rafts or thrown overboard. Longer burn time than hand smoke. Deploy to windward of your position so smoke drifts across your location, marking it for rescuers.",
-  },
-  {
-    id: "white-hand-flare",
-    name: "White Hand Flare",
-    description:
-      "A handheld flare that burns bright white. NOT a distress signal — used to warn other vessels of your presence to avoid collision.",
-    range: "5–7 km (3–4 miles) at night",
-    burnTime: "60 seconds",
-    daySuitability: false,
-    nightSuitability: true,
-    expiryRules:
-      "Stamped with a manufacture date. Must be replaced before the expiry date (typically 3 years). Dispose of expired units safely via coastguard or chandlery.",
-    usage:
-      "Collision warning only — NOT for indicating you are in danger or requesting assistance. Use to attract the attention of an approaching vessel that may not have seen you, particularly in busy shipping lanes or at anchor. Hold at arm's length on the downwind side.",
-  },
+  { id: "red-parachute-rocket", name: "Red rocket-parachute flare", description: "A rocket projects a red flare which descends beneath a parachute: a long-range distress signal.", recognition: "Usually a long, sealed launcher labelled ROCKET/PARACHUTE and RED; shape, colour and firing mechanism vary by maker.", visualLabel: "Tall cylindrical launcher with a red cap, upward arrow and parachute-over-red-star pictogram.", range: "Long range; the maker's stated height, visibility and duration apply.", burnTime: "Product-specific — read the casing.", daySuitability: true, nightSuitability: true, expiryRules: commonExpiry, usage: "Initial long-range attraction, by day or night. Use only for distress and only when aircraft, rigging, sails and other overhead hazards are clear. Never rely on a generic firing angle: follow the exact launcher instructions and account for wind." },
+  { id: "red-hand-flare", name: "Red hand flare", description: "A hand-held red light: a distress signal used mainly to pinpoint a casualty at closer range.", recognition: "Usually a shorter cylinder labelled HAND FLARE and RED, with a grip/handle end; mechanisms differ by product.", visualLabel: "Short red cylinder with a hand-grip band and red flame pictogram above it.", range: "Close-range visual location; maker and conditions determine visibility.", burnTime: "Product-specific — read the casing.", daySuitability: true, nightSuitability: true, expiryRules: commonExpiry, usage: "Pinpointing when help is likely to see it. Its bright red light is useful at night and remains a recognised distress signal by day, though daylight contrast is poorer. Follow the label for grip, orientation and wind positioning." },
+  { id: "orange-smoke-hand", name: "Orange smoke — hand-held", description: "Dense orange smoke provides a conspicuous daytime distress/location signal and shows local wind movement.", recognition: "A hand-held canister explicitly labelled ORANGE SMOKE; do not identify it by casing colour alone.", visualLabel: "Orange cylinder held upright, emitting an orange smoke cloud downwind.", range: "Daylight, line of sight; strongly affected by wind and visibility.", burnTime: "Product-specific — read the casing.", daySuitability: true, nightSuitability: false, expiryRules: commonExpiry, usage: "Daytime close-range location, including for approaching rescue units. Use the product instructions; do not assume every smoke signal may be held after activation." },
+  { id: "orange-smoke-buoyant", name: "Orange smoke — buoyant", description: "A floating orange-smoke signal intended to operate in the water, often with a longer nominal duration than hand smoke.", recognition: "Usually a larger canister labelled BUOYANT ORANGE SMOKE, with water-deployment markings and no hand-held operating assumption.", visualLabel: "Broad orange canister floating upright at the waterline with orange smoke drifting away.", range: "Daylight, line of sight; strongly affected by wind and visibility.", burnTime: "Product-specific — read the casing.", daySuitability: true, nightSuitability: false, expiryRules: commonExpiry, usage: "Daytime position marking from a vessel or survival craft when the exact product is approved for that use. Deploy only as its label directs; check line, cap and orientation requirements rather than assuming it should be thrown to windward." },
+  { id: "white-hand-flare", name: "White hand flare", description: "A bright white attention/collision-warning signal. It is not one of the red-light or orange-smoke distress signals in COLREG Annex IV.", recognition: "A hand-held device explicitly labelled WHITE; casing schemes and mechanisms vary, so read the marking rather than relying on colour.", visualLabel: "Short white cylinder with a hand-grip band and bright white star pictogram above it.", range: "Close-range attention signal; maker and conditions determine visibility.", burnTime: "Product-specific — read the casing.", daySuitability: true, nightSuitability: true, expiryRules: commonExpiry, usage: "Warn of collision risk or attract attention without falsely exhibiting a red/orange distress signal. Glare is most conspicuous at night; effectiveness is reduced by daylight. Follow the exact label and avoid dazzling your own crew." },
 ];
 
-/**
- * Flare identification scenarios — each scenario describes a situation
- * and the student must pick the correct flare to use.
- */
-export interface FlareScenario {
-  readonly id: string;
-  readonly description: string;
-  readonly correctFlareId: FlareId;
-  readonly explanation: string;
-}
+export const flareOperatingSequence = [
+  "Prepare: raise the distress alert by suitable radio/beacon means where possible; choose the signal for attraction or position marking; check expiry, condition and the exact printed instructions before removing caps.",
+  "Make safe: brief crew, secure yourself, clear people, fuel, sails/rigging and overhead aircraft; choose the safe working side and put on available eye/hand protection without delaying an emergency signal.",
+  "Operate: adopt only the grip, orientation, wind allowance and activation method printed on that unit. Point away from people and the vessel; never look into a launcher.",
+  "After firing: keep the hot device clear for the label-specified time and monitor fire risk. Do not touch residue bare-handed.",
+  "Misfire: keep it pointed safely away, do not inspect the firing end, and wait for the period stated by the manufacturer. Do not retry unless the instructions explicitly say to; isolate it and obtain manufacturer/supplier disposal advice.",
+] as const;
 
+export const evdsGuidance = "An electronic visual distress signal (EVDS) may provide a reusable light, but colour, flash pattern, intensity and approval vary. MCA MIN 542 warns that advertised alternatives may not meet SOLAS performance or be an internationally recognised COLREG Annex IV distress signal. An EVDS does not automatically replace required pyrotechnics or radio/beacon alerting: check the device approval, vessel category, area of operation and applicable carriage rules.";
+
+export const flareSources = [
+  { id: "imo-colregs", label: "IMO, COLREG Annex IV distress signals", href: "https://www.imo.org/en/ourwork/safety/pages/preventing-collisions.aspx", version: "Annex IV text; page checked 10 August 2026" },
+  { id: "mca-min542", label: "MCA MIN 542 (M+F) Amendment 3 — recognised distress signals and alternatives", href: "https://www.gov.uk/government/publications/min-542-mf-amendment-3-life-saving-appliances-recognised-distress-signals-and-advertised-alternatives-to-pyrotechnic-flares", version: "Published 12 April 2024; expires 1 March 2027; checked 10 August 2026" },
+  { id: "gov-disposal", label: "GOV.UK — disposing of unwanted marine flares", href: "https://www.gov.uk/guidance/disposing-of-unwanted-marine-flares", version: "Updated 1 January 2023; checked 10 August 2026" },
+  { id: "rya-disposal", label: "RYA — disposing of out-of-date flares", href: "https://www.rya.org.uk/regulations/disposing-of-out-of-date-flares/", version: "Current web guidance; checked 10 August 2026" },
+] as const;
+
+export const flareReview = { contentVersion: "2026-08-10", reviewedOn: "2026-08-10", reviewScope: "Claims checked against the listed regulatory/guidance sources; illustrations are original repository-owned schematics.", manualVerification: "No qualified practitioner review is evidenced. A competent instructor should verify handling demonstrations against the actual products carried and current vessel requirements before practical use." } as const;
+
+export interface FlareScenario { readonly id: string; readonly description: string; readonly correctFlareId: FlareId; readonly explanation: string; }
 export const flareScenarios: readonly FlareScenario[] = [
-  {
-    id: "distant-vessel-night",
-    description:
-      "It is 02:00 and your yacht is taking on water 15 miles offshore. You can see the lights of a distant ship on the horizon. You need to attract their attention.",
-    correctFlareId: "red-parachute-rocket",
-    explanation:
-      "A red parachute rocket is visible up to 40 km at night and reaches 300 m altitude — the best way to attract a distant vessel's attention. Fire at 15° downwind if there is significant wind.",
-  },
-  {
-    id: "helicopter-approaching-day",
-    description:
-      "A coastguard helicopter is approaching your position in daylight after receiving your Mayday. The pilot needs to see your exact location and determine wind direction for the approach.",
-    correctFlareId: "orange-smoke-hand",
-    explanation:
-      "Orange hand smoke is the best daytime signal for helicopter rescue — it marks your position and shows the pilot the wind direction for their approach. Hold it at arm's length downwind.",
-  },
-  {
-    id: "liferaft-daytime",
-    description:
-      "You are in a life raft during daylight. A search aircraft has been spotted in the distance. You need a long-lasting daytime signal but cannot safely hold a flare.",
-    correctFlareId: "orange-smoke-buoyant",
-    explanation:
-      "A buoyant orange smoke canister burns for 3 minutes (longer than hand smoke) and can be deployed into the water from a life raft without needing to hold it. Deploy to windward so smoke drifts over your position.",
-  },
-  {
-    id: "rescue-boat-close-night",
-    description:
-      "An RNLI lifeboat has responded to your Mayday and is searching the area at night. They are within a few miles but haven't located you yet. You need to guide them to your exact position.",
-    correctFlareId: "red-hand-flare",
-    explanation:
-      "A red hand flare pinpoints your position for nearby rescue vessels at night. The 60-second burn time gives the lifeboat crew time to take a bearing on your location. Hold at arm's length downwind.",
-  },
-  {
-    id: "shipping-lane-collision-risk",
-    description:
-      "You are anchored at night near a busy shipping lane. A large vessel appears to be heading directly toward you and has not responded to VHF calls. You are NOT in distress but need to avoid a collision.",
-    correctFlareId: "white-hand-flare",
-    explanation:
-      "A white hand flare is a collision warning signal — it alerts approaching vessels to your presence. It is NOT a distress signal. Using a red flare in this situation would trigger an unnecessary rescue response.",
-  },
-  {
-    id: "offshore-distress-windy-night",
-    description:
-      "Your engine has failed and you are drifting toward rocks 20 miles from shore on a stormy night. Strong winds of 30 knots are blowing. You need maximum visibility to attract any vessel in the area.",
-    correctFlareId: "red-parachute-rocket",
-    explanation:
-      "A red parachute rocket provides the best long-range visibility. In strong winds, fire at 15° downwind to prevent the parachute drifting the flare back over your vessel. The 300 m altitude means it can be seen from far away even in poor conditions.",
-  },
-  {
-    id: "sar-aircraft-daytime-windy",
-    description:
-      "A coastguard fixed-wing aircraft is conducting a search pattern in your area during a windy day. You need to signal your position but conditions are too windy for hand-held smoke to be effective for long.",
-    correctFlareId: "orange-smoke-buoyant",
-    explanation:
-      "A buoyant orange smoke canister burns for 3 minutes — three times longer than hand smoke — giving the aircraft more time to spot you. In windy conditions the longer burn compensates for faster smoke dispersal.",
-  },
-  {
-    id: "close-range-night-pinpoint",
-    description:
-      "You have fired a red parachute rocket and a vessel has altered course toward you. It is now within 3 miles on a dark night. You need to help them find your exact location.",
-    correctFlareId: "red-hand-flare",
-    explanation:
-      "After attracting attention with a parachute rocket, switch to a red hand flare to pinpoint your position for the approaching vessel. The handheld flare provides a precise location fix at close range.",
-  },
+  { id: "distant-vessel-night", description: "At night, your yacht is in distress and a distant ship may not have detected your radio alert. Which visual signal is intended for long-range attraction?", correctFlareId: "red-parachute-rocket", explanation: "A red rocket-parachute flare is the long-range visual choice. First check overhead hazards and operate this exact unit as labelled." },
+  { id: "rescue-close-day", description: "A rescue unit is near your reported position in daylight and asks for a visual position marker.", correctFlareId: "orange-smoke-hand", explanation: "Orange smoke gives a conspicuous daylight position marker and indicates local wind movement. Use the exact product instructions." },
+  { id: "survival-craft-day", description: "From a survival craft in daylight, you have an approved water-deployed signal and need sustained position marking.", correctFlareId: "orange-smoke-buoyant", explanation: "A buoyant orange smoke is designed to operate in water. Confirm its label before deployment; not all smoke products work alike." },
+  { id: "rescue-close-night", description: "A lifeboat is close to your reported position at night but has not visually located you.", correctFlareId: "red-hand-flare", explanation: "A red hand flare is a close-range distress location signal. Operate only as its casing directs." },
+  { id: "collision-risk", description: "At night another vessel creates immediate collision risk, but you are not in distress and need an attention signal.", correctFlareId: "white-hand-flare", explanation: "A white hand flare is an attention/collision-warning signal, not the red or orange Annex IV distress signal." },
+  { id: "distant-vessel-day", description: "In daylight, you are in distress and need to attract a vessel well beyond close-range smoke visibility.", correctFlareId: "red-parachute-rocket", explanation: "A red rocket-parachute flare can provide long-range attraction by day, although contrast is generally better at night. Follow the product label." },
 ];

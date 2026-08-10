@@ -34,11 +34,11 @@ describe("FlareIdentificationDrill", () => {
     );
 
     // then
-    expect(html).toContain("Red Parachute Rocket");
-    expect(html).toContain("Red Hand Flare");
-    expect(html).toContain("Orange Smoke (Hand)");
-    expect(html).toContain("Orange Smoke (Buoyant)");
-    expect(html).toContain("White Hand Flare");
+    expect(html).toContain("Red rocket-parachute flare");
+    expect(html).toContain("Red hand flare");
+    expect(html).toContain("Orange smoke — hand-held");
+    expect(html).toContain("Orange smoke — buoyant");
+    expect(html).toContain("White hand flare");
   });
 
   it("should render a Check Answer button", () => {

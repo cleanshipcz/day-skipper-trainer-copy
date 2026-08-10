@@ -12,7 +12,7 @@ const safetyFlaresQuestions: readonly Question[] = [
     ],
     correctAnswer: 1,
     explanation:
-      "A red parachute rocket reaches approximately 300 m altitude and is visible up to 40 km at night, making it the most effective long-range distress signal.",
+      "A red rocket-parachute flare is intended for long-range visual attraction. Height, duration and visibility are product- and condition-specific.",
   },
   {
     id: "flare2",
@@ -43,33 +43,33 @@ const safetyFlaresQuestions: readonly Question[] = [
   },
   {
     id: "flare4",
-    question: "How long does a buoyant orange smoke canister typically burn?",
-    options: ["30 seconds", "60 seconds", "3 minutes", "10 minutes"],
-    correctAnswer: 2,
+    question: "Where should you find the operating duration of a buoyant orange smoke signal?",
+    options: ["On that product's label", "Assume 60 seconds", "Assume 3 minutes", "From its casing colour"],
+    correctAnswer: 0,
     explanation:
-      "A buoyant orange smoke canister burns for approximately 3 minutes — three times longer than hand smoke — giving aircraft more time to locate you.",
+      "Operating duration varies. Read the marking and instructions on the exact approved product carried.",
   },
   {
     id: "flare5",
     question:
-      "In strong winds, at what angle should a red parachute rocket be fired?",
+      "How should you choose the firing angle of a red rocket-parachute flare?",
     options: [
       "Straight up vertically",
       "Horizontally toward the rescuer",
-      "At 15° downwind",
-      "At 45° into the wind",
+      "Use the exact launcher's printed instructions and account for wind",
+      "Always use 45° into the wind",
     ],
     correctAnswer: 2,
     explanation:
-      "In strong winds, fire a parachute rocket at 15° downwind to prevent the parachute drifting the flare back over your vessel.",
+      "Launcher designs differ. Clear overhead hazards and use the orientation and wind allowance printed on the exact device.",
   },
   {
     id: "flare6",
-    question: "What is the typical shelf life of a pyrotechnic flare from its date of manufacture?",
-    options: ["1 year", "2 years", "3 years", "5 years"],
-    correctAnswer: 2,
+    question: "Which date controls when a particular pyrotechnic flare must be replaced?",
+    options: ["A universal three-year rule", "The expiry/service-life marking on that product", "The vessel launch date", "The date another maker uses"],
+    correctAnswer: 1,
     explanation:
-      "Most pyrotechnic flares have a shelf life of 3 years from the date of manufacture stamped on the casing. Expired flares must be replaced and disposed of safely.",
+      "Use the expiry or service-life marking on the exact product; life varies and must not be assumed from another unit or maker.",
   },
   {
     id: "flare7",
@@ -105,26 +105,26 @@ const safetyFlaresQuestions: readonly Question[] = [
     options: [
       "Throw them overboard",
       "Fire them off on a calm night for practice",
-      "Return them to a coastguard station or chandlery for safe disposal",
+      "Arrange acceptance with a registered disposal point or another authorised service",
       "Store them as backups in case you run out",
     ],
     correctAnswer: 2,
     explanation:
-      "Expired flares should be returned to a coastguard station or chandlery for safe disposal. They should never be thrown overboard, fired off casually, or relied upon as backups.",
+      "HM Coastguard and RNLI stations do not accept unwanted flares. Arrange acceptance with a registered point, participating supplier/marina/council facility or specialist contractor; never dump or casually fire them.",
   },
   {
     id: "flare10",
     question:
-      "Which of the following flares is suitable ONLY for nighttime use?",
+      "Which signal is specifically intended for conspicuous daytime position marking?",
     options: [
       "Orange smoke (hand)",
-      "Orange smoke (buoyant)",
+      "Electronic visual distress signal (EVDS)",
       "Red hand flare",
-      "Red parachute rocket",
+      "White hand flare",
     ],
-    correctAnswer: 2,
+    correctAnswer: 0,
     explanation:
-      "A red hand flare is primarily a night-time signal. Orange smoke flares are daytime only, while a red parachute rocket is effective both day and night.",
+      "Orange smoke is the conspicuous daytime position signal. Red-light and white attention signals can still be seen by day, although their contrast is generally better at night.",
   },
 ];
 

@@ -31,7 +31,8 @@ import {
 } from "@/components/safety/FlareIdentificationDrill";
 import { useProgress } from "@/hooks/useProgress";
 import { TOPIC_IDS } from "@/constants/topicRegistry";
-import { flareTypes } from "@/data/flareTypes";
+import { evdsGuidance, flareOperatingSequence, flareReview, flareSources, flareTypes } from "@/data/flareTypes";
+import { FlareSchematic } from "@/components/safety/FlareSchematic";
 
 const FlaresTheory = () => {
   const navigate = useNavigate();
@@ -169,9 +170,7 @@ const FlaresTheory = () => {
             <div className="prose dark:prose-invert max-w-none">
               <h2 className="text-2xl font-bold">Flare Types</h2>
               <p>
-                A Day Skipper must recognise all five flare types, know their
-                range, burn time, and whether they are suitable for day,
-                night, or both.
+                Identify the printed signal type, purpose and operating label—not casing colour alone. Dimensions, mechanisms, performance and service life vary by product.
               </p>
             </div>
 
@@ -199,6 +198,8 @@ const FlaresTheory = () => {
                     <CardDescription>{flare.description}</CardDescription>
                   </CardHeader>
                   <CardContent>
+                    <FlareSchematic id={flare.id} label={flare.visualLabel} />
+                    <p className="my-3 text-sm"><strong>Recognition:</strong> {flare.recognition}</p>
                     <div className="grid md:grid-cols-3 gap-4">
                       <div>
                         <p className="text-sm font-medium mb-1">Range</p>
@@ -223,6 +224,8 @@ const FlaresTheory = () => {
                 </Card>
               ))}
             </div>
+            <Card><CardHeader><CardTitle>Prepare, operate and handle a misfire</CardTitle></CardHeader><CardContent><ol className="list-decimal space-y-2 pl-5 text-sm">{flareOperatingSequence.map((step) => <li key={step}>{step}</li>)}</ol></CardContent></Card>
+            <Card><CardHeader><CardTitle>Electronic visual distress signals (EVDS)</CardTitle></CardHeader><CardContent><p className="text-sm text-muted-foreground">{evdsGuidance}</p></CardContent></Card>
           </TabsContent>
 
           {/* ── EXPIRY & STORAGE ──────────────────────────────────── */}
@@ -246,10 +249,7 @@ const FlaresTheory = () => {
                 </CardHeader>
                 <CardContent className="text-sm text-muted-foreground space-y-2">
                   <p>
-                    All pyrotechnic flares are stamped with a date of
-                    manufacture. The typical shelf life is <strong>3 years</strong>{" "}
-                    from manufacture. Check the expiry date printed on each
-                    flare before every passage.
+                    Check the expiry or service-life date printed on every unit. Do not infer a universal life from another maker or product.
                   </p>
                 </CardContent>
               </Card>
@@ -275,9 +275,7 @@ const FlaresTheory = () => {
                 <CardContent className="text-sm text-muted-foreground space-y-2">
                   <p>
                     Never throw expired flares overboard, fire them off
-                    casually, or store them as backups. Return expired flares
-                    to a coastguard station or marine chandlery for safe
-                    professional disposal.
+                    casually, or store them as backups. In the UK, HM Coastguard and RNLI stations do not accept unwanted flares. Arrange acceptance before travel through a registered disposal point, supplier, marina/port, participating council facility or specialist contractor.
                   </p>
                 </CardContent>
               </Card>
@@ -288,11 +286,7 @@ const FlaresTheory = () => {
                 </CardHeader>
                 <CardContent className="text-sm text-muted-foreground space-y-2">
                   <p>
-                    While UK law does not mandate specific flare types for
-                    pleasure craft, the MCA and RYA strongly recommend
-                    carrying a minimum outfit appropriate to your sailing
-                    area. Coastal: hand flares and orange smoke. Offshore:
-                    add parachute rockets.
+                    Requirements depend on vessel size, use, coding/class and area of operation. Check the current rules for this vessel and voyage; an outfit recommended for one category is not a universal minimum.
                   </p>
                 </CardContent>
               </Card>
@@ -308,12 +302,11 @@ const FlaresTheory = () => {
               <CardContent className="text-sm">
                 <ul className="list-disc list-inside space-y-1">
                   <li>
-                    Always hold handheld flares at arm&apos;s length on the
-                    downwind side to avoid burns from dripping residue.
+                    Follow the handling and wind instructions printed on the exact device; do not transfer a method between products.
                   </li>
                   <li>
                     Never fire a parachute rocket under a helicopter — it
-                    reaches 300 m altitude and could endanger the aircraft.
+                    can reach aircraft operating overhead and could endanger them.
                   </li>
                   <li>
                     Wear gloves if possible — flares burn at extremely high
@@ -326,6 +319,7 @@ const FlaresTheory = () => {
                 </ul>
               </CardContent>
             </Card>
+            <Card><CardHeader><CardTitle>Sources, version and review boundary</CardTitle></CardHeader><CardContent className="space-y-3 text-sm"><p>{flareReview.reviewScope} Content version {flareReview.contentVersion}; reviewed {flareReview.reviewedOn}.</p><p className="font-medium">Manual verification limit: {flareReview.manualVerification}</p><ul className="list-disc space-y-2 pl-5">{flareSources.map((source) => <li key={source.id}><a href={source.href} target="_blank" rel="noreferrer" className="text-primary underline underline-offset-4">{source.label}</a><span className="text-muted-foreground"> — {source.version}</span></li>)}</ul></CardContent></Card>
           </TabsContent>
 
           {/* ── DRILL TAB ─────────────────────────────────────────── */}
