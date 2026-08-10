@@ -106,6 +106,7 @@ const ClearingBearingsTheory = () => {
             <Button
               variant="ghost"
               size="icon"
+              className="min-h-11 min-w-11"
               aria-label="back"
               onClick={() => navigate("/pilotage")}
             >
@@ -124,24 +125,24 @@ const ClearingBearingsTheory = () => {
       {/* Main Content */}
       <main className="container mx-auto px-4 py-8 max-w-4xl">
         <Tabs defaultValue="purpose" className="space-y-6">
-          <TabsList className="grid w-full grid-cols-2 lg:grid-cols-5 h-auto">
-            <TabsTrigger value="purpose" className="py-2">
+          <TabsList aria-label="Clearing bearing lesson sections" className="flex h-auto w-full touch-pan-x justify-start gap-1 overflow-x-auto p-1 lg:grid lg:grid-cols-5">
+            <TabsTrigger value="purpose" className="min-h-11 shrink-0 px-3 py-2 lg:min-w-0">
               <Target className="w-4 h-4 mr-2" />
               Purpose
             </TabsTrigger>
-            <TabsTrigger value="plotting" className="py-2">
+            <TabsTrigger value="plotting" className="min-h-11 shrink-0 px-3 py-2 lg:min-w-0">
               <MapIcon className="w-4 h-4 mr-2" />
               Plotting
             </TabsTrigger>
-            <TabsTrigger value="conventions" className="py-2">
+            <TabsTrigger value="conventions" className="min-h-11 shrink-0 px-3 py-2 lg:min-w-0">
               <ArrowLeftRight className="w-4 h-4 mr-2" />
               Conventions
             </TabsTrigger>
-            <TabsTrigger value="monitoring" className="py-2">
+            <TabsTrigger value="monitoring" className="min-h-11 shrink-0 px-3 py-2 lg:min-w-0">
               <Compass className="w-4 h-4 mr-2" />
               Monitoring
             </TabsTrigger>
-            <TabsTrigger value="practice" className="py-2">
+            <TabsTrigger value="practice" className="min-h-11 shrink-0 px-3 py-2 lg:min-w-0">
               <Gamepad2 className="w-4 h-4 mr-2" />
               Practice
             </TabsTrigger>
