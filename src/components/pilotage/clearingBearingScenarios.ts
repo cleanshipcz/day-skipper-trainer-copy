@@ -21,6 +21,11 @@ export const trueBearing = (from: ChartPoint, to: ChartPoint) =>
 export const signedBearingDifference = (bearing: number, reference: number) =>
   ((bearing - reference + 540) % 360) - 180;
 
+export const isWithinSafeTolerance = (bearing: number, limit: number, rule: BearingRule, tolerance: number) => {
+  const difference = signedBearingDifference(bearing, limit);
+  return rule === "NLT" ? difference >= 0 && difference <= tolerance : difference <= 0 && difference >= -tolerance;
+};
+
 export const tangentPoint = (scenario: ClearingBearingScenario): ChartPoint => {
   const { position: landmark } = scenario.landmark;
   const { position: centre, radius, margin } = scenario.hazard;
@@ -65,7 +70,7 @@ export const assessClearingBearing = (
   }
   if (!rule) return { kind: "invalid", message: "Choose NLT or NMT to identify the safe side." };
   const solution = solutionFor(scenario);
-  const bearingCorrect = Math.abs(signedBearingDifference(value, solution.bearing)) <= tolerance;
+  const bearingCorrect = isWithinSafeTolerance(value, solution.bearing, solution.rule, tolerance);
   if (!bearingCorrect || rule !== solution.rule) {
     const bearingHelp = bearingCorrect
       ? "Your plotted limit is sound, but the inequality selects the hazard side."
@@ -88,6 +93,6 @@ export const CLEARING_BEARING_SCENARIOS: readonly ClearingBearingScenario[] = [
     task: "Use North Head light and the wreck's shaded clearance margin. Plot the limiting line, measure the true bearing from vessel to light, and choose the inequality that keeps the vessel in the labelled safe-water sector.",
     landmark: { name: "North Head Light", position: { x: 390, y: 52 } },
     hazard: { name: "Wreck", position: { x: 245, y: 184 }, radius: 18, margin: 20 },
-    tangent: "right", safeObserver: { x: 420, y: 255 }, chartNote: "Safe water · depth 7.8 m",
+    tangent: "right", safeObserver: { x: 300, y: 255 }, chartNote: "Safe water · depth 7.8 m",
   },
 ] as const;

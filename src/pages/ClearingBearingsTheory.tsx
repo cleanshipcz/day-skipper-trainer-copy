@@ -23,7 +23,7 @@ import {
   CheckCircle2,
 } from "lucide-react";
 import { ClearingBearingTool } from "@/components/pilotage/ClearingBearingTool";
-import { useProgress } from "@/hooks/useProgress";
+import { useProgress, type ProgressSaveResult } from "@/hooks/useProgress";
 import { TOPIC_IDS } from "@/constants/topicRegistry";
 
 type WorkedLimitProps = {
@@ -82,13 +82,20 @@ const WorkedLimit = ({ title, limit, safeLabel, mirror = false }: WorkedLimitPro
 
 const ClearingBearingsTheory = () => {
   const navigate = useNavigate();
-  const { saveProgress } = useProgress();
+  const { saveProgressDetailed } = useProgress();
   const [theoryCompleted, setTheoryCompleted] = useState(false);
+  const [completionStatus, setCompletionStatus] = useState<"idle" | ProgressSaveResult>("idle");
 
-  const handleMarkComplete = useCallback(() => {
-    saveProgress(TOPIC_IDS.PILOTAGE_CLEARING_BEARINGS, true, 100, 10);
-    setTheoryCompleted(true);
-  }, [saveProgress]);
+  const handleMarkComplete = useCallback(async () => {
+    if (theoryCompleted) return true;
+    let result: ProgressSaveResult;
+    try { result = await saveProgressDetailed(TOPIC_IDS.PILOTAGE_CLEARING_BEARINGS, true, 100, 10); }
+    catch { result = "failed"; }
+    setCompletionStatus(result);
+    const accepted = result === "remote" || result === "queued" || result === "anonymous";
+    if (accepted) setTheoryCompleted(true);
+    return accepted;
+  }, [saveProgressDetailed, theoryCompleted]);
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-background via-ocean-light/10 to-background pb-20">
@@ -477,6 +484,7 @@ const ClearingBearingsTheory = () => {
 
         {/* Completion & Navigation */}
         <div className="flex flex-col items-center gap-4 pt-12 pb-8">
+          <p aria-live="polite" className="text-center text-sm text-muted-foreground">{completionStatus === "remote" ? "Mastery completion saved." : completionStatus === "queued" ? "Mastery completion is queued offline and will sync when reconnected." : completionStatus === "anonymous" ? "Practice mastery completed for this session. Sign in to save it to your account." : completionStatus === "failed" || completionStatus === "conflict" ? "Mastery completion was not saved; retry from the exercise." : "Complete both practice scenarios to unlock completion."}</p>
           <Button
             size="lg"
             className="w-full md:w-auto gap-2"

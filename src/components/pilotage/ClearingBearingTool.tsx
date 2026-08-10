@@ -2,25 +2,32 @@ import { useCallback, useState } from "react";
 import { CheckCircle2, Map as MapIcon, XCircle } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import ChartSurface from "@/components/navigation/unified/ChartSurface";
 import { assessClearingBearing, CLEARING_BEARING_SCENARIOS, solutionFor, type BearingRule } from "./clearingBearingScenarios";
 
-interface Props { readonly onAllScenariosComplete?: () => void }
+interface Props { readonly onAllScenariosComplete?: () => boolean | Promise<boolean> }
 
 export const ClearingBearingTool = ({ onAllScenariosComplete }: Props) => {
   const [index, setIndex] = useState(0);
-  const [bearing, setBearing] = useState("");
+  const [bearing, setBearing] = useState(180);
   const [rule, setRule] = useState<BearingRule | "">("");
   const [result, setResult] = useState<ReturnType<typeof assessClearingBearing> | null>(null);
+  const [completionState, setCompletionState] = useState<"ready" | "saving" | "failed" | "done">("ready");
   const scenario = CLEARING_BEARING_SCENARIOS[index];
   const solution = solutionFor(scenario);
   const solved = result?.kind === "correct";
   const last = index === CLEARING_BEARING_SCENARIOS.length - 1;
 
-  const submit = useCallback(() => setResult(assessClearingBearing(bearing, rule, scenario)), [bearing, rule, scenario]);
-  const next = () => { setIndex((value) => value + 1); setBearing(""); setRule(""); setResult(null); };
+  const submit = useCallback(() => setResult(assessClearingBearing(String(bearing), rule, scenario)), [bearing, rule, scenario]);
+  const next = () => { setIndex((value) => value + 1); setBearing(180); setRule(""); setResult(null); };
+  const plottingEnd = { x: scenario.landmark.position.x + Math.sin(((bearing + 180) * Math.PI) / 180) * 330, y: scenario.landmark.position.y - Math.cos(((bearing + 180) * Math.PI) / 180) * 330 };
+  const finish = async () => {
+    if (completionState === "saving" || completionState === "done") return;
+    setCompletionState("saving");
+    try { setCompletionState(await onAllScenariosComplete?.() === false ? "failed" : "done"); }
+    catch { setCompletionState("failed"); }
+  };
 
   return <Card className="w-full border-2 border-primary/20">
     <CardHeader><CardTitle className="flex items-center gap-2"><MapIcon aria-hidden="true" className="h-5 w-5" />Clearing-bearing mastery</CardTitle>
@@ -41,15 +48,16 @@ export const ClearingBearingTool = ({ onAllScenariosComplete }: Props) => {
             <text x={scenario.hazard.position.x} y={scenario.hazard.position.y + 4} textAnchor="middle" fontSize="10" fontWeight="bold">{scenario.hazard.name}</text>
             <g transform={`translate(${scenario.landmark.position.x} ${scenario.landmark.position.y})`}><polygon points="0,-9 7,0 0,9 -7,0" fill="#c026d3" /><text y="-13" textAnchor="middle" fontSize="11" fontWeight="bold">{scenario.landmark.name}</text></g>
             <path d="M455 25v35m-8-25 8-10 8 10" stroke="#111827" fill="none" /><text x="455" y="75" textAnchor="middle" fontSize="10">TRUE NORTH</text>
+            <line data-testid="plotting-line" x1={scenario.landmark.position.x} y1={scenario.landmark.position.y} x2={plottingEnd.x} y2={plottingEnd.y} stroke="#2563eb" strokeWidth="2" />
             {solved && <line x1={scenario.landmark.position.x} y1={scenario.landmark.position.y} x2={solution.boundary.x} y2={solution.boundary.y} stroke="#15803d" strokeWidth="3" strokeDasharray="7 4" />}
           </ChartSurface>
         </div><figcaption className="mt-2 text-xs text-muted-foreground">The dashed red perimeter includes the required clearing margin. The green limiting line appears only after a correct answer.</figcaption>
       </figure>
-      <div className="grid gap-4 sm:grid-cols-[1fr_auto] sm:items-end"><div><Label htmlFor="clearing-bearing">Measured bearing (°T)</Label><Input id="clearing-bearing" inputMode="decimal" placeholder="000–359" value={bearing} disabled={solved} onChange={(event) => { setBearing(event.target.value); setResult(null); }} /></div>
+      <div className="grid gap-4 sm:grid-cols-[1fr_auto] sm:items-end"><div><div className="flex items-center justify-between"><Label htmlFor="clearing-bearing">Rotate plotting line</Label><output htmlFor="clearing-bearing" className="font-mono text-sm">Measured: {bearing.toString().padStart(3, "0")}°T</output></div><input className="h-11 w-full accent-primary" id="clearing-bearing" aria-label="Rotate plotting line, measured true bearing" type="range" min="0" max="359" step="1" value={bearing} disabled={solved} onChange={(event) => { setBearing(Number(event.target.value)); setResult(null); }} /><p className="text-xs text-muted-foreground">Drag the control or use arrow keys to rotate the blue line until it is tangent to the outside of the clearance margin.</p></div>
         <fieldset disabled={solved}><legend className="mb-2 text-sm font-medium">Safe-side rule</legend><div className="flex gap-2">{(["NLT", "NMT"] as const).map((value) => <Button key={value} type="button" variant={rule === value ? "default" : "outline"} aria-pressed={rule === value} onClick={() => { setRule(value); setResult(null); }}>{value}</Button>)}</div></fieldset></div>
       <Button onClick={submit} disabled={solved}>Check plotted answer</Button>
       {result && <div role={result.kind === "incorrect" || result.kind === "invalid" ? "alert" : "status"} className={`flex gap-2 rounded-lg p-3 text-sm ${solved ? "bg-green-100 text-green-800" : "bg-red-100 text-red-800"}`}>{solved ? <CheckCircle2 aria-hidden="true" className="h-5 w-5 shrink-0" /> : <XCircle aria-hidden="true" className="h-5 w-5 shrink-0" />}<span>{result.message}</span></div>}
-      {solved && (last ? <Button onClick={onAllScenariosComplete}>Record mastery</Button> : <Button onClick={next}>Next scenario</Button>)}
+      {solved && (last ? <div className="space-y-2"><Button onClick={() => void finish()} disabled={completionState === "saving" || completionState === "done"}>{completionState === "saving" ? "Saving mastery…" : completionState === "done" ? "Mastery recorded" : completionState === "failed" ? "Retry saving mastery" : "Record mastery"}</Button>{completionState === "failed" && <p role="alert" className="text-sm text-red-700">Mastery was not saved. Check your connection and retry.</p>}</div> : <Button onClick={next}>Next scenario</Button>)}
     </CardContent>
   </Card>;
 };
