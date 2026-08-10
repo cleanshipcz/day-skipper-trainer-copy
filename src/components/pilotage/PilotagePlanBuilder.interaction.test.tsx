@@ -96,14 +96,24 @@ describe("PilotagePlanBuilder completion", () => {
     await user.clear(screen.getByLabelText("Leg name"));
     await user.type(screen.getByLabelText("Leg name"), "Revised safe-water leg");
     await user.click(screen.getByRole("button", { name: "Save leg" }));
-    expect(screen.getByText("1. Revised safe-water leg")).toBeTruthy();
+    expect(screen.getAllByText("1. Revised safe-water leg")).toHaveLength(2);
 
     await user.click(screen.getByRole("button", { name: "Move Revised safe-water leg down" }));
-    expect(screen.getByText("2. Revised safe-water leg")).toBeTruthy();
+    expect(screen.getAllByText("2. Revised safe-water leg")).toHaveLength(2);
     expect(JSON.parse(localStorage.getItem("day-skipper:pilotage-plan:draft") ?? "null").version).toBe(2);
 
     view.unmount();
     render(<PilotagePlanBuilder onComplete={vi.fn()} />);
-    expect(screen.getByText("2. Revised safe-water leg")).toBeTruthy();
+    expect(screen.getAllByText("2. Revised safe-water leg")).toHaveLength(2);
+  });
+
+  it("provides a dedicated controls-free, non-splitting print plan", () => {
+    render(<PilotagePlanBuilder onComplete={vi.fn()} />);
+    const printPlan = screen.getByTestId("print-cockpit-plan");
+    expect(printPlan.className).toContain("print:block");
+    expect(printPlan.querySelectorAll("button, input, textarea")).toHaveLength(0);
+    expect(printPlan.querySelectorAll("article")).toHaveLength(3);
+    expect(Array.from(printPlan.querySelectorAll("article")).every((leg) => leg.className.includes("break-inside-avoid"))).toBe(true);
+    expect(screen.getByText("1. Harbour approach").closest(".print\\:hidden")).toBeTruthy();
   });
 });

@@ -33,7 +33,7 @@ const PilotagePlan = () => {
           <CardHeader><CardTitle className="flex items-center gap-2"><CheckCircle2 className="text-teal-500" />Before you build</CardTitle></CardHeader>
           <CardContent className="space-y-2 text-sm text-muted-foreground">
             <p>Work from seaward to the berth. Record conspicuous marks, safe-water limits, courses, distances, tidal effects, speed changes, communications, and abort points.</p>
-            <p>Times are estimates: distance ÷ speed gives passage time, then each tidal offset adds or removes minutes for the expected stream.</p>
+            <p>Times are estimates: each leg uses distance ÷ planned speed over ground (SOG) × 60, with unrounded leg times added for the passage total.</p>
           </CardContent>
         </Card>
         <PilotagePlanBuilder onComplete={completePlan} />

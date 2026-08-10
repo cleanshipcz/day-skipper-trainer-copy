@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { calculatePlanSummary, GUIDED_WAYPOINTS, validatePilotageWaypoint, type PilotageWaypoint } from "./pilotagePlan";
+import { calculatePlanSummary, GUIDED_WAYPOINTS, parsePilotageDraft, validatePilotageWaypoint, type PilotageWaypoint } from "./pilotagePlan";
 
 const leg = (overrides: Partial<PilotageWaypoint> = {}): PilotageWaypoint => ({
   id: "a", name: "Outer mark to entrance", bearing: 30, distance: 1,
@@ -39,5 +39,17 @@ describe("pilotage plan model", () => {
     expect(text).toContain("Iso.W.10s");
     expect(text).toContain("Red can Fl.R.4s");
     expect(text).toContain("green cone Fl.G.4s");
+  });
+
+  it.each([
+    null,
+    { version: 2, waypoints: [null] },
+    { version: 2, waypoints: ["leg"] },
+    { version: 2, waypoints: [{ ...leg(), hazards: null }] },
+    { version: 2, waypoints: [{ ...leg(), communications: 12 }] },
+    { version: 2, waypoints: [{ ...leg(), id: "" }] },
+    { version: 2, waypoints: [{ ...leg(), mark: undefined }] },
+  ])("rejects malformed versioned drafts %#", (draft) => {
+    expect(parsePilotageDraft(JSON.stringify(draft))).toBeNull();
   });
 });

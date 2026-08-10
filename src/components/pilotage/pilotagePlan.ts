@@ -40,6 +40,7 @@ const requiredText: readonly [keyof PilotageWaypoint, string][] = [
 ];
 
 export const validatePilotageWaypoint = (waypoint: PilotageWaypoint): string | null => {
+  if (!waypoint.id.trim()) return "Add a leg identifier.";
   for (const [key, label] of requiredText) if (!String(waypoint[key]).trim()) return `Add ${label}.`;
   if (!Number.isFinite(waypoint.bearing) || waypoint.bearing < 0 || waypoint.bearing >= 360) return "Course must be a finite value from 0° to 359.999° true.";
   if (!Number.isFinite(waypoint.distance) || waypoint.distance <= 0 || waypoint.distance > 100) return "Distance must be greater than 0 and no more than 100 NM.";
@@ -65,8 +66,19 @@ export const calculatePlanSummary = (waypoints: readonly PilotageWaypoint[]): Pi
 export const parsePilotageDraft = (raw: string | null): PilotageDraft | null => {
   if (!raw) return null;
   try {
-    const value = JSON.parse(raw) as Partial<PilotageDraft>;
-    if (value.version !== PILOTAGE_DRAFT_VERSION || !Array.isArray(value.waypoints) || validatePlanCoverage(value.waypoints as PilotageWaypoint[]).length) return null;
-    return value as PilotageDraft;
+    const value: unknown = JSON.parse(raw);
+    if (!value || typeof value !== "object") return null;
+    const candidate = value as Record<string, unknown>;
+    if (candidate.version !== PILOTAGE_DRAFT_VERSION || !Array.isArray(candidate.waypoints)) return null;
+    const textKeys: readonly (keyof PilotageWaypoint)[] = ["id", "name", "mark", "hazards", "safeLimits", "monitoring", "depthAndTide", "communications", "abortAndContingency", "notes"];
+    const numberKeys: readonly (keyof PilotageWaypoint)[] = ["bearing", "distance", "speedOverGround"];
+    const expectedKeys = [...textKeys, ...numberKeys];
+    const validShape = candidate.waypoints.every((item) => item !== null && typeof item === "object"
+      && Object.keys(item).length === expectedKeys.length
+      && Object.keys(item).every((key) => expectedKeys.includes(key as keyof PilotageWaypoint))
+      && textKeys.every((key) => typeof (item as Record<string, unknown>)[key] === "string")
+      && numberKeys.every((key) => typeof (item as Record<string, unknown>)[key] === "number"));
+    if (!validShape || validatePlanCoverage(candidate.waypoints as PilotageWaypoint[]).length) return null;
+    return candidate as unknown as PilotageDraft;
   } catch { return null; }
 };
