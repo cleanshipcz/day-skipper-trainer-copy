@@ -38,6 +38,7 @@ describe("TheoryCompletionButton", () => {
     [true, "saved", true, "Saved", "Completion saved to your account."],
     [true, "queued", true, "Queued offline", "Completion is durably queued on this device"],
     [true, "local", true, "Completed on this device", "Completed on this device. Sign in"],
+    [true, "local", false, "Save completion", "Activity evidence recorded"],
     [true, "failed", false, "Retry completion", "Completion was not saved"],
     [true, "idle", false, "Save completion", "Activity evidence recorded"],
   ] as const)("renders hydrated outcome %s/%s", (canComplete, saveState, durable, button, status) => {
