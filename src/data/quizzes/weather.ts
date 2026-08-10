@@ -20,7 +20,7 @@ const weatherQuestions: readonly Question[] = [
   ["weather-17", "Meteorological 'fog' means visibility below:", ["10 NM", "5 NM", "2 NM", "1,000 m"], 3, "Fog is visibility below 1,000 metres."],
   ["weather-18", "Your first response to unexpectedly dense fog should include:", ["Increase speed", "Safe speed and a dedicated lookout", "Turn lights off", "Rely on AIS alone"], 1, "Slow down, post a lookout and establish position and traffic awareness."],
   ["weather-19", "A power-driven vessel making way in restricted visibility sounds:", ["One prolonged blast at intervals up to two minutes", "Two short every minute", "Five short continuously", "No signal"], 0, "Rule 35 prescribes one prolonged blast at no more than two-minute intervals."],
-  ["weather-20", "Radiation fog most commonly develops:", ["During clear calm nights over cooling land", "In strong midday sun over warm sea", "Only at fronts", "In gale-force wind"], 0, "Night-time radiative cooling can bring land air to its dew point."],
+  ["weather-20", "In a UK marine forecast, visibility of exactly 1,000 metres is:", ["Very poor", "Poor", "Moderate", "Good"], 1, "Poor begins at 1,000 metres; very poor is strictly below 1,000 metres. Meteorological fog is likewise defined by visibility below 1,000 metres."],
 ] .map(([id, question, options, correctAnswer, explanation]) => ({ id, question, options, correctAnswer, explanation } as Question));
 
 export default weatherQuestions;
