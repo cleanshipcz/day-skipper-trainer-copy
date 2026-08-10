@@ -29,6 +29,10 @@ describe("FogScenarioPractice", () => {
       expect(screen.getByRole("img", { name: "Operational situation diagram" })).toBeTruthy();
       expect(screen.getByRole("img").getAttribute("aria-labelledby")).not.toMatch(/correct|answer/i);
     });
+    const captions = fogScenarios.map(({ visual }) => visual.caption).join(" ");
+    expect(captions).toContain("intermittent echo");
+    expect(captions).toContain("successively shorter ranges");
+    expect(captions).not.toMatch(/does not prove|cannot dismiss|collision risk|act early|safe speed|reduce speed|avoid port/i);
   });
 
   it("restores completed evidence, disables repeat input and remains responsive", () => {

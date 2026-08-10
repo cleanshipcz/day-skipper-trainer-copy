@@ -249,6 +249,29 @@ describe("useTheoryCompletionGate", () => {
     expect(mocks.saveProgressDetailed).toHaveBeenLastCalledWith(topicId, false, 67, 0, expect.objectContaining({ visitedSectionIds: ["s1", "s2"] }));
   });
 
+  it("preserves a genuinely legacy remote completion only when explicitly opted in", async () => {
+    mocks.ownerId = "legacy-owner";
+    mocks.loadProgressDetailed.mockResolvedValue({ status: "remote", record: { completed: true, answers_history: { completionState: "completed" } } });
+    mocks.saveProgressDetailed.mockClear();
+    const { result } = renderHook(() => useTheoryCompletionGate({ topicId: "weather-fog", requiredSectionIds, catalogueRevision: "fog-v1", acceptLegacyCompleted: true }));
+    await waitFor(() => expect(result.current.isHydrated).toBe(true));
+    expect(result.current.visitedSectionIds).toEqual(requiredSectionIds);
+    expect(result.current.isCompletionDurable).toBe(true);
+    expect(result.current.saveState).toBe("saved");
+    expect(mocks.saveProgressDetailed).not.toHaveBeenCalled();
+    expect(JSON.parse(localStorage.getItem("theory-gate:legacy-owner:weather-fog:fog-v1")!)).toMatchObject({ completed: true, visitedSectionIds: requiredSectionIds });
+  });
+
+  it("does not let an incomplete legacy record bypass new evidence", async () => {
+    mocks.ownerId = "legacy-owner";
+    mocks.loadProgressDetailed.mockResolvedValue({ status: "remote", record: { completed: false, answers_history: { completionState: "in_progress" } } });
+    const { result } = renderHook(() => useTheoryCompletionGate({ topicId: "weather-fog", requiredSectionIds, catalogueRevision: "fog-v1", acceptLegacyCompleted: true }));
+    await waitFor(() => expect(result.current.isHydrated).toBe(true));
+    expect(result.current.visitedSectionIds).toEqual([]);
+    expect(result.current.canComplete).toBe(false);
+    expect(result.current.isCompletionDurable).toBe(false);
+  });
+
   it("surfaces a rejected revisioned load and recovers through an explicit retry", async () => {
     mocks.loadProgressDetailed.mockClear();
     mocks.loadProgressDetailed.mockRejectedValueOnce(new Error("request timed out"));

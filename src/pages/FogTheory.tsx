@@ -78,7 +78,7 @@ export const fogTheorySections: readonly TheorySection[] = [
 
 export default function FogTheory() {
   const requiredSectionIds = [...FOG_SCENARIO_GATE.scenarioIds];
-  const gate = useTheoryCompletionGate({ topicId: TOPIC_IDS.WEATHER_FOG, catalogueRevision: FOG_SCENARIO_GATE.revision, requiredSectionIds, pointsOnComplete: 10 });
+  const gate = useTheoryCompletionGate({ topicId: TOPIC_IDS.WEATHER_FOG, catalogueRevision: FOG_SCENARIO_GATE.revision, requiredSectionIds, pointsOnComplete: 10, acceptLegacyCompleted: true });
   const remaining = requiredSectionIds.filter((id) => !gate.visitedSectionIds.includes(id)).length;
   const durable = gate.isCompletionDurable;
   const status = gate.loadState === "failed" ? "Saved fog-scenario progress could not be loaded. Retry before answering or completing."

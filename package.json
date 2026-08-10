@@ -26,6 +26,7 @@
     "test:tides-accessibility-browser": "node scripts/check-tides-accessibility-browser.mjs",
     "test:compass-accessibility-browser": "node scripts/check-compass-accessibility-browser.mjs",
     "test:position-fixing-browser": "node scripts/check-position-fixing-browser.mjs",
+    "test:fog-accessibility-browser": "node scripts/check-fog-accessibility-browser.mjs",
     "guard:migrations": "node scripts/check-migrations.mjs",
     "supabase:start": "supabase start",
     "supabase:stop": "supabase stop",
