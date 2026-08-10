@@ -40,17 +40,24 @@ export const WeatherTheoryLayout = ({ title, subtitle, topicId, sections, childr
         setLoadState("anonymous");
         return;
       }
+      const locallyQueued = queuedMarkerKey !== null && window.localStorage.getItem(queuedMarkerKey) === "true";
+      if (locallyQueued && result.status === "failed") {
+        setComplete(true);
+        setQueuedOffline(true);
+        setLoadState("ready");
+        return;
+      }
       if (result.status === "failed") {
         setLoadState("error");
         return;
       }
       const remotelyComplete = result.status === "remote" && Boolean(result.record.completed);
-      const locallyQueued = !remotelyComplete && queuedMarkerKey !== null && window.localStorage.getItem(queuedMarkerKey) === "true";
-      setComplete(remotelyComplete || locallyQueued);
-      setQueuedOffline(locallyQueued);
+      const queuedWithoutRemoteCompletion = !remotelyComplete && locallyQueued;
+      setComplete(remotelyComplete || queuedWithoutRemoteCompletion);
+      setQueuedOffline(queuedWithoutRemoteCompletion);
       if (remotelyComplete && queuedMarkerKey) window.localStorage.removeItem(queuedMarkerKey);
       setLoadState("ready");
-      if (result.status === "missing" && !locallyQueued) {
+      if (result.status === "missing" && !queuedWithoutRemoteCompletion) {
         void saveProgressDetailed(topicId, false, 0, 0, { engagementState: "started" });
       }
     });

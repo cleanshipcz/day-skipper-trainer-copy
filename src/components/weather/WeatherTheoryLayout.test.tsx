@@ -80,10 +80,18 @@ describe("WeatherTheoryLayout", () => {
     await vi.waitFor(() => expect(saveProgressDetailed).toHaveBeenCalledTimes(2));
     first.unmount();
 
-    render(<MemoryRouter><WeatherTheoryLayout title="Test" subtitle="Test" topicId="weather-test" sections={[]} /></MemoryRouter>);
+    loadProgressDetailed.mockResolvedValue({ status: "failed", record: null });
+    const restored = render(<MemoryRouter><WeatherTheoryLayout title="Test" subtitle="Test" topicId="weather-test" sections={[]} /></MemoryRouter>);
     expect(await screen.findByRole("button", { name: /queued offline/i })).toBeTruthy();
     expect(saveProgressDetailed).toHaveBeenCalledTimes(2);
     expect((screen.getByRole("button", { name: /queued offline/i }) as HTMLButtonElement).disabled).toBe(true);
+    restored.unmount();
+
+    ownerId = "owner-b";
+    render(<MemoryRouter><WeatherTheoryLayout title="Test" subtitle="Test" topicId="weather-test" sections={[]} /></MemoryRouter>);
+    expect((await screen.findByRole("alert")).textContent).toMatch(/couldn.t load/i);
+    expect(screen.queryByRole("button", { name: /queued offline/i })).toBeNull();
+    expect(saveProgressDetailed).toHaveBeenCalledTimes(2);
   });
 
   it("restores persisted completion and prevents another award", async () => {
