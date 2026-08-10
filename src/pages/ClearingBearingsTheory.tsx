@@ -125,7 +125,7 @@ const ClearingBearingsTheory = () => {
       {/* Main Content */}
       <main className="container mx-auto px-4 py-8 max-w-4xl">
         <Tabs defaultValue="purpose" className="space-y-6">
-          <TabsList aria-label="Clearing bearing lesson sections" className="flex h-auto w-full touch-pan-x justify-start gap-1 overflow-x-auto p-1 lg:grid lg:grid-cols-5">
+          <TabsList aria-label="Clearing bearing lesson sections" style={{ touchAction: "auto" }} className="flex h-auto w-full justify-start gap-1 overflow-x-auto p-1 lg:grid lg:grid-cols-5">
             <TabsTrigger value="purpose" className="min-h-11 shrink-0 px-3 py-2 lg:min-w-0">
               <Target className="w-4 h-4 mr-2" />
               Purpose

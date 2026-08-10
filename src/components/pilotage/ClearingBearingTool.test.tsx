@@ -18,8 +18,9 @@ describe("ClearingBearingTool mastery flow", () => {
     fireEvent.change(screen.getByLabelText(/Rotate plotting line/), { target: { value: "180" } });
     fireEvent.click(screen.getByRole("button", { name: "NMT" }));
     fireEvent.click(screen.getByRole("button", { name: "Check plotted answer" }));
-    expect(screen.getByRole("alert").textContent).toMatch(/Replot|inequality/);
-    expect(screen.getByRole("alert").textContent).toMatch(/test position/i);
+    const feedback = screen.getByRole("region", { name: "Answer feedback" });
+    expect(feedback.textContent).toMatch(/Replot|inequality/);
+    expect(feedback.textContent).toMatch(/test position/i);
   });
 
   it("calls completion only once after both scenarios are solved", async () => {
@@ -95,7 +96,7 @@ describe("ClearingBearingTool mastery flow", () => {
     expect(screen.getByRole("button", { name: "Next scenario" })).toBeTruthy();
   });
 
-  it("submits once with Enter and moves focus to announced feedback", async () => {
+  it("submits once with Enter and moves focus to a single non-live feedback region", async () => {
     render(<ClearingBearingTool />);
     const control = screen.getByLabelText(/Rotate plotting line/);
     fireEvent.change(control, { target: { value: "180" } });
@@ -103,10 +104,10 @@ describe("ClearingBearingTool mastery flow", () => {
     const check = screen.getByRole("button", { name: "Check plotted answer" });
     check.focus();
     fireEvent.submit(check.closest("form")!);
-    const feedback = await screen.findByRole("alert");
+    const feedback = await screen.findByRole("region", { name: "Answer feedback" });
     await waitFor(() => expect(document.activeElement).toBe(feedback));
-    expect(document.querySelectorAll("[role=alert]")).toHaveLength(1);
-    expect(feedback.getAttribute("aria-live")).toBe("assertive");
+    expect(feedback.hasAttribute("aria-live")).toBe(false);
+    expect(feedback.getAttribute("tabindex")).toBe("-1");
   });
 
   it.each([375, 768, 1280])("keeps chart, inputs and actions reflowable at %ipx with zoom support", (width) => {

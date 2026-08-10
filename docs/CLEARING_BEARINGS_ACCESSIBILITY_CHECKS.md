@@ -11,28 +11,30 @@ Keyboard checks:
 
 - Move through the tabs with Tab and the Radix tab arrow-key behavior.
 - In Practice, adjust the bearing with arrow keys, choose NLT or NMT, and press
-  Enter on **Check plotted answer**. One result is produced, focus moves to it,
-  and the message is announced. **Next scenario** returns focus to the bearing
+  Enter on **Check plotted answer**. One result is produced and focus moves to
+  the labelled feedback region. **Next scenario** returns focus to the bearing
   control for the new task.
 - Complete both scenarios and confirm save failure, retry, and saved states are
-  announced without duplicate submission.
+  presented without duplicate submission.
 
 Touch checks on real hardware or device emulation:
 
-- Swipe the narrow tab list horizontally while ordinary page scrolling remains
-  available.
+- Swipe the narrow tab list horizontally, then begin a vertical page scroll on
+  a tab and confirm ordinary page scrolling remains available.
 - Drag the range control and then scroll vertically from it. NLT, NMT, Check,
   Next, Record, and Retry targets remain at least 44 CSS px high.
 
 Screen-reader checks (NVDA/Firefox, VoiceOver/Safari, or equivalent):
 
-- The chart is announced by scenario name and its description identifies the
+- Confirm the chart is announced by scenario name and its description identifies the
   magenta bearing mark, red hazard and clearance boundary, known-safe blue
   observation, plotted blue bearing, and revealed green tangent.
 - The `Chart measurements` list provides the equivalent numeric task without
   relying on colour or position alone.
-- Changing the range announces the measured value and clearance relationship;
-  answer feedback is announced once and receives focus.
+- Confirm changing the range announces the measured value and clearance
+  relationship. After submission, confirm focus moves to the labelled answer
+  feedback and the message is spoken once rather than once for focus plus once
+  as a live-region update.
 
 Contrast checks:
 
@@ -42,7 +44,7 @@ Contrast checks:
   it also includes an icon and explicit message.
 
 Component tests cover the structured alternative, accessible chart description,
-live feedback/focus, Enter form submission, 44 px targets, touch-action classes,
+feedback focus, Enter form submission, 44 px targets, touch-action configuration,
 and responsive breakpoint classes. Browser zoom, physical touch behavior,
 platform screen-reader speech, and measured rendered contrast remain manual
 release checks because DOM component tests cannot verify them faithfully.
