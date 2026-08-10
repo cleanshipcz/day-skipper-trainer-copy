@@ -27,4 +27,13 @@ describe("ClearingBearingsTheory completion persistence", () => {
     expect(screen.getByRole("button", { name: "Complete both mastery scenarios" })).toBeTruthy();
     expect(mocks.save).toHaveBeenCalledOnce();
   });
+
+  it("keeps the overflowing tab strip available to both horizontal and vertical touch gestures", () => {
+    render(<MemoryRouter><ClearingBearingsTheory /></MemoryRouter>);
+    const tabList = screen.getByRole("tablist", { name: "Clearing bearing lesson sections" });
+    expect(tabList.className).toContain("overflow-x-auto");
+    expect(tabList.style.touchAction).toBe("auto");
+    expect(tabList.className).not.toContain("touch-pan-x");
+    expect(screen.getAllByRole("tab")).toHaveLength(5);
+  });
 });

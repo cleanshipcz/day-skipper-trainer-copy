@@ -18,8 +18,9 @@ describe("ClearingBearingTool mastery flow", () => {
     fireEvent.change(screen.getByLabelText(/Rotate plotting line/), { target: { value: "180" } });
     fireEvent.click(screen.getByRole("button", { name: "NMT" }));
     fireEvent.click(screen.getByRole("button", { name: "Check plotted answer" }));
-    expect(screen.getByRole("alert").textContent).toMatch(/Replot|inequality/);
-    expect(screen.getByRole("alert").textContent).toMatch(/test position/i);
+    const feedback = screen.getByRole("region", { name: "Answer feedback" });
+    expect(feedback.textContent).toMatch(/Replot|inequality/);
+    expect(feedback.textContent).toMatch(/test position/i);
   });
 
   it("calls completion only once after both scenarios are solved", async () => {
@@ -51,7 +52,9 @@ describe("ClearingBearingTool mastery flow", () => {
 
   it("labels chart meaning and bearing direction", () => {
     render(<ClearingBearingTool />);
-    expect(screen.getByRole("img", { name: /clearance margin and safe-water area/ })).toBeTruthy();
+    const chart = screen.getByRole("img", { name: /Practice chart for/ });
+    expect(chart.querySelector("desc")?.textContent).toMatch(/magenta diamond.*dashed red ring.*blue circle.*solid blue line/i);
+    expect(screen.getByText(/solid red circle.*dashed red perimeter/i)).toBeTruthy();
     expect(screen.getByText(/measured clockwise at the vessel towards the named mark/i)).toBeTruthy();
     expect(screen.getByLabelText(/Rotate plotting line/).getAttribute("type")).toBe("range");
     const line = screen.getByTestId("plotting-line");
@@ -65,7 +68,7 @@ describe("ClearingBearingTool mastery flow", () => {
     expect(screen.getByRole("heading", { name: "Chart measurements" })).toBeTruthy();
     expect(screen.getByText(/clearance radius of 40 units/)).toBeTruthy();
     expect(screen.getByText(/Find both zero-margin tangents/)).toBeTruthy();
-    expect(screen.getByText(/known safe-water observation/)).toBeTruthy();
+    expect(screen.getAllByText(/known safe-water observation/).length).toBeGreaterThan(0);
     expect(screen.getByText(/if the safe bearing is numerically greater choose NLT/)).toBeTruthy();
     expect(container.querySelector("ellipse[cx='302'][cy='90'][rx='70'][ry='30']")).toBeTruthy();
     const relation = document.getElementById("clearance-relation");
@@ -91,5 +94,38 @@ describe("ClearingBearingTool mastery flow", () => {
     fireEvent.click(screen.getByRole("button", { name: "Check plotted answer" }));
     expect(screen.getByText(/Limit 290°T NMT/)).toBeTruthy();
     expect(screen.getByRole("button", { name: "Next scenario" })).toBeTruthy();
+  });
+
+  it("submits once with Enter and moves focus to a single non-live feedback region", async () => {
+    render(<ClearingBearingTool />);
+    const control = screen.getByLabelText(/Rotate plotting line/);
+    fireEvent.change(control, { target: { value: "180" } });
+    fireEvent.click(screen.getByRole("button", { name: "NMT" }));
+    const check = screen.getByRole("button", { name: "Check plotted answer" });
+    check.focus();
+    fireEvent.submit(check.closest("form")!);
+    const feedback = await screen.findByRole("region", { name: "Answer feedback" });
+    await waitFor(() => expect(document.activeElement).toBe(feedback));
+    expect(feedback.hasAttribute("aria-live")).toBe(false);
+    expect(feedback.getAttribute("tabindex")).toBe("-1");
+  });
+
+  it.each([375, 768, 1280])("keeps chart, inputs and actions reflowable at %ipx with zoom support", (width) => {
+    Object.defineProperty(window, "innerWidth", { configurable: true, value: width });
+    window.dispatchEvent(new Event("resize"));
+    const { container } = render(<ClearingBearingTool />);
+    expect(container.querySelector(".aspect-\\[5\\/3\\]")).toBeTruthy();
+    expect(screen.getByLabelText(/Rotate plotting line/).className).toContain("touch-pan-y");
+    expect(screen.getByRole("button", { name: "Check plotted answer" }).className).toContain("min-h-11");
+    for (const rule of ["NLT", "NMT"]) expect(screen.getByRole("button", { name: rule }).className).toContain("min-h-11");
+    expect(container.querySelector(".md\\:grid-cols-\\[minmax\\(0\\,1fr\\)_auto\\]")).toBeTruthy();
+  });
+
+  it("returns focus to the next chart task after advancing", async () => {
+    render(<ClearingBearingTool />);
+    solveCurrent(0);
+    fireEvent.click(screen.getByRole("button", { name: "Next scenario" }));
+    await waitFor(() => expect(document.activeElement).toBe(screen.getByLabelText(/Rotate plotting line/)));
+    expect(screen.getByText(/Scenario 2 of/)).toBeTruthy();
   });
 });
