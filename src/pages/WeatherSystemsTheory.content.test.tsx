@@ -31,13 +31,50 @@ describe("weather systems applied theory", () => {
   it("gives a qualified, time-sequenced Northern Hemisphere front passage", () => {
     render(<TheoryContent />);
     const passage = screen.getByRole("heading", { name: /worked passage: warm then cold/i }).closest("section")!;
-    expect(within(passage).getAllByRole("listitem")).toHaveLength(4);
-    for (const stage of ["Ahead of the warm front", "Warm-front passage and warm sector", "Cold-front passage", "Behind the cold front"]) {
-      expect(within(passage).getByText(new RegExp(stage, "i"))).toBeTruthy();
+    const stages = within(passage).getAllByRole("listitem");
+    const expectedStages = [
+      {
+        name: "Ahead of the warm front",
+        fields: [/pressure falls/i, /true wind.*east or southeast.*veers.*south.*strengthens if isobars tighten/i, /cirrus.*cloud lowers and thickens/i, /rain becomes persistent/i, /visibility deteriorates/i, /temperature may begin to rise/i],
+      },
+      {
+        name: "Warm-front passage and warm sector",
+        fields: [/pressure.*steadies or falls more slowly/i, /true wind.*veers toward southwest.*fresh wind where the gradient remains steep/i, /low cloud/i, /rain may ease to drizzle/i, /poor visibility can persist/i, /milder and humid/i],
+      },
+      {
+        name: "Cold-front passage",
+        fields: [/pressure reaches a minimum then starts to rise/i, /true wind.*veers sharply.*west or northwest.*squalls/i, /towering or cumulonimbus cloud/i, /heavy rain.*showers/i, /visibility.*very poor.*then improve/i, /temperature falls/i],
+      },
+      {
+        name: "Behind the cold front",
+        fields: [/pressure rises/i, /west or northwest wind.*stay strong when isobars remain close/i, /cloud becomes broken/i, /showery|showers/i, /visibility.*good between showers/i, /colder/i],
+      },
+    ];
+
+    expect(stages).toHaveLength(expectedStages.length);
+    for (const [index, expected] of expectedStages.entries()) {
+      const stageText = stages[index].textContent ?? "";
+      expect(stageText).toMatch(new RegExp(`^${expected.name}`, "i"));
+      for (const field of expected.fields) expect(stageText).toMatch(field);
     }
     expect(within(passage).getByText(/typical Northern Hemisphere depression/i)).toBeTruthy();
     expect(within(passage).getByText(/track, speed, depth.*can change it/i)).toBeTruthy();
-    expect(within(passage).getByText(/pressure reaches a minimum then starts to rise/i)).toBeTruthy();
+  });
+
+  it("qualifies pressure, wind and weather through an occluded-front passage", () => {
+    render(<TheoryContent />);
+    const occlusion = screen.getByRole("heading", { name: /worked passage: occlusion/i }).closest("section")!;
+    const text = occlusion.textContent ?? "";
+    for (const field of [
+      /pressure commonly falls.*level then rise/i,
+      /true wind may veer and become gusty/i,
+      /cloud thickens/i,
+      /prolonged rain or showers/i,
+      /reduce visibility.*visibility improve/i,
+      /temperature change can be small/i,
+    ]) expect(text).toMatch(field);
+    expect(text).toMatch(/do not infer an exact wind shift or clearance time/i);
+    expect(text).toMatch(/successive charts.*forecast.*barometer and observations/i);
   });
 
   it("connects uncertain forecasts to hazards, monitoring and practical decisions", () => {

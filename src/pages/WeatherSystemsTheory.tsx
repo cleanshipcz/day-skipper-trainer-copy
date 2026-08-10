@@ -36,7 +36,7 @@ export const weatherSystemsSections: readonly TheorySection[] = [
       <ol className="list-decimal pl-5 space-y-2">
         <li><strong>Ahead of the warm front:</strong> pressure falls; true wind is commonly from east or southeast, then veers toward south as the front approaches, and strengthens if isobars tighten. High cirrus spreads in, then cloud lowers and thickens. Rain becomes persistent, visibility deteriorates and temperature may begin to rise.</li>
         <li><strong>Warm-front passage and warm sector:</strong> pressure usually steadies or falls more slowly. True wind typically veers toward southwest; rain may ease to drizzle, but low cloud, mist and poor visibility can persist. Air becomes milder and humid, with fresh wind where the gradient remains steep.</li>
-        <li><strong>Cold-front passage:</strong> pressure reaches a minimum then starts to rise. True wind often veers sharply toward west or northwest, with a short-lived increase or squalls. A narrow band of heavy rain may be followed by showers; visibility can be very poor in rain, then improve between showers. Temperature falls.</li>
+        <li><strong>Cold-front passage:</strong> pressure reaches a minimum then starts to rise. True wind often veers sharply toward west or northwest, with a short-lived increase or squalls. A narrow band of towering or cumulonimbus cloud may bring heavy rain followed by showers; visibility can be very poor in rain, then improve between showers. Temperature falls.</li>
         <li><strong>Behind the cold front:</strong> pressure rises, cloud becomes broken and showery, and visibility is often good between showers. The colder west or northwest wind may stay strong when isobars remain close together.</li>
       </ol>
     </>,
