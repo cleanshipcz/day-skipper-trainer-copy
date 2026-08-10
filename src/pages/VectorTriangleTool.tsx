@@ -8,6 +8,7 @@ import { Input } from "@/components/ui/input";
 import { VectorTriangleVisualizer } from "@/components/navigation/VectorTriangleVisualizer";
 import { TOPIC_IDS } from "@/constants/topicRegistry";
 import { TheoryCompletionButton } from "@/features/progress/TheoryCompletionButton";
+import { scoreCourse, solveCourseToSteer } from "@/features/navigation/vectorSolver";
 
 const VectorTriangleTool = () => {
   const navigate = useNavigate();
@@ -51,37 +52,12 @@ const VectorTriangleTool = () => {
     setDrillFeedback(null);
   };
 
-  const checkAnswer = () => {
-    // We need to calculate the actual Resulting Ground Track from inputs
-    // Replicating logic from Visualizer roughly for verification
-    const toRad = (deg: number) => (deg - 90) * (Math.PI / 180);
-    const SCALE = 30; // arbitrary, cancels out
+  const checkAnswer = () => setDrillFeedback(scoreCourse(userHeading, { desiredTrackDeg: targetHeading, boatSpeedKn: boatSpeed, tideSetDeg: tideSet, tideRateKn: tideRate }).correct ? "correct" : "incorrect");
 
-    // Water Vector
-    const wx = boatSpeed * Math.cos(toRad(userHeading));
-    const wy = boatSpeed * Math.sin(toRad(userHeading));
-
-    // Tide Vector
-    const tx = tideRate * Math.cos(toRad(tideSet));
-    const ty = tideRate * Math.sin(toRad(tideSet));
-
-    // Result Ground Vector
-    const gx = wx + tx;
-    const gy = wy + ty;
-
-    const ResultAngle = ((Math.atan2(gy, gx) * 180) / Math.PI + 90 + 360) % 360;
-
-    // Compare angles (handling 359 vs 0 wrap)
-    let diff = Math.abs(ResultAngle - targetHeading);
-    if (diff > 180) diff = 360 - diff;
-
-    if (diff < 5) {
-      // 5 degrees tolerance
-      setDrillFeedback("correct");
-    } else {
-      setDrillFeedback("incorrect");
-    }
-  };
+  const solution = solveCourseToSteer({ desiredTrackDeg: groundTrackHeading, boatSpeedKn: boatSpeed, tideSetDeg: tideSet, tideRateKn: tideRate });
+  const numberInput = (id: string, label: string, value: number, setter: (value: number) => void, min: number, max: number, step: number, unit: string) => (
+    <div className="space-y-1"><Label htmlFor={id}>{label}</Label><div className="flex items-center gap-2"><Input id={id} type="number" inputMode="decimal" min={min} max={max} step={step} value={value} onChange={(event) => setter(event.currentTarget.valueAsNumber)} aria-describedby={`${id}-range`} /><span>{unit}</span></div><p id={`${id}-range`} className="text-xs text-muted-foreground">Allowed range: {min} to {max}{unit}.</p></div>
+  );
 
   // Check for success in drill mode
   // We need the ACTUAL Ground Track resulting from userHeading + Tide.
@@ -185,6 +161,9 @@ const VectorTriangleTool = () => {
                 ) : (
                   /* SOLVER MODE CONTROLS */
                   <>
+                    <div className="rounded border bg-slate-50 p-3 text-sm"><p className="font-semibold">Precise keyboard inputs</p><p>Enter true bearings and speeds; sliders below provide coarse adjustment.</p></div>
+                    {numberInput("desired-track", "Desired track over ground (true)", groundTrackHeading, setGroundTrack, 0, 359.9, 0.1, "°T")}
+                    {numberInput("boat-speed", "Boat speed through water", boatSpeed, setBoatSpeed, 0.1, 100, 0.1, "kn")}
                     <div className="space-y-2">
                       <Label>Desired Course (Ground Track)</Label>
                       <div className="flex items-center gap-4">
@@ -222,6 +201,8 @@ const VectorTriangleTool = () => {
                     Let's disable them in Drill Mode.
                 */}
                 <div className={`pt-4 border-t space-y-4 ${drillMode ? "opacity-50 pointer-events-none" : ""}`}>
+                  {!drillMode && numberInput("tide-set", "Tidal set (toward, true)", tideSet, setTideSet, 0, 359.9, 0.1, "°T")}
+                  {!drillMode && numberInput("tide-rate", "Tidal rate", tideRate, setTideRate, 0, 20, 0.1, "kn")}
                   <div className="space-y-2">
                     <Label className="text-red-700">Tide Set (Direction)</Label>
                     <div className="flex items-center gap-4">
@@ -301,6 +282,20 @@ const VectorTriangleTool = () => {
               mode={drillMode ? "drill" : "solver"}
               drillTarget={targetHeading}
             />
+            {!drillMode && <section aria-labelledby="solution-breakdown" className="mt-4 space-y-3 rounded-xl border bg-card p-5 text-sm">
+              <h2 id="solution-breakdown" className="text-lg font-bold">Reproducible vector breakdown</h2>
+              <p><strong>Convention:</strong> true bearings clockwise from north; east/north are the common component basis; tidal set is the direction <em>toward</em> which the water flows. Course/CTS is the intended through-water direction used by this no-leeway model; heading is where the bow points and may differ with leeway; track is motion over ground.</p>
+              {solution.feasible ? <>
+                <dl className="grid gap-2 sm:grid-cols-2">
+                  <div><dt className="font-semibold">Tide (east, north)</dt><dd>{solution.tide.eastKn.toFixed(4)}, {solution.tide.northKn.toFixed(4)} kn</dd></div>
+                  <div><dt className="font-semibold">Cross / along-track tide</dt><dd>{solution.crossTrackTideKn.toFixed(4)}, {solution.alongTrackTideKn.toFixed(4)} kn</dd></div>
+                  <div><dt className="font-semibold">Through water (east, north)</dt><dd>{solution.throughWater.eastKn.toFixed(4)}, {solution.throughWater.northKn.toFixed(4)} kn</dd></div>
+                  <div><dt className="font-semibold">Over ground (east, north)</dt><dd>{solution.overGround.eastKn.toFixed(4)}, {solution.overGround.northKn.toFixed(4)} kn</dd></div>
+                </dl>
+                <p><strong>Unrounded result:</strong> CTS {solution.courseToSteerDeg.toFixed(6)}°T; SOG {solution.speedOverGroundKn.toFixed(6)} kn. <strong>Display policy:</strong> round only the final steering answer to the nearest degree and SOG to 0.1 kn; calculations retain full precision.</p>
+              </> : <p role="alert" className="font-semibold text-red-700">{solution.reason} Change the route, departure time, assumed speed, or wait for a different stream; no stale result is displayed.</p>}
+              <p><strong>Model limits:</strong> constant boat speed and one uniform tidal vector only. It omits leeway, changing/spatial streams, sea state, steering error and position uncertainty. Use current official publications; monitor fixes, cross-track error, observed CMG/SOG, depth, weather and traffic, then revise the plan early.</p>
+            </section>}
           </div>
         </div>
       </main>
