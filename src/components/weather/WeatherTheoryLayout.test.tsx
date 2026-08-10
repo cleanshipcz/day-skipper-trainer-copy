@@ -6,14 +6,17 @@ import { WeatherTheoryLayout } from "./WeatherTheoryLayout";
 
 const saveProgressDetailed = vi.fn().mockResolvedValue("remote");
 const loadProgressDetailed = vi.fn().mockResolvedValue({ status: "missing", record: null });
+let ownerId: string | null = "owner-a";
 vi.mock("@/hooks/useProgress", () => ({
-  useProgress: () => ({ loadProgressDetailed, saveProgressDetailed }),
+  useProgress: () => ({ ownerId, loadProgressDetailed, saveProgressDetailed }),
 }));
 
 describe("WeatherTheoryLayout", () => {
   beforeEach(() => {
     saveProgressDetailed.mockReset().mockResolvedValue("remote");
     loadProgressDetailed.mockReset().mockResolvedValue({ status: "missing", record: null });
+    ownerId = "owner-a";
+    window.localStorage.clear();
   });
 
   it("persists completion once the action succeeds", async () => {
@@ -65,7 +68,22 @@ describe("WeatherTheoryLayout", () => {
     saveProgressDetailed.mockImplementation((_topicId, completed) => Promise.resolve(completed ? "queued" : "remote"));
     render(<MemoryRouter><WeatherTheoryLayout title="Test" subtitle="Test" topicId="weather-test" sections={[]} /></MemoryRouter>);
     fireEvent.click(await screen.findByRole("button", { name: /mark theory complete/i }));
-    expect(await screen.findByRole("button", { name: /completed/i })).toBeTruthy();
+    expect(await screen.findByRole("button", { name: /queued offline/i })).toBeTruthy();
+    expect(screen.getByRole("status").textContent).toMatch(/queued offline.*this account/i);
+  });
+
+  it("restores an account-scoped queued completion without writing an older started snapshot", async () => {
+    saveProgressDetailed.mockImplementation((_topicId, completed) => Promise.resolve(completed ? "queued" : "remote"));
+    const first = render(<MemoryRouter><WeatherTheoryLayout title="Test" subtitle="Test" topicId="weather-test" sections={[]} /></MemoryRouter>);
+    fireEvent.click(await screen.findByRole("button", { name: /mark theory complete/i }));
+    await screen.findByRole("button", { name: /queued offline/i });
+    await vi.waitFor(() => expect(saveProgressDetailed).toHaveBeenCalledTimes(2));
+    first.unmount();
+
+    render(<MemoryRouter><WeatherTheoryLayout title="Test" subtitle="Test" topicId="weather-test" sections={[]} /></MemoryRouter>);
+    expect(await screen.findByRole("button", { name: /queued offline/i })).toBeTruthy();
+    expect(saveProgressDetailed).toHaveBeenCalledTimes(2);
+    expect((screen.getByRole("button", { name: /queued offline/i }) as HTMLButtonElement).disabled).toBe(true);
   });
 
   it("restores persisted completion and prevents another award", async () => {
