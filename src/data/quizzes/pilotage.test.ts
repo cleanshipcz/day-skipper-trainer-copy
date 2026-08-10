@@ -45,11 +45,17 @@ describe("visual pilotage mastery bank", () => {
     const correction = questions.find((item) => item.id === "pilotage-9");
 
     expect(correction).toBeDefined();
-    expect(correction?.question).toMatch(/heading towards the leading marks.*rear mark appears left/is);
-    expect(correction?.options[correction.correctAnswer]).toMatch(/alter to starboard/i);
-    expect(correction?.options[correction.correctAnswer]).not.toMatch(/towards?.*(line|alignment)|restores? .*alignment/i);
-    expect(correction?.options.filter((option) => /alter to starboard/i.test(option))).toHaveLength(1);
-    expect(correction?.explanation).toMatch(/rear-left means the vessel is left of track/i);
-    expect(correction?.explanation).toMatch(/alteration to starboard moves the vessel back towards the leading line/i);
+    expect(correction?.question).toMatch(/(?:heading|proceeding|steering).*(?:towards?|at) (?:the )?(?:leading )?marks/i);
+    expect(correction?.question).toMatch(/(?:approximately|roughly|substantially).*(?:along|parallel to).*(?:intended )?(?:leading[- ]line|track|course)/i);
+    expect(correction?.question).toMatch(/rear mark.*left.*front mark/i);
+
+    const keyedOption = correction?.options[correction.correctAnswer] ?? "";
+    const starboardDirection = /\b(?:starboard|right(?:ward|wards)?)\b/i;
+    expect(keyedOption).toMatch(starboardDirection);
+    expect(keyedOption).not.toMatch(/towards?.*(line|alignment)|restores? .*alignment/i);
+    expect(correction?.options.filter((option) => starboardDirection.test(option))).toEqual([keyedOption]);
+
+    expect(correction?.explanation).toMatch(/rear(?: mark)?[- ]left.*(?:vessel|boat).*(?:left|port) of (?:the )?(?:track|line)/i);
+    expect(correction?.explanation).toMatch(/(?:starboard|right(?:ward|wards)?).*(?:back )?towards? (?:the )?(?:leading )?line/i);
   });
 });
