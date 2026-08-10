@@ -135,7 +135,9 @@ const Quiz = () => {
   const [workflow, setWorkflow] = useState<QuizWorkflow | null>(null);
   const [attemptStartState, setAttemptStartState] = useState<AttemptStartState>("idle");
   const [currentQuestion, setCurrentQuestion] = useState(0);
-  const [answers, setAnswers] = useState<(number | null)[]>([]);
+  // Only this array is score-bearing. Radio changes stay in tentativeAnswer
+  // until Submit Answer atomically commits the current choice here.
+  const [submittedAnswers, setSubmittedAnswers] = useState<(number | null)[]>([]);
   const [tentativeAnswer, setTentativeAnswer] = useState<number | null>(null);
   const [isComplete, setIsComplete] = useState(false);
   const [seedStatus, setSeedStatus] = useState<"idle" | "saving" | "saved" | "failed">("idle");
@@ -186,7 +188,7 @@ const Quiz = () => {
       setTentativeAnswer(null);
       if (suppressNextProgressLoadRef.current) {
         suppressNextProgressLoadRef.current = false;
-        setAnswers(createEmptyQuizAnswers(questions.length));
+        setSubmittedAnswers(createEmptyQuizAnswers(questions.length));
         setCurrentQuestion(0);
         return;
       }
@@ -195,12 +197,12 @@ const Quiz = () => {
       if (!owner) {
         const restored = restoreAnonymousQuizSession(globalThis.sessionStorage, topicKey, questions);
         if (restored.session) {
-          setAnswers(restored.session.answers);
+          setSubmittedAnswers(restored.session.answers);
           setCurrentQuestion(restored.session.currentQuestion);
           setTentativeAnswer(restored.session.tentativeAnswer ?? null);
           setAnonymousStorageNotice("Practice attempt resumed for this browser session.");
         } else {
-          setAnswers(createEmptyQuizAnswers(questions.length));
+          setSubmittedAnswers(createEmptyQuizAnswers(questions.length));
           setCurrentQuestion(0);
           setAnonymousStorageNotice(restored.status === "missing" ? null
             : "The previous practice attempt was expired or incompatible and could not be resumed.");
@@ -228,7 +230,7 @@ const Quiz = () => {
 
           if (savedData.completed) {
             if (owner && isCurrentCompletedQuizCatalogue(savedRaw, questions)) void seedReviews(owner, generation);
-            setAnswers(createEmptyQuizAnswers(questions.length));
+            setSubmittedAnswers(createEmptyQuizAnswers(questions.length));
             setCurrentQuestion(0);
             setTentativeAnswer(null);
             return;
@@ -236,7 +238,7 @@ const Quiz = () => {
 
           const saved = parseSavedQuizSession(savedRaw, questions);
           if (saved) {
-            setAnswers(saved.answers);
+            setSubmittedAnswers(saved.answers);
             setCurrentQuestion(saved.currentQuestion);
             setTentativeAnswer(saved.tentativeAnswer ?? null);
 
@@ -258,7 +260,7 @@ const Quiz = () => {
           console.error("Error parsing saved quiz progress:", error);
         }
       }
-      setAnswers(createEmptyQuizAnswers(questions.length));
+      setSubmittedAnswers(createEmptyQuizAnswers(questions.length));
     };
     initQuiz();
   }, [sourceQuestions, questions, topicKey, user?.id, loadProgress, saveProgress, resetProgress, seedReviews]);
@@ -322,10 +324,10 @@ const Quiz = () => {
     if (owner && !existing) void startAuthenticatedAttempt();
   }, [user?.id, topicKey, attemptCycle, sourceQuestions, questions.length, startAuthenticatedAttempt]);
 
-  const assessedAnswer = answers[currentQuestion] ?? null;
+  const assessedAnswer = submittedAnswers[currentQuestion] ?? null;
   const showExplanation = assessedAnswer !== null;
   const selectedAnswer = assessedAnswer ?? tentativeAnswer;
-  const correctAnswers = countCorrectAnswers(answers, questions);
+  const correctAnswers = countCorrectAnswers(submittedAnswers, questions);
 
   useEffect(() => {
     if (!isComplete || !completionHeadingRef.current) return;
@@ -395,9 +397,9 @@ const Quiz = () => {
 
   const handleSubmit = async () => {
     if (tentativeAnswer === null || assessedAnswer !== null || assessmentPersistenceRef.current) return;
-    const nextAnswers = [...answers];
+    const nextAnswers = [...submittedAnswers];
     nextAnswers[currentQuestion] = tentativeAnswer;
-    setAnswers(nextAnswers);
+    setSubmittedAnswers(nextAnswers);
     setTentativeAnswer(null);
     const persistence = persistSession(nextAnswers, currentQuestion);
     assessmentPersistenceRef.current = persistence;
@@ -415,7 +417,7 @@ const Quiz = () => {
     setCurrentQuestion(newQuestion);
     setTentativeAnswer(null);
 
-    await persistSession(answers, newQuestion);
+    await persistSession(submittedAnswers, newQuestion);
 
     if (currentQuestion >= questions.length - 1) {
       await handleComplete();
@@ -429,7 +431,7 @@ const Quiz = () => {
       setCurrentQuestion(newQuestion);
       setTentativeAnswer(null);
 
-      await persistSession(answers, newQuestion);
+      await persistSession(submittedAnswers, newQuestion);
     }
   };
 
@@ -456,7 +458,7 @@ const Quiz = () => {
 
     const calculatedCompletion = quizCompletionOutcome(correctAnswers, questions.length);
     const completion = {
-      session: buildQuizSessionProgress([...answers], currentQuestion, questions),
+      session: buildQuizSessionProgress([...submittedAnswers], currentQuestion, questions),
       correctAnswers,
       ...calculatedCompletion,
     };
@@ -539,7 +541,7 @@ const Quiz = () => {
     }
     focusQuestionAfterAdvanceRef.current = true;
     setCurrentQuestion(0);
-    setAnswers(createEmptyQuizAnswers(questions.length));
+    setSubmittedAnswers(createEmptyQuizAnswers(questions.length));
     setTentativeAnswer(null);
     setIsComplete(false);
     setSeed((n) => n + 1);
@@ -591,9 +593,9 @@ const Quiz = () => {
 
             <div className="flex flex-col gap-3 sm:flex-row">
               <Button variant="outline" className="flex-1" onClick={() => navigate(topicKey === "anchorwork"
-                ? anchorTheoryRoute(passed ? anchorReturnTopic : anchorQuizRemediationTopic(questions.map(({ id }) => id), answers, questions.map(({ correctAnswer }) => correctAnswer)), "quiz")
+                ? anchorTheoryRoute(passed ? anchorReturnTopic : anchorQuizRemediationTopic(questions.map(({ id }) => id), submittedAnswers, questions.map(({ correctAnswer }) => correctAnswer)), "quiz")
                 : topicKey === "victualling" && !passed
-                  ? victuallingQuizRemediationRoute(questions.map(({ id }) => id), answers, questions.map(({ correctAnswer }) => correctAnswer))
+                  ? victuallingQuizRemediationRoute(questions.map(({ id }) => id), submittedAnswers, questions.map(({ correctAnswer }) => correctAnswer))
                   : quizParent.route)}>
                 <ArrowLeft className="w-4 h-4 mr-2" />
                 {topicKey === "anchorwork" && !passed ? "Review missed anchorwork skill"
