@@ -212,7 +212,13 @@ export const useTheoryCompletionGate = ({
         // Legacy saveProgress mocks/consumers historically resolved void on success.
         let ok = result !== false && result !== "failed" && result !== "conflict";
         if (result === "anonymous") ok = writeBrowserEvidence(visitedRef.current, true, "local");
-        else if (result === "queued") ok = writeBrowserEvidence(visitedRef.current, true, "queued");
+        else if (result === "queued") {
+          // IndexedDB is the durable source of truth for an authenticated
+          // queued write. The local marker improves reload UX, but storage
+          // denial must not turn a confirmed queue transaction into failure.
+          writeBrowserEvidence(visitedRef.current, true, "queued");
+          ok = true;
+        }
         else if (ok) writeBrowserEvidence(visitedRef.current, true, "saved");
         setSaveState(result === "queued" ? "queued" : result === "anonymous" ? ok ? "local" : "failed" : ok ? "saved" : "failed");
         return ok;

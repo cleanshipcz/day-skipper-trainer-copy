@@ -53,6 +53,39 @@ describe("offline progress queue", () => {
     ]);
   });
 
+  it("keeps same-revision Compass completion monotonic across stale tab writes", async () => {
+    const completedEvidence = {
+      catalogueRevision: "compass-theory-v1",
+      completionState: "completed",
+      visitedSectionIds: ["read-content"],
+    };
+    await queueProgress({
+      userId: "compass-tabs", topicId: "compass-theory", completed: true,
+      score: 100, pointsEarned: 10, answersHistory: completedEvidence,
+    }, 10);
+
+    await queueProgress({
+      userId: "compass-tabs", topicId: "compass-theory", completed: false,
+      score: 0, pointsEarned: 0,
+      answersHistory: {
+        catalogueRevision: "compass-theory-v1",
+        completionState: "in_progress",
+        visitedSectionIds: [],
+      },
+    }, 20);
+
+    expect(await getQueuedProgress("compass-tabs")).toEqual([
+      expect.objectContaining({
+        completed: true,
+        score: 100,
+        pointsEarned: 10,
+        answersHistory: completedEvidence,
+        updatedAt: 20,
+        revision: 2,
+      }),
+    ]);
+  });
+
   it("replays queued progress and removes successful entries", async () => {
     await queueProgress({ userId: "replay-user", topicId: "ropework", completed: true, score: 80, pointsEarned: 10 });
     const rpc = vi.fn().mockResolvedValue({
