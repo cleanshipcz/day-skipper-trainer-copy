@@ -6,7 +6,7 @@ import { BeaufortDrill } from "./BeaufortDrill";
 import { SynopticChartReader } from "./SynopticChartReader";
 import { ForecastAreaMap } from "./ForecastAreaMap";
 import { areaInDirection } from "./weatherMapNavigation";
-import { shuffledForecastAreas } from "./forecastGeographyExercise";
+import { forecastPrompt, shuffledForecastAreas } from "./forecastGeographyExercise";
 import { forecastAreas } from "@/data/forecastAreas";
 
 type Point = readonly [number, number];
@@ -199,9 +199,10 @@ describe("weather interactions", () => {
     expect(screen.getByRole("status").textContent).toMatch(/Not quite.*Bailey.*correct area is Southeast Iceland/i);
     expect(screen.getByTestId("selected-area-marker").getAttribute("data-area")).toBe("Southeast Iceland");
     await user.click(screen.getByRole("button", { name: "Retry area" }));
+    expect(screen.getByTestId("selected-area-marker").getAttribute("data-area")).toBe("Faeroes");
     const chooser = screen.getByRole("listbox", { name: "Shipping forecast area chooser" });
     chooser.focus();
-    await user.keyboard("{Home}{Enter}");
+    await user.keyboard("{ArrowUp}{Enter}");
     expect(screen.getByRole("status").textContent).toMatch(/Correct.*Southeast Iceland/i);
   });
 
@@ -225,5 +226,14 @@ describe("weather interactions", () => {
     expect(shuffled).toHaveLength(31);
     expect(new Set(shuffled.map(({ name }) => name)).size).toBe(31);
     expect(shuffled.map(({ name }) => name)).not.toEqual(forecastAreas.map(({ name }) => name));
+  });
+
+  it("generates an unambiguous clue for every area at every shuffled session position", () => {
+    for (const area of forecastAreas) {
+      for (let sessionIndex = 0; sessionIndex < forecastAreas.length; sessionIndex += 1) {
+        const prompt = forecastPrompt(area, sessionIndex);
+        expect(prompt.validAreaNames, `${area.name} at ${sessionIndex}: ${prompt.question}`).toEqual([area.name]);
+      }
+    }
   });
 });

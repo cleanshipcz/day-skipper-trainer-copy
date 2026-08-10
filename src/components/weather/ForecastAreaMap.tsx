@@ -143,7 +143,12 @@ export const ForecastAreaMap = ({ createExerciseOrder = shuffledForecastAreas }:
           <p role="status" aria-live="assertive" aria-atomic="true"><strong>{feedback.correct ? "Correct." : `Not quite. ${feedback.chosen.name} is not the answer.`}</strong> The correct area is {target.name}, highlighted on the map. {prompt?.explanation}</p>
           {feedback.correct
             ? <button type="button" onClick={nextQuestion} className="min-h-11 rounded-md border px-4 py-2">{questionIndex === order.length - 1 ? "See results" : "Next area"}</button>
-            : <button type="button" onClick={() => { setFeedback(undefined); setRetries((count) => count + 1); setRetriedCurrent(true); }} className="min-h-11 rounded-md border px-4 py-2">Retry area</button>}
+            : <button type="button" onClick={() => {
+              setFeedback(undefined);
+              setSelected(forecastAreas.find(({ name }) => name !== target.name) ?? forecastAreas[0]);
+              setRetries((count) => count + 1);
+              setRetriedCurrent(true);
+            }} className="min-h-11 rounded-md border px-4 py-2">Retry area</button>}
         </div>}
         <p className="text-xs text-muted-foreground">Source: <a className="underline" href={SHIPPING_FORECAST_MAP_SOURCE.guide} target="_blank" rel="noreferrer">Met Office Guide to marine forecasts</a> and current <a className="underline" href={SHIPPING_FORECAST_MAP_SOURCE.liveForecast} target="_blank" rel="noreferrer">Shipping Forecast</a>. Project-native SVG trace checked {SHIPPING_FORECAST_MAP_SOURCE.checked}; see map maintenance documentation for tracing limits.</p>
       </CardContent>
