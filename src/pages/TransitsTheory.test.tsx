@@ -77,11 +77,26 @@ describe("TransitsTheory", () => {
 
     expect(html).toContain("LEFT OF LINE");
     expect(html).toContain("rear appears left");
-    expect(html).toContain("You are left of the line — alter course to starboard");
+    expect(html).toContain("You are left of the line — recover towards the line when safe");
     expect(html).toContain("RIGHT OF LINE");
     expect(html).toContain("rear appears right");
-    expect(html).toContain("You are right of the line — alter course to port");
+    expect(html).toContain("You are right of the line — recover towards the line when safe");
     expect(html).toContain("Observer view of transit mark alignment");
+  });
+
+  it("does not turn lateral position into an unconditional helm command", () => {
+    const html = renderPage();
+
+    expect(html).toContain("does not, by itself, prescribe a helm direction");
+    expect(html).toContain("heading towards the marks");
+    expect(html).toContain("approximately along the intended leading-line");
+    expect(html).toContain("reciprocal or");
+    expect(html).toContain("already converging");
+    expect(html).toContain("planned course, traffic, depths, dangers");
+    expect(html).not.toContain("correct to port");
+    expect(html).not.toContain("correct to starboard");
+    expect(html).not.toContain("alter course to port");
+    expect(html).not.toContain("alter course to starboard");
   });
 
   it("should cover clearing transits (AC-1)", () => {

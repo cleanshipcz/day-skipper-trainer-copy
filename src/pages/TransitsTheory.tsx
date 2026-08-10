@@ -117,8 +117,8 @@ const TransitsTheory = () => {
                   <ol className="list-decimal list-inside text-sm space-y-1">
                     <li>Identify the front and rear marks on the chart and visually.</li>
                     <li>Steer so the rear mark appears <strong>directly above</strong> the front mark.</li>
-                    <li>If the rear mark is right of the front mark, you are right of the line — correct to port.</li>
-                    <li>If the rear mark is left of the front mark, you are left of the line — correct to starboard.</li>
+                    <li>If the rear mark is right of the front mark, you are right of the line — plan a safe track back towards the line.</li>
+                    <li>If the rear mark is left of the front mark, you are left of the line — plan a safe track back towards the line.</li>
                   </ol>
                 </div>
                 <div className="p-4 bg-muted rounded-lg">
@@ -192,7 +192,8 @@ const TransitsTheory = () => {
                 </p>
                 <p className="text-sm text-center text-muted-foreground">
                   If the rear mark appears to move <strong>right</strong> of the front mark, you
-                  are to the <strong>right</strong> of the line — steer left (to port) to regain it.
+                  are to the <strong>right</strong> of the line. That identifies your lateral
+                  position; it does not, by itself, prescribe a helm direction.
                 </p>
               </div>
               <figure className="rounded-lg border bg-background p-4">
@@ -235,9 +236,23 @@ const TransitsTheory = () => {
                 </svg>
                 <figcaption className="mt-3 text-sm text-muted-foreground">
                   Shape, position and text carry the meaning; colour is not required. This is
-                  the view from the vessel looking towards the marks.
+                  the view from the vessel looking towards the marks. The labels show position,
+                  not the alteration to make.
                 </figcaption>
               </figure>
+              <div className="rounded-lg border border-amber-300 bg-amber-50 p-4 text-sm dark:border-amber-800 dark:bg-amber-950">
+                <p className="font-bold">Position first; safe alteration second</p>
+                <p className="mt-2">
+                  Move or steer towards the transit line only when it is safe to do so. A
+                  port/starboard rule is valid only in the narrow case where the vessel is
+                  heading towards the marks, approximately along the intended leading-line
+                  direction: then a vessel right of the line would normally alter to port, and
+                  one left of the line would normally alter to starboard. On a reciprocal or
+                  oblique heading, or if the vessel is already converging, that mapping can be
+                  wrong. The planned course, traffic, depths, dangers and ordinary safe
+                  navigation govern the actual alteration.
+                </p>
+              </div>
               <div className="grid md:grid-cols-3 gap-4 mt-4">
                 <div className="text-center p-3">
                   <div className="text-3xl mb-2">✅</div>
@@ -247,17 +262,17 @@ const TransitsTheory = () => {
                   </p>
                 </div>
                 <div className="text-center p-3">
-                  <div className="text-3xl mb-2">➡️</div>
+                  <div className="text-3xl mb-2" aria-hidden="true">R</div>
                   <strong className="block text-sm">Rear Mark Right</strong>
                   <p className="text-xs text-muted-foreground">
-                    You are right of the line — alter course to port.
+                    You are right of the line — recover towards the line when safe.
                   </p>
                 </div>
                 <div className="text-center p-3">
-                  <div className="text-3xl mb-2">⬅️</div>
+                  <div className="text-3xl mb-2" aria-hidden="true">L</div>
                   <strong className="block text-sm">Rear Mark Left</strong>
                   <p className="text-xs text-muted-foreground">
-                    You are left of the line — alter course to starboard.
+                    You are left of the line — recover towards the line when safe.
                   </p>
                 </div>
               </div>
