@@ -1,7 +1,12 @@
 import { describe, expect, it } from "vitest";
-import { resultingTrack, scoreCourse, solveCourseToSteer } from "./vectorSolver";
+import { componentsFor, resultingTrack, scoreCourse, solveCourseToSteer } from "./vectorSolver";
 
 describe("course-to-steer vector solver", () => {
+  it("uses north/east true-bearing identities", () => {
+    expect(componentsFor(0, 3)).toEqual(expect.objectContaining({ eastKn: 0, northKn: 3 }));
+    expect(componentsFor(90, 3).eastKn).toBeCloseTo(3, 12);
+    expect(componentsFor(90, 3).northKn).toBeCloseTo(0, 12);
+  });
   it.each([
     ["zero tide", { desiredTrackDeg: 0, boatSpeedKn: 5, tideSetDeg: 0, tideRateKn: 0 }, 0, 5],
     ["following", { desiredTrackDeg: 90, boatSpeedKn: 5, tideSetDeg: 90, tideRateKn: 2 }, 90, 7],

@@ -1,7 +1,7 @@
 import { Button } from "@/components/ui/button";
 import { ArrowLeft, RotateCcw } from "lucide-react";
 import { useNavigate } from "react-router-dom";
-import { useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { Slider } from "@/components/ui/slider";
 import { Label } from "@/components/ui/label";
 import { Input } from "@/components/ui/input";
@@ -9,6 +9,41 @@ import { VectorTriangleVisualizer } from "@/components/navigation/VectorTriangle
 import { TOPIC_IDS } from "@/constants/topicRegistry";
 import { TheoryCompletionButton } from "@/features/progress/TheoryCompletionButton";
 import { scoreCourse, solveCourseToSteer } from "@/features/navigation/vectorSolver";
+
+interface PreciseNumberInputProps { id: string; label: string; value: number; onValidValue: (value: number) => void; onDraftValidity?: (valid: boolean) => void; min: number; max: number; step: number; unit: string }
+
+export const PreciseNumberInput = ({ id, label, value, onValidValue, onDraftValidity, min, max, step, unit }: PreciseNumberInputProps) => {
+  const [draft, setDraft] = useState(String(value));
+  const lastEmitted = useRef<number | null>(null);
+  useEffect(() => {
+    if (lastEmitted.current === value) return;
+    setDraft(String(value));
+  }, [value]);
+  const parsed = draft.trim() === "" ? null : Number(draft);
+  const error = parsed === null || !Number.isFinite(parsed)
+    ? "Enter a finite number."
+    : parsed < min || parsed > max
+      ? `Enter a value from ${min} to ${max}${unit}.`
+      : null;
+  const helpId = `${id}-help`;
+  const errorId = `${id}-error`;
+  return <div className="space-y-1">
+    <Label htmlFor={id}>{label}</Label>
+    <div className="flex items-center gap-2"><Input id={id} type="number" inputMode="decimal" min={min} max={max} step={step} value={draft} aria-invalid={Boolean(error)} aria-describedby={`${helpId}${error ? ` ${errorId}` : ""}`} onChange={(event) => {
+      const next = event.currentTarget.value;
+      setDraft(next);
+      const candidate = next.trim() === "" ? null : Number(next);
+      const valid = candidate !== null && Number.isFinite(candidate) && candidate >= min && candidate <= max;
+      onDraftValidity?.(valid);
+      if (valid) {
+        lastEmitted.current = candidate;
+        onValidValue(candidate);
+      }
+    }} /><span>{unit}</span></div>
+    <p id={helpId} className="text-xs text-muted-foreground">Allowed range: {min} to {max}{unit}.</p>
+    {error && <p id={errorId} role="alert" className="text-xs font-medium text-red-700">{error}</p>}
+  </div>;
+};
 
 const VectorTriangleTool = () => {
   const navigate = useNavigate();
@@ -24,6 +59,9 @@ const VectorTriangleTool = () => {
   const [userHeading, setUserHeading] = useState(90); // User controls this in Drill Mode
   const [targetHeading, setTargetHeading] = useState(90); // The random goal
   const [drillFeedback, setDrillFeedback] = useState<"correct" | "incorrect" | null>(null);
+  const [invalidDrafts, setInvalidDrafts] = useState<Record<string, boolean>>({});
+  const draftValidity = (id: string) => (valid: boolean) => setInvalidDrafts((current) => ({ ...current, [id]: !valid }));
+  const hasInvalidDraft = Object.values(invalidDrafts).some(Boolean);
 
   const startDrill = () => {
     // Randomize Scenario
@@ -55,9 +93,6 @@ const VectorTriangleTool = () => {
   const checkAnswer = () => setDrillFeedback(scoreCourse(userHeading, { desiredTrackDeg: targetHeading, boatSpeedKn: boatSpeed, tideSetDeg: tideSet, tideRateKn: tideRate }).correct ? "correct" : "incorrect");
 
   const solution = solveCourseToSteer({ desiredTrackDeg: groundTrackHeading, boatSpeedKn: boatSpeed, tideSetDeg: tideSet, tideRateKn: tideRate });
-  const numberInput = (id: string, label: string, value: number, setter: (value: number) => void, min: number, max: number, step: number, unit: string) => (
-    <div className="space-y-1"><Label htmlFor={id}>{label}</Label><div className="flex items-center gap-2"><Input id={id} type="number" inputMode="decimal" min={min} max={max} step={step} value={value} onChange={(event) => setter(event.currentTarget.valueAsNumber)} aria-describedby={`${id}-range`} /><span>{unit}</span></div><p id={`${id}-range`} className="text-xs text-muted-foreground">Allowed range: {min} to {max}{unit}.</p></div>
-  );
 
   // Check for success in drill mode
   // We need the ACTUAL Ground Track resulting from userHeading + Tide.
@@ -162,8 +197,8 @@ const VectorTriangleTool = () => {
                   /* SOLVER MODE CONTROLS */
                   <>
                     <div className="rounded border bg-slate-50 p-3 text-sm"><p className="font-semibold">Precise keyboard inputs</p><p>Enter true bearings and speeds; sliders below provide coarse adjustment.</p></div>
-                    {numberInput("desired-track", "Desired track over ground (true)", groundTrackHeading, setGroundTrack, 0, 359.9, 0.1, "°T")}
-                    {numberInput("boat-speed", "Boat speed through water", boatSpeed, setBoatSpeed, 0.1, 100, 0.1, "kn")}
+                    <PreciseNumberInput id="desired-track" label="Desired track over ground (true)" value={groundTrackHeading} onValidValue={setGroundTrack} onDraftValidity={draftValidity("desired-track")} min={0} max={359.9} step={0.1} unit="°T" />
+                    <PreciseNumberInput id="boat-speed" label="Boat speed through water" value={boatSpeed} onValidValue={setBoatSpeed} onDraftValidity={draftValidity("boat-speed")} min={0.1} max={100} step={0.1} unit="kn" />
                     <div className="space-y-2">
                       <Label>Desired Course (Ground Track)</Label>
                       <div className="flex items-center gap-4">
@@ -201,8 +236,8 @@ const VectorTriangleTool = () => {
                     Let's disable them in Drill Mode.
                 */}
                 <div className={`pt-4 border-t space-y-4 ${drillMode ? "opacity-50 pointer-events-none" : ""}`}>
-                  {!drillMode && numberInput("tide-set", "Tidal set (toward, true)", tideSet, setTideSet, 0, 359.9, 0.1, "°T")}
-                  {!drillMode && numberInput("tide-rate", "Tidal rate", tideRate, setTideRate, 0, 20, 0.1, "kn")}
+                  {!drillMode && <PreciseNumberInput id="tide-set" label="Tidal set (toward, true)" value={tideSet} onValidValue={setTideSet} onDraftValidity={draftValidity("tide-set")} min={0} max={359.9} step={0.1} unit="°T" />}
+                  {!drillMode && <PreciseNumberInput id="tide-rate" label="Tidal rate" value={tideRate} onValidValue={setTideRate} onDraftValidity={draftValidity("tide-rate")} min={0} max={20} step={0.1} unit="kn" />}
                   <div className="space-y-2">
                     <Label className="text-red-700">Tide Set (Direction)</Label>
                     <div className="flex items-center gap-4">
@@ -273,7 +308,7 @@ const VectorTriangleTool = () => {
 
           {/* Visualizer */}
           <div className="lg:col-span-2">
-            <VectorTriangleVisualizer
+            {hasInvalidDraft && !drillMode ? <div role="alert" className="rounded-xl border border-red-300 bg-red-50 p-5 font-semibold text-red-800">Correct the highlighted numeric input. The diagram and computed result are withheld until every input is valid.</div> : <VectorTriangleVisualizer
               waterTrackHeading={userHeading} // Input for Drill
               waterTrackSpeed={boatSpeed}
               groundTrackHeading={groundTrackHeading} // Input for Solver
@@ -281,8 +316,8 @@ const VectorTriangleTool = () => {
               tideRate={tideRate}
               mode={drillMode ? "drill" : "solver"}
               drillTarget={targetHeading}
-            />
-            {!drillMode && <section aria-labelledby="solution-breakdown" className="mt-4 space-y-3 rounded-xl border bg-card p-5 text-sm">
+            />}
+            {!drillMode && !hasInvalidDraft && <section aria-labelledby="solution-breakdown" className="mt-4 space-y-3 rounded-xl border bg-card p-5 text-sm">
               <h2 id="solution-breakdown" className="text-lg font-bold">Reproducible vector breakdown</h2>
               <p><strong>Convention:</strong> true bearings clockwise from north; east/north are the common component basis; tidal set is the direction <em>toward</em> which the water flows. Course/CTS is the intended through-water direction used by this no-leeway model; heading is where the bow points and may differ with leeway; track is motion over ground.</p>
               {solution.feasible ? <>
