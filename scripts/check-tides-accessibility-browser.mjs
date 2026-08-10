@@ -15,7 +15,7 @@ const chromium = [
 if (!chromium) throw new Error("Chromium not found. Set CHROMIUM_PATH.");
 const delay = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
 const waitFor = async (callback, label) => {
-  for (let attempt = 0; attempt < 100; attempt += 1) {
+  for (let attempt = 0; attempt < 300; attempt += 1) {
     try {
       const result = await callback();
       if (result) return result;
@@ -446,6 +446,19 @@ try {
   await waitFor(() => evaluate("[...document.querySelectorAll('[role=status]')].some((node)=>node.textContent.includes('Correct'))"), "keyboard practice feedback");
   const locked = await evaluate(`(() => { const input=[...document.querySelectorAll('input')].find((node)=>node.labels?.[0]?.textContent.includes('Required height of tide')); return { locked: input.closest('fieldset').disabled, feedback: [...document.querySelectorAll('[role=status]')].some((node)=>/margin is 0.6 m.*positive margin/i.test(node.textContent)), stayed: location.pathname === '/navigation/tides/heights-calc' }; })()`);
   if (!locked.locked || !locked.feedback || !locked.stayed) throw new Error(`Planner keyboard/lock failed: ${JSON.stringify(locked)}`);
+
+  // Complete the second evidence step, then deny the anonymous durable store
+  // exactly at completion time. This is a deterministic failure seam: the
+  // control must remain on this route and expose an operable retry state.
+  await evaluate(`(() => { const radio=[...document.querySelectorAll('input[type=radio]')].find((node)=>node.parentElement?.textContent.includes('Charted depth + predicted tide')); radio.click(); })()`);
+  await waitFor(() => evaluate("[...document.querySelectorAll('button')].some((node)=>node.textContent.trim()==='Save completion' && !node.disabled)"), "enabled planner completion");
+  await evaluate(`(() => { window.__plannerOriginalSetItem = Storage.prototype.setItem; Storage.prototype.setItem = function () { throw new DOMException('Storage denied for completion audit', 'QuotaExceededError'); }; const button=[...document.querySelectorAll('button')].find((node)=>node.textContent.trim()==='Save completion'); button.focus(); })()`);
+  await send("Input.dispatchKeyEvent", { type: "keyDown", key: " ", code: "Space", text: " ", windowsVirtualKeyCode: 32, nativeVirtualKeyCode: 32 });
+  await send("Input.dispatchKeyEvent", { type: "keyUp", key: " ", code: "Space", windowsVirtualKeyCode: 32, nativeVirtualKeyCode: 32 });
+  await waitFor(() => evaluate("[...document.querySelectorAll('button')].some((node)=>node.textContent.trim()==='Retry completion')"), "planner completion retry");
+  const completionFailure = await evaluate(`(() => { const retry=[...document.querySelectorAll('button')].find((node)=>node.textContent.trim()==='Retry completion'); const status=retry.parentElement.querySelector('[role=status]'); return { retryEnabled: !retry.disabled, status: status?.textContent, live: status?.getAttribute('aria-live'), stayed: location.pathname === '/navigation/tides/heights-calc', focusedName: document.activeElement?.textContent?.trim() }; })()`);
+  if (!completionFailure.retryEnabled || completionFailure.live !== "polite" || !/Completion was not saved.*retry/i.test(completionFailure.status) || !completionFailure.stayed) throw new Error(`Planner completion failure contract failed: ${JSON.stringify(completionFailure)}`);
+  await evaluate("Storage.prototype.setItem = window.__plannerOriginalSetItem; delete window.__plannerOriginalSetItem");
   await send("Emulation.setEmulatedMedia", { features: [{ name: "forced-colors", value: "active" }] });
   const plannerForced = await evaluate(`(() => { const svg=document.querySelector('svg[role=img]'); const curve=svg.querySelector('path'); return { active:matchMedia('(forced-colors: active)').matches, visible:svg.getBoundingClientRect().width>0, curveWidth:getComputedStyle(curve).strokeWidth, textAlternative:document.querySelector('table caption')?.textContent }; })()`);
   if (!plannerForced.active || !plannerForced.visible || plannerForced.curveWidth === "0px" || !/Text alternative/.test(plannerForced.textAlternative)) throw new Error(`Planner forced colours failed: ${JSON.stringify(plannerForced)}`);

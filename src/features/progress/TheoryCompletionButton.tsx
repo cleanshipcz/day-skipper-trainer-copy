@@ -27,7 +27,7 @@ export const TheoryCompletionButton = ({ topicId, catalogueRevision, evidenceId,
       if (!await markCompleted()) setAnnouncement("Completion was not saved. Your activity evidence remains available; retry when ready.");
     }}>
       {durable && <CheckCircle2 className="mr-2 h-4 w-4" />}
-      {!isHydrated ? "Loading progress…" : saveState === "saving" ? "Saving…" : saveState === "saved" ? "Saved" : saveState === "queued" ? "Queued offline" : saveState === "local" ? "Completed on this device" : saveState === "failed" && canComplete ? "Retry completion" : canComplete ? "Save completion" : lockedLabel}
+      {!isHydrated ? "Loading progress…" : saveState === "saving" ? "Saving…" : durable && saveState === "saved" ? "Saved" : durable && saveState === "queued" ? "Queued offline" : durable && saveState === "local" ? "Completed on this device" : saveState === "failed" && canComplete ? "Retry completion" : canComplete ? "Save completion" : lockedLabel}
       {isHydrated && canComplete && !durable && saveState !== "saving" && <ChevronRight className="ml-2 h-4 w-4" />}
     </Button>
     <p className="text-sm" role="status" aria-live="polite">{status}</p>
