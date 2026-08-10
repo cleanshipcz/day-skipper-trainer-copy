@@ -16,6 +16,8 @@ export interface BuoyDrillResult {
 }
 interface Props {
   readonly onComplete: (result: BuoyDrillResult) => void;
+  /** Completion is withheld until authoritative progress hydration finishes. */
+  readonly completionEnabled?: boolean;
   readonly totalChallenges?: number;
   readonly seed?: number;
   readonly storageKey?: string;
@@ -92,48 +94,135 @@ const fresh = (count: number, seed: number): Attempt => ({
 });
 const isBuoyId = (value: unknown): value is BuoyId =>
   typeof value === "string" && ialaBuoys.some(({ id }) => id === value);
+const sameIds = (left: readonly BuoyId[], right: readonly BuoyId[]) =>
+  left.length === right.length &&
+  left.every((id, index) => id === right[index]);
+const uniqueValidIds = (
+  value: unknown,
+  allowed: ReadonlySet<BuoyId>,
+): value is BuoyId[] =>
+  Array.isArray(value) &&
+  value.every(isBuoyId) &&
+  new Set(value).size === value.length &&
+  value.every((id) => allowed.has(id));
 const restore = (key: string, count: number, seed: number): Attempt => {
   try {
     const p = JSON.parse(
       localStorage.getItem(key) ?? "null",
     ) as Partial<Attempt> | null;
+    const canonical = buildBuoyQuestions(count, seed);
+    const allowed = new Set(canonical.map(({ buoyId }) => buoyId));
     if (
       !p ||
       p.revision !== BUOY_DRILL_REVISION ||
+      p.mastered === true ||
+      typeof p.answered !== "boolean" ||
+      typeof p.review !== "boolean" ||
       !Array.isArray(p.questions) ||
       p.questions.length < 1 ||
       (!p.review && p.questions.length !== count) ||
       !Number.isInteger(p.index) ||
       p.index! < 0 ||
       p.index! >= p.questions.length ||
-      !Array.isArray(p.initialCorrectIds) ||
-      !Array.isArray(p.masteredIds) ||
-      !Array.isArray(p.missedIds)
+      !uniqueValidIds(p.initialCorrectIds, allowed) ||
+      !uniqueValidIds(p.masteredIds, allowed) ||
+      !uniqueValidIds(p.missedIds, allowed)
     )
       return fresh(count, seed);
+    const questionsValid = p.questions.every(
+      (q) =>
+        isBuoyId(q?.buoyId) &&
+        allowed.has(q.buoyId) &&
+        Array.isArray(q.optionIds) &&
+        q.optionIds.length === 4 &&
+        q.optionIds.every(isBuoyId) &&
+        new Set(q.optionIds).size === 4 &&
+        q.optionIds.includes(q.buoyId) &&
+        sameIds(
+          q.optionIds,
+          canonical.find(({ buoyId }) => buoyId === q.buoyId)!.optionIds,
+        ),
+    );
     if (
-      !p.questions.every(
-        (q) =>
-          isBuoyId(q?.buoyId) &&
-          Array.isArray(q.optionIds) &&
-          q.optionIds.length === 4 &&
-          q.optionIds.every(isBuoyId) &&
-          new Set(q.optionIds).size === 4 &&
-          q.optionIds.includes(q.buoyId),
-      )
+      !questionsValid ||
+      new Set(p.questions.map(({ buoyId }) => buoyId)).size !==
+        p.questions.length
     )
       return fresh(count, seed);
+    const current = p.questions[p.index!];
+    const selectedValid = p.answered
+      ? isBuoyId(p.selectedId) && current.optionIds.includes(p.selectedId)
+      : p.selectedId === null;
+    const correct = new Set(p.initialCorrectIds);
+    const mastered = new Set(p.masteredIds);
+    const missed = new Set(p.missedIds);
+    const disjoint =
+      [...correct].every((id) => !missed.has(id)) &&
+      [...mastered].every((id) => !missed.has(id));
+    if (
+      !selectedValid ||
+      !disjoint ||
+      [...correct].some((id) => !mastered.has(id))
+    )
+      return fresh(count, seed);
+    if (!p.review) {
+      if (
+        !p.questions.every(
+          (question, index) =>
+            question.buoyId === canonical[index].buoyId &&
+            sameIds(question.optionIds, canonical[index].optionIds),
+        )
+      )
+        return fresh(count, seed);
+      const answeredCount = p.index! + (p.answered ? 1 : 0);
+      const evidence = new Set([...p.initialCorrectIds, ...p.missedIds]);
+      if (
+        evidence.size !== answeredCount ||
+        p.masteredIds.length !== p.initialCorrectIds.length
+      )
+        return fresh(count, seed);
+      const expected = canonical
+        .slice(0, answeredCount)
+        .map(({ buoyId }) => buoyId);
+      if (!expected.every((id) => evidence.has(id))) return fresh(count, seed);
+      if (
+        p.answered &&
+        (p.selectedId === current.buoyId) !== correct.has(current.buoyId)
+      )
+        return fresh(count, seed);
+    } else {
+      if (
+        p.index !== 0 ||
+        p.missedIds.length === 0 ||
+        new Set([...p.masteredIds, ...p.missedIds]).size !== count
+      )
+        return fresh(count, seed);
+      const questionIds = new Set(p.questions.map(({ buoyId }) => buoyId));
+      if (![...missed].every((id) => questionIds.has(id)))
+        return fresh(count, seed);
+      const permittedExtra =
+        p.answered && p.selectedId === current.buoyId ? current.buoyId : null;
+      if (
+        [...questionIds].some((id) => !missed.has(id) && id !== permittedExtra)
+      )
+        return fresh(count, seed);
+      if (
+        p.answered &&
+        (p.selectedId === current.buoyId) !== mastered.has(current.buoyId)
+      )
+        return fresh(count, seed);
+    }
     return {
       revision: BUOY_DRILL_REVISION,
       questions: p.questions,
       index: p.index!,
-      selectedId: isBuoyId(p.selectedId) ? p.selectedId : null,
-      answered: p.answered === true,
-      initialCorrectIds: p.initialCorrectIds.filter(isBuoyId),
-      masteredIds: p.masteredIds.filter(isBuoyId),
-      missedIds: p.missedIds.filter(isBuoyId),
-      review: p.review === true,
-      mastered: p.mastered === true,
+      selectedId: p.selectedId as BuoyId | null,
+      answered: p.answered,
+      initialCorrectIds: p.initialCorrectIds,
+      masteredIds: p.masteredIds,
+      missedIds: p.missedIds,
+      review: p.review,
+      mastered: false,
     };
   } catch {
     return fresh(count, seed);
@@ -145,6 +234,7 @@ const byId = new Map<BuoyId, IalaBuoy>(
 
 export const BuoyIdentifier = ({
   onComplete,
+  completionEnabled = true,
   totalChallenges = 12,
   seed = 261,
   storageKey = BUOY_DRILL_ATTEMPT_KEY,
@@ -175,7 +265,7 @@ export const BuoyIdentifier = ({
     localStorage.setItem(storageKey, JSON.stringify(attempt));
   }, [attempt, storageKey]);
   useEffect(() => {
-    if (attempt.mastered && !announcedRef.current) {
+    if (completionEnabled && attempt.mastered && !announcedRef.current) {
       announcedRef.current = true;
       onComplete({
         correctCount: attempt.initialCorrectIds.length,
@@ -187,6 +277,7 @@ export const BuoyIdentifier = ({
   }, [
     attempt.initialCorrectIds.length,
     attempt.mastered,
+    completionEnabled,
     onComplete,
     totalChallenges,
   ]);

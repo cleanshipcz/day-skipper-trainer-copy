@@ -73,31 +73,60 @@ const MarkCard = ({ buoy }: { buoy: IalaBuoy }) => (
 const BuoyageTheory = () => {
   const navigate = useNavigate();
   const { loadProgressDetailed, saveProgressDetailed } = useProgress();
-  const [saveState, setSaveState] = useState<"loading" | "ready" | "saving" | "saved" | "queued" | "failed">("loading");
+  const [saveState, setSaveState] = useState<
+    "loading" | "ready" | "saving" | "saved" | "queued" | "failed"
+  >("loading");
   const completedRef = useRef(false);
   useEffect(() => {
     let active = true;
     void loadProgressDetailed("pilotage-buoyage").then((result) => {
       if (!active) return;
-      const evidence = result.record?.answers_history as { revision?: unknown; mastered?: unknown } | null;
-      const restored = result.record?.completed === true && evidence?.revision === "iala-region-a-mastery-v1" && evidence.mastered === true;
+      const evidence = result.record?.answers_history as {
+        revision?: unknown;
+        mastered?: unknown;
+      } | null;
+      const restored =
+        result.record?.completed === true &&
+        evidence?.revision === "iala-region-a-mastery-v1" &&
+        evidence.mastered === true;
       completedRef.current = restored;
       setSaveState(restored ? "saved" : "ready");
     });
-    return () => { active = false; };
+    return () => {
+      active = false;
+    };
   }, [loadProgressDetailed]);
-  const complete = useCallback(async (result: BuoyDrillResult) => {
-    if (!result.mastered || completedRef.current || saveState === "saving") return;
-    setSaveState("saving");
-    const saved = await saveProgressDetailed("pilotage-buoyage", true, 100, 10, {
-      revision: "iala-region-a-mastery-v1",
-      mastered: true,
-      initialCorrectCount: result.correctCount,
-      coverageCount: result.totalAnswered,
-    });
-    if (saved === "remote" || saved === "queued") completedRef.current = true;
-    setSaveState(saved === "remote" ? "saved" : saved === "queued" ? "queued" : "failed");
-  }, [saveProgressDetailed, saveState]);
+  const complete = useCallback(
+    async (result: BuoyDrillResult) => {
+      if (
+        !result.mastered ||
+        completedRef.current ||
+        saveState === "loading" ||
+        saveState === "saving" ||
+        saveState === "saved" ||
+        saveState === "queued"
+      )
+        return;
+      setSaveState("saving");
+      const saved = await saveProgressDetailed(
+        "pilotage-buoyage",
+        true,
+        100,
+        10,
+        {
+          revision: "iala-region-a-mastery-v1",
+          mastered: true,
+          initialCorrectCount: result.correctCount,
+          coverageCount: result.totalAnswered,
+        },
+      );
+      if (saved === "remote" || saved === "queued") completedRef.current = true;
+      setSaveState(
+        saved === "remote" ? "saved" : saved === "queued" ? "queued" : "failed",
+      );
+    },
+    [saveProgressDetailed, saveState],
+  );
   const lateral = ialaBuoys.filter((b) => b.category === "lateral");
   const cardinal = ialaBuoys.filter((b) => b.category === "cardinal");
   const other = ialaBuoys.filter(
@@ -234,7 +263,10 @@ const BuoyageTheory = () => {
           </TabsContent>
           <TabsContent value="drill" className="space-y-4">
             <h2 className="text-2xl font-bold">Buoy Identification Drill</h2>
-            <BuoyIdentifier onComplete={complete} />
+            <BuoyIdentifier
+              onComplete={complete}
+              completionEnabled={saveState !== "loading"}
+            />
           </TabsContent>
         </Tabs>
         <section className="mt-8 rounded-lg border p-4 text-sm forced-colors:border-[CanvasText]">
@@ -270,13 +302,25 @@ const BuoyageTheory = () => {
           </p>
         </section>
         <div className="flex flex-col items-center gap-4 pt-10">
-          <div role="status" aria-live="polite" className="max-w-xl text-center text-sm">
+          <div
+            role="status"
+            aria-live="polite"
+            className="max-w-xl text-center text-sm"
+          >
             {saveState === "loading" && "Checking saved buoy mastery…"}
-            {saveState === "ready" && "Complete the drill and correct every retained miss to save buoy mastery."}
+            {saveState === "ready" &&
+              "Complete the drill and correct every retained miss to save buoy mastery."}
             {saveState === "saving" && "Saving buoy mastery…"}
-            {saveState === "saved" && <><CheckCircle2 className="mr-1 inline size-5"/>Buoy mastery saved.</>}
-            {saveState === "queued" && "Buoy mastery is saved offline and queued to sync."}
-            {saveState === "failed" && "Buoy mastery could not be saved. Restart or revisit the drill to retry."}
+            {saveState === "saved" && (
+              <>
+                <CheckCircle2 className="mr-1 inline size-5" />
+                Buoy mastery saved.
+              </>
+            )}
+            {saveState === "queued" &&
+              "Buoy mastery is saved offline and queued to sync."}
+            {saveState === "failed" &&
+              "Buoy mastery could not be saved. Restart or revisit the drill to retry."}
           </div>
           <Button
             size="lg"
