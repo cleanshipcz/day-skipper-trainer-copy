@@ -1,7 +1,7 @@
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { ArrowLeft, ChevronRight } from "lucide-react";
-import { useRef, useState } from "react";
+import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { TOPIC_IDS } from "@/constants/topicRegistry";
 import { TheoryCompletionButton } from "@/features/progress/TheoryCompletionButton";
@@ -20,16 +20,11 @@ const workedEtaMinutes = workedSolution.etaMinutes.toFixed(2);
 const TidalStreamsTheory = () => {
   const navigate = useNavigate();
   const [readinessAnswer, setReadinessAnswer] = useState<ReadinessAnswer>("");
-  const feedbackRef = useRef<HTMLParagraphElement>(null);
   const readinessPassed = readinessAnswer === "071";
-  const answerReadiness = (answer: ReadinessAnswer) => {
-    setReadinessAnswer(answer);
-    requestAnimationFrame(() => feedbackRef.current?.focus());
-  };
 
   return (
     <div className="min-h-screen bg-background">
-      <header className="sticky top-0 z-40 border-b border-border bg-card/95 backdrop-blur-sm">
+      <header className="relative z-40 border-b border-border bg-card/95 backdrop-blur-sm [@media(min-height:40rem)]:sticky [@media(min-height:40rem)]:top-0">
         <div className="container mx-auto flex min-w-0 flex-col gap-3 px-4 py-3 sm:flex-row sm:items-start sm:justify-between">
           <div className="flex min-w-0 items-start gap-2 sm:gap-3">
             <Button variant="ghost" size="icon" aria-label="Back to tides menu" onClick={() => navigate("/navigation/tides")}>
@@ -37,7 +32,7 @@ const TidalStreamsTheory = () => {
             </Button>
             <div className="min-w-0"><h1 className="break-words text-lg font-bold sm:text-xl">Chart-ready course to steer</h1><p className="break-words text-sm text-muted-foreground">A complete tidal-vector construction</p></div>
           </div>
-          <div className="min-w-0 break-words [&_button]:h-auto [&_button]:min-h-11 [&_button]:max-w-full [&_button]:whitespace-normal sm:max-w-sm"><TheoryCompletionButton topicId={TOPIC_IDS.TIDES_STREAMS_THEORY} catalogueRevision="tides-streams-theory-v3" evidenceId="chart-ready-cts-check" evidenceSatisfied={readinessPassed} lockedLabel="Complete the readiness check" /></div>
+          <div className="min-w-0 break-words [&_button]:h-auto [&_button]:min-h-11 [&_button]:max-w-full [&_button]:whitespace-normal sm:max-w-sm"><TheoryCompletionButton topicId={TOPIC_IDS.TIDES_STREAMS_THEORY} catalogueRevision="tides-streams-theory-v2" evidenceId="chart-ready-cts-check" evidenceSatisfied={readinessPassed} lockedLabel="Complete the readiness check" /></div>
         </div>
       </header>
 
@@ -122,11 +117,11 @@ const TidalStreamsTheory = () => {
         <section className="space-y-4 rounded-lg border p-5" aria-labelledby="check-heading">
           <h2 id="check-heading" className="text-xl font-bold">Readiness check</h2>
           <p>In the worked one-hour example, which true through-water course does the divider construction produce, before leeway and compass conversion?</p>
-          <fieldset className="space-y-2"><legend className="sr-only">Choose the true through-water course</legend>{(["071", "090", "109"] as const).map((answer) => <label key={answer} className="flex min-h-11 items-center gap-3 rounded px-2 focus-within:ring-2 focus-within:ring-ring"><input type="radio" name="readiness-check" value={answer} checked={readinessAnswer === answer} onChange={() => answerReadiness(answer)} /> {answer}°T</label>)}</fieldset>
-          {readinessAnswer && <p ref={feedbackRef} tabIndex={-1} role="status" aria-label="Readiness feedback" aria-live="polite" className={`rounded border-l-4 p-3 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring forced-colors:border-[CanvasText] ${readinessPassed ? "border-green-700 text-green-700" : "border-red-700 text-red-700"}`}>{readinessPassed ? "Correct — 071°T is T→G, the boat's direction through the water. Apply leeway and T→M→C conversion only afterward." : readinessAnswer === "090" ? "Not yet — 090°T is the desired ground track A→G, not the through-water course. Measure T→G." : "Not yet — the correction must aim into the south-going stream. Recheck the direction of T→G and remember that set is toward 180°T."}</p>}
+          <fieldset className="space-y-2"><legend className="sr-only">Choose the true through-water course</legend>{(["071", "090", "109"] as const).map((answer) => <label key={answer} className="flex min-h-11 items-center gap-3 rounded px-2 focus-within:ring-2 focus-within:ring-ring"><input type="radio" name="readiness-check" value={answer} checked={readinessAnswer === answer} onChange={() => setReadinessAnswer(answer)} /> {answer}°T</label>)}</fieldset>
+          {readinessAnswer && <p role="status" aria-label="Readiness feedback" aria-live="polite" className={`rounded border-l-4 p-3 forced-colors:border-[CanvasText] ${readinessPassed ? "border-green-700 text-green-700" : "border-red-700 text-red-700"}`}>{readinessPassed ? "Correct — 071°T is T→G, the boat's direction through the water. Apply leeway and T→M→C conversion only afterward." : readinessAnswer === "090" ? "Not yet — 090°T is the desired ground track A→G, not the through-water course. Measure T→G." : "Not yet — the correction must aim into the south-going stream. Recheck the direction of T→G and remember that set is toward 180°T."}</p>}
         </section>
 
-        <div className="sticky bottom-0 z-30 -mx-4 space-y-2 border-t bg-background/95 px-4 py-3 text-center backdrop-blur-sm"><p className="break-words text-sm text-muted-foreground">This checked handoff opens practice after the readiness evidence. The tool also remains independently available from the Tides menu.</p><Button size="lg" disabled={!readinessPassed} onClick={() => navigate("/navigation/tides/vector-tool")} className="h-auto min-h-11 w-full whitespace-normal bg-purple-600 hover:bg-purple-700 sm:w-auto">Open Vector Solution Tool <ChevronRight aria-hidden="true" className="ml-2 h-4 w-4 shrink-0" /></Button></div>
+        <div className="relative z-30 -mx-4 space-y-2 border-t bg-background/95 px-4 py-3 text-center backdrop-blur-sm [@media(min-height:40rem)]:sticky [@media(min-height:40rem)]:bottom-0"><p className="break-words text-sm text-muted-foreground">This checked handoff opens practice after the readiness evidence. The tool also remains independently available from the Tides menu.</p><Button size="lg" disabled={!readinessPassed} onClick={() => navigate("/navigation/tides/vector-tool")} className="h-auto min-h-11 w-full whitespace-normal bg-purple-600 hover:bg-purple-700 sm:w-auto">Open Vector Solution Tool <ChevronRight aria-hidden="true" className="ml-2 h-4 w-4 shrink-0" /></Button></div>
       </main>
     </div>
   );

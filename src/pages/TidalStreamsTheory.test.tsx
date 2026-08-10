@@ -1,4 +1,4 @@
-import { fireEvent, render, screen, waitFor } from "@testing-library/react";
+import { fireEvent, render, screen } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { MemoryRouter } from "react-router-dom";
 import { describe, expect, it, vi } from "vitest";
@@ -20,7 +20,7 @@ describe("chart-ready course-to-steer lesson", () => {
     expect(handoff.hasAttribute("disabled")).toBe(true);
   });
 
-  it("enables this lesson's handoff after a keyboard answer and moves focus to explanatory feedback", async () => {
+  it("enables this lesson's handoff after a keyboard answer while preserving native radio focus", async () => {
     const user = userEvent.setup();
     renderLesson();
     const answer = screen.getByLabelText("071°T");
@@ -28,7 +28,7 @@ describe("chart-ready course-to-steer lesson", () => {
     await user.keyboard(" ");
     const feedback = screen.getByRole("status", { name: "Readiness feedback" });
     expect(feedback.textContent).toMatch(/boat's direction through the water.*leeway/i);
-    await waitFor(() => expect(document.activeElement).toBe(feedback));
+    expect(document.activeElement).toBe(answer);
     expect(screen.getByRole("button", { name: /Open Vector Solution Tool/i }).hasAttribute("disabled")).toBe(false);
   });
 
@@ -46,8 +46,8 @@ describe("chart-ready course-to-steer lesson", () => {
 
   it("keeps sticky controls and dense equivalents adaptable without relying on colour", () => {
     renderLesson();
-    expect(document.querySelector("header")?.className).toContain("sticky");
-    expect(screen.getByRole("button", { name: /Open Vector Solution Tool/i }).parentElement?.className).toContain("sticky");
+    expect(document.querySelector("header")?.className).toContain("min-height:40rem");
+    expect(screen.getByRole("button", { name: /Open Vector Solution Tool/i }).parentElement?.className).toContain("min-height:40rem");
     expect(screen.getByRole("region", { name: /Scrollable structured vector record/i }).getAttribute("tabindex")).toBe("0");
     const paths = [...screen.getByRole("img", { name: /Course-to-steer vector triangle/i }).querySelectorAll("path[stroke-dasharray]")];
     expect(new Set(paths.map((path) => path.getAttribute("stroke-dasharray"))).size).toBe(2);
