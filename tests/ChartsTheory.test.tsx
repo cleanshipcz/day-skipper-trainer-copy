@@ -69,4 +69,43 @@ describe("ChartsTheory Page", () => {
     await user.click(symbolsTab);
     expect(await screen.findByTestId("chart-symbol-quiz")).toBeDefined();
   });
+
+  it("teaches Mercator graticule and local latitude distance accurately", () => {
+    render(
+      <TestRouter>
+        <ChartsTheory />
+      </TestRouter>
+    );
+
+    expect(screen.getByText(/mathematical transformation, not a perspective view/i)).toBeDefined();
+    expect(screen.getByText(/meridians are parallel on the chart even though they converge on the globe/i)).toBeDefined();
+    expect(screen.getByText(/1′ is approximately 1 NM/i)).toBeDefined();
+    expect(screen.queryByText(/light bulb in the center/i)).toBeNull();
+    expect(screen.queryByText(/equidistant everywhere/i)).toBeNull();
+  });
+
+  it("keeps datum advice qualified and includes a checked worked UKC procedure", async () => {
+    const user = userEvent.setup();
+    render(
+      <TestRouter>
+        <ChartsTheory />
+      </TestRouter>
+    );
+
+    await user.click(screen.getByRole("tab", { name: /Depths & Tides/i }));
+    expect(await screen.findByText(/never assume that Chart Datum is LAT/i)).toBeDefined();
+    expect(screen.getByText(/Predictions are estimates, not observations/i)).toBeDefined();
+    expect(screen.getByText(/predicted\/static UKC = 4.6 − 2.0 =/i)).toBeDefined();
+    expect(screen.getByText(/allowance-adjusted\/dynamic UKC = 2.6 − 0.3 − 0.2 =/i)).toBeDefined();
+    expect(screen.getByText(/1.6 m excess above the required reserve/i)).toBeDefined();
+    expect(screen.queryByText(/usable UKC/i)).toBeNull();
+    expect(screen.queryByText(/practically guaranteed/i)).toBeNull();
+
+    await user.click(screen.getByRole("tab", { name: /Symbols & Keys/i }));
+    expect((await screen.findAllByText(/INT 1, edition 8 \(2020\)/i)).length).toBeGreaterThanOrEqual(1);
+    expect(screen.getByText(/Untinted water is not a promise of sufficient depth/i)).toBeDefined();
+    expect(
+      screen.getByRole("link", { name: /IHO S-4, edition 4.10.0/i }).getAttribute("href")
+    ).toContain("S-4%20Ed%204.10.0_FINAL.pdf");
+  });
 });
