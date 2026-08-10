@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { BEAUFORT_SCALE_SOURCE, beaufortScale, conditionsForForce, forceForWindSpeed } from "./beaufortScale";
+import { BEAUFORT_SCALE_SOURCE, beaufortScale, conditionsForForce, forceForWindSpeed, normalizeWindSpeed } from "./beaufortScale";
 
 const authoritativeValues = [
   [0, "<1", "Calm", "Calm (glassy)", null, null],
@@ -35,14 +35,37 @@ describe("Beaufort scale", () => {
     expect(BEAUFORT_SCALE_SOURCE.url).toBe("https://weather.metoffice.gov.uk/guides/coast-and-sea/beaufort-scale");
   });
 
-  it.each([[0, 0], [0.5, 0], [1, 1], [3.5, 1], [10.75, 3], [11, 4], [27.9, 6], [64, 12], [100, 12]])(
+  it.each([[0, 0], [0.49, 0], [0.5, 1], [1, 1], [3, 1], [3.49, 1], [3.5, 2], [3.51, 2], [4, 2], [10, 3], [10.49, 3], [10.5, 4], [10.75, 4], [11, 4], [27.49, 6], [27.5, 7], [63.49, 11], [63.5, 12], [64, 12], [100.4, 12]])(
     "maps %s knots to force %s",
     (knots, force) => expect(forceForWindSpeed(knots)?.force).toBe(force)
   );
 
-  it("rejects invalid speeds and supports reverse lookup", () => {
+  it("normalizes decimal readings to the nearest whole knot, with halves rounded up", () => {
+    expect(normalizeWindSpeed(3.49)).toBe(3);
+    expect(normalizeWindSpeed(3.5)).toBe(4);
+    expect(normalizeWindSpeed(10.75)).toBe(11);
+    expect(normalizeWindSpeed(64.6)).toBe(65);
+  });
+
+  it("keeps every displayed integer range and every rounded transition coherent", () => {
+    beaufortScale.forEach(({ force, minKnots, maxKnots }) => {
+      expect(forceForWindSpeed(minKnots)?.force).toBe(force);
+      if (Number.isFinite(maxKnots)) {
+        expect(forceForWindSpeed(maxKnots)?.force).toBe(force);
+      }
+      if (force > 0) {
+        expect(forceForWindSpeed(minKnots - 0.5001)?.force).toBe(force - 1);
+        expect(forceForWindSpeed(minKnots - 0.5)?.force).toBe(force);
+        expect(forceForWindSpeed(minKnots + 0.0001)?.force).toBe(force);
+      }
+    });
+  });
+
+  it("rejects negative and non-finite speeds and supports reverse lookup", () => {
     expect(forceForWindSpeed(-1)).toBeUndefined();
     expect(forceForWindSpeed(Number.NaN)).toBeUndefined();
+    expect(forceForWindSpeed(Number.POSITIVE_INFINITY)).toBeUndefined();
+    expect(normalizeWindSpeed(-0.01)).toBeUndefined();
     expect(conditionsForForce(5)?.description).toBe("Fresh breeze");
     expect(conditionsForForce(13)).toBeUndefined();
   });

@@ -1,4 +1,5 @@
 import { render, screen, within } from "@testing-library/react";
+import userEvent from "@testing-library/user-event";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import BeaufortTheory from "@/pages/BeaufortTheory";
 import TestRouter from "./TestRouter";
@@ -51,5 +52,23 @@ describe("BeaufortTheory authoritative marine reference", () => {
     expect(source.getAttribute("href")).toBe("https://weather.metoffice.gov.uk/guides/coast-and-sea/beaufort-scale");
     expect(source.getAttribute("target")).toBe("_blank");
     expect(source.getAttribute("rel")).toBe("noreferrer");
+  });
+
+  it("explains and exposes decimal normalization when it changes the force", async () => {
+    const user = userEvent.setup();
+    render(<TestRouter><BeaufortTheory /></TestRouter>);
+    await screen.findByRole("button", { name: /mark theory complete/i });
+
+    const input = screen.getByLabelText("Wind speed (knots)");
+    expect(input.getAttribute("step")).toBe("0.1");
+    expect(input.getAttribute("aria-describedby")).toBe("wind-speed-policy");
+    expect(screen.getByText(/limits are stated in whole knots/i).textContent).toMatch(/nearest whole knot.*half a knot rounds up/i);
+
+    await user.type(input, "10.75");
+    expect(screen.getByText(/Force 4: Moderate breeze/i).textContent).toMatch(/Rounded 10.75 to 11 knots before lookup/i);
+
+    await user.clear(input);
+    await user.type(input, "3.49");
+    expect(screen.getByText(/Force 1: Light air/i).textContent).toMatch(/Rounded 3.49 to 3 knots before lookup/i);
   });
 });

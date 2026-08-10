@@ -30,10 +30,15 @@ export const beaufortScale: readonly BeaufortLevel[] = [
   { force: 12, knots: "64+", minKnots: 64, maxKnots: Number.POSITIVE_INFINITY, description: "Hurricane force", seaState: "Phenomenal", probableWaveHeight: "14 m+", probableMaximumWaveHeight: null },
 ];
 
-export const forceForWindSpeed = (knots: number): BeaufortLevel | undefined =>
-  Number.isFinite(knots) && knots >= 0
-    ? [...beaufortScale].reverse().find((level) => knots >= level.minKnots)
-    : undefined;
+export const normalizeWindSpeed = (knots: number): number | undefined =>
+  Number.isFinite(knots) && knots >= 0 ? Math.round(knots) : undefined;
+
+export const forceForWindSpeed = (knots: number): BeaufortLevel | undefined => {
+  const normalizedKnots = normalizeWindSpeed(knots);
+  return normalizedKnots === undefined
+    ? undefined
+    : [...beaufortScale].reverse().find((level) => normalizedKnots >= level.minKnots);
+};
 
 export const conditionsForForce = (force: number): BeaufortLevel | undefined =>
   beaufortScale.find((level) => level.force === force);
