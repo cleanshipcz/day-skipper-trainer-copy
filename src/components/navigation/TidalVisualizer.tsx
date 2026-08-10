@@ -16,7 +16,11 @@ const SCENARIOS: readonly TidalDepthScenario[] = [
   { id: "F", tide: 1.7, chartValue: 1.7, feature: "drying" },
 ];
 
-const TidalVisualizer = () => {
+interface TidalVisualizerProps {
+  onMastery?: () => void;
+}
+
+const TidalVisualizer = ({ onMastery }: TidalVisualizerProps) => {
   const titleId = useId();
   const descId = useId();
   const [manualTide, setManualTide] = useState([2.5]);
@@ -81,6 +85,10 @@ const TidalVisualizer = () => {
     if (index < SCENARIOS.length - 1) resetQuestion(index + 1);
     else setFeedback({ ok: false, text: "Drill complete. Retry to practise skipped or missed cases." });
   };
+
+  useEffect(() => {
+    if (completed && score >= 5) onMastery?.();
+  }, [completed, onMastery, score]);
 
   return (
     <Card className="w-full border-blue-200 bg-slate-50">

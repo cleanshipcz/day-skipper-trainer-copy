@@ -17,9 +17,9 @@ type Question = { id: string; kind: SymbolKind; prompt: string; answer: string; 
 export const CHART_SYMBOL_ATTEMPT_KEY = "day-skipper:chart-symbol-assessment:v1";
 type StoredAttempt = { version: 1; index: number; choice: string; checked: boolean; correctIds: string[]; complete: boolean };
 const emptyAttempt: StoredAttempt = { version: 1, index: 0, choice: "", checked: false, correctIds: [], complete: false };
-const loadAttempt = (): StoredAttempt => {
+const loadAttempt = (storageKey = CHART_SYMBOL_ATTEMPT_KEY): StoredAttempt => {
   try {
-    const value = JSON.parse(localStorage.getItem(CHART_SYMBOL_ATTEMPT_KEY) ?? "null") as Partial<StoredAttempt> | null;
+    const value = JSON.parse(localStorage.getItem(storageKey) ?? "null") as Partial<StoredAttempt> | null;
     if (value?.version === 1 && Number.isInteger(value.index) && Number(value.index) >= 0 && Number(value.index) < 13 && Array.isArray(value.correctIds)) {
       return {
         version: 1,
@@ -87,8 +87,17 @@ const SymbolDiagram = ({ kind }: { kind: SymbolKind }) => {
   </svg>;
 };
 
-const ChartSymbolQuiz = () => {
-  const [initialAttempt] = useState(loadAttempt);
+interface ChartSymbolQuizProps {
+  onMastery?: () => void;
+  evidenceOwnerId?: string | null;
+  catalogueRevision?: string;
+}
+
+const ChartSymbolQuiz = ({ onMastery, evidenceOwnerId, catalogueRevision }: ChartSymbolQuizProps) => {
+  const attemptStorageKey = evidenceOwnerId !== undefined || catalogueRevision
+    ? `${CHART_SYMBOL_ATTEMPT_KEY}:${evidenceOwnerId ?? "anonymous"}:${catalogueRevision ?? "current"}`
+    : CHART_SYMBOL_ATTEMPT_KEY;
+  const [initialAttempt] = useState(() => loadAttempt(attemptStorageKey));
   const [index, setIndex] = useState(initialAttempt.index);
   const [choice, setChoice] = useState(initialAttempt.choice);
   const [checked, setChecked] = useState(initialAttempt.checked);
@@ -105,9 +114,13 @@ const ChartSymbolQuiz = () => {
   const mastered = correctIds.length >= masteryTarget;
 
   useEffect(() => {
-    try { localStorage.setItem(CHART_SYMBOL_ATTEMPT_KEY, JSON.stringify({ version: 1, index, choice, checked, correctIds, complete } satisfies StoredAttempt)); }
+    if (complete && mastered) onMastery?.();
+  }, [complete, mastered, onMastery]);
+
+  useEffect(() => {
+    try { localStorage.setItem(attemptStorageKey, JSON.stringify({ version: 1, index, choice, checked, correctIds, complete } satisfies StoredAttempt)); }
     catch { /* Assessment remains usable when storage is blocked. */ }
-  }, [index, choice, checked, correctIds, complete]);
+  }, [attemptStorageKey, index, choice, checked, correctIds, complete]);
 
   if (complete) return <Card className="mx-auto mt-8 w-full max-w-2xl border-2 border-primary"><CardContent className="space-y-4 pt-6 text-center"><h2 className="text-2xl font-bold">Assessment complete</h2><p className="text-4xl font-bold text-primary">{correctIds.length} / {chartSymbolQuestions.length}</p><p role="status">{mastered ? "Mastery achieved: at least 11 of 13 correct." : "Mastery needs 11 of 13. Review the explanations and retry the full set."}</p><Button onClick={retry}><RefreshCcw className="mr-2 h-4 w-4"/>Retry assessment</Button></CardContent></Card>;
 

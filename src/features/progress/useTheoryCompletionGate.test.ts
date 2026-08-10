@@ -629,8 +629,9 @@ describe("useTheoryCompletionGate", () => {
     expect(mocks.saveProgressDetailed.mock.calls[0][1]).toBe(false);
     await act(async () => { releaseEvidence(); await Promise.all([firstEvidence, finalEvidence]); });
     await act(async () => { expect(await completion).toBe(true); });
-    expect(mocks.saveProgressDetailed).toHaveBeenCalledTimes(2);
-    expect(mocks.saveProgressDetailed.mock.calls.map((call) => call[1])).toEqual([false, true]);
-    expect(mocks.saveProgressDetailed.mock.calls[1][4]).toEqual(expect.objectContaining({ completionState: "completed", visitedSectionIds: ["s1", "s2"] }));
+    expect(mocks.saveProgressDetailed).toHaveBeenCalledTimes(3);
+    expect(mocks.saveProgressDetailed.mock.calls.map((call) => call[1])).toEqual([false, false, true]);
+    expect(mocks.saveProgressDetailed.mock.calls[1][4]).toEqual(expect.objectContaining({ completionState: "in_progress", visitedSectionIds: ["s1", "s2"] }));
+    expect(mocks.saveProgressDetailed.mock.calls[2][4]).toEqual(expect.objectContaining({ completionState: "completed", visitedSectionIds: ["s1", "s2"] }));
   });
 });

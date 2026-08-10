@@ -107,7 +107,8 @@ describe("VirtualChartPlotter access paths", () => {
   });
 
   it("counts each challenge once and reports exactly 8/8 mastery", () => {
-    render(<VirtualChartPlotter />);
+    const onMastery = vi.fn();
+    render(<VirtualChartPlotter onMastery={onMastery} />);
     fireEvent.click(screen.getByRole("button", { name: /start \/ retry/i }));
     const answers = ["3.1623", "135", "3.6056", "125.5377", "50.2166667,-1.5333333", "50.2083333,-1.5083333", "50.2466667,-1.575", "315"];
     answers.forEach((value) => {
@@ -119,5 +120,6 @@ describe("VirtualChartPlotter access paths", () => {
       fireEvent.click(screen.getByRole("button", { name: /next challenge/i }));
     });
     expect(screen.getAllByText(/mastery achieved: 8\/8/i).length).toBeGreaterThan(0);
+    expect(onMastery).toHaveBeenCalledOnce();
   });
 });

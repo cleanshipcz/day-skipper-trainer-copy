@@ -1,4 +1,4 @@
-import { describe, it, expect } from "vitest";
+import { describe, it, expect, vi } from "vitest";
 import { render, screen, fireEvent } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import TidalVisualizer from "@/components/navigation/TidalVisualizer";
@@ -56,7 +56,8 @@ describe("TidalVisualizer Component", () => {
 
   it("runs all six questions once, guards settled questions, teaches awash, and supports mastery retry", async () => {
     const user = userEvent.setup();
-    render(<TidalVisualizer />);
+    const onMastery = vi.fn();
+    render(<TidalVisualizer onMastery={onMastery} />);
     await user.click(screen.getByRole("button", { name: /start drill/i }));
     const answers = ["4.6", "1.2", "0", "0", "4.0", "0"];
 
@@ -81,6 +82,7 @@ describe("TidalVisualizer Component", () => {
     }
 
     expect(screen.getByText(/complete: 6\/6.*mastery achieved/i)).toBeTruthy();
+    expect(onMastery).toHaveBeenCalledOnce();
     await user.click(screen.getByRole("button", { name: /retry drill/i }));
     expect(screen.getByText(/question 1 of 6.*score 0\/0/i)).toBeTruthy();
   });
