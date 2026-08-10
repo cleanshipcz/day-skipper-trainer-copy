@@ -3,6 +3,7 @@ import { beaufortScale, type BeaufortLevel } from "@/data/beaufortScale";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { beaufortDrillQuestions, type DrillQuestion } from "./beaufortDrillQuestions";
+import { BeaufortSeaStateVisual } from "./BeaufortSeaStateVisual";
 
 type DrillResult = { id: string; correct: boolean };
 
@@ -93,6 +94,7 @@ export const BeaufortDrill = () => {
         <progress className="w-full" aria-label="Beaufort drill progress" value={index + 1} max={questions.length} />
       </CardHeader>
       <CardContent className="space-y-4">
+        {item.direction === "sea" && <BeaufortSeaStateVisual level={item.level} />}
         <h3 ref={questionHeadingRef} id={questionId} tabIndex={-1} className="font-semibold">{prompt}</h3>
         <p id={instructionsId} className="text-sm text-muted-foreground">Choose one force, then check your answer. A submitted answer is locked before you can advance.</p>
         <div role="group" aria-labelledby={questionId} aria-describedby={instructionsId} className="grid grid-cols-7 gap-2 sm:grid-cols-13">

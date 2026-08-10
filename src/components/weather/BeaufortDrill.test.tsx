@@ -42,6 +42,9 @@ describe("BeaufortDrill", () => {
     await user.click(screen.getByRole("button", { name: "Next question" }));
     await submitAnswer(user, 0);
     expect(screen.getByRole("status").textContent).toMatch(/Correct.*Force 0.*<1 knots.*Calm \(glassy\)/is);
+    const seaVisual = screen.getByRole("img");
+    expect(seaVisual.getAttribute("aria-label")).toMatch(/glassy water/i);
+    expect(seaVisual.getAttribute("aria-label")).not.toMatch(/Force|Calm|knots/i);
   });
 
   it("associates the active question and instructions with the answer group", () => {
