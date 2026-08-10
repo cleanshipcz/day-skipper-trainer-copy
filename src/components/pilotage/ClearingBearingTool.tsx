@@ -4,7 +4,7 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Label } from "@/components/ui/label";
 import ChartSurface from "@/components/navigation/unified/ChartSurface";
-import { assessClearingBearing, CLEARING_BEARING_SCENARIOS, solutionFor, type BearingRule } from "./clearingBearingScenarios";
+import { assessClearingBearing, clearanceRelationFor, CLEARING_BEARING_SCENARIOS, normalizeBearing, solutionFor, type BearingRule } from "./clearingBearingScenarios";
 
 interface Props { readonly onAllScenariosComplete?: () => boolean | Promise<boolean> }
 
@@ -22,6 +22,16 @@ export const ClearingBearingTool = ({ onAllScenariosComplete }: Props) => {
   const submit = useCallback(() => setResult(assessClearingBearing(String(bearing), rule, scenario)), [bearing, rule, scenario]);
   const next = () => { setIndex((value) => value + 1); setBearing(180); setRule(""); setResult(null); };
   const plottingEnd = { x: scenario.landmark.position.x + Math.sin(((bearing + 180) * Math.PI) / 180) * 330, y: scenario.landmark.position.y - Math.cos(((bearing + 180) * Math.PI) / 180) * 330 };
+  const relation = clearanceRelationFor(bearing, scenario);
+  const offset = { x: scenario.hazard.position.x - scenario.landmark.position.x, y: scenario.hazard.position.y - scenario.landmark.position.y };
+  const relationText = relation.kind === "crossing"
+    ? `Plotting line intersects the clearance area by ${Math.abs(relation.margin).toFixed(1)} chart units.`
+    : relation.kind === "tangent"
+      ? `Plotting line is tangent to the clearance boundary; signed margin ${relation.margin.toFixed(1)} chart units.`
+      : relation.kind === "clear"
+        ? `Plotting line clears the clearance area by ${relation.margin.toFixed(1)} chart units.`
+        : `Plotting ray points away from the hazard; rotate it towards the described hazard offset.`;
+  const adjustBearing = (delta: number) => { setBearing((value) => normalizeBearing(value + delta)); setResult(null); };
   const finish = async () => {
     if (completionState === "saving" || completionState === "done") return;
     setCompletionState("saving");
@@ -53,7 +63,8 @@ export const ClearingBearingTool = ({ onAllScenariosComplete }: Props) => {
           </ChartSurface>
         </div><figcaption className="mt-2 text-xs text-muted-foreground">The dashed red perimeter includes the required clearing margin. The green limiting line appears only after a correct answer.</figcaption>
       </figure>
-      <div className="grid gap-4 sm:grid-cols-[1fr_auto] sm:items-end"><div><div className="flex items-center justify-between"><Label htmlFor="clearing-bearing">Rotate plotting line</Label><output htmlFor="clearing-bearing" className="font-mono text-sm">Measured: {bearing.toString().padStart(3, "0")}°T</output></div><input className="h-11 w-full accent-primary" id="clearing-bearing" aria-label="Rotate plotting line, measured true bearing" type="range" min="0" max="359" step="1" value={bearing} disabled={solved} onChange={(event) => { setBearing(Number(event.target.value)); setResult(null); }} /><p className="text-xs text-muted-foreground">Drag the control or use arrow keys to rotate the blue line until it is tangent to the outside of the clearance margin.</p></div>
+      <section id="nonvisual-chart-data" aria-labelledby="chart-measurements-heading" className="rounded-lg border p-3 text-sm"><h4 id="chart-measurements-heading" className="font-semibold">Chart measurements</h4><ul className="mt-1 list-disc pl-5"><li>From {scenario.landmark.name}, the centre of {scenario.hazard.name} is {Math.abs(offset.x)} units {offset.x >= 0 ? "east" : "west"} and {Math.abs(offset.y)} units {offset.y >= 0 ? "south" : "north"}.</li><li>Hazard radius {scenario.hazard.radius} units plus required margin {scenario.hazard.margin} units gives a clearance radius of {scenario.hazard.radius + scenario.hazard.margin} units.</li><li>Target criterion: rotate the ray from the mark towards the vessel until its signed clearance margin is zero (tangent), then independently choose the safe-side rule using the test position.</li></ul></section>
+      <div className="grid gap-4 sm:grid-cols-[1fr_auto] sm:items-end"><div><div className="flex items-center justify-between"><Label htmlFor="clearing-bearing">Rotate plotting line</Label><output htmlFor="clearing-bearing" className="font-mono text-sm">Measured: {bearing.toString().padStart(3, "0")}°T</output></div><input className="h-11 w-full accent-primary" id="clearing-bearing" aria-label="Rotate plotting line, measured true bearing" aria-describedby="nonvisual-chart-data clearance-relation" type="range" min="0" max="359" step="1" value={bearing} disabled={solved} onKeyDown={(event) => { if (event.key === "ArrowRight" || event.key === "ArrowUp") { event.preventDefault(); adjustBearing(1); } else if (event.key === "ArrowLeft" || event.key === "ArrowDown") { event.preventDefault(); adjustBearing(-1); } }} onChange={(event) => { setBearing(Number(event.target.value)); setResult(null); }} /><p className="text-xs text-muted-foreground">Drag the control or use arrow keys to rotate the blue line until it is tangent to the outside of the clearance margin.</p><p id="clearance-relation" role="status" aria-live="polite" aria-atomic="true" className="mt-2 font-medium">{relationText}</p></div>
         <fieldset disabled={solved}><legend className="mb-2 text-sm font-medium">Safe-side rule</legend><div className="flex gap-2">{(["NLT", "NMT"] as const).map((value) => <Button key={value} type="button" variant={rule === value ? "default" : "outline"} aria-pressed={rule === value} onClick={() => { setRule(value); setResult(null); }}>{value}</Button>)}</div></fieldset></div>
       <Button onClick={submit} disabled={solved}>Check plotted answer</Button>
       {result && <div role={result.kind === "incorrect" || result.kind === "invalid" ? "alert" : "status"} className={`flex gap-2 rounded-lg p-3 text-sm ${solved ? "bg-green-100 text-green-800" : "bg-red-100 text-red-800"}`}>{solved ? <CheckCircle2 aria-hidden="true" className="h-5 w-5 shrink-0" /> : <XCircle aria-hidden="true" className="h-5 w-5 shrink-0" />}<span>{result.message}</span></div>}

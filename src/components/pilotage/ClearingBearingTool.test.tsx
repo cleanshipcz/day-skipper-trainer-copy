@@ -59,4 +59,34 @@ describe("ClearingBearingTool mastery flow", () => {
     fireEvent.change(screen.getByLabelText(/Rotate plotting line/), { target: { value: "200" } });
     expect(screen.getByTestId("plotting-line").getAttribute("x2")).not.toBe(before);
   });
+
+  it("provides nonvisual measurements and distinguishes crossing, clear and tangent states", () => {
+    render(<ClearingBearingTool />);
+    expect(screen.getByRole("heading", { name: "Chart measurements" })).toBeTruthy();
+    expect(screen.getByText(/clearance radius of 40 units/)).toBeTruthy();
+    expect(screen.getByText(/signed clearance margin is zero/)).toBeTruthy();
+    const relation = document.getElementById("clearance-relation");
+    expect(relation?.textContent).toMatch(/points away/);
+    const control = screen.getByLabelText(/Rotate plotting line/);
+    fireEvent.change(control, { target: { value: "300" } });
+    expect(relation?.textContent).toMatch(/intersects.*chart units/);
+    fireEvent.change(control, { target: { value: "280" } });
+    expect(relation?.textContent).toMatch(/clears.*chart units/);
+    fireEvent.change(control, { target: { value: "289" } });
+    expect(relation?.textContent).toMatch(/clears/);
+    fireEvent.keyDown(control, { key: "ArrowRight" });
+    expect(relation?.textContent).toMatch(/tangent.*signed margin/);
+  });
+
+  it("can solve a scenario with keyboard adjustment without answer leakage", () => {
+    render(<ClearingBearingTool />);
+    expect(screen.queryByText(/Limit \d{3}°T/)).toBeNull();
+    const control = screen.getByLabelText(/Rotate plotting line/);
+    fireEvent.change(control, { target: { value: "289" } });
+    fireEvent.keyDown(control, { key: "ArrowRight" });
+    fireEvent.click(screen.getByRole("button", { name: "NMT" }));
+    fireEvent.click(screen.getByRole("button", { name: "Check plotted answer" }));
+    expect(screen.getByText(/Limit 290°T NMT/)).toBeTruthy();
+    expect(screen.getByRole("button", { name: "Next scenario" })).toBeTruthy();
+  });
 });

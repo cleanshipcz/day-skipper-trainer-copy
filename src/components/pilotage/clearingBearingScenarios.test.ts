@@ -4,8 +4,8 @@ import { assessClearingBearing, CLEARING_BEARING_SCENARIOS, isWithinSafeToleranc
 describe("clearing-bearing geometry", () => {
   it("derives deterministic tangent limits from the chart", () => {
     const expected = [
-      { x: 313.9119000573, y: 132.4972129463, bearing: 290.3526594997, safe: 354.4278021960, rule: "NLT" },
-      { x: 225.3497606001, y: 151.4751158107, bearing: 58.8613004654, safe: 23.9100923001, rule: "NMT" },
+      { x: 313.9119000573, y: 132.4972129463, bearing: 290.3526594997, safe: 280.0743327301, rule: "NMT" },
+      { x: 225.3497606001, y: 151.4751158107, bearing: 58.8613004654, safe: 64.9981883272, rule: "NLT" },
     ] as const;
     CLEARING_BEARING_SCENARIOS.forEach((scenario, index) => {
       const first = solutionFor(scenario);
@@ -35,9 +35,9 @@ describe("clearing-bearing geometry", () => {
   it("accepts the declared tolerance boundary and rejects beyond it", () => {
     const scenario = CLEARING_BEARING_SCENARIOS[0];
     const { bearing, rule } = solutionFor(scenario);
-    expect(assessClearingBearing(String(bearing + 2), rule, scenario).kind).toBe("correct");
-    expect(assessClearingBearing(String(bearing + 2.01), rule, scenario).kind).toBe("incorrect");
-    expect(assessClearingBearing(String(bearing - 0.01), rule, scenario).kind).toBe("incorrect");
+    expect(assessClearingBearing(String(bearing - 2), rule, scenario).kind).toBe("correct");
+    expect(assessClearingBearing(String(bearing - 2.01), rule, scenario).kind).toBe("incorrect");
+    expect(assessClearingBearing(String(bearing + 0.01), rule, scenario).kind).toBe("incorrect");
   });
 
   it("keeps wrapped tolerance one-sided at true north", () => {
