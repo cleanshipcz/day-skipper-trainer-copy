@@ -67,7 +67,7 @@ describe("ClearingBearingTool mastery flow", () => {
     expect(screen.getByText(/Find both zero-margin tangents/)).toBeTruthy();
     expect(screen.getByText(/known safe-water observation/)).toBeTruthy();
     expect(screen.getByText(/if the safe bearing is numerically greater choose NLT/)).toBeTruthy();
-    expect(container.querySelector("ellipse[cx='302'][cy='90']")).toBeTruthy();
+    expect(container.querySelector("ellipse[cx='302'][cy='90'][rx='70'][ry='30']")).toBeTruthy();
     const relation = document.getElementById("clearance-relation");
     expect(relation?.textContent).toMatch(/points away/);
     const control = screen.getByLabelText(/Rotate plotting line/);

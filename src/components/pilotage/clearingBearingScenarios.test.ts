@@ -77,6 +77,24 @@ describe("clearing-bearing geometry", () => {
     }
   });
 
+  it("keeps each known-safe observation inside a safe-area ellipse disjoint from clearance", () => {
+    for (const scenario of CLEARING_BEARING_SCENARIOS) {
+      const observerOffset = { x: 0, y: 0 }; // ellipse is deliberately centred on the known-safe observation
+      const containment = (observerOffset.x / scenario.safeArea.radiusX) ** 2
+        + (observerOffset.y / scenario.safeArea.radiusY) ** 2;
+      expect(containment).toBeLessThanOrEqual(1);
+
+      const clearanceRadius = scenario.hazard.radius + scenario.hazard.margin;
+      const separatedOnX = scenario.safeObserver.x + scenario.safeArea.radiusX < scenario.hazard.position.x - clearanceRadius
+        || scenario.safeObserver.x - scenario.safeArea.radiusX > scenario.hazard.position.x + clearanceRadius;
+      const separatedOnY = scenario.safeObserver.y + scenario.safeArea.radiusY < scenario.hazard.position.y - clearanceRadius
+        || scenario.safeObserver.y - scenario.safeArea.radiusY > scenario.hazard.position.y + clearanceRadius;
+      // Disjoint bounding extents on either axis are a sufficient geometric
+      // proof that the ellipse and clearance circle cannot overlap.
+      expect(separatedOnX || separatedOnY).toBe(true);
+    }
+  });
+
   it.each(["", "north", "-1", "360", "12degrees"])("rejects invalid input %j", (input) => {
     expect(assessClearingBearing(input, "NLT", CLEARING_BEARING_SCENARIOS[0]).kind).toBe("invalid");
   });

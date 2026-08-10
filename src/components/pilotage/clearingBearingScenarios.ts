@@ -9,6 +9,7 @@ export interface ClearingBearingScenario {
   readonly hazard: { readonly name: string; readonly position: ChartPoint; readonly radius: number; readonly margin: number };
   readonly tangent: "left" | "right";
   readonly safeObserver: ChartPoint;
+  readonly safeArea: { readonly radiusX: number; readonly radiusY: number };
   readonly chartNote: string;
 }
 
@@ -110,13 +111,13 @@ export const CLEARING_BEARING_SCENARIOS: readonly ClearingBearingScenario[] = [
     task: "Use the church spire and the charted shoal plus its shaded clearance margin. Plot the limiting line, measure the true bearing from vessel to spire, and choose the inequality that keeps the vessel in the labelled channel.",
     landmark: { name: "Church Spire", position: { x: 105, y: 55 } },
     hazard: { name: "Rocky Shoal", position: { x: 300, y: 170 }, radius: 22, margin: 18 },
-    tangent: "left", safeObserver: { x: 302, y: 90 }, chartNote: "Dredged channel · 5.2 m",
+    tangent: "left", safeObserver: { x: 302, y: 90 }, safeArea: { radiusX: 70, radiusY: 30 }, chartNote: "Dredged channel · 5.2 m",
   },
   {
     id: "wreck-headland", title: "Wreck off North Head",
     task: "Use North Head light and the wreck's shaded clearance margin. Plot the limiting line, measure the true bearing from vessel to light, and choose the inequality that keeps the vessel in the labelled safe-water sector.",
     landmark: { name: "North Head Light", position: { x: 390, y: 52 } },
     hazard: { name: "Wreck", position: { x: 245, y: 184 }, radius: 18, margin: 20 },
-    tangent: "right", safeObserver: { x: 182, y: 149 }, chartNote: "Safe water · depth 7.8 m",
+    tangent: "right", safeObserver: { x: 182, y: 149 }, safeArea: { radiusX: 20, radiusY: 18 }, chartNote: "Safe water · depth 7.8 m",
   },
 ] as const;

@@ -49,7 +49,7 @@ export const ClearingBearingTool = ({ onAllScenariosComplete }: Props) => {
           <ChartSurface width={500} height={300} scale={100} viewBox="0 0 500 300" role="img" aria-label={`Practice chart: ${scenario.landmark.name}, ${scenario.hazard.name}, clearance margin and safe-water area`}>
             <title>{`Practice chart: ${scenario.landmark.name}, ${scenario.hazard.name}, clearance margin and safe-water area`}</title>
             <path d="M0 25 Q120 100 190 25 L0 0 Z" fill="#d6c39a" stroke="#765f36" strokeWidth="2" />
-            <ellipse cx={scenario.safeObserver.x} cy={scenario.safeObserver.y} rx="82" ry="38" fill="#60a5fa" opacity=".18" stroke="#2563eb" strokeDasharray="5 4" />
+            <ellipse cx={scenario.safeObserver.x} cy={scenario.safeObserver.y} rx={scenario.safeArea.radiusX} ry={scenario.safeArea.radiusY} fill="#60a5fa" opacity=".18" stroke="#2563eb" strokeDasharray="5 4" />
             <text x="20" y="22" fontSize="11" fill="#604b28">Coastline</text>
             <text x={scenario.safeObserver.x} y={scenario.safeObserver.y + 24} textAnchor="middle" fontSize="11" fill="#1d4ed8">{scenario.chartNote}</text>
             <circle cx={scenario.safeObserver.x} cy={scenario.safeObserver.y} r="6" fill="#2563eb" /><text x={scenario.safeObserver.x} y={scenario.safeObserver.y - 10} textAnchor="middle" fontSize="10">Test position</text>
