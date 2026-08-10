@@ -20,9 +20,10 @@ export const TransitSightPicture = ({scenario}:{readonly scenario:TransitScenari
   const qualificationId = `transit-safety-${scenario.id}`;
   const titleId = `transit-picture-title-${scenario.id}`;
   const descriptionId = `transit-picture-description-${scenario.id}`;
+  const relationship = LABELS[scenario.answer].toLowerCase();
   return <figure className="space-y-2"><svg viewBox={`0 0 ${scenario.chartWidth} ${scenario.chartHeight}`} className="w-full h-auto" role="img" aria-labelledby={`${titleId} ${descriptionId}`} aria-describedby={qualificationId}>
     <title id={titleId}>Observer sight picture of two transit marks</title>
-    <desc id={descriptionId}>A nearer red front mark and a farther purple rear mark. The target state is identifying whether the front mark appears left, aligned, or right.</desc>
+    <desc id={descriptionId}>A nearer red front mark and a farther purple rear mark. In this sight picture, {relationship}.</desc>
     <rect width={scenario.chartWidth} height={scenario.chartHeight} fill="#dbeafe"/><rect y={horizon} width={scenario.chartWidth} height={scenario.chartHeight-horizon} fill="#93c5fd"/>
     <line y1={horizon} y2={horizon} x2={scenario.chartWidth} stroke="#475569"/>
     {mark(rear,"Rear",false)}{mark(front,"Front",true)}
@@ -66,7 +67,8 @@ export const TransitExercise = ({onComplete}: TransitExerciseProps) => {
       <p className="text-sm text-muted-foreground">Mastery requires all {MASTERY} sight pictures correct. An incorrect answer must be retried.</p>
       <p id={instructionsId} className="text-sm text-muted-foreground">Choose one of the three labelled answers. You can also swipe horizontally across the picture; vertical touch scrolling remains available.</p>
       <div
-        className="border rounded-lg overflow-hidden touch-pan-y"
+        className="border rounded-lg overflow-hidden"
+        style={{touchAction:"pan-y pinch-zoom"}}
         aria-describedby={instructionsId}
         onPointerDown={(event) => {
           if (correct || !event.isPrimary || (event.pointerType === "mouse" && event.button !== 0)) return;
@@ -79,8 +81,8 @@ export const TransitExercise = ({onComplete}: TransitExerciseProps) => {
       >
         <TransitSightPicture scenario={scenario}/>
       </div>
-      <fieldset disabled={correct} className="grid gap-2 sm:grid-cols-3"><legend className="sr-only">Choose the sight picture: the front mark's apparent position</legend>{(["left","aligned","right"] as const).map(choice=><Button key={choice} type="button" className="min-h-11 h-auto whitespace-normal" variant={answer===choice?"secondary":"outline"} aria-pressed={answer===choice} onClick={()=>submit(choice)}>{LABELS[choice]}</Button>)}</fieldset>
       {answer && <div ref={feedbackRef} tabIndex={-1} role="status" aria-live="polite" className={`flex gap-2 rounded-lg p-3 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring ${correct?"bg-green-50 text-green-800":"bg-red-50 text-red-800"}`}>{correct?<CheckCircle2 aria-hidden="true"/>:<XCircle aria-hidden="true"/>}<span>{scenario.feedback[answer]}{!correct && " Try this sight picture again."}</span></div>}
+      <fieldset disabled={correct} className="grid gap-2 sm:grid-cols-3"><legend className="sr-only">Choose the sight picture: the front mark's apparent position</legend>{(["left","aligned","right"] as const).map(choice=><Button key={choice} type="button" className="min-h-11 h-auto whitespace-normal" variant={answer===choice?"secondary":"outline"} aria-pressed={answer===choice} onClick={()=>submit(choice)}>{LABELS[choice]}</Button>)}</fieldset>
       {correct && <div className="flex justify-end"><Button onClick={next}>{index+1===TRANSIT_SCENARIOS.length?"Complete mastery":"Next sight picture"}</Button></div>}
     </CardContent>
   </Card>;
