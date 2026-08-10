@@ -74,7 +74,9 @@ describe("fog and marine visibility safety guidance", () => {
     render(<Content />);
     const refs = screen.getByRole("heading", { name: /authoritative references/i }).closest("section")!;
     const hrefs = within(refs).getAllByRole("link").map((link) => link.getAttribute("href"));
-    expect(hrefs.filter((href) => href?.includes("metoffice.gov.uk"))).toHaveLength(4);
+    expect(hrefs).toContain("https://weather.metoffice.gov.uk/guides/coast-and-sea/glossary");
+    expect(hrefs).toContain("https://weather.metoffice.gov.uk/learn-about/weather/types-of-weather/fog");
+    expect(hrefs).toContain("https://weather.metoffice.gov.uk/learn-about/weather/types-of-weather/humidity");
     expect(hrefs.some((href) => href?.includes("NavRules_Handbook_Corrected_08_08_2024.pdf"))).toBe(true);
   });
 });
