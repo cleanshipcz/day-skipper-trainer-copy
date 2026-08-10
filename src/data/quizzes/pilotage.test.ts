@@ -1,4 +1,5 @@
 import { describe, expect, it } from "vitest";
+import { readFileSync } from "node:fs";
 import questions from "./pilotage";
 import { validateQuizBank } from "./index";
 
@@ -30,5 +31,13 @@ describe("visual pilotage mastery bank", () => {
       const answerName = item.buoyFamily?.replace("-", " ");
       if (answerName) expect(item.imageAlt?.toLowerCase()).not.toContain(`${answerName} mark`);
     }
+  });
+
+  it("keeps the final panel inside the viewBox and outlines yellow topmarks for contrast", () => {
+    const svg = readFileSync(`${process.cwd()}/public/images/pilotage/iala-region-a-marks.svg`, "utf8");
+    expect(svg).toContain('viewBox="0 0 800 300"');
+    expect(svg).toContain('data-panel="H" transform="translate(730 35)"');
+    expect(svg).toMatch(/data-topmark-outline="special"[^>]+stroke="#111827"[^>]+stroke-width="16"/);
+    expect(svg).toMatch(/data-topmark-outline="emergency-wreck"[^>]+stroke="#111827"[^>]+stroke-width="15"/);
   });
 });
