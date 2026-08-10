@@ -197,7 +197,7 @@ export const useTheoryCompletionGate = ({
 
   const markSectionVisited = useCallback(
     async (sectionId: string) => {
-      if (!sectionId || !requiredSectionIds.includes(sectionId)) return;
+      if (loadState === "failed" || !sectionId || !requiredSectionIds.includes(sectionId)) return;
 
       /**
        * Read the latest visited list from a ref rather than relying on
@@ -220,7 +220,7 @@ export const useTheoryCompletionGate = ({
       });
       return persistInProgressIfNeeded(nextDecision.state, nextDecision.score, nextVisitedSectionIds);
     },
-    [persistInProgressIfNeeded, requiredSectionIds, writeBrowserEvidence]
+    [loadState, persistInProgressIfNeeded, requiredSectionIds, writeBrowserEvidence]
   );
 
   const markCompleted = useCallback(async () => {

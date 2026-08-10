@@ -142,5 +142,5 @@ export default function WeatherForecastsTheory() {
     <p role="status" aria-live="polite">{status}</p>
   </section>;
 
-  return <WeatherTheoryLayout title="Marine Weather Forecasts" subtitle="Obtain, cross-check and interpret" topicId={TOPIC_IDS.WEATHER_FORECASTS} sections={gatedSections} completionControl={completionControl}><ForecastAreaMap onGuidedComplete={() => void gate.markSectionVisited(MARINE_FORECAST_GATE.guidedCheck)} /></WeatherTheoryLayout>;
+  return <WeatherTheoryLayout title="Marine Weather Forecasts" subtitle="Obtain, cross-check and interpret" topicId={TOPIC_IDS.WEATHER_FORECASTS} sections={gatedSections} completionControl={completionControl}><ForecastAreaMap onGuidedComplete={() => { if (gate.loadState === "ready") void gate.markSectionVisited(MARINE_FORECAST_GATE.guidedCheck); }} /></WeatherTheoryLayout>;
 }

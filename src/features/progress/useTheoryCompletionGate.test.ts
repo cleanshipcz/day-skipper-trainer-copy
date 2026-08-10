@@ -263,6 +263,18 @@ describe("useTheoryCompletionGate", () => {
     expect(mocks.loadProgressDetailed).toHaveBeenCalledTimes(2);
   });
 
+  it("rejects evidence writes while a failed load is awaiting retry", async () => {
+    mocks.loadProgressDetailed.mockResolvedValueOnce({ status: "failed", record: null });
+    const { result } = renderHook(() => useTheoryCompletionGate({ topicId, requiredSectionIds, catalogueRevision: "v1" }));
+    await waitFor(() => expect(result.current.loadState).toBe("failed"));
+    mocks.saveProgressDetailed.mockClear();
+
+    await act(async () => { await result.current.markSectionVisited("s1"); });
+
+    expect(result.current.visitedSectionIds).toEqual([]);
+    expect(mocks.saveProgressDetailed).not.toHaveBeenCalled();
+  });
+
   it("isolates browser evidence by owner", async () => {
     mocks.ownerId = "owner-a";
     localStorage.setItem(`theory-gate:owner-a:${topicId}:v1`, JSON.stringify({ visitedSectionIds: ["s1"] }));
@@ -612,7 +624,7 @@ describe("useTheoryCompletionGate", () => {
 
   it("restores a queued completion without enqueueing an older incomplete snapshot", async () => {
     mocks.ownerId = "owner-a";
-    mocks.loadProgressDetailed.mockResolvedValue({ status: "failed", record: null });
+    mocks.loadProgressDetailed.mockResolvedValueOnce({ status: "missing", record: null }).mockResolvedValue({ status: "failed", record: null });
     mocks.saveProgressDetailed.mockResolvedValue("queued");
     const first = renderHook(() => useTheoryCompletionGate({ topicId, requiredSectionIds: ["s1"], catalogueRevision: "v1" }));
     await act(async () => { await first.result.current.markSectionVisited("s1"); });
@@ -629,7 +641,10 @@ describe("useTheoryCompletionGate", () => {
 
   it("keeps completion monotonic when a stale second hook writes incomplete evidence", async () => {
     mocks.ownerId = "owner-tabs";
-    mocks.loadProgressDetailed.mockResolvedValue({ status: "failed", record: null });
+    mocks.loadProgressDetailed
+      .mockResolvedValueOnce({ status: "missing", record: null })
+      .mockResolvedValueOnce({ status: "missing", record: null })
+      .mockResolvedValue({ status: "failed", record: null });
     mocks.saveProgressDetailed.mockResolvedValue("queued");
     const args = { topicId, requiredSectionIds, catalogueRevision: "v1" };
     const completedTab = renderHook(() => useTheoryCompletionGate(args));

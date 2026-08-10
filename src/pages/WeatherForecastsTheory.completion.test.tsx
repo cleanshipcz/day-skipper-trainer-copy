@@ -109,6 +109,8 @@ describe("Marine Forecasts completion gate", () => {
     expect(screen.getByRole("status").textContent).toMatch(/could not be loaded.*retry/i);
     fireEvent.click(screen.getByRole("button", { name: "Retry loading progress" }));
     expect(mocks.gate.retryLoad).toHaveBeenCalledTimes(1);
+    fireEvent.click(screen.getByRole("button", { name: "Finish guided geography test" }));
+    expect(mocks.gate.markSectionVisited).not.toHaveBeenCalled();
   });
 
   it("announces an initial evidence-write failure and retries without moving focus", () => {
