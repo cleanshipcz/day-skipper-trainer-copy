@@ -5,6 +5,8 @@ import { beforeEach, describe, expect, it } from "vitest";
 import { BeaufortDrill } from "./BeaufortDrill";
 import { SynopticChartReader } from "./SynopticChartReader";
 import { ForecastAreaMap } from "./ForecastAreaMap";
+import { areaInDirection } from "./weatherMapNavigation";
+import { forecastAreas } from "@/data/forecastAreas";
 
 type Point = readonly [number, number];
 
@@ -132,27 +134,46 @@ describe("weather interactions", () => {
     expect(screen.getByRole("button", { name: "12" })).toBeTruthy();
   });
 
-  it("exposes all forecast areas as focusable controls", async () => {
+  it("uses one spatial keyboard focus stop for all forecast areas", async () => {
     const user = userEvent.setup();
-    render(<ForecastAreaMap />);
-    const dogger = screen.getByRole("button", { name: "Dogger" });
+    const { container } = render(<ForecastAreaMap />);
+    const chooser = screen.getByRole("listbox", { name: "Shipping forecast area chooser" });
+    expect(container.querySelectorAll('[tabindex="0"]')).toHaveLength(1);
+    expect(chooser.getAttribute("aria-activedescendant")).toContain("southeast-iceland");
+
+    chooser.focus();
+    await user.keyboard("{ArrowRight}");
+    expect(screen.getByRole("option", { name: "Faeroes" }).getAttribute("aria-selected")).toBe("true");
+    expect(document.activeElement).toBe(chooser);
+    await user.keyboard("{End}");
+    expect(screen.getByRole("option", { name: "Trafalgar" }).getAttribute("aria-selected")).toBe("true");
+    await user.keyboard("{Home}");
+    expect(screen.getByRole("option", { name: "Southeast Iceland" }).getAttribute("aria-selected")).toBe("true");
+
+    const dogger = screen.getByRole("option", { name: "Dogger" });
     await user.click(dogger);
-    expect(dogger.getAttribute("aria-pressed")).toBe("true");
+    expect(dogger.getAttribute("aria-selected")).toBe("true");
     expect(screen.getByRole("status").textContent).toContain("North Sea east");
     expect(screen.getByText("Great Britain")).toBeTruthy();
-    expect(screen.getByRole("button", { name: /Dogger: North Sea east/i }).getAttribute("aria-pressed")).toBe("true");
     expect(screen.getByTestId("selected-area-marker").getAttribute("data-area")).toBe("Dogger");
     expect(screen.getByTestId("selected-area-marker").textContent).toContain("Dogger");
-    expect(screen.getByRole("group", { name: "Shipping forecast area list" })).toBeTruthy();
     const map = screen.getByRole("img", { name: /Met Office Shipping Forecast sea areas/i });
     expect(map.getAttribute("viewBox")).toBe("0 0 600 739");
     expect(map.getAttribute("class")).toContain("w-full");
-    expect(map.querySelectorAll('[role="button"]')).toHaveLength(31);
-    expect(map.querySelector('[aria-label^="Dogger:"]')?.getAttribute("aria-pressed")).toBe("true");
-    const southeastIceland = map.querySelector<SVGElement>('[aria-label^="Southeast Iceland:"]')!;
-    southeastIceland.focus();
-    await user.keyboard("{Enter}");
-    expect(southeastIceland.getAttribute("aria-pressed")).toBe("true");
+    expect(map.querySelectorAll("[data-map-area]")).toHaveLength(31);
+    expect(map.querySelectorAll('[tabindex="0"]')).toHaveLength(0);
+    const southeastIceland = map.querySelector<SVGElement>('[data-map-area="Southeast Iceland"]')!;
+    await user.click(southeastIceland);
     expect(screen.getByRole("status").textContent).toMatch(/Southeast Iceland.*southeast of Iceland/i);
+    expect(map.querySelector('[data-map-area="Southeast Iceland"]')?.getAttribute("class")).toContain("stroke-[5]");
+    expect(screen.getByText(/arrow keys move geographically and select an area/i)).toBeTruthy();
+  });
+
+  it("resolves directional keyboard movement through declared adjacent areas", () => {
+    const byName = new Map(forecastAreas.map((area) => [area.name, area]));
+    expect(areaInDirection(byName.get("Dogger")!, "ArrowUp").name).toBe("Forties");
+    expect(areaInDirection(byName.get("Dogger")!, "ArrowRight").name).toBe("German Bight");
+    expect(areaInDirection(byName.get("Dogger")!, "ArrowLeft").name).toBe("Tyne");
+    expect(areaInDirection(byName.get("Dogger")!, "ArrowDown").name).toBe("Humber");
   });
 });
