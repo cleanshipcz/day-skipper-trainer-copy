@@ -1,6 +1,9 @@
 import { fireEvent, render, screen } from "@testing-library/react";
 import { describe, expect, it, vi } from "vitest";
-import { PreciseNumberInput } from "./VectorTriangleTool";
+import { MemoryRouter } from "react-router-dom";
+import VectorTriangleTool, { PreciseNumberInput } from "./VectorTriangleTool";
+
+vi.mock("@/features/progress/TheoryCompletionButton", () => ({ TheoryCompletionButton: () => <button>Completion</button> }));
 
 describe("PreciseNumberInput", () => {
   it("keeps blank and invalid drafts away from numeric state, then accepts a valid retype without warnings", () => {
@@ -40,5 +43,19 @@ describe("PreciseNumberInput", () => {
     expect(input.getAttribute("aria-invalid")).toBe("false");
     expect(onDraftValidity).toHaveBeenLastCalledWith(true);
     expect(screen.queryByRole("alert")).toBeNull();
+  });
+
+  it("restores the initial 90-degree draft, validity, and diagram when Reset Default keeps the same numeric value", () => {
+    render(<MemoryRouter><VectorTriangleTool /></MemoryRouter>);
+    const track = screen.getByLabelText("Desired track over ground (true)") as HTMLInputElement;
+    expect(screen.getByRole("img", { name: /course to steer vector triangle/i })).toBeTruthy();
+    fireEvent.change(track, { target: { value: "" } });
+    expect(track.getAttribute("aria-invalid")).toBe("true");
+    expect(screen.queryByRole("img", { name: /course to steer vector triangle/i })).toBeNull();
+    fireEvent.click(screen.getByRole("button", { name: /Reset Default/i }));
+    const restored = screen.getByLabelText("Desired track over ground (true)") as HTMLInputElement;
+    expect(restored.value).toBe("90");
+    expect(restored.getAttribute("aria-invalid")).toBe("false");
+    expect(screen.getByRole("img", { name: /course to steer vector triangle/i })).toBeTruthy();
   });
 });

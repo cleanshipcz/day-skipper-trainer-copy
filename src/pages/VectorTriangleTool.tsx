@@ -64,6 +64,7 @@ const VectorTriangleTool = () => {
   const [targetHeading, setTargetHeading] = useState(90); // The random goal
   const [drillFeedback, setDrillFeedback] = useState<"correct" | "incorrect" | null>(null);
   const [invalidDrafts, setInvalidDrafts] = useState<Record<string, boolean>>({});
+  const [inputEpoch, setInputEpoch] = useState(0);
   const draftValidity = (id: string) => (valid: boolean) => setInvalidDrafts((current) => ({ ...current, [id]: !valid }));
   const hasInvalidDraft = Object.values(invalidDrafts).some(Boolean);
 
@@ -86,12 +87,16 @@ const VectorTriangleTool = () => {
 
     setDrillFeedback(null);
     setDrillMode(true);
+    setInvalidDrafts({});
+    setInputEpoch((current) => current + 1);
   };
 
   const exitDrill = () => {
     setDrillMode(false);
     setGroundTrack(90); // Reset to default solver state
     setDrillFeedback(null);
+    setInvalidDrafts({});
+    setInputEpoch((current) => current + 1);
   };
 
   const checkAnswer = () => setDrillFeedback(scoreCourse(userHeading, { desiredTrackDeg: targetHeading, boatSpeedKn: boatSpeed, tideSetDeg: tideSet, tideRateKn: tideRate }).correct ? "correct" : "incorrect");
@@ -201,8 +206,8 @@ const VectorTriangleTool = () => {
                   /* SOLVER MODE CONTROLS */
                   <>
                     <div className="rounded border bg-slate-50 p-3 text-sm"><p className="font-semibold">Precise keyboard inputs</p><p>Enter true bearings and speeds; sliders below provide coarse adjustment.</p></div>
-                    <PreciseNumberInput id="desired-track" label="Desired track over ground (true)" value={groundTrackHeading} onValidValue={setGroundTrack} onDraftValidity={draftValidity("desired-track")} min={0} max={359.9} step={0.1} unit="°T" />
-                    <PreciseNumberInput id="boat-speed" label="Boat speed through water" value={boatSpeed} onValidValue={setBoatSpeed} onDraftValidity={draftValidity("boat-speed")} min={0.1} max={100} step={0.1} unit="kn" />
+                    <PreciseNumberInput key={`track-${inputEpoch}`} id="desired-track" label="Desired track over ground (true)" value={groundTrackHeading} onValidValue={setGroundTrack} onDraftValidity={draftValidity("desired-track")} min={0} max={359.9} step={0.1} unit="°T" />
+                    <PreciseNumberInput key={`speed-${inputEpoch}`} id="boat-speed" label="Boat speed through water" value={boatSpeed} onValidValue={setBoatSpeed} onDraftValidity={draftValidity("boat-speed")} min={0.1} max={100} step={0.1} unit="kn" />
                     <div className="space-y-2">
                       <Label>Desired Course (Ground Track)</Label>
                       <div className="flex items-center gap-4">
@@ -240,8 +245,8 @@ const VectorTriangleTool = () => {
                     Let's disable them in Drill Mode.
                 */}
                 <div className={`pt-4 border-t space-y-4 ${drillMode ? "opacity-50 pointer-events-none" : ""}`}>
-                  {!drillMode && <PreciseNumberInput id="tide-set" label="Tidal set (toward, true)" value={tideSet} onValidValue={setTideSet} onDraftValidity={draftValidity("tide-set")} min={0} max={359.9} step={0.1} unit="°T" />}
-                  {!drillMode && <PreciseNumberInput id="tide-rate" label="Tidal rate" value={tideRate} onValidValue={setTideRate} onDraftValidity={draftValidity("tide-rate")} min={0} max={20} step={0.1} unit="kn" />}
+                  {!drillMode && <PreciseNumberInput key={`set-${inputEpoch}`} id="tide-set" label="Tidal set (toward, true)" value={tideSet} onValidValue={setTideSet} onDraftValidity={draftValidity("tide-set")} min={0} max={359.9} step={0.1} unit="°T" />}
+                  {!drillMode && <PreciseNumberInput key={`rate-${inputEpoch}`} id="tide-rate" label="Tidal rate" value={tideRate} onValidValue={setTideRate} onDraftValidity={draftValidity("tide-rate")} min={0} max={20} step={0.1} unit="kn" />}
                   <div className="space-y-2">
                     <Label className="text-red-700">Tide Set (Direction)</Label>
                     <div className="flex items-center gap-4">
@@ -281,6 +286,8 @@ const VectorTriangleTool = () => {
                     setBoatSpeed(5);
                     setTideSet(180);
                     setTideRate(2);
+                    setInvalidDrafts({});
+                    setInputEpoch((current) => current + 1);
                   }}
                   className="w-full"
                 >
