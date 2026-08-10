@@ -72,8 +72,10 @@ describe("fog and marine visibility safety guidance", () => {
     render(<Content />);
     const plan = screen.getByRole("heading", { name: /restricted-visibility action plan/i }).closest("section")?.textContent ?? "";
     expect(plan).toMatch(/Before entering:.*avoid, delay or divert.*lookout.*safe speed.*engine.*navigation lights.*Rule 35/i);
+    expect(plan).toMatch(/Before entering:.*lifejackets.*clip on.*competent helm.*immediate hand steering/i);
     expect(plan).toMatch(/position.*depth.*escape water.*safe anchorage.*diversion/i);
     expect(plan).toMatch(/If visibility falls suddenly:.*first control speed and heading/i);
+    expect(plan).toMatch(/If visibility falls suddenly:.*lifejackets.*competent helm.*immediate hand steering/i);
     expect(plan).toMatch(/visibility, traffic density.*stopping distance and turning ability.*wind, sea and current.*draught/i);
     const assess = screen.getByRole("heading", { name: /detect, assess and avoid/i }).closest("section")?.textContent ?? "";
     expect(assess).toMatch(/repeated plots or equivalent systematic observations.*closest point of approach.*time to closest approach/i);
@@ -89,7 +91,7 @@ describe("fog and marine visibility safety guidance", () => {
     expect(scenarios.textContent).toMatch(/At anchor.*bell rapidly.*five seconds.*one minute/i);
     expect(within(scenarios).getByRole("link", { name: /Rule 35 lesson/i }).getAttribute("href")).toBe("/rules/lights/theory?section=sounds#rule-35");
     expect(scenarios.textContent).toMatch(/Radar contact 20°.*steady bearing and decreasing range.*do not classify.*Rule 15/i);
-    expect(scenarios.textContent).toMatch(/Prolonged blast ahead.*minimum steerage speed.*all way off/i);
+    expect(scenarios.textContent).toMatch(/Prolonged blast ahead.*minimum speed at which the vessel can be kept on course.*all way off/i);
   });
 
   it("preserves fog Q17 and separately assesses very poor visibility", () => {
