@@ -54,8 +54,17 @@ describe("Marine Forecasts completion gate", () => {
 
   it("records only explicit section and guided evidence, then unlocks once", () => {
     const view = render(<WeatherForecastsTheory />);
-    const reviewButtons = screen.getAllByRole("button", { name: "Record this section as reviewed" });
+    const reviewButtons = screen.getAllByRole("button", { name: /Record section as reviewed:/ });
     expect(reviewButtons).toHaveLength(6);
+    expect(new Set(reviewButtons.map((button) => button.getAttribute("aria-label"))).size).toBe(6);
+    expect(reviewButtons.map((button) => button.getAttribute("aria-label"))).toEqual([
+      "Record section as reviewed: Choose the right official product",
+      "Record section as reviewed: A disciplined acquisition check",
+      "Record section as reviewed: Delivery routes and their limits",
+      "Record section as reviewed: Decode the bulletin",
+      "Record section as reviewed: Timing language",
+      "Record section as reviewed: Worked passage decision",
+    ]);
     reviewButtons.forEach((button) => fireEvent.click(button));
     expect(mocks.gate.markSectionVisited.mock.calls.map(([id]) => id)).toEqual([...MARINE_FORECAST_GATE.contentSections]);
     fireEvent.click(screen.getByRole("button", { name: "Finish guided geography test" }));
@@ -78,8 +87,11 @@ describe("Marine Forecasts completion gate", () => {
   it("renders restored account/topic-scoped partial evidence after reload", () => {
     mocks.gate.visitedSectionIds = [MARINE_FORECAST_GATE.contentSections[0], MARINE_FORECAST_GATE.contentSections[1], MARINE_FORECAST_GATE.guidedCheck];
     render(<WeatherForecastsTheory />);
-    expect(screen.getAllByRole("button", { name: "Section reviewed" })).toHaveLength(2);
-    expect(screen.getAllByRole("button", { name: "Record this section as reviewed" })).toHaveLength(4);
+    const reviewed = screen.getAllByRole("button", { name: /Section reviewed:/ });
+    const remaining = screen.getAllByRole("button", { name: /Record section as reviewed:/ });
+    expect(reviewed).toHaveLength(2);
+    expect(remaining).toHaveLength(4);
+    expect(new Set([...reviewed, ...remaining].map((button) => button.getAttribute("aria-label"))).size).toBe(6);
     expect(screen.getByRole("status").textContent).toMatch(/Remaining: 4 forecast content sections; guided geography check complete/i);
   });
 });

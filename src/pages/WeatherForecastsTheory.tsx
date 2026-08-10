@@ -115,7 +115,7 @@ export default function WeatherForecastsTheory() {
     const recorded = gate.visitedSectionIds.includes(evidenceId);
     return {
       ...section,
-      body: <>{section.body}<Button type="button" variant="outline" disabled={!gate.isHydrated || recorded} onClick={() => void gate.markSectionVisited(evidenceId)}>{recorded ? "Section reviewed" : "Record this section as reviewed"}</Button></>,
+      body: <>{section.body}<Button type="button" variant="outline" aria-label={`${recorded ? "Section reviewed" : "Record section as reviewed"}: ${section.title}`} disabled={!gate.isHydrated || recorded} onClick={() => void gate.markSectionVisited(evidenceId)}>{recorded ? "Section reviewed" : "Record this section as reviewed"}</Button></>,
     };
   });
   const missingContent = MARINE_FORECAST_GATE.contentSections.filter((id) => !gate.visitedSectionIds.includes(id)).length;
