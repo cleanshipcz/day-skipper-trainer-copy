@@ -462,10 +462,34 @@ try {
   await send("Emulation.setEmulatedMedia", { features: [{ name: "forced-colors", value: "active" }] });
   const plannerForced = await evaluate(`(() => { const svg=document.querySelector('svg[role=img]'); const curve=svg.querySelector('path'); return { active:matchMedia('(forced-colors: active)').matches, visible:svg.getBoundingClientRect().width>0, curveWidth:getComputedStyle(curve).strokeWidth, textAlternative:document.querySelector('table caption')?.textContent }; })()`);
   if (!plannerForced.active || !plannerForced.visible || plannerForced.curveWidth === "0px" || !/Text alternative/.test(plannerForced.textAlternative)) throw new Error(`Planner forced colours failed: ${JSON.stringify(plannerForced)}`);
+
+  // Course to Steer is a dense, sticky lesson. Verify its non-colour vector
+  // equivalent, keyboard evidence/focus handoff, responsive controls and
+  // shared durable completion contract in the real browser.
+  await send("Emulation.setEmulatedMedia", { features: [{ name: "forced-colors", value: "none" }] });
+  await send("Page.navigate", { url: `http://127.0.0.1:${port}/navigation/tides/streams-theory` });
+  await waitFor(() => evaluate("document.getElementById('cts-diagram-title') !== null"), "course-to-steer lesson");
+  const ctsSemantics = await evaluate(`(() => ({ back:document.querySelector('header button')?.ariaLabel, description:document.getElementById('cts-diagram-desc')?.textContent, caption:document.querySelector('table caption')?.textContent, rows:document.querySelectorAll('table th[scope=row]').length, completion:[...document.querySelectorAll('button')].find((node)=>node.textContent.includes('Complete the readiness check'))?.disabled, touch:[...document.querySelectorAll('label')].every((node)=>node.getBoundingClientRect().height>=44) }))()`);
+  if (ctsSemantics.back !== "Back to tides menu" || !/071 degrees true/.test(ctsSemantics.description) || !/solid through-water.*dotted stream.*dashed ground track/i.test(ctsSemantics.caption) || ctsSemantics.rows !== 3 || ctsSemantics.completion !== true || !ctsSemantics.touch) throw new Error(`Course-to-steer semantics failed: ${JSON.stringify(ctsSemantics)}`);
+  for (const [width, textZoom] of [[320,100],[375,200],[768,100],[1280,100]]) {
+    await send("Emulation.setDeviceMetricsOverride", { width, height:900, deviceScaleFactor:1, mobile:width<=375 });
+    await evaluate(`document.documentElement.style.fontSize='${textZoom}%'`);
+    const layout = await evaluate(`(() => ({ viewport:document.documentElement.clientWidth, scrollWidth:document.documentElement.scrollWidth, header:document.querySelector('header').getBoundingClientRect().right, action:[...document.querySelectorAll('button')].find((node)=>node.textContent.includes('Open Vector Solution Tool')).getBoundingClientRect().right }))()`);
+    if (layout.scrollWidth > layout.viewport + 1 || layout.header > layout.viewport + 1 || layout.action > layout.viewport + 1) throw new Error(`Course-to-steer layout failed at ${width}px/${textZoom}%: ${JSON.stringify(layout)}`);
+  }
+  await evaluate(`document.documentElement.style.fontSize='100%'; document.querySelector('input[value="071"]').focus()`);
+  await send("Input.dispatchKeyEvent", { type:"keyDown", key:" ", code:"Space", text:" ", windowsVirtualKeyCode:32, nativeVirtualKeyCode:32 });
+  await send("Input.dispatchKeyEvent", { type:"keyUp", key:" ", code:"Space", windowsVirtualKeyCode:32, nativeVirtualKeyCode:32 });
+  await waitFor(() => evaluate("document.activeElement?.getAttribute('aria-label') === 'Readiness feedback'"), "course-to-steer feedback focus");
+  const ctsKeyboard = await evaluate(`(() => ({ checked:document.querySelector('input[value="071"]').checked, enabled:![...document.querySelectorAll('button')].find((node)=>node.textContent.includes('Open Vector Solution Tool')).disabled, save:[...document.querySelectorAll('button')].some((node)=>node.textContent.trim()==='Save completion'), live:document.activeElement?.getAttribute('aria-live') }))()`);
+  if (!ctsKeyboard.checked || !ctsKeyboard.enabled || !ctsKeyboard.save || ctsKeyboard.live !== "polite") throw new Error(`Course-to-steer keyboard/completion failed: ${JSON.stringify(ctsKeyboard)}`);
+  await send("Emulation.setEmulatedMedia", { features: [{ name:"forced-colors", value:"active" }] });
+  const ctsForced = await evaluate(`(() => { const paths=[...document.querySelectorAll('svg[role=img] path[stroke-dasharray]')]; return { active:matchMedia('(forced-colors: active)').matches, styles:new Set(paths.map((path)=>getComputedStyle(path).strokeDasharray)).size, table:document.querySelectorAll('table th[scope=row]').length, visible:document.querySelector('svg[role=img]').getBoundingClientRect().width>0 }; })()`);
+  if (!ctsForced.active || ctsForced.styles < 2 || ctsForced.table !== 3 || !ctsForced.visible) throw new Error(`Course-to-steer forced colours failed: ${JSON.stringify(ctsForced)}`);
   await send("Browser.close");
   socket.close();
   console.log(
-    "Tides browser accessibility passed for both theory lessons and the passage planner: semantics, keyboard focus and locking, touch targets, reduced motion, forced colours, chart alternatives, 320/375/768/1280 layouts, 200% text, and a 320px effective viewport equivalent to 400% browser zoom at 1280px.",
+    "Tides browser accessibility passed for theory, heights, passage planning and Course to Steer: semantics, keyboard focus and evidence, shared completion, touch targets, forced colours, structured alternatives, 320/375/768/1280 layouts and 200% text. Residual manual checks remain for platform screen-reader speech and OS-specific 400% browser chrome.",
   );
 } finally {
   for (const child of children.reverse()) {

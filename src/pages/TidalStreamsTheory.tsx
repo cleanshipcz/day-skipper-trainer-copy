@@ -1,7 +1,7 @@
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { ArrowLeft, ChevronRight } from "lucide-react";
-import { useState } from "react";
+import { useRef, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { TOPIC_IDS } from "@/constants/topicRegistry";
 import { TheoryCompletionButton } from "@/features/progress/TheoryCompletionButton";
@@ -20,19 +20,24 @@ const workedEtaMinutes = workedSolution.etaMinutes.toFixed(2);
 const TidalStreamsTheory = () => {
   const navigate = useNavigate();
   const [readinessAnswer, setReadinessAnswer] = useState<ReadinessAnswer>("");
+  const feedbackRef = useRef<HTMLParagraphElement>(null);
   const readinessPassed = readinessAnswer === "071";
+  const answerReadiness = (answer: ReadinessAnswer) => {
+    setReadinessAnswer(answer);
+    requestAnimationFrame(() => feedbackRef.current?.focus());
+  };
 
   return (
     <div className="min-h-screen bg-background">
-      <header className="sticky top-0 z-40 border-b border-border bg-card/90 backdrop-blur-sm">
-        <div className="container mx-auto flex items-center justify-between px-4 py-4">
-          <div className="flex items-center gap-3">
+      <header className="sticky top-0 z-40 border-b border-border bg-card/95 backdrop-blur-sm">
+        <div className="container mx-auto flex min-w-0 flex-col gap-3 px-4 py-3 sm:flex-row sm:items-start sm:justify-between">
+          <div className="flex min-w-0 items-start gap-2 sm:gap-3">
             <Button variant="ghost" size="icon" aria-label="Back to tides menu" onClick={() => navigate("/navigation/tides")}>
-              <ArrowLeft className="h-5 w-5" />
+              <ArrowLeft aria-hidden="true" className="h-5 w-5" />
             </Button>
-            <div><h1 className="text-xl font-bold">Chart-ready course to steer</h1><p className="text-sm text-muted-foreground">A complete tidal-vector construction</p></div>
+            <div className="min-w-0"><h1 className="break-words text-lg font-bold sm:text-xl">Chart-ready course to steer</h1><p className="break-words text-sm text-muted-foreground">A complete tidal-vector construction</p></div>
           </div>
-          <TheoryCompletionButton topicId={TOPIC_IDS.TIDES_STREAMS_THEORY} catalogueRevision="tides-streams-theory-v2" evidenceId="chart-ready-cts-check" evidenceSatisfied={readinessPassed} lockedLabel="Complete the readiness check" />
+          <div className="min-w-0 break-words [&_button]:h-auto [&_button]:min-h-11 [&_button]:max-w-full [&_button]:whitespace-normal sm:max-w-sm"><TheoryCompletionButton topicId={TOPIC_IDS.TIDES_STREAMS_THEORY} catalogueRevision="tides-streams-theory-v3" evidenceId="chart-ready-cts-check" evidenceSatisfied={readinessPassed} lockedLabel="Complete the readiness check" /></div>
         </div>
       </header>
 
@@ -61,15 +66,15 @@ const TidalStreamsTheory = () => {
                 On a fictional training chart, depart A at 1200 on a desired ground track of <strong>090°T</strong>. Boat speed is <strong>6.0 kn</strong>. For 1200–1300, an invented stream diamond gives <strong>set 180°T, rate 2.0 kn</strong>. Use a <strong>one-hour interval</strong> and a common scale of <strong>1 cm = 1 NM</strong>.
               </div>
 
-              <figure className="space-y-3">
-                <svg viewBox="0 0 720 360" role="img" aria-labelledby="cts-diagram-title cts-diagram-desc" className="h-auto w-full rounded-lg border bg-slate-50">
+              <figure className="min-w-0 space-y-3">
+                <svg viewBox="0 0 720 360" role="img" aria-labelledby="cts-diagram-title cts-diagram-desc" className="h-auto w-full rounded-lg border bg-slate-50 forced-colors:border-[CanvasText] forced-colors:bg-[Canvas]">
                   <title id="cts-diagram-title">Course-to-steer vector triangle for the worked example</title>
                   <desc id="cts-diagram-desc">From A, the red tidal arrow goes two nautical miles south to T. A six nautical mile blue through-water arrow goes from T toward bearing {Math.round(workedSolution.courseTrue).toString().padStart(3, "0")} degrees true to G. G lies {workedSolution.distanceMadeGood.toFixed(1)} nautical miles east of A on the green desired ground track.</desc>
                   <defs><marker id="red-arrow" markerWidth="10" markerHeight="10" refX="8" refY="3" orient="auto"><path d="M0,0 L0,6 L9,3 z" fill="#dc2626" /></marker><marker id="blue-arrow" markerWidth="10" markerHeight="10" refX="8" refY="3" orient="auto"><path d="M0,0 L0,6 L9,3 z" fill="#2563eb" /></marker><marker id="green-arrow" markerWidth="10" markerHeight="10" refX="8" refY="3" orient="auto"><path d="M0,0 L0,6 L9,3 z" fill="#15803d" /></marker></defs>
-                  <path d="M90 145 H650" stroke="#15803d" strokeWidth="4" markerEnd="url(#green-arrow)" />
-                  <path d="M90 145 V305" stroke="#dc2626" strokeWidth="5" markerEnd="url(#red-arrow)" />
-                  <path d="M90 305 L543 145" stroke="#2563eb" strokeWidth="5" markerEnd="url(#blue-arrow)" />
-                  <path d="M90 145 L543 145" stroke="#15803d" strokeWidth="7" markerEnd="url(#green-arrow)" />
+                  <path aria-hidden="true" className="forced-colors:stroke-[CanvasText]" d="M90 145 H650" stroke="#15803d" strokeWidth="4" strokeDasharray="16 8" markerEnd="url(#green-arrow)" />
+                  <path aria-hidden="true" className="forced-colors:stroke-[CanvasText]" d="M90 145 V305" stroke="#dc2626" strokeWidth="5" strokeDasharray="3 7" markerEnd="url(#red-arrow)" />
+                  <path aria-hidden="true" className="forced-colors:stroke-[CanvasText]" d="M90 305 L543 145" stroke="#2563eb" strokeWidth="5" markerEnd="url(#blue-arrow)" />
+                  <path aria-hidden="true" className="forced-colors:stroke-[CanvasText]" d="M90 145 L543 145" stroke="#15803d" strokeWidth="7" strokeDasharray="16 8" markerEnd="url(#green-arrow)" />
                   <path d="M90 72 V120 M75 96 H105" stroke="#334155" strokeWidth="3" /><text x="112" y="100" fontSize="20" fill="#334155">N</text>
                   <circle cx="90" cy="145" r="7" fill="#0f172a" /><circle cx="90" cy="305" r="7" fill="#0f172a" /><circle cx="543" cy="145" r="7" fill="#0f172a" />
                   <text x="55" y="137" fontSize="20" fontWeight="bold">A</text><text x="55" y="332" fontSize="20" fontWeight="bold">T</text><text x="552" y="137" fontSize="20" fontWeight="bold">G</text>
@@ -87,7 +92,7 @@ const TidalStreamsTheory = () => {
                 <li>For a 5.7 NM leg, use the unrounded SOG: ETA = 5.7 NM ÷ {workedSog} kn = <strong>{workedEtaHours} h = {workedEtaMinutes} minutes</strong>, recorded to the nearest minute as <strong>{Math.round(workedSolution.etaMinutes)} minutes after departure, 1300</strong>. Retain unrounded values until the final chart answer; otherwise rounding can shift ETA.</li>
               </ol>
 
-              <div className="overflow-x-auto"><table className="w-full border-collapse text-sm"><caption className="mb-2 text-left font-bold">Structured record matching the diagram</caption><thead><tr><th className="border p-2 text-left">Vector</th><th className="border p-2 text-left">Direction (true)</th><th className="border p-2 text-left">Distance / interval</th></tr></thead><tbody><tr><td className="border p-2">A→T, stream</td><td className="border p-2">180° (toward)</td><td className="border p-2">2.0 NM in 1 h</td></tr><tr><td className="border p-2">T→G, through water</td><td className="border p-2">070.5° → 071°</td><td className="border p-2">6.0 NM in 1 h</td></tr><tr><td className="border p-2">A→G, over ground</td><td className="border p-2">090°</td><td className="border p-2">5.657 → 5.7 NM in 1 h</td></tr></tbody></table></div>
+              <div className="max-w-full overflow-x-auto" tabIndex={0} role="region" aria-label="Scrollable structured vector record"><table className="w-full table-fixed border-collapse break-words text-sm"><caption className="mb-2 text-left font-bold">Structured record matching the diagram; line styles are solid through-water, dotted stream, and dashed ground track</caption><thead><tr><th scope="col" className="border p-2 text-left">Vector</th><th scope="col" className="border p-2 text-left">Direction (true)</th><th scope="col" className="border p-2 text-left">Distance / interval</th></tr></thead><tbody><tr><th scope="row" className="border p-2 text-left">A→T, dotted stream</th><td className="border p-2">180° (toward)</td><td className="border p-2">2.0 NM in 1 h</td></tr><tr><th scope="row" className="border p-2 text-left">T→G, solid through water</th><td className="border p-2">070.5° → 071°</td><td className="border p-2">6.0 NM in 1 h</td></tr><tr><th scope="row" className="border p-2 text-left">A→G, dashed over ground</th><td className="border p-2">090°</td><td className="border p-2">5.657 → 5.7 NM in 1 h</td></tr></tbody></table></div>
             </CardContent>
           </Card>
         </section>
@@ -117,11 +122,11 @@ const TidalStreamsTheory = () => {
         <section className="space-y-4 rounded-lg border p-5" aria-labelledby="check-heading">
           <h2 id="check-heading" className="text-xl font-bold">Readiness check</h2>
           <p>In the worked one-hour example, which true through-water course does the divider construction produce, before leeway and compass conversion?</p>
-          <fieldset className="space-y-2"><legend className="sr-only">Choose the true through-water course</legend>{(["071", "090", "109"] as const).map((answer) => <label key={answer} className="flex items-center gap-2"><input type="radio" name="readiness-check" value={answer} checked={readinessAnswer === answer} onChange={() => setReadinessAnswer(answer)} /> {answer}°T</label>)}</fieldset>
-          {readinessAnswer && <p role="status" aria-label="Readiness feedback" aria-live="polite" className={readinessPassed ? "text-green-700" : "text-red-700"}>{readinessPassed ? "Correct — 071°T is T→G, the boat's direction through the water. Apply leeway and T→M→C conversion only afterward." : readinessAnswer === "090" ? "Not yet — 090°T is the desired ground track A→G, not the through-water course. Measure T→G." : "Not yet — the correction must aim into the south-going stream. Recheck the direction of T→G and remember that set is toward 180°T."}</p>}
+          <fieldset className="space-y-2"><legend className="sr-only">Choose the true through-water course</legend>{(["071", "090", "109"] as const).map((answer) => <label key={answer} className="flex min-h-11 items-center gap-3 rounded px-2 focus-within:ring-2 focus-within:ring-ring"><input type="radio" name="readiness-check" value={answer} checked={readinessAnswer === answer} onChange={() => answerReadiness(answer)} /> {answer}°T</label>)}</fieldset>
+          {readinessAnswer && <p ref={feedbackRef} tabIndex={-1} role="status" aria-label="Readiness feedback" aria-live="polite" className={`rounded border-l-4 p-3 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring forced-colors:border-[CanvasText] ${readinessPassed ? "border-green-700 text-green-700" : "border-red-700 text-red-700"}`}>{readinessPassed ? "Correct — 071°T is T→G, the boat's direction through the water. Apply leeway and T→M→C conversion only afterward." : readinessAnswer === "090" ? "Not yet — 090°T is the desired ground track A→G, not the through-water course. Measure T→G." : "Not yet — the correction must aim into the south-going stream. Recheck the direction of T→G and remember that set is toward 180°T."}</p>}
         </section>
 
-        <div className="space-y-2 pt-4 text-center"><p className="text-sm text-muted-foreground">This button is the checked handoff from this lesson. The practice tool also remains independently available from the Tides menu.</p><Button size="lg" disabled={!readinessPassed} onClick={() => navigate("/navigation/tides/vector-tool")} className="bg-purple-600 hover:bg-purple-700">Open Vector Solution Tool <ChevronRight className="ml-2 h-4 w-4" /></Button></div>
+        <div className="sticky bottom-0 z-30 -mx-4 space-y-2 border-t bg-background/95 px-4 py-3 text-center backdrop-blur-sm"><p className="break-words text-sm text-muted-foreground">This checked handoff opens practice after the readiness evidence. The tool also remains independently available from the Tides menu.</p><Button size="lg" disabled={!readinessPassed} onClick={() => navigate("/navigation/tides/vector-tool")} className="h-auto min-h-11 w-full whitespace-normal bg-purple-600 hover:bg-purple-700 sm:w-auto">Open Vector Solution Tool <ChevronRight aria-hidden="true" className="ml-2 h-4 w-4 shrink-0" /></Button></div>
       </main>
     </div>
   );
