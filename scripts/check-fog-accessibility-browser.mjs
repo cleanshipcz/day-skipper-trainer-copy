@@ -30,7 +30,11 @@ try {
   const evaluate = async (expression) => { const result = await send("Runtime.evaluate", { expression, awaitPromise: true, returnByValue: true }); if (result.exceptionDetails) throw new Error(result.exceptionDetails.text); return result.result.value; };
   await send("Runtime.enable"); await send("Page.enable"); await send("DOM.enable");
   const focusSelector = async (selector) => { const { root } = await send("DOM.getDocument"); const { nodeId } = await send("DOM.querySelector", { nodeId: root.nodeId, selector }); if (!nodeId) throw new Error(`Focus target not found: ${selector}`); await send("DOM.focus", { nodeId }); };
-  const pressKey = async (key, code, windowsVirtualKeyCode) => { await send("Input.dispatchKeyEvent", { type: "rawKeyDown", key, code, windowsVirtualKeyCode }); await send("Input.dispatchKeyEvent", { type: "keyUp", key, code, windowsVirtualKeyCode }); };
+  const pressKey = async (key, code, windowsVirtualKeyCode) => {
+    const text = key === " " ? " " : key === "Enter" ? "\r" : "";
+    await send("Input.dispatchKeyEvent", { type: "keyDown", key, code, text, unmodifiedText: text, windowsVirtualKeyCode, nativeVirtualKeyCode: windowsVirtualKeyCode });
+    await send("Input.dispatchKeyEvent", { type: "keyUp", key, code, windowsVirtualKeyCode, nativeVirtualKeyCode: windowsVirtualKeyCode });
+  };
   await send("Emulation.setEmulatedMedia", { features: [{ name: "prefers-reduced-motion", value: "reduce" }, { name: "prefers-color-scheme", value: "dark" }] });
   await send("Emulation.setDeviceMetricsOverride", { width: 375, height: 812, deviceScaleFactor: 1, mobile: true });
   await send("Page.navigate", { url: `http://127.0.0.1:${port}/weather/fog` });
@@ -46,9 +50,13 @@ try {
   await evaluate(`(() => { document.querySelectorAll('[aria-labelledby="fog-practice-heading"] input[type=radio]')[1].dataset.browserAnswer='true'; return true; })()`);
   await focusSelector('[data-browser-answer="true"]');
   await pressKey(" ", "Space", 32);
+  const keyboardChoice = await evaluate("(() => ({ checked:document.querySelector('[data-browser-answer=\"true\"]').checked, focused:document.activeElement===document.querySelector('[data-browser-answer=\"true\"]') }))()");
+  if (!keyboardChoice.checked || !keyboardChoice.focused) throw new Error(`Space did not select and retain focus on the correct radio: ${JSON.stringify(keyboardChoice)}`);
   const checkSelector = await evaluate(`(() => { const button=[...document.querySelectorAll('[aria-labelledby="fog-practice-heading"] button')].find((node)=>node.textContent.trim()==='Check decision'); button.dataset.browserCheck='true'; return true; })()`);
   if (!checkSelector) throw new Error("Check decision button not found.");
-  await focusSelector('[data-browser-check="true"]'); await pressKey("Enter", "Enter", 13);
+  await focusSelector('[data-browser-check="true"]');
+  if (!await evaluate("document.activeElement===document.querySelector('[data-browser-check=\"true\"]')")) throw new Error("Check decision button did not receive browser focus.");
+  await pressKey("Enter", "Enter", 13);
   await waitFor(() => evaluate("document.querySelector('[aria-labelledby=\"fog-practice-heading\"] [role=status]')?.textContent.includes('Correct.')"), "keyboard-completed scenario");
   const stored = await evaluate("JSON.parse(localStorage.getItem('theory-gate:anonymous:weather-fog:fog-operational-scenarios-v1')).visitedSectionIds.includes('forecast-recognition')");
   if (!stored) throw new Error("Correct scenario evidence was not persisted in browser storage.");
