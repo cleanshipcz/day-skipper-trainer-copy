@@ -1,5 +1,5 @@
 import { fireEvent, render, screen } from "@testing-library/react";
-import { describe, expect, it } from "vitest";
+import { describe, expect, it, vi } from "vitest";
 import TidalPassageCalculator from "./TidalPassageCalculator";
 
 const change = (id: string, value: string) => {
@@ -79,5 +79,34 @@ describe("TidalPassageCalculator rendering contract", () => {
     const svg = screen.getByRole("img") as unknown as SVGSVGElement;
     expect(geometryIsFinite(svg)).toBe(true);
     expect(screen.getByText(/required-tide line is outside/)).toBeTruthy();
+  });
+
+  it("locks a checked attempt, gives worked feedback, and unlocks retry", () => {
+    render(<TidalPassageCalculator />);
+    const answer = screen.getByLabelText("Required height of tide, in metres") as HTMLInputElement;
+    fireEvent.change(answer, { target: { value: "1" } });
+    fireEvent.click(screen.getByRole("button", { name: "Check answer" }));
+    expect((answer.closest("fieldset") as HTMLFieldSetElement).disabled).toBe(true);
+    expect(screen.getByRole("alert").textContent).toContain("You entered 1.0 m");
+    expect(screen.getByRole("alert").textContent).toContain("= 2.0 m");
+    fireEvent.click(screen.getByRole("button", { name: "Retry this scenario" }));
+    expect(answer.disabled).toBe(false);
+  });
+
+  it("records mastery only for a correct checked answer and advances explicitly", () => {
+    const onMastery = vi.fn();
+    render(<TidalPassageCalculator onMastery={onMastery} />);
+    fireEvent.change(screen.getByLabelText("Required height of tide, in metres"), { target: { value: "2.0" } });
+    fireEvent.click(screen.getByRole("button", { name: "Check answer" }));
+    expect(onMastery).toHaveBeenCalledOnce();
+    expect(screen.getByRole("status").textContent).toContain("margin is 0.0 m");
+    fireEvent.click(screen.getByRole("button", { name: "New scenario" }));
+    expect(screen.getByText(/Scenario 2 of 3: Drying bank/)).toBeTruthy();
+  });
+
+  it("provides an SVG description and structured text alternative", () => {
+    render(<TidalPassageCalculator />);
+    expect(screen.getByRole("img").getAttribute("aria-labelledby")).toContain("tidal-chart-description");
+    expect(screen.getByRole("table", { name: "Text alternative: entered tidal events" })).toBeTruthy();
   });
 });
