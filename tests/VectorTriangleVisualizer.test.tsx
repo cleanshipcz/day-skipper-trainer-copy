@@ -1,5 +1,5 @@
 import { describe, it, expect } from "vitest";
-import { render, screen } from "@testing-library/react";
+import { fireEvent, render, screen } from "@testing-library/react";
 import { VectorTriangleVisualizer } from "@/components/navigation/VectorTriangleVisualizer";
 
 describe("VectorTriangleVisualizer Component", () => {
@@ -35,5 +35,16 @@ describe("VectorTriangleVisualizer Component", () => {
     );
 
     expect(screen.getByText(/Impossible scenario!/i)).toBeDefined();
+  });
+
+  it("provides a non-visual drill equivalent, withholds the result, and resets keyboard panning", () => {
+    render(<VectorTriangleVisualizer waterTrackHeading={180} waterTrackSpeed={5} groundTrackHeading={0} tideSet={90} tideRate={2} mode="drill" drillTarget={0} showDrillResult={false} />);
+    const diagram = screen.getByRole("img");
+    expect(diagram.getAttribute("aria-label")).toContain("result is hidden");
+    expect(screen.queryByText("Ground Track")).toBeNull();
+    fireEvent.keyDown(diagram, { key: "ArrowLeft" });
+    expect(screen.getByRole("status").textContent).toContain("10 horizontal");
+    fireEvent.click(screen.getByRole("button", { name: "Reset diagram position" }));
+    expect(screen.getByRole("status").textContent).toContain("0 horizontal");
   });
 });

@@ -10,6 +10,7 @@ interface VectorTriangleVisualizerProps {
   tideRate: number; // Speed
   mode?: "solver" | "drill"; // Default solver
   drillTarget?: number; // The target bearing to hit in drill mode
+  showDrillResult?: boolean;
 }
 
 export const VectorTriangleVisualizer = ({
@@ -20,6 +21,7 @@ export const VectorTriangleVisualizer = ({
   tideRate,
   mode = "solver",
   drillTarget,
+  showDrillResult = true,
 }: VectorTriangleVisualizerProps) => {
   const WIDTH = 600;
   const HEIGHT = 500;
@@ -33,6 +35,7 @@ export const VectorTriangleVisualizer = ({
   const [pan, setPan] = useState({ x: 0, y: 0 });
   const [isDragging, setIsDragging] = useState(false);
   const [dragStart, setDragStart] = useState({ x: 0, y: 0 });
+  const clampPan = (value: number) => Math.max(-120, Math.min(120, value));
 
   const handlePointerDown = (e: React.PointerEvent<SVGSVGElement>) => {
     setIsDragging(true);
@@ -42,10 +45,7 @@ export const VectorTriangleVisualizer = ({
 
   const handlePointerMove = (e: React.PointerEvent<SVGSVGElement>) => {
     if (!isDragging) return;
-    setPan({
-      x: e.clientX - dragStart.x,
-      y: e.clientY - dragStart.y,
-    });
+    setPan({ x: clampPan(e.clientX - dragStart.x), y: clampPan(e.clientY - dragStart.y) });
   };
 
   const handlePointerUp = (e: React.PointerEvent<SVGSVGElement>) => {
@@ -72,7 +72,7 @@ export const VectorTriangleVisualizer = ({
     // B -> C (Tide: Set & Rate)
     // A -> C (Resulting Ground Track)
 
-    validSolution = true;
+    validSolution = showDrillResult;
 
     const result = resultingTrack(waterTrackHeading, waterTrackSpeed, tideSet, tideRate);
     const waterVecX = result.water.eastKn * SCALE;
@@ -152,10 +152,10 @@ export const VectorTriangleVisualizer = ({
 
   return (
     <Card className="w-full bg-white border-2 border-slate-200 overflow-hidden">
-      <div className="relative w-full h-[500px] bg-slate-50">
+      <div className="relative h-[min(500px,70vh)] min-h-[320px] w-full bg-slate-50 sm:h-[500px]">
         <div className="absolute top-4 left-4 z-10 bg-white/90 p-3 rounded-lg border shadow-sm text-sm space-y-1">
           <h4 className="font-bold border-b pb-1 mb-1">Results</h4>
-          {validSolution ? (
+          {mode === "drill" && !showDrillResult ? <p>Result hidden until you check your answer.</p> : validSolution ? (
             <>
               <div className="flex justify-between gap-4">
                 <span className="text-blue-600 font-medium">CTS (Heading):</span>
@@ -170,14 +170,16 @@ export const VectorTriangleVisualizer = ({
             <div className="text-red-500 font-bold">Impossible scenario!</div>
           )}
         </div>
+        <button type="button" className="absolute right-3 top-3 z-10 min-h-11 rounded border bg-white px-3 text-sm font-medium shadow-sm forced-colors:border-[CanvasText]" onClick={() => setPan({ x: 0, y: 0 })}>Reset diagram position</button>
+        <p className="sr-only" role="status" aria-live="polite">Diagram offset: {pan.x} horizontal, {pan.y} vertical.</p>
 
         <svg
           width="100%"
           height="100%"
           viewBox={`0 0 ${WIDTH} ${HEIGHT}`}
-          className={`mx-auto touch-none ${isDragging ? "cursor-grabbing" : "cursor-grab"}`}
+          className={`mx-auto touch-pan-y forced-colors:[filter:contrast(1.5)] ${isDragging ? "cursor-grabbing" : "cursor-grab"}`}
           role="img"
-          aria-label="Course to steer vector triangle. Drag to pan the diagram."
+          aria-label={mode === "drill" ? `Vector drill diagram. Target track ${drillTarget} degrees true. ${showDrillResult ? `Entered course ${waterTrackHeading} degrees true; result is shown.` : "The entered course result is hidden until checked."} Use arrow keys to pan.` : `Course to steer vector triangle for desired track ${groundTrackHeading} degrees true, boat speed ${waterTrackSpeed} knots, tide set ${tideSet} degrees true at ${tideRate} knots. Use arrow keys to pan.`}
           tabIndex={0}
           onPointerDown={handlePointerDown}
           onPointerMove={handlePointerMove}
@@ -188,8 +190,8 @@ export const VectorTriangleVisualizer = ({
             if (!["ArrowLeft", "ArrowRight", "ArrowUp", "ArrowDown"].includes(event.key)) return;
             event.preventDefault();
             setPan((current) => ({
-              x: current.x + (event.key === "ArrowLeft" ? movement : event.key === "ArrowRight" ? -movement : 0),
-              y: current.y + (event.key === "ArrowUp" ? movement : event.key === "ArrowDown" ? -movement : 0),
+              x: clampPan(current.x + (event.key === "ArrowLeft" ? movement : event.key === "ArrowRight" ? -movement : 0)),
+              y: clampPan(current.y + (event.key === "ArrowUp" ? movement : event.key === "ArrowDown" ? -movement : 0)),
             }));
           }}
         >
