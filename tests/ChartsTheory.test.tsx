@@ -37,7 +37,7 @@ describe("ChartsTheory Page", () => {
     const depthsTab = screen.getByRole("tab", { name: /Depths & Tides/i });
     await user.click(depthsTab);
     expect(await screen.findByText("2. The Vertical Dimension")).toBeDefined();
-    expect(await screen.findByText("Chart Datum (CD)")).toBeDefined();
+    expect(await screen.findByRole("heading", { name: "Chart Datum (CD)" })).toBeDefined();
 
     // Tab 3: Symbols & Keys
     const symbolsTab = screen.getByRole("tab", { name: /Symbols & Keys/i });
