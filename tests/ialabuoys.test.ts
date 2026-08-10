@@ -107,4 +107,25 @@ describe("ialabuoys data", () => {
       expect(buoy.clockFaceMnemonic!.length).toBeGreaterThan(0);
     }
   });
+
+  it("encodes the authoritative Region A qualifications and new-danger distinction", () => {
+    expect(ialaBuoys.find((b) => b.id === "lateral-port-preferred")?.name).toBe("Preferred channel to starboard");
+    expect(ialaBuoys.find((b) => b.id === "lateral-starboard-preferred")?.name).toBe("Preferred channel to port");
+    expect(ialaBuoys.find((b) => b.id === "special-mark")?.lightCharacteristic).toMatch(/must not conflict/i);
+    const wreck = ialaBuoys.find((b) => b.id === "new-danger-mark");
+    expect(wreck?.name).toBe("Emergency Wreck Marking Buoy");
+    expect(wreck?.lightCharacteristic).toContain("1 s blue, 0.5 s eclipse, 1 s yellow, 0.5 s eclipse");
+    expect(wreck?.chartAndSafety).toMatch(/Duplicate identical marks only for especially high risk/);
+    expect(wreck?.chartAndSafety).toMatch(/Status ends when removed or sufficiently promulgated/);
+  });
+
+  it("provides traceable structured visual fields for every taught mark", () => {
+    for (const buoy of ialaBuoys) {
+      expect(buoy.bodyShape).toBeTruthy();
+      expect(buoy.pattern).toBeTruthy();
+      expect(buoy.topmark).toBeTruthy();
+      expect(buoy.chartAndSafety).toBeTruthy();
+      expect(buoy.source).toMatch(/R1001 ed\.2\.0/);
+    }
+  });
 });

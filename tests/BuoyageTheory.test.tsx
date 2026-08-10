@@ -208,4 +208,22 @@ describe("BuoyageTheory Page", () => {
       screen.getByRole("button", { name: /back to pilotage/i })
     ).toBeDefined();
   });
+
+  it("renders colour-independent visuals, light decoding, and source editions", () => {
+    render(<TestRouter><BuoyageTheory /></TestRouter>);
+    const visual = screen.getByTestId("buoy-visual-lateral-port");
+    expect(visual.getAttribute("role")).toBe("img");
+    expect(visual.querySelector("desc")?.textContent).toMatch(/Body: Can, pillar or spar/);
+    expect(screen.getByText(/Q \/ VQ/)).toBeDefined();
+    expect(screen.getByText(/R1001, Maritime Buoyage System, edition 2.0/)).toBeDefined();
+    expect(visual.getAttribute("class")).toContain("forced-colors:text-[CanvasText]");
+  });
+
+  it("uses responsive wrapping instead of fixed-width mark content", () => {
+    render(<TestRouter><BuoyageTheory /></TestRouter>);
+    const visual = screen.getByTestId("buoy-visual-lateral-port");
+    expect(visual.getAttribute("class")).toContain("w-full");
+    expect(screen.getByRole("tab", { name: /lateral/i }).className).toContain("whitespace-normal");
+    expect(visual.closest("figure")?.className).toContain("min-w-0");
+  });
 });
