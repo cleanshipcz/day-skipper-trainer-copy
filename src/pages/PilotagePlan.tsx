@@ -22,14 +22,14 @@ const PilotagePlan = () => {
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-background via-ocean-light/10 to-background pb-20">
-      <header className="sticky top-0 z-40 border-b bg-card/80 backdrop-blur-sm">
+      <header className="sticky top-0 z-40 border-b bg-card/80 backdrop-blur-sm print:hidden" data-testid="pilotage-route-header">
         <div className="container mx-auto flex items-center gap-3 px-4 py-4">
           <Button variant="ghost" size="icon" aria-label="Back to Pilotage" onClick={() => navigate("/pilotage")}><ArrowLeft /></Button>
           <div><h1 className="text-xl font-bold">Pilotage Plan Builder</h1><p className="text-sm text-muted-foreground">Turn a charted approach into a concise cockpit plan</p></div>
         </div>
       </header>
       <main className="container mx-auto max-w-4xl space-y-6 px-4 py-8">
-        <Card>
+        <Card className="print:hidden" data-testid="pilotage-plan-intro">
           <CardHeader><CardTitle className="flex items-center gap-2"><CheckCircle2 className="text-teal-500" />Before you build</CardTitle></CardHeader>
           <CardContent className="space-y-2 text-sm text-muted-foreground">
             <p>Work from seaward to the berth. Record conspicuous marks, safe-water limits, courses, distances, tidal effects, speed changes, communications, and abort points.</p>
