@@ -5,8 +5,17 @@ import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { TOPIC_IDS } from "@/constants/topicRegistry";
 import { TheoryCompletionButton } from "@/features/progress/TheoryCompletionButton";
+import { solveCourseToSteer } from "@/lib/navigation/tidalCourse";
 
 type ReadinessAnswer = "" | "071" | "090" | "109";
+
+const workedSolution = solveCourseToSteer({ desiredTrackTrue: 90, boatSpeed: 6, streamSetTrue: 180, streamRate: 2, intervalHours: 1, legDistance: 5.7 });
+if (!workedSolution) throw new Error("The published tidal-stream teaching example must remain feasible");
+const workedCourse = workedSolution.courseTrue.toFixed(1);
+const workedDistance = workedSolution.distanceMadeGood.toFixed(3);
+const workedSog = workedSolution.speedOverGround.toFixed(3);
+const workedEtaHours = (workedSolution.etaMinutes / 60).toFixed(3);
+const workedEtaMinutes = workedSolution.etaMinutes.toFixed(1);
 
 const TidalStreamsTheory = () => {
   const navigate = useNavigate();
@@ -55,7 +64,7 @@ const TidalStreamsTheory = () => {
               <figure className="space-y-3">
                 <svg viewBox="0 0 720 360" role="img" aria-labelledby="cts-diagram-title cts-diagram-desc" className="h-auto w-full rounded-lg border bg-slate-50">
                   <title id="cts-diagram-title">Course-to-steer vector triangle for the worked example</title>
-                  <desc id="cts-diagram-desc">From A, the red tidal arrow goes two nautical miles south to T. A six nautical mile blue through-water arrow goes from T toward bearing 071 degrees true to G. G lies 5.7 nautical miles east of A on the green desired ground track.</desc>
+                  <desc id="cts-diagram-desc">From A, the red tidal arrow goes two nautical miles south to T. A six nautical mile blue through-water arrow goes from T toward bearing {Math.round(workedSolution.courseTrue).toString().padStart(3, "0")} degrees true to G. G lies {workedSolution.distanceMadeGood.toFixed(1)} nautical miles east of A on the green desired ground track.</desc>
                   <defs><marker id="red-arrow" markerWidth="10" markerHeight="10" refX="8" refY="3" orient="auto"><path d="M0,0 L0,6 L9,3 z" fill="#dc2626" /></marker><marker id="blue-arrow" markerWidth="10" markerHeight="10" refX="8" refY="3" orient="auto"><path d="M0,0 L0,6 L9,3 z" fill="#2563eb" /></marker><marker id="green-arrow" markerWidth="10" markerHeight="10" refX="8" refY="3" orient="auto"><path d="M0,0 L0,6 L9,3 z" fill="#15803d" /></marker></defs>
                   <path d="M90 145 H650" stroke="#15803d" strokeWidth="4" markerEnd="url(#green-arrow)" />
                   <path d="M90 145 V305" stroke="#dc2626" strokeWidth="5" markerEnd="url(#red-arrow)" />
@@ -73,9 +82,9 @@ const TidalStreamsTheory = () => {
                 <li>From A, draw the desired ground-track ray <strong>090°T</strong>.</li>
                 <li>Convert every speed to distance for the <em>same</em> one-hour interval: tidal drift = 2.0 kn × 1 h = <strong>2.0 NM</strong>; boat distance through water = 6.0 kn × 1 h = <strong>6.0 NM</strong>.</li>
                 <li>From A, plot the tidal vector <strong>2.0 NM toward 180°T</strong>, ending at T.</li>
-                <li>With dividers at 6.0 NM, centre on T and cut the desired-track ray at G. Join T to G. Measure T→G as <strong>070.5°T</strong>, recorded to the nearest whole degree as <strong>071°T</strong>.</li>
-                <li>Measure A→G: √(6² − 2²) = 5.657 NM, recorded as <strong>5.7 NM distance made good (DMG)</strong>. SOG = 5.657 NM ÷ 1 h = <strong>5.7 kn</strong>. On this ideal construction CMG is 090°T.</li>
-                <li>For a 5.7 NM leg, use the unrounded SOG: ETA = 5.7 NM ÷ 5.657 kn = <strong>1.008 h = 60.5 minutes</strong>, recorded to the nearest minute as <strong>60 minutes after departure, 1300</strong>. Retain unrounded values until the final chart answer; otherwise rounding can shift ETA.</li>
+                <li>With dividers at 6.0 NM, centre on T and cut the desired-track ray at G. Join T to G. Measure T→G as <strong>{workedCourse}°T</strong>, recorded to the nearest whole degree as <strong>{Math.round(workedSolution.courseTrue).toString().padStart(3, "0")}°T</strong>.</li>
+                <li>Measure A→G: √(6² − 2²) = {workedDistance} NM, recorded as <strong>{workedSolution.distanceMadeGood.toFixed(1)} NM distance made good (DMG)</strong>. SOG = {workedSog} NM ÷ 1 h = <strong>{workedSolution.speedOverGround.toFixed(1)} kn</strong>. On this ideal construction CMG is 090°T.</li>
+                <li>For a 5.7 NM leg, use the unrounded SOG: ETA = 5.7 NM ÷ {workedSog} kn = <strong>{workedEtaHours} h = {workedEtaMinutes} minutes</strong>, recorded to the nearest minute as <strong>{Math.round(workedSolution.etaMinutes)} minutes after departure, 1300</strong>. Retain unrounded values until the final chart answer; otherwise rounding can shift ETA.</li>
               </ol>
 
               <div className="overflow-x-auto"><table className="w-full border-collapse text-sm"><caption className="mb-2 text-left font-bold">Structured record matching the diagram</caption><thead><tr><th className="border p-2 text-left">Vector</th><th className="border p-2 text-left">Direction (true)</th><th className="border p-2 text-left">Distance / interval</th></tr></thead><tbody><tr><td className="border p-2">A→T, stream</td><td className="border p-2">180° (toward)</td><td className="border p-2">2.0 NM in 1 h</td></tr><tr><td className="border p-2">T→G, through water</td><td className="border p-2">070.5° → 071°</td><td className="border p-2">6.0 NM in 1 h</td></tr><tr><td className="border p-2">A→G, over ground</td><td className="border p-2">090°</td><td className="border p-2">5.657 → 5.7 NM in 1 h</td></tr></tbody></table></div>
