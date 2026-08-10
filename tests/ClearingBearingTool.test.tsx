@@ -1,195 +1,91 @@
-import { describe, it, expect, vi, beforeEach } from "vitest";
-import { render, screen } from "@testing-library/react";
-import userEvent from "@testing-library/user-event";
+import { beforeEach, describe, expect, it, vi } from "vitest";
+import { fireEvent, render, screen, waitFor } from "@testing-library/react";
 import { ClearingBearingTool } from "../src/components/pilotage/ClearingBearingTool";
 import TestRouter from "./TestRouter";
 
-// Mock ChartSurface to avoid complex SVG rendering in unit tests.
 vi.mock("@/components/navigation/unified/ChartSurface", () => ({
   __esModule: true,
-  default: vi.fn().mockImplementation(({ children }: { children?: React.ReactNode }) => (
-    <svg data-testid="chart-surface">{children}</svg>
-  )),
+  default: vi.fn().mockImplementation(({ children }: { children?: React.ReactNode }) => <svg data-testid="chart-surface">{children}</svg>),
 }));
 
+const renderTool = (complete = vi.fn().mockResolvedValue(true)) => {
+  render(<TestRouter><ClearingBearingTool onAllScenariosComplete={complete} /></TestRouter>);
+  return complete;
+};
+
+const answer = (bearing: number, rule: "NLT" | "NMT") => {
+  fireEvent.change(screen.getByLabelText(/Rotate plotting line/), { target: { value: String(bearing) } });
+  fireEvent.click(screen.getByRole("button", { name: rule }));
+  fireEvent.click(screen.getByRole("button", { name: /check plotted answer/i }));
+};
+
 describe("ClearingBearingTool", () => {
-  const mockOnAllComplete = vi.fn();
+  beforeEach(() => vi.clearAllMocks());
 
-  beforeEach(() => {
-    vi.clearAllMocks();
-  });
-
-  // AC-2: Minimum 2 scenarios
-  it("should render the first scenario description", () => {
-    // when
-    render(
-      <TestRouter>
-        <ClearingBearingTool onAllScenariosComplete={mockOnAllComplete} />
-      </TestRouter>,
-    );
-
-    // then - scenario counter and description
+  it("renders the first of two chart-derived scenarios", () => {
+    renderTool();
     expect(screen.getByText(/Scenario 1 of 2/)).toBeDefined();
-    expect(screen.getAllByText(/clearing bearing/i).length).toBeGreaterThanOrEqual(1);
+    expect(screen.getByText(/Rocky shoal approach/)).toBeDefined();
   });
 
-  it("should display an instruction prompt for user interaction", () => {
-    // when
-    render(
-      <TestRouter>
-        <ClearingBearingTool onAllScenariosComplete={mockOnAllComplete} />
-      </TestRouter>,
-    );
-
-    // then - user should see instructions on what to do
-    expect(screen.getByText(/Plot the clearing bearing/i)).toBeDefined();
+  it("prompts the learner to plot and measure without disclosing an answer", () => {
+    renderTool();
+    expect(screen.getByText(/Plot the limiting line, measure the true bearing/i)).toBeDefined();
+    expect(screen.queryByText(/Limit \d{3}°T/)).toBeNull();
   });
 
-  it("should render a bearing input for users to enter their plotted bearing", () => {
-    // when
-    render(
-      <TestRouter>
-        <ClearingBearingTool onAllScenariosComplete={mockOnAllComplete} />
-      </TestRouter>,
-    );
-
-    // then
-    expect(screen.getByLabelText(/bearing/i)).toBeDefined();
+  it("renders a keyboard-accessible plotting control", () => {
+    renderTool();
+    const control = screen.getByLabelText(/Rotate plotting line/);
+    expect(control.getAttribute("type")).toBe("range");
+    expect(control.getAttribute("aria-describedby")).toContain("clearance-relation");
   });
 
-  it("should render a submit button to check the user answer", () => {
-    // when
-    render(
-      <TestRouter>
-        <ClearingBearingTool onAllScenariosComplete={mockOnAllComplete} />
-      </TestRouter>,
-    );
-
-    // then
-    expect(
-      screen.getByRole("button", { name: /check/i }),
-    ).toBeDefined();
+  it("renders an explicit answer check", () => {
+    renderTool();
+    expect(screen.getByRole("button", { name: /check plotted answer/i })).toBeDefined();
   });
 
-  // AC-3: Validates user-plotted bearings with tolerance
-  it("should show success feedback when bearing is within tolerance", async () => {
-    // given
-    const user = userEvent.setup();
-    render(
-      <TestRouter>
-        <ClearingBearingTool onAllScenariosComplete={mockOnAllComplete} />
-      </TestRouter>,
-    );
-
-    // when - enter a bearing close to the expected value for scenario 1
-    const input = screen.getByLabelText(/bearing/i);
-    await user.clear(input);
-    // The first scenario expects a bearing around 045 (NLT) — we enter within tolerance
-    await user.type(input, "045");
-    await user.click(screen.getByRole("button", { name: /check/i }));
-
-    // then
-    expect(await screen.findByText(/correct/i)).toBeDefined();
+  it("accepts a safe-side one-degree chart measurement", () => {
+    renderTool(); answer(290, "NMT");
+    expect(screen.getByText(/Limit 290°T NMT/)).toBeDefined();
   });
 
-  it("should show error feedback when bearing is outside tolerance", async () => {
-    // given
-    const user = userEvent.setup();
-    render(
-      <TestRouter>
-        <ClearingBearingTool onAllScenariosComplete={mockOnAllComplete} />
-      </TestRouter>,
-    );
-
-    // when - enter a bearing far from the expected value
-    const input = screen.getByLabelText(/bearing/i);
-    await user.clear(input);
-    await user.type(input, "180");
-    await user.click(screen.getByRole("button", { name: /check/i }));
-
-    // then
-    expect(await screen.findByText(/incorrect/i)).toBeDefined();
+  it("gives explanatory feedback for an unsafe answer", () => {
+    renderTool(); answer(180, "NLT");
+    expect(screen.getByRole("alert").textContent).toMatch(/Replot.*tangent/i);
   });
 
-  // AC-2: Minimum 2 scenarios — can advance to scenario 2
-  it("should advance to scenario 2 after correctly completing scenario 1", async () => {
-    // given
-    const user = userEvent.setup();
-    render(
-      <TestRouter>
-        <ClearingBearingTool onAllScenariosComplete={mockOnAllComplete} />
-      </TestRouter>,
-    );
-
-    // when - solve scenario 1 correctly
-    const input = screen.getByLabelText(/bearing/i);
-    await user.clear(input);
-    await user.type(input, "045");
-    await user.click(screen.getByRole("button", { name: /check/i }));
-
-    // then - Next button appears, click it
-    const nextButton = await screen.findByRole("button", {
-      name: /next scenario/i,
-    });
-    await user.click(nextButton);
-
-    // then - scenario 2 is displayed
-    expect(screen.getByText(/scenario 2/i)).toBeDefined();
+  it("advances only after scenario one is mastered", () => {
+    renderTool();
+    expect(screen.queryByRole("button", { name: /next scenario/i })).toBeNull();
+    answer(290, "NMT");
+    fireEvent.click(screen.getByRole("button", { name: /next scenario/i }));
+    expect(screen.getByText(/Scenario 2 of 2/)).toBeDefined();
   });
 
-  it("should display the chart surface with hazard markers", () => {
-    // when
-    render(
-      <TestRouter>
-        <ClearingBearingTool onAllScenariosComplete={mockOnAllComplete} />
-      </TestRouter>,
-    );
-
-    // then - chart surface is rendered
+  it("renders meaningful chart hazards and measurements", () => {
+    renderTool();
     expect(screen.getByTestId("chart-surface")).toBeDefined();
+    expect(screen.getByText("Rocky Shoal")).toBeDefined();
+    expect(screen.getByText(/clearance radius of 40 units/)).toBeDefined();
   });
 
-  it("should indicate the convention type (NLT or NMT) for each scenario", () => {
-    // when
-    render(
-      <TestRouter>
-        <ClearingBearingTool onAllScenariosComplete={mockOnAllComplete} />
-      </TestRouter>,
-    );
-
-    // then - convention label is shown (first scenario is NLT)
-    expect(screen.getAllByText(/Not Less Than/i).length).toBeGreaterThanOrEqual(1);
+  it("requires the learner to choose NLT or NMT", () => {
+    renderTool();
+    expect(screen.getByRole("group", { name: /safe-side rule/i })).toBeDefined();
+    fireEvent.click(screen.getByRole("button", { name: /check plotted answer/i }));
+    expect(screen.getByRole("alert").textContent).toMatch(/Choose NLT or NMT/);
   });
 
-  it("should call onAllScenariosComplete after all scenarios are solved", async () => {
-    // given
-    const user = userEvent.setup();
-    render(
-      <TestRouter>
-        <ClearingBearingTool onAllScenariosComplete={mockOnAllComplete} />
-      </TestRouter>,
-    );
-
-    // when - solve scenario 1
-    const input = screen.getByLabelText(/bearing/i);
-    await user.clear(input);
-    await user.type(input, "045");
-    await user.click(screen.getByRole("button", { name: /check/i }));
-    await user.click(await screen.findByRole("button", { name: /next scenario/i }));
-
-    // when - solve scenario 2
-    const input2 = screen.getByLabelText(/bearing/i);
-    await user.clear(input2);
-    await user.type(input2, "320");
-    await user.click(screen.getByRole("button", { name: /check/i }));
-
-    // then - after last scenario, the callback should fire
-    // (We need to click "finish" or it fires automatically)
-    const finishButton = await screen.findByRole("button", {
-      name: /finish|complete/i,
-    });
-    await user.click(finishButton);
-
-    expect(mockOnAllComplete).toHaveBeenCalled();
+  it("records mastery only after both scenarios and explicit declaration", async () => {
+    const complete = renderTool();
+    answer(290, "NMT");
+    fireEvent.click(screen.getByRole("button", { name: /next scenario/i }));
+    answer(59, "NLT");
+    expect(complete).not.toHaveBeenCalled();
+    fireEvent.click(screen.getByRole("button", { name: /record mastery/i }));
+    await waitFor(() => expect(complete).toHaveBeenCalledOnce());
+    expect(screen.getByRole("button", { name: /mastery recorded/i })).toBeDefined();
   });
 });
