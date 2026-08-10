@@ -35,7 +35,10 @@ describe("fog and marine visibility safety guidance", () => {
     expect(q17.question).toMatch(/fog.*visibility below/i);
     expect(q17.options[q17.correctAnswer]).toBe("1,000 m");
     expect(q17.explanation).toMatch(/below 1,000 metres/i);
-    const boundary = questions.find(({ id }) => id === "weather-20")!;
+    const radiation = questions.find(({ id }) => id === "weather-20")!;
+    expect(radiation.question).toMatch(/Radiation fog most commonly develops/i);
+    expect(radiation.options[radiation.correctAnswer]).toMatch(/clear calm nights over cooling land/i);
+    const boundary = questions.find(({ id }) => id === "weather-21")!;
     expect(boundary.question).toMatch(/exactly 1,000 metres/i);
     expect(boundary.options[boundary.correctAnswer]).toBe("Poor");
     expect(boundary.explanation).toMatch(/very poor is strictly below 1,000 metres/i);
