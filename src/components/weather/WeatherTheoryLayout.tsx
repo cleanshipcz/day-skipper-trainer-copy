@@ -19,33 +19,68 @@ export const WeatherTheoryLayout = ({ title, subtitle, topicId, sections, childr
   children?: ReactNode;
 }) => {
   const navigate = useNavigate();
-  const { loadProgress, saveProgress } = useProgress();
+  const { ownerId, loadProgressDetailed, saveProgressDetailed } = useProgress();
   const [complete, setComplete] = useState(false);
-  const [loading, setLoading] = useState(true);
+  const [queuedOffline, setQueuedOffline] = useState(false);
+  const [loadState, setLoadState] = useState<"loading" | "ready" | "anonymous" | "error">("loading");
   const [saving, setSaving] = useState(false);
+  const [saveError, setSaveError] = useState(false);
+  const [loadAttempt, setLoadAttempt] = useState(0);
   const savingRef = useRef(false);
+  const queuedMarkerKey = ownerId ? `weather-theory-queued:${ownerId}:${topicId}` : null;
   useEffect(() => {
     let active = true;
-    void loadProgress(topicId).then((progress) => {
-      if (active) {
-        setComplete(Boolean(progress?.completed));
-        setLoading(false);
-        if (!progress?.completed) {
-          void saveProgress(topicId, false, 0, 0, { engagementState: "started" });
-        }
+    setLoadState("loading");
+    setSaveError(false);
+    setComplete(false);
+    setQueuedOffline(false);
+    void loadProgressDetailed(topicId).then((result) => {
+      if (!active) return;
+      if (result.status === "anonymous") {
+        setLoadState("anonymous");
+        return;
+      }
+      const locallyQueued = queuedMarkerKey !== null && window.localStorage.getItem(queuedMarkerKey) === "true";
+      if (locallyQueued && result.status === "failed") {
+        setComplete(true);
+        setQueuedOffline(true);
+        setLoadState("ready");
+        return;
+      }
+      if (result.status === "failed") {
+        setLoadState("error");
+        return;
+      }
+      const remotelyComplete = result.status === "remote" && Boolean(result.record.completed);
+      const queuedWithoutRemoteCompletion = !remotelyComplete && locallyQueued;
+      setComplete(remotelyComplete || queuedWithoutRemoteCompletion);
+      setQueuedOffline(queuedWithoutRemoteCompletion);
+      if (remotelyComplete && queuedMarkerKey) window.localStorage.removeItem(queuedMarkerKey);
+      setLoadState("ready");
+      if (result.status === "missing" && !queuedWithoutRemoteCompletion) {
+        void saveProgressDetailed(topicId, false, 0, 0, { engagementState: "started" });
       }
     });
     return () => {
       active = false;
     };
-  }, [loadProgress, saveProgress, topicId]);
+  }, [loadAttempt, loadProgressDetailed, queuedMarkerKey, saveProgressDetailed, topicId]);
   const finish = async () => {
-    if (complete || savingRef.current) return;
+    if (complete || loadState !== "ready" || savingRef.current) return;
     savingRef.current = true;
     setSaving(true);
+    setSaveError(false);
     try {
-      const saved = await saveProgress(topicId, true, 100, 10, { completionState: "completed" });
-      if (saved) setComplete(true);
+      const result = await saveProgressDetailed(topicId, true, 100, 10, { completionState: "completed" });
+      if (result === "remote" || result === "queued") {
+        setComplete(true);
+        setQueuedOffline(result === "queued");
+        if (queuedMarkerKey) {
+          if (result === "queued") window.localStorage.setItem(queuedMarkerKey, "true");
+          else window.localStorage.removeItem(queuedMarkerKey);
+        }
+      }
+      else setSaveError(true);
     } finally {
       savingRef.current = false;
       setSaving(false);
@@ -69,8 +104,12 @@ export const WeatherTheoryLayout = ({ title, subtitle, topicId, sections, childr
           ))}
         </div>
         {children}
+        {loadState === "anonymous" && <div role="status" className="rounded-md border p-3 text-center">Sign in to save completion and earn progress for this lesson.</div>}
+        {loadState === "error" && <div role="alert" className="rounded-md border border-destructive p-3 text-center"><p>We couldn’t load your lesson progress. Completion is unavailable until the read succeeds.</p><Button className="mt-2" variant="outline" onClick={() => setLoadAttempt((attempt) => attempt + 1)}>Retry loading progress</Button></div>}
+        {saveError && <div role="alert" className="rounded-md border border-destructive p-3 text-center">We couldn’t save completion. Your completion was not marked; check your connection and retry.</div>}
+        {queuedOffline && <div role="status" className="rounded-md border p-3 text-center">Completion is queued offline for this account and will sync when you reconnect.</div>}
         <div className="flex flex-col sm:flex-row gap-3 justify-center">
-          <Button onClick={finish} disabled={loading || saving || complete}>{complete ? <><CheckCircle2 className="mr-2" />Completed</> : loading ? "Loading progress…" : saving ? "Saving completion…" : "Mark theory complete"}</Button>
+          <Button onClick={finish} disabled={loadState !== "ready" || saving || complete}>{queuedOffline ? <><CheckCircle2 className="mr-2" />Queued offline</> : complete ? <><CheckCircle2 className="mr-2" />Completed</> : loadState === "loading" ? "Loading progress…" : loadState === "anonymous" ? "Sign in to complete" : loadState === "error" ? "Progress unavailable" : saving ? "Saving completion…" : saveError ? "Retry saving completion" : "Mark theory complete"}</Button>
           <Button variant="outline" onClick={() => navigate("/weather")}>Back to Meteorology</Button>
         </div>
       </main>
