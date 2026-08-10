@@ -704,7 +704,7 @@ const Quiz = () => {
               <div className="mb-4 flex justify-center">
                 <img
                   src={question.image}
-                  alt="Quiz Scenario"
+                  alt={question.imageAlt ?? "Quiz scenario diagram"}
                   className="max-h-64 rounded-lg object-contain border border-border"
                 />
               </div>

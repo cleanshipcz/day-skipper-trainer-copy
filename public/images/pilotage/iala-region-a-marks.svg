@@ -1,0 +1,14 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 800 300" role="img" aria-labelledby="title desc">
+<title id="title">IALA Region A buoy identification panels A to H</title><desc id="desc">Eight stylised daymarks show observable body colours, bands and topmarks for quiz identification.</desc>
+<rect width="800" height="300" fill="#e0f2fe"/>
+<g font-family="sans-serif" font-size="22" font-weight="700" text-anchor="middle" stroke="#111827" stroke-width="3">
+<g transform="translate(50 35)"><text y="-8" stroke="none">A</text><rect y="35" width="55" height="150" fill="#dc2626"/><rect x="10" width="35" height="30" fill="#dc2626"/></g>
+<g transform="translate(150 35)"><text y="-8" stroke="none">B</text><path d="M28 35 L60 185 H-4Z" fill="#15803d"/><path d="M8 30 L48 30 L28 0Z" fill="#15803d"/></g>
+<g transform="translate(250 35)"><text y="-8" stroke="none">C</text><rect y="35" width="55" height="50" fill="#dc2626"/><rect y="85" width="55" height="50" fill="#15803d"/><rect y="135" width="55" height="50" fill="#dc2626"/><rect x="10" width="35" height="30" fill="#dc2626"/></g>
+<g transform="translate(350 35)"><text y="-8" stroke="none">D</text><rect y="35" width="55" height="50" fill="#111827"/><rect y="85" width="55" height="50" fill="#facc15"/><rect y="135" width="55" height="50" fill="#111827"/><path d="M8 25 L48 25 L28 0Z M8 28 L48 28 L28 53Z" fill="#111827"/></g>
+<g transform="translate(450 35)"><text y="-8" stroke="none">E</text><rect y="35" width="55" height="55" fill="#111827"/><rect y="90" width="55" height="40" fill="#dc2626"/><rect y="130" width="55" height="55" fill="#111827"/><circle cx="28" cy="7" r="13" fill="#111827"/><circle cx="28" cy="32" r="13" fill="#111827"/></g>
+<g transform="translate(550 35)"><text y="-8" stroke="none">F</text><circle cx="28" cy="110" r="48" fill="#fff"/><path d="M0 75 Q28 55 55 75 V145 Q28 165 0 145Z" fill="#dc2626" stroke="none"/><rect x="21" y="62" width="14" height="96" fill="#fff" stroke="none"/><circle cx="28" cy="18" r="16" fill="#dc2626"/></g>
+<g transform="translate(650 35)"><text y="-8" stroke="none">G</text><rect y="35" width="55" height="150" fill="#facc15"/><path d="M10 0 L46 30 M46 0 L10 30" stroke="#facc15" stroke-width="10"/></g>
+<g transform="translate(750 35)"><text y="-8" stroke="none">H</text><rect y="35" width="55" height="150" fill="#2563eb"/><rect x="18" y="35" width="19" height="150" fill="#facc15" stroke="none"/><path d="M28 0 V30 M10 15 H46" stroke="#facc15" stroke-width="9"/></g>
+</g><text x="400" y="275" font-family="sans-serif" text-anchor="middle" fill="#111827">Training diagrams — identify from observable colour, shape, topmark and stated light rhythm</text>
+</svg>
