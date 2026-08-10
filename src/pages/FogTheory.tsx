@@ -1,5 +1,10 @@
 import type { TheorySection } from "@/components/weather/WeatherTheoryLayout";
 import { WeatherTheoryLayout } from "@/components/weather/WeatherTheoryLayout";
+import { FogScenarioPractice } from "@/components/weather/FogScenarioPractice";
+import { Button } from "@/components/ui/button";
+import { useTheoryCompletionGate } from "@/features/progress/useTheoryCompletionGate";
+import { FOG_SCENARIO_GATE } from "@/features/weather/fogScenarioCompletion";
+import { TOPIC_IDS } from "@/constants/topicRegistry";
 
 const SpreadDiagram = () => (
   <figure className="rounded-md border p-3" aria-labelledby="spread-title spread-caption">
@@ -72,5 +77,15 @@ export const fogTheorySections: readonly TheorySection[] = [
 ];
 
 export default function FogTheory() {
-  return <WeatherTheoryLayout title="Fog & Visibility" subtitle="Anticipate restricted visibility and respond early" topicId="weather-fog" sections={fogTheorySections} />;
+  const requiredSectionIds = [...FOG_SCENARIO_GATE.scenarioIds];
+  const gate = useTheoryCompletionGate({ topicId: TOPIC_IDS.WEATHER_FOG, catalogueRevision: FOG_SCENARIO_GATE.revision, requiredSectionIds, pointsOnComplete: 10 });
+  const remaining = requiredSectionIds.filter((id) => !gate.visitedSectionIds.includes(id)).length;
+  const durable = gate.isCompletionDurable;
+  const status = gate.loadState === "failed" ? "Saved fog-scenario progress could not be loaded. Retry before answering or completing."
+    : !gate.isHydrated ? "Loading saved fog-scenario progress…"
+    : durable ? gate.saveState === "queued" ? "Fog completion is queued offline and will sync when you reconnect." : gate.saveState === "local" ? "Fog completion is saved on this device. Sign in to sync it to an account." : "Fog completion is saved to your account."
+    : gate.saveState === "failed" ? "Progress was not saved. Your scenario results remain on this device; retry saving before completion."
+    : gate.canComplete ? "All five scenario decisions are correct. Save completion to award points." : `Complete ${remaining} more fog decision scenario${remaining === 1 ? "" : "s"} to unlock completion.`;
+  const completionControl = <section aria-labelledby="fog-completion-heading" className="space-y-3 rounded-lg border p-4 forced-colors:border-[CanvasText]"><h2 id="fog-completion-heading" className="text-lg font-semibold">Completion evidence</h2><p>Completion requires a correct decision in every fog scenario. Scenario evidence and completion are retained for this lesson and completion awards points once.</p>{gate.loadState === "failed" && <Button type="button" variant="outline" onClick={gate.retryLoad}>Retry loading progress</Button>}{gate.isHydrated && gate.saveState === "failed" && !gate.canComplete && <Button type="button" variant="outline" onClick={() => void gate.retrySave()}>Retry saving scenario progress</Button>}<Button type="button" className="h-auto min-h-11 whitespace-normal" disabled={!gate.isHydrated || gate.loadState !== "ready" || !gate.canComplete || gate.saveState === "saving" || durable} aria-describedby="fog-completion-status" onClick={() => void gate.markCompleted()}>{durable ? gate.saveState === "queued" ? "Completion queued offline" : "Completion saved" : gate.saveState === "saving" ? "Saving completion…" : gate.saveState === "failed" ? "Retry Fog completion" : "Save Fog completion"}</Button><p id="fog-completion-status" role="status" aria-live="polite">{status}</p></section>;
+  return <WeatherTheoryLayout title="Fog & Visibility" subtitle="Anticipate restricted visibility and respond early" topicId={TOPIC_IDS.WEATHER_FOG} sections={fogTheorySections} completionControl={completionControl}><FogScenarioPractice completedIds={gate.visitedSectionIds} enabled={gate.isHydrated && gate.loadState === "ready"} onComplete={(id) => void gate.markSectionVisited(id)} /></WeatherTheoryLayout>;
 }
