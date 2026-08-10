@@ -141,5 +141,15 @@ describe("PilotagePlanBuilder completion", () => {
     expect(screen.getByLabelText("Leg name").getAttribute("aria-invalid")).toBe("true");
     expect(screen.getByRole("alert").textContent).toContain("Add leg name");
     expect(screen.getByRole("status").textContent).toContain("Leg not saved");
+    await user.type(screen.getByLabelText("Leg name"), "Corrected leg");
+    expect(screen.getByLabelText("Leg name").getAttribute("aria-invalid")).toBe("false");
+    expect(screen.queryByRole("alert")).toBeNull();
+  });
+
+  it("gives form controls and the briefing label at least 44px target classes", () => {
+    render(<PilotagePlanBuilder onComplete={vi.fn()} />);
+    expect(screen.getAllByRole("textbox").filter((field) => field.tagName === "INPUT").every((field) => field.className.includes("min-h-11"))).toBe(true);
+    expect(screen.getAllByRole("spinbutton").every((field) => field.className.includes("min-h-11"))).toBe(true);
+    expect(screen.getByRole("checkbox").closest("label")?.className).toContain("min-h-11");
   });
 });

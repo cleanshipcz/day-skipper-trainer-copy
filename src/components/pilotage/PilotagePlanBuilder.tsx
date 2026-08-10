@@ -28,7 +28,11 @@ export const PilotagePlanBuilder = ({ onComplete }: Props) => {
 
   useEffect(() => { localStorage.setItem(PILOTAGE_DRAFT_KEY, JSON.stringify({ version: PILOTAGE_DRAFT_VERSION, waypoints })); }, [waypoints]);
   const changed = () => { setCompleted(false); setBriefed(false); };
-  const update = (key: keyof LegDraft, value: string) => setDraft((current) => ({ ...current, [key]: value }));
+  const update = (key: keyof LegDraft, value: string) => {
+    setDraft((current) => ({ ...current, [key]: value }));
+    const fieldId: Partial<Record<keyof LegDraft, string>> = { name: "waypoint-name", mark: "mark", bearing: "bearing", distance: "distance", speedOverGround: "sog", hazards: "hazards", safeLimits: "safe-limits", monitoring: "monitoring", depthAndTide: "depth-tide", communications: "communications", abortAndContingency: "contingency" };
+    if (invalidField === fieldId[key]) { setInvalidField(null); setValidationError(null); setAnnouncement("Correction entered; submit to validate the leg."); }
+  };
   const saveLeg = (event?: FormEvent) => {
     event?.preventDefault();
     const leg: PilotageWaypoint = { ...draft, id: editingId ?? createId(), name: draft.name.trim(), mark: draft.mark.trim(), bearing: Number(draft.bearing), distance: Number(draft.distance), speedOverGround: Number(draft.speedOverGround), hazards: draft.hazards.trim(), safeLimits: draft.safeLimits.trim(), monitoring: draft.monitoring.trim(), depthAndTide: draft.depthAndTide.trim(), communications: draft.communications.trim(), abortAndContingency: draft.abortAndContingency.trim(), notes: draft.notes.trim() };
@@ -78,7 +82,7 @@ export const PilotagePlanBuilder = ({ onComplete }: Props) => {
     <Card className="print:hidden"><CardHeader><CardTitle>3. Validate, review and brief</CardTitle></CardHeader><CardContent className="space-y-3">
       {coverage.length ? <div role="alert"><p className="font-medium">Coverage needs correction:</p><ul className="list-disc pl-5">{coverage.map((error) => <li key={error}>{error}</li>)}</ul></div> : <p>Coverage complete: every leg records a mark, course, distance, hazard, safe limit, monitoring, depth/tide, communications and contingency.</p>}
       {summary && <p><strong>{summary.totalDistance} NM</strong> total · <strong>{summary.estimatedMinutes} minutes</strong> estimated (rounded final total)</p>}
-      <label className="flex items-start gap-2"><input type="checkbox" checked={briefed} disabled={saving || coverage.length > 0} onChange={(e) => setBriefed(e.target.checked)} /><span>I can brief the ordered plan from memory: marks, limits, monitoring, communications and when to abort.</span></label>
+      <label className="flex min-h-11 cursor-pointer items-center gap-3 py-1"><input className="h-5 w-5 shrink-0" type="checkbox" checked={briefed} disabled={saving || coverage.length > 0} onChange={(e) => setBriefed(e.target.checked)} /><span>I can brief the ordered plan from memory: marks, limits, monitoring, communications and when to abort.</span></label>
       <div className="flex flex-col gap-2 sm:flex-row sm:flex-wrap"><Button className="min-h-11" variant="outline" disabled={!summary} onClick={() => window.print()}>Print / export cockpit plan</Button><Button className="min-h-11" disabled={!summary || !briefed || completed || saving} onClick={async () => { if (!summary) return; setSaving(true); setAnnouncement("Saving pilotage plan."); try { const saved = await onComplete(summary); if (saved) { setCompleted(true); setAnnouncement("Pilotage plan saved and completed."); } else setAnnouncement("Pilotage plan was not saved. Try again."); } catch { setAnnouncement("Pilotage plan could not be saved. Try again."); } finally { setSaving(false); } }}>{saving ? "Saving plan…" : completed ? "Plan completed" : "Complete pilotage plan"}</Button></div>
     </CardContent></Card>
   </div>;
@@ -89,5 +93,5 @@ const Field = ({ label, id, value, set, disabled, invalid, type = "text" }: { la
   const constraint = id === "bearing" ? "0 to less than 360 degrees true" : id === "distance" ? "Greater than 0 to 100 nautical miles" : id === "sog" ? "Greater than 0 to 50 knots" : "Required";
   const min = id === "bearing" ? 0 : numeric ? 0.001 : undefined;
   const max = id === "bearing" ? 359.999 : id === "distance" ? 100 : id === "sog" ? 50 : undefined;
-  return <div className="min-w-0"><Label htmlFor={id}>{label}</Label><Input id={id} type={type} min={min} max={max} step={numeric ? "any" : undefined} required aria-invalid={invalid} aria-describedby={`${id}-help${invalid ? " leg-form-error" : ""}`} value={value} disabled={disabled} onChange={(e) => set(e.target.value)} /><p id={`${id}-help`} className="text-xs text-muted-foreground">{constraint}</p></div>;
+  return <div className="min-w-0"><Label htmlFor={id}>{label}</Label><Input className="min-h-11" id={id} type={type} min={min} max={max} step={numeric ? "any" : undefined} required aria-invalid={invalid} aria-describedby={`${id}-help${invalid ? " leg-form-error" : ""}`} value={value} disabled={disabled} onChange={(e) => set(e.target.value)} /><p id={`${id}-help`} className="text-xs text-muted-foreground">{constraint}</p></div>;
 };
