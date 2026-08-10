@@ -6,6 +6,7 @@ import { BeaufortDrill } from "./BeaufortDrill";
 import { SynopticChartReader } from "./SynopticChartReader";
 import { ForecastAreaMap } from "./ForecastAreaMap";
 import { areaInDirection } from "./weatherMapNavigation";
+import { forecastPrompt, shuffledForecastAreas } from "./forecastGeographyExercise";
 import { forecastAreas } from "@/data/forecastAreas";
 
 type Point = readonly [number, number];
@@ -175,5 +176,67 @@ describe("weather interactions", () => {
     expect(areaInDirection(byName.get("Dogger")!, "ArrowRight").name).toBe("German Bight");
     expect(areaInDirection(byName.get("Dogger")!, "ArrowLeft").name).toBe("Tyne");
     expect(areaInDirection(byName.get("Dogger")!, "ArrowDown").name).toBe("Humber");
+  });
+
+  it("gives immediate correct feedback and advances to the next guided area", async () => {
+    const user = userEvent.setup();
+    render(<ForecastAreaMap createExerciseOrder={() => [...forecastAreas]} />);
+    await user.click(screen.getByRole("button", { name: "Guided exercise" }));
+    expect(screen.getByText("Area 1 of 31")).toBeTruthy();
+    expect(screen.getByText(/waters southeast of Iceland/i)).toBeTruthy();
+    await user.click(screen.getByRole("option", { name: "Southeast Iceland" }));
+    expect(screen.getByRole("status").textContent).toMatch(/Correct.*correct area is Southeast Iceland/i);
+    await user.click(screen.getByRole("button", { name: "Next area" }));
+    expect(screen.getByText("Area 2 of 31")).toBeTruthy();
+    expect(document.activeElement).toBe(screen.getByRole("listbox", { name: "Shipping forecast area chooser" }));
+    expect(screen.getByText(/shares boundaries with Southeast Iceland and Bailey/i)).toBeTruthy();
+  });
+
+  it("highlights the answer after an incorrect choice and permits a keyboard retry", async () => {
+    const user = userEvent.setup();
+    render(<ForecastAreaMap createExerciseOrder={() => [...forecastAreas]} />);
+    await user.click(screen.getByRole("button", { name: "Guided exercise" }));
+    await user.click(screen.getByRole("option", { name: "Bailey" }));
+    expect(screen.getByRole("status").textContent).toMatch(/Not quite.*Bailey.*correct area is Southeast Iceland/i);
+    expect(screen.getByTestId("selected-area-marker").getAttribute("data-area")).toBe("Southeast Iceland");
+    await user.click(screen.getByRole("button", { name: "Retry area" }));
+    expect(screen.getByTestId("selected-area-marker").getAttribute("data-area")).toBe("Faeroes");
+    const chooser = screen.getByRole("listbox", { name: "Shipping forecast area chooser" });
+    expect(document.activeElement).toBe(chooser);
+    await user.keyboard("{ArrowUp}{Enter}");
+    expect(screen.getByRole("status").textContent).toMatch(/Correct.*Southeast Iceland/i);
+  });
+
+  it("covers all areas, reports results, and resets cleanly", async () => {
+    const user = userEvent.setup();
+    render(<ForecastAreaMap createExerciseOrder={() => [...forecastAreas]} />);
+    await user.click(screen.getByRole("button", { name: "Guided exercise" }));
+    for (let index = 0; index < forecastAreas.length; index += 1) {
+      await user.click(screen.getByRole("option", { name: forecastAreas[index].name }));
+      await user.click(screen.getByRole("button", { name: index === forecastAreas.length - 1 ? "See results" : "Next area" }));
+    }
+    const resultsHeading = screen.getByRole("heading", { name: "Geography exercise complete" });
+    expect(document.activeElement).toBe(resultsHeading);
+    expect(screen.getByRole("status").textContent).toContain("First-try correct: 31 of 31. Retries: 0");
+    await user.click(screen.getByRole("button", { name: "Restart guided exercise" }));
+    expect(screen.getByText("Area 1 of 31")).toBeTruthy();
+    expect(document.activeElement).toBe(screen.getByRole("listbox", { name: "Shipping forecast area chooser" }));
+    expect(screen.queryByRole("heading", { name: "Geography exercise complete" })).toBeNull();
+  });
+
+  it("builds a complete unique runtime order without relying on a fixed sequence", () => {
+    const shuffled = shuffledForecastAreas(() => 0);
+    expect(shuffled).toHaveLength(31);
+    expect(new Set(shuffled.map(({ name }) => name)).size).toBe(31);
+    expect(shuffled.map(({ name }) => name)).not.toEqual(forecastAreas.map(({ name }) => name));
+  });
+
+  it("generates an unambiguous clue for every area at every shuffled session position", () => {
+    for (const area of forecastAreas) {
+      for (let sessionIndex = 0; sessionIndex < forecastAreas.length; sessionIndex += 1) {
+        const prompt = forecastPrompt(area, sessionIndex);
+        expect(prompt.validAreaNames, `${area.name} at ${sessionIndex}: ${prompt.question}`).toEqual([area.name]);
+      }
+    }
   });
 });
