@@ -44,7 +44,7 @@ const subModules: ModuleMenuItem[] = [
   {
     id: "tides-vector-tool",
     title: "Vector Solution Tool",
-    description: "Practice after the chart-ready CTS lesson",
+    description: "Interactive follow-on vector plotting practice",
     icon: Navigation,
     path: "/navigation/tides/vector-tool",
     type: "practice",
