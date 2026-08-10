@@ -16,7 +16,7 @@ describe("meteorology integration", () => {
   });
 
   it("ships comprehensive quiz and complete forecast-area data", async () => {
-    expect(await loadQuizTopic("weather")).toHaveLength(20);
+    expect(await loadQuizTopic("weather")).toHaveLength(21);
     expect(forecastAreas).toHaveLength(31);
     expect(forecastAreas.map(({ name }) => name)).toEqual(expect.arrayContaining([
       "North Utsire", "South Utsire", "Cromarty", "Forth", "Tyne", "German Bight", "Southeast Iceland",
