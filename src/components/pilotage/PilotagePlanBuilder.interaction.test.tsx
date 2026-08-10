@@ -39,7 +39,7 @@ describe("PilotagePlanBuilder completion", () => {
     expect(screen.getByRole("button", { name: "Saving plan…" })).toBeTruthy();
 
     const sog = screen.getByLabelText("Planned SOG (knots)") as HTMLInputElement;
-    const removeButtons = screen.getAllByRole("button", { name: "Remove" }) as HTMLButtonElement[];
+    const removeButtons = screen.getAllByRole("button", { name: /Remove leg/ }) as HTMLButtonElement[];
     const addButton = screen.getByRole("button", { name: "Add waypoint" }) as HTMLButtonElement;
     expect(sog.disabled).toBe(true);
     expect(removeButtons.every((button) => button.disabled)).toBe(true);
@@ -49,7 +49,7 @@ describe("PilotagePlanBuilder completion", () => {
 
     await user.click(removeButtons[0]);
     await user.type(sog, "4");
-    expect(screen.getAllByRole("button", { name: "Remove" })).toHaveLength(removeButtons.length);
+    expect(screen.getAllByRole("button", { name: /Remove leg/ })).toHaveLength(removeButtons.length);
     expect(sog.value).toBe("5");
 
     resolveSave(true);
@@ -67,10 +67,12 @@ describe("PilotagePlanBuilder completion", () => {
     await brief(user);
     await user.click(screen.getByRole("button", { name: "Complete pilotage plan" }));
     await waitFor(() => expect(onComplete).toHaveBeenCalledTimes(1));
+    expect(screen.getByRole("status").textContent).toContain("not saved");
     expect((screen.getByRole("button", { name: "Complete pilotage plan" }) as HTMLButtonElement).disabled).toBe(false);
 
     await user.click(screen.getByRole("button", { name: "Complete pilotage plan" }));
     await waitFor(() => expect((screen.getByRole("button", { name: "Plan completed" }) as HTMLButtonElement).disabled).toBe(true));
+    expect(screen.getByRole("status").textContent).toContain("saved and completed");
     expect(onComplete).toHaveBeenCalledTimes(2);
   });
 
@@ -82,7 +84,7 @@ describe("PilotagePlanBuilder completion", () => {
     await brief(user);
     await user.click(screen.getByRole("button", { name: "Complete pilotage plan" }));
     await waitFor(() => expect((screen.getByRole("button", { name: "Plan completed" }) as HTMLButtonElement).disabled).toBe(true));
-    await user.click(screen.getAllByRole("button", { name: "Remove" })[0]);
+    await user.click(screen.getAllByRole("button", { name: /Remove leg/ })[0]);
     expect((screen.getByRole("button", { name: "Complete pilotage plan" }) as HTMLButtonElement).disabled).toBe(true);
     expect((screen.getByRole("checkbox") as HTMLInputElement).checked).toBe(false);
     await brief(user);
@@ -92,13 +94,13 @@ describe("PilotagePlanBuilder completion", () => {
   it("edits, reorders, and reopens a versioned draft", async () => {
     const user = userEvent.setup();
     const view = render(<PilotagePlanBuilder onComplete={vi.fn()} />);
-    await user.click(screen.getAllByRole("button", { name: "Edit" })[0]);
+    await user.click(screen.getAllByRole("button", { name: /Edit leg/ })[0]);
     await user.clear(screen.getByLabelText("Leg name"));
     await user.type(screen.getByLabelText("Leg name"), "Revised safe-water leg");
     await user.click(screen.getByRole("button", { name: "Save leg" }));
     expect(screen.getAllByText("1. Revised safe-water leg")).toHaveLength(2);
 
-    await user.click(screen.getByRole("button", { name: "Move Revised safe-water leg down" }));
+    await user.click(screen.getByRole("button", { name: "Move leg 1, Revised safe-water leg, down" }));
     expect(screen.getAllByText("2. Revised safe-water leg")).toHaveLength(2);
     expect(JSON.parse(localStorage.getItem("day-skipper:pilotage-plan:draft") ?? "null").version).toBe(2);
 
@@ -115,5 +117,29 @@ describe("PilotagePlanBuilder completion", () => {
     expect(printPlan.querySelectorAll("article")).toHaveLength(3);
     expect(Array.from(printPlan.querySelectorAll("article")).every((leg) => leg.className.includes("break-inside-avoid"))).toBe(true);
     expect(screen.getByText("1. Harbour approach").closest(".print\\:hidden")).toBeTruthy();
+  });
+
+  it("uses semantic ordering, unique row actions, and one predictable Enter submission", async () => {
+    const user = userEvent.setup();
+    render(<PilotagePlanBuilder onComplete={vi.fn()} />);
+    expect(screen.getByRole("list", { name: "Ordered pilotage legs" }).querySelectorAll(":scope > li")).toHaveLength(3);
+    const editActions = screen.getAllByRole("button", { name: /Edit leg/ });
+    expect(new Set(editActions.map((button) => button.getAttribute("aria-label"))).size).toBe(3);
+    await user.click(editActions[0]);
+    const name = screen.getByLabelText("Leg name");
+    await user.clear(name);
+    await user.type(name, "Keyboard revised leg{Enter}");
+    expect(screen.getByRole("list", { name: "Ordered pilotage legs" }).querySelectorAll(":scope > li")).toHaveLength(3);
+    expect(screen.getByRole("status").textContent).toContain("Updated Keyboard revised leg");
+  });
+
+  it("announces invalid submission and focuses the first invalid field", async () => {
+    const user = userEvent.setup();
+    render(<PilotagePlanBuilder onComplete={vi.fn()} />);
+    await user.click(screen.getByRole("button", { name: "Add waypoint" }));
+    await waitFor(() => expect(document.activeElement).toBe(screen.getByLabelText("Leg name")));
+    expect(screen.getByLabelText("Leg name").getAttribute("aria-invalid")).toBe("true");
+    expect(screen.getByRole("alert").textContent).toContain("Add leg name");
+    expect(screen.getByRole("status").textContent).toContain("Leg not saved");
   });
 });
