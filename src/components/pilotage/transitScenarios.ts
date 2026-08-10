@@ -28,14 +28,21 @@ export const signedCrossTrack = (point: MarkerPosition, start: MarkerPosition, e
   return (dx * (point.y - start.y) - dy * (point.x - start.x)) / length;
 };
 
-export const isOnUsableSegment = (point: MarkerPosition, segment: readonly [MarkerPosition, MarkerPosition]): boolean => {
+export const isOnUsableSegment = (point: MarkerPosition, segment: readonly [MarkerPosition, MarkerPosition], tolerance = 0.001): boolean => {
   const [start, end] = segment;
   const dx = end.x - start.x;
   const dy = end.y - start.y;
   const lengthSquared = dx * dx + dy * dy;
   if (lengthSquared === 0) return false;
   const projection = ((point.x - start.x) * dx + (point.y - start.y) * dy) / lengthSquared;
-  return projection >= 0 && projection <= 1;
+  const crossTrack = Math.abs(signedCrossTrack(point, start, end));
+  return projection >= 0 && projection <= 1 && crossTrack <= tolerance;
+};
+
+/** Horizontal bearings of the marks in an observer's forward-looking sight picture. */
+export const apparentMarkOffsets = (scenario: TransitScenario): {readonly front:number; readonly rear:number} => {
+  const bearing = (mark: MarkerPosition) => Math.atan2(mark.x - scenario.observer.x, scenario.observer.y - mark.y);
+  return { front: bearing(scenario.frontMarker), rear: bearing(scenario.rearMarker) };
 };
 
 export const classifyTransit = (scenario: TransitScenario): TransitAnswer => {

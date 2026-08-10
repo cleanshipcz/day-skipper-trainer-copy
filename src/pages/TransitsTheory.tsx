@@ -370,7 +370,7 @@ const TransitsTheory = () => {
             Practice: Transit Alignment Exercise
           </h2>
           <p className="text-muted-foreground">
-            Drag the vessel to line up with the transit markers. Try all three exercises
+            Read each observer sight picture and identify where the front mark appears relative to the rear mark. Complete all three assessments
             of increasing difficulty.
           </p>
           <TransitExercise

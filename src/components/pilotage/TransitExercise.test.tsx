@@ -1,12 +1,14 @@
 import { fireEvent, render, screen } from "@testing-library/react";
 import { describe, expect, it, vi } from "vitest";
-import { TransitExercise } from "./TransitExercise";
+import { renderToStaticMarkup } from "react-dom/server";
+import { TransitExercise, TransitSightPicture } from "./TransitExercise";
+import { TRANSIT_SCENARIOS } from "./transitScenarios";
 
 describe("TransitExercise", () => {
   it("presents an observer sight-picture outcome and constrained water claim", () => {
     render(<TransitExercise onComplete={vi.fn()}/>);
     expect(screen.getByRole("img", {name:/observer sight picture/i})).toBeTruthy();
-    expect(screen.getByText(/no claim beyond it/i)).toBeTruthy();
+    expect(screen.getByText(/no clearance elsewhere/i)).toBeTruthy();
     expect(screen.getByText(/mastery requires all 3/i)).toBeTruthy();
   });
 
@@ -27,5 +29,13 @@ describe("TransitExercise", () => {
       fireEvent.click(screen.getByRole("button", {name:/next sight picture|complete mastery/i}));
     }
     expect(complete).toHaveBeenCalledWith({correctCount:3,totalExercises:3});
+  });
+
+  it("derives the sight picture from alternate scenario dimensions", () => {
+    const html = renderToStaticMarkup(<TransitSightPicture scenario={{...TRANSIT_SCENARIOS[0],chartWidth:320,chartHeight:200}}/>);
+    expect(html).toContain('viewBox="0 0 320 200"');
+    expect(html).toContain('width="320"');
+    expect(html).not.toContain("600");
+    expect(html).not.toContain("400");
   });
 });

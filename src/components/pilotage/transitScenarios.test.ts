@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { TRANSIT_SCENARIOS, classifyTransit, isOnUsableSegment, signedCrossTrack, type TransitScenario } from "./transitScenarios";
+import { apparentMarkOffsets, TRANSIT_SCENARIOS, classifyTransit, isOnUsableSegment, signedCrossTrack } from "./transitScenarios";
 
 describe("transit competency geometry", () => {
   it("classifies both sides and the tolerance boundary independent of pixels", () => {
@@ -12,9 +12,17 @@ describe("transit competency geometry", () => {
 
   it("rejects invalid geometry and observers beyond terminal endpoints", () => {
     expect(isOnUsableSegment({x:.2,y:.78}, TRANSIT_SCENARIOS[0].usableSegment)).toBe(true);
+    expect(isOnUsableSegment({x:.5,y:.77}, TRANSIT_SCENARIOS[0].usableSegment)).toBe(false);
     expect(isOnUsableSegment({x:.81,y:.78}, TRANSIT_SCENARIOS[0].usableSegment)).toBe(false);
     expect(() => classifyTransit({...TRANSIT_SCENARIOS[0], observer:{x:.9,y:.78}})).toThrow(/outside/);
     expect(signedCrossTrack({x:0,y:0},{x:1,y:1},{x:1,y:1})).toBeNaN();
+  });
+
+  it("produces an aligned or consistently separated observer sight picture", () => {
+    const pictures = TRANSIT_SCENARIOS.map(apparentMarkOffsets);
+    expect(pictures[0].front).toBeCloseTo(pictures[0].rear);
+    expect(pictures[1].front).toBeLessThan(pictures[1].rear);
+    expect(pictures[2].front).toBeGreaterThan(pictures[2].rear);
   });
 
   it("declares deterministic, valid scenario answers and side-specific feedback", () => {
