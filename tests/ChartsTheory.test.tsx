@@ -46,6 +46,12 @@ describe("ChartsTheory Page", () => {
     progressMocks.loadProgressDetailed.mockReset().mockResolvedValue({ status: "missing", record: null });
     progressMocks.saveProgressDetailed.mockReset().mockResolvedValue("remote");
   });
+  it("names the back destination and chart section tablist", async () => {
+    render(<TestRouter><ChartsTheory /></TestRouter>);
+    await screen.findByText("Complete each practical outcome to unlock module completion.");
+    expect(screen.getByRole("button", { name: "Back to Navigation" })).toBeDefined();
+    expect(screen.getByRole("tablist", { name: "Chart theory sections" })).toBeDefined();
+  });
   it("renders all main educational sections via tabs", async () => {
     const user = userEvent.setup();
     render(

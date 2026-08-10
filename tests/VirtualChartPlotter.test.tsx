@@ -52,6 +52,18 @@ describe("VirtualChartPlotter access paths", () => {
     expect(svg.getAttribute("viewBox")).toBe("100 0 500 300");
     fireEvent.click(screen.getByRole("button", { name: /zoom out/i }));
     expect(svg.getAttribute("viewBox")).toBe("100 0 625 375");
+    expect(screen.getByRole("status", { name: "" }).textContent).toContain("Current scale: 80%");
+  });
+
+  it("names zoom controls and exposes the current scale and limits", () => {
+    render(<VirtualChartPlotter />);
+    const zoomIn = screen.getByRole("button", { name: "Zoom in" });
+    const zoomOut = screen.getByRole("button", { name: "Zoom out" });
+    expect(zoomIn.getAttribute("aria-describedby")).toBe("plotter-scale-status");
+    expect(zoomOut.getAttribute("aria-describedby")).toBe("plotter-scale-status");
+    for (let i = 0; i < 2; i += 1) fireEvent.click(zoomIn);
+    expect((zoomIn as HTMLButtonElement).disabled).toBe(true);
+    expect(screen.getByText(/Current scale: 200%\. Zoom range: 40% to 200%/i)).toBeDefined();
   });
 
   it("supports keyboard form completion and reports wrong tools without leaking answers", () => {
