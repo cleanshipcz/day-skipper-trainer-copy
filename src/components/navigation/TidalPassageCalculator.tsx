@@ -1,549 +1,144 @@
-import { useState, useMemo } from "react";
-import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
-import { Button } from "@/components/ui/button";
-import { Label } from "@/components/ui/label";
+import { useMemo, useState } from "react";
+import { AlertTriangle, ArrowDown, ArrowUp, Clock } from "lucide-react";
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
-import { Slider } from "@/components/ui/slider";
+import { Label } from "@/components/ui/label";
 import { Badge } from "@/components/ui/badge";
-import { Clock, Ship, AlertTriangle, ArrowDown, ArrowUp } from "lucide-react";
+import { calculatePassagePlan, conservativeWindow, formatTidalTime, heightAtTime, minutesAfterMidnight, normaliseFollowingTime } from "@/lib/tidalHeights";
 
-interface TideInput {
-  time: string;
-  height: number;
-}
+type EventState = { time: string; height: string };
+const WIDTH = 600;
+const HEIGHT = 300;
+const PADDING = 48;
+
+const numberOrNaN = (value: string) => value.trim() === "" ? Number.NaN : Number(value);
 
 const TidalPassageCalculator = () => {
-  // State for inputs
-  const [hw, setHw] = useState<TideInput>({ time: "12:00", height: 4.5 });
-  const [lw, setLw] = useState<TideInput>({ time: "18:00", height: 0.8 });
-  const [draft, setDraft] = useState<number>(1.5);
-  const [clearance, setClearance] = useState<number>(1.0);
-  const [chartedDepth, setChartedDepth] = useState<number>(0.5); // Positive = Depth, Negative = Drying Height? Usually drying is underlined. Let's assume Charted Depth (always add to tide).
-  // Note: If drying height, user enters negative depth? Or we explicitly ask?
-  // Let's stick to "Charted Depth" where drying heights are negative inputs for simplicity, or provide a toggle.
-  // Standard: Charted Depth. If Drying, it's e.g. -2m.
+  const [previousLow, setPreviousLow] = useState<EventState>({ time: "06:00", height: "0.8" });
+  const [high, setHigh] = useState<EventState>({ time: "12:00", height: "4.5" });
+  const [followingLow, setFollowingLow] = useState<EventState>({ time: "18:00", height: "0.8" });
+  const [draft, setDraft] = useState("1.5");
+  const [clearance, setClearance] = useState("1.0");
+  const [chartedDepth, setChartedDepth] = useState("0.5");
 
-  // Parse time to decimal hours
-  const parseTime = (t: string) => {
-    const [h, m] = t.split(":").map(Number);
-    return h + m / 60;
-  };
-
-  const formatTime = (decimal: number) => {
-    let h = Math.floor(decimal);
-    let m = Math.round((decimal - h) * 60);
-    if (m === 60) {
-      h += 1;
-      m = 0;
-    }
-    h = h % 24;
-    return `${h.toString().padStart(2, "0")}:${m.toString().padStart(2, "0")}`;
-  };
-
-  // Calculations
-  const calculations = useMemo(() => {
-    const hwTime = parseTime(hw.time);
-    const lwTime = parseTime(lw.time);
-
-    // Handle day crossing? For simplicity assume single cycle within 24h or relative order.
-    // If LW < HW, it's before. If LW > HW, it's after.
-    // Let's normalize to a single 12h plot centered on the "Port" event?
-    // Actually, user defines the window.
-
-    // Required Height of Tide
-    const requiredTotalDepth = draft + clearance;
-    const requiredTideHeight = requiredTotalDepth - chartedDepth;
-
-    // Generate Points for the Graph (every 10 minutes)
-    const points = [];
-    const safeWindows: { start: number; end: number }[] = [];
-
-    // Determine range to plot: Start from min(HW, LW) - 1h to max(HW, LW) + 1h
-    // Or just a fixed duration?
-    // Let's do a standard Standard Port curve approximation (Sine wave)
-    // Range = HW - LW.
-    // Mean Level = (HW + LW) / 2
-    // Duration = LW_Time - HW_Time (approx 6h).
-
-    // What if user inputs widely separated times?
-    // Let's assume standard semi-diurnal.
-
-    // For smooth plotting, let's sort times.
-    const t1 = Math.min(hwTime, lwTime);
-    const t2 = Math.max(hwTime, lwTime);
-    const isHighFirst = hwTime < lwTime;
-
-    const duration = t2 - t1;
-    // Period T approx 12.4h, so half period is ~6.2h.
-    // We'll fit a cosine wave between the two points.
-
-    const startPlot = t1 - 1;
-    const endPlot = t2 + 1;
-    const step = 0.25; // 15 mins
-
-    let currentWindowStart: number | null = null;
-
-    for (let t = startPlot; t <= endPlot; t += 0.1) {
-      // Calculate height at time t
-      // Cosine interpolation:
-      // Phase 0 at HW, PI at LW.
-      // angle = (t - hwTime) / (lwTime - hwTime) * PI ... wait.
-      const timeDiff = t - hwTime;
-      // Duration from HW to LW is (lwTime - hwTime) (could be negative)
-      const halfCycle = lwTime - hwTime;
-      const angle = (timeDiff / halfCycle) * Math.PI; // 0 at HW, PI at LW.
-
-      // Height = Mean + Amplitude * cos(angle)
-      // Amplitude = (HW - LW) / 2
-      // At HW (angle 0): Mean + Amp = HW. Correct.
-      // At LW (angle PI): Mean - Amp = LW. Correct.
-      const mean = (hw.height + lw.height) / 2;
-      const amp = (hw.height - lw.height) / 2;
-
-      const h = mean + amp * Math.cos(angle);
-
-      const isSafe = h >= requiredTideHeight;
-      points.push({ time: t, height: h, isSafe });
-
-      // Window Logic
-      if (isSafe && currentWindowStart === null) {
-        currentWindowStart = t;
-      } else if (!isSafe && currentWindowStart !== null) {
-        safeWindows.push({ start: currentWindowStart, end: t });
-        currentWindowStart = null;
-      }
-    }
-    if (currentWindowStart !== null) {
-      safeWindows.push({ start: currentWindowStart, end: endPlot });
-    }
-
-    return { points, requiredTideHeight, safeWindows };
-  }, [hw, lw, draft, clearance, chartedDepth]);
-
-  // SVG Dimensions
-  const WIDTH = 600;
-  const HEIGHT = 300;
-  const PADDING = 40;
-
-  const chartModel = useMemo(() => {
-    const tMin = calculations.points[0]?.time || 0;
-    const tMax = calculations.points[calculations.points.length - 1]?.time || 24;
-    const hMax = Math.max(hw.height, 6); // At least 6m scale
-
-    const scaleX = (t: number) => PADDING + ((t - tMin) / (tMax - tMin)) * (WIDTH - 2 * PADDING);
-    const scaleY = (h: number) => HEIGHT - PADDING - (h / hMax) * (HEIGHT - 2 * PADDING);
-
-    const pathD = calculations.points.reduce((path, point, i) => {
-      const x = scaleX(point.time);
-      const y = scaleY(point.height);
-      return path + (i === 0 ? `M ${x},${y}` : ` L ${x},${y}`);
-    }, "");
-
-    const timeLabels = calculations.points
-      .filter((_, i) => i % 4 === 0)
-      .map((point) => ({
-        key: point.time,
-        x: scaleX(point.time),
-        label: `${Math.floor(point.time) % 24}:${Math.round((point.time % 1) * 60)
-          .toString()
-          .padStart(2, "0")}`,
-      }));
-
-    const safeWindowRects = calculations.safeWindows.map((window) => {
-      const x1 = scaleX(window.start);
-      const x2 = scaleX(window.end);
-      return {
-        x: x1,
-        width: x2 - x1,
-      };
-    });
-
-    const reqY = scaleY(calculations.requiredTideHeight);
-    const isReqLineVisible = calculations.requiredTideHeight >= 0 && calculations.requiredTideHeight <= hMax;
-
-    return {
-      hMax,
-      pathD,
-      reqY,
-      isReqLineVisible,
-      timeLabels,
-      safeWindowRects,
-      hwPoint: {
-        x: scaleX(parseTime(hw.time)),
-        y: scaleY(hw.height),
-      },
-      lwPoint: {
-        x: scaleX(parseTime(lw.time)),
-        y: scaleY(lw.height),
-      },
-      gridLines: [0, 1, 2, 3, 4, 5, 6]
-        .filter((level) => level <= hMax)
-        .map((level) => ({ level, y: scaleY(level) })),
+  const model = useMemo(() => {
+    const previousMinutes = minutesAfterMidnight(previousLow.time);
+    const highMinutes = normaliseFollowingTime(previousMinutes, minutesAfterMidnight(high.time));
+    const followingMinutes = normaliseFollowingTime(highMinutes, minutesAfterMidnight(followingLow.time));
+    const inputs = {
+      previousLow: { minutes: previousMinutes, height: numberOrNaN(previousLow.height) },
+      high: { minutes: highMinutes, height: numberOrNaN(high.height) },
+      followingLow: { minutes: followingMinutes, height: numberOrNaN(followingLow.height) },
+      draft: numberOrNaN(draft), clearance: numberOrNaN(clearance), chartedDepth: numberOrNaN(chartedDepth),
     };
-  }, [calculations.points, calculations.requiredTideHeight, calculations.safeWindows, hw.height, hw.time, lw.height, lw.time]);
+    return { inputs, plan: calculatePassagePlan(inputs) };
+  }, [previousLow, high, followingLow, draft, clearance, chartedDepth]);
 
-  // Drill Mode State
-  const [drillMode, setDrillMode] = useState(false);
-  const [drillQuestion, setDrillQuestion] = useState<{ time: number; isSafe: boolean } | null>(null);
-  const [drillFeedback, setDrillFeedback] = useState<"correct" | "incorrect" | null>(null);
-  const [scenarioId, setScenarioId] = useState<number | null>(null);
+  const chart = useMemo(() => {
+    if (model.plan.status === "invalid" || model.plan.status === "out_of_model") return null;
+    const { previousLow: first, high: peak, followingLow: last } = model.inputs;
+    const points = Array.from({ length: 97 }, (_, index) => {
+      const minutes = first.minutes + (index / 96) * (last.minutes - first.minutes);
+      return { minutes, height: minutes <= peak.minutes ? heightAtTime(first, peak, minutes) : heightAtTime(peak, last, minutes) };
+    });
+    // Keep the curve legible when a valid vessel requirement lies outside the tidal range.
+    // Off-scale requirements are described textually rather than distorting the tide scale.
+    const values = [...points.map((point) => point.height), 0];
+    let min = Math.min(...values);
+    let max = Math.max(...values);
+    const padding = Math.max((max - min) * 0.12, 0.5);
+    min -= padding;
+    max += padding;
+    const x = (minutes: number) => PADDING + ((minutes - first.minutes) / (last.minutes - first.minutes)) * (WIDTH - PADDING * 2);
+    const y = (height: number) => HEIGHT - PADDING - ((height - min) / (max - min)) * (HEIGHT - PADDING * 2);
+    const tickStep = Math.max(0.5, Math.ceil(((max - min) / 5) * 2) / 2);
+    const firstTick = Math.ceil(min / tickStep) * tickStep;
+    const heightTicks = Array.from({ length: Math.floor((max - firstTick) / tickStep) + 1 }, (_, i) => firstTick + i * tickStep);
+    const timeTicks = Array.from({ length: 5 }, (_, i) => first.minutes + (i / 4) * (last.minutes - first.minutes));
+    return {
+      path: points.map((point, i) => `${i ? "L" : "M"} ${x(point.minutes)},${y(point.height)}`).join(" "),
+      x, y, heightTicks, timeTicks,
+      requiredLineVisible: (model.plan.requiredTide as number) >= min && (model.plan.requiredTide as number) <= max,
+      safeRects: model.plan.safeWindows.map((window) => ({ x: x(window.start), width: Math.max(0, x(window.end) - x(window.start)) })),
+    };
+  }, [model]);
 
-  const startDrill = () => {
-    // Generate Random Scenario
-    const rHwH = 3.5 + Math.random() * 3; // 3.5 - 6.5m
-    const rLwH = 0.5 + Math.random() * 1.5; // 0.5 - 2.0m
-    const rDraft = 1.0 + Math.random() * 1.5; // 1.0 - 2.5m
-    const rClear = 0.5 + Math.random() * 1.0; // 0.5 - 1.5m
-    const rDepth = -2.0 + Math.random() * 4.0; // -2.0 to +2.0m
-
-    // Random Times (HW between 10:00 and 14:00)
-    const rHwT = 10 + Math.random() * 4;
-    const rLwT = rHwT + 5.5 + Math.random() * 1.0; // ~6h later
-
-    setHw({ time: formatTime(rHwT), height: Number(rHwH.toFixed(1)) });
-    setLw({ time: formatTime(rLwT), height: Number(rLwH.toFixed(1)) });
-    setDraft(Number(rDraft.toFixed(1)));
-    setClearance(Number(rClear.toFixed(1)));
-    setChartedDepth(Number(rDepth.toFixed(1)));
-
-    // Generate Question: "Is it safe at [Time]?"
-    // Pick a time between HW-3 and LW+3
-    const qTime = rHwT - 2 + Math.random() * (rLwT - rHwT + 4);
-    const nextScenarioId = Math.floor(Math.random() * 1000);
-
-    // Calculate answer (re-using logic is tricky outside useMemo, but we can check later)
-    setDrillQuestion({ time: qTime, isSafe: false }); // isSafe calculated on check
-    setScenarioId(nextScenarioId);
-    setDrillFeedback(null);
-    setDrillMode(true);
-  };
-
-  const checkAnswer = (userSaysSafe: boolean) => {
-    if (!drillQuestion) return;
-
-    // Re-verify safe status for the specific question time
-    const depth = draft + clearance - chartedDepth;
-    // Calculate Tide Height at qTime
-    // (copy logic from useMemo or move generation to util?)
-    // Inline quick calc:
-    const hwT = parseTime(hw.time); // Current State (set by drill)
-    const lwT = parseTime(lw.time);
-    const mean = (hw.height + lw.height) / 2;
-    const amp = (hw.height - lw.height) / 2;
-    const halfCycle = lwT - hwT;
-    const angle = ((drillQuestion.time - hwT) / halfCycle) * Math.PI;
-    const h = mean + amp * Math.cos(angle);
-
-    const actuallySafe = h >= depth;
-
-    if (userSaysSafe === actuallySafe) {
-      setDrillFeedback("correct");
-    } else {
-      setDrillFeedback("incorrect");
-    }
-  };
-
-  const exitDrill = () => {
-    setDrillMode(false);
-    setDrillQuestion(null);
-    setDrillFeedback(null);
-    setScenarioId(null);
-  };
-
-  // Required line + chart geometry are memoized in `chartModel` for drill-mode rerenders.
-
-  return (
-    <div className="space-y-6">
-      <div className="flex justify-between items-center bg-slate-100 p-4 rounded-lg border">
-        <div>
-          <h3 className="font-bold text-slate-800">Practice Exercises</h3>
-          <p className="text-sm text-slate-500">Test your skills with random scenarios</p>
+  const eventInput = (title: string, icon: React.ReactNode, value: EventState, setValue: (value: EventState) => void, prefix: string) => (
+    <div className="space-y-3 border-b pb-4 last:border-b-0 last:pb-0">
+      <div className="flex items-center gap-2 font-medium text-blue-700">{icon}{title}</div>
+      <div className="grid grid-cols-2 gap-4">
+        <div className="space-y-1">
+          <Label htmlFor={`${prefix}-time`}>Time</Label>
+          <Input id={`${prefix}-time`} type="time" value={value.time} aria-invalid={Boolean(model.plan.errors[`${prefix}.time`])} onChange={(event) => setValue({ ...value, time: event.target.value })} />
+          {model.plan.errors[`${prefix}.time`] && <p className="text-xs text-red-700">{model.plan.errors[`${prefix}.time`]}</p>}
         </div>
-        {drillMode ? (
-          <Button variant="outline" onClick={exitDrill} className="border-red-200 text-red-600 hover:bg-red-50">
-            Exit Drill
-          </Button>
-        ) : (
-          <Button onClick={startDrill} className="bg-blue-600">
-            Start New Scenario
-          </Button>
-        )}
+        <div className="space-y-1">
+          <Label htmlFor={`${prefix}-height`}>Height above chart datum (m)</Label>
+          <Input id={`${prefix}-height`} type="number" step="0.1" value={value.height} aria-invalid={Boolean(model.plan.errors[`${prefix}.height`])} onChange={(event) => setValue({ ...value, height: event.target.value })} />
+          {model.plan.errors[`${prefix}.height`] && <p className="text-xs text-red-700">{model.plan.errors[`${prefix}.height`]}</p>}
+        </div>
       </div>
-
-      {drillMode && drillQuestion && (
-        <Card className="border-2 border-blue-500 bg-blue-50/50">
-          <CardContent className="pt-6">
-            <div className="flex flex-col md:flex-row gap-6 items-center justify-between">
-              <div>
-                <h4 className="font-bold text-lg mb-2 text-blue-800">Scenario #{scenarioId ?? 0}</h4>
-                <p className="mb-4">
-                  Assess the inputs below. Is it safe to cross the bar at
-                  <span className="font-bold text-xl ml-2 bg-white px-2 py-1 rounded shadow-sm">
-                    {formatTime(drillQuestion.time)}
-                  </span>
-                  ?
-                </p>
-                {drillFeedback === null ? (
-                  <div className="flex gap-4">
-                    <Button
-                      size="lg"
-                      className="bg-green-600 hover:bg-green-700 w-32"
-                      onClick={() => checkAnswer(true)}
-                    >
-                      YES, Safe
-                    </Button>
-                    <Button size="lg" className="bg-red-600 hover:bg-red-700 w-32" onClick={() => checkAnswer(false)}>
-                      NO, Unsafe
-                    </Button>
-                  </div>
-                ) : (
-                  <div className="space-y-3">
-                    <div
-                      className={`text-lg font-bold ${drillFeedback === "correct" ? "text-green-600" : "text-red-600"}`}
-                    >
-                      {drillFeedback === "correct" ? "Correct! Well done." : "Incorrect. Check the graph!"}
-                    </div>
-                    <Button variant="outline" onClick={startDrill}>
-                      Next Scenario
-                    </Button>
-                  </div>
-                )}
-              </div>
-              {/* Hide graph initially? Or show clearly? 
-                        Pedagogically, seeing the graph helps confirm. 
-                        Maybe blur the Safe Windows initially?
-                        Let's keep it visible for learning reinforcement. 
-                    */}
-            </div>
-          </CardContent>
-        </Card>
-      )}
-
-      {/* Existing UI ... Wrap inputs in disabled if drillMode? */}
-      <div className={`grid md:grid-cols-2 gap-6 ${drillMode ? "pointer-events-none opacity-90" : ""}`}>
-        {/* ... inputs ... */}
-        <Card>
-          <CardHeader>
-            <CardTitle className="text-lg">Vessel & Depth</CardTitle>
-          </CardHeader>
-          <CardContent className="space-y-4">
-            <div className="grid grid-cols-2 gap-4">
-              <div className="space-y-2">
-                <Label>Draft (m)</Label>
-                <Input type="number" step="0.1" value={draft} onChange={(e) => setDraft(Number(e.target.value))} />
-              </div>
-              <div className="space-y-2">
-                <Label>Clearance (m)</Label>
-                <Input
-                  type="number"
-                  step="0.1"
-                  value={clearance}
-                  onChange={(e) => setClearance(Number(e.target.value))}
-                />
-              </div>
-            </div>
-            <div className="space-y-2">
-              <Label>Charted Depth (m)</Label>
-              <div className="flex gap-2 items-center">
-                <Input
-                  type="number"
-                  step="0.1"
-                  value={chartedDepth}
-                  onChange={(e) => setChartedDepth(Number(e.target.value))}
-                />
-                <span className="text-xs text-muted-foreground whitespace-nowrap">
-                  (Use negative for Drying ex: -1.2)
-                </span>
-              </div>
-            </div>
-
-            <div className="p-3 bg-muted rounded-md text-sm">
-              <div className="flex justify-between font-medium">
-                <span>Required Tide:</span>
-                <span>{calculations.requiredTideHeight.toFixed(2)}m</span>
-              </div>
-              <div className="flex justify-between text-muted-foreground">
-                <span>(Draft + Safety - Depth)</span>
-              </div>
-            </div>
-          </CardContent>
-        </Card>
-
-        <Card>
-          <CardHeader>
-            <CardTitle className="text-lg">Tide Data</CardTitle>
-          </CardHeader>
-          <CardContent className="space-y-4">
-            <div className="space-y-3">
-              <div className="flex items-center gap-2 font-medium text-blue-600">
-                <ArrowUp className="w-4 h-4" /> High Water
-              </div>
-              <div className="grid grid-cols-2 gap-4">
-                <div className="space-y-1">
-                  <Label className="text-xs">Time</Label>
-                  <Input type="time" value={hw.time} onChange={(e) => setHw({ ...hw, time: e.target.value })} />
-                </div>
-                <div className="space-y-1">
-                  <Label className="text-xs">Height (m)</Label>
-                  <Input
-                    type="number"
-                    step="0.1"
-                    value={hw.height}
-                    onChange={(e) => setHw({ ...hw, height: Number(e.target.value) })}
-                  />
-                </div>
-              </div>
-            </div>
-
-            <div className="space-y-3 pt-2 border-t">
-              <div className="flex items-center gap-2 font-medium text-red-600">
-                <ArrowDown className="w-4 h-4" /> Low Water
-              </div>
-              <div className="grid grid-cols-2 gap-4">
-                <div className="space-y-1">
-                  <Label className="text-xs">Time</Label>
-                  <Input type="time" value={lw.time} onChange={(e) => setLw({ ...lw, time: e.target.value })} />
-                </div>
-                <div className="space-y-1">
-                  <Label className="text-xs">Height (m)</Label>
-                  <Input
-                    type="number"
-                    step="0.1"
-                    value={lw.height}
-                    onChange={(e) => setLw({ ...lw, height: Number(e.target.value) })}
-                  />
-                </div>
-              </div>
-            </div>
-          </CardContent>
-        </Card>
-      </div>
-
-      {/* Visualization */}
-      <Card>
-        <CardHeader>
-          <CardTitle>Passage Planning Window</CardTitle>
-          <CardDescription>
-            Safe passage windows are highlighted in <span className="text-green-600 font-bold">green</span>.
-          </CardDescription>
-        </CardHeader>
-        <CardContent>
-          <div className="w-full overflow-x-auto">
-            <svg
-              width="100%"
-              height={HEIGHT}
-              viewBox={`0 0 ${WIDTH} ${HEIGHT}`}
-              className="mx-auto border border-slate-100 rounded bg-slate-50/50"
-            >
-              {/* Axes */}
-              <line x1={PADDING} y1={HEIGHT - PADDING} x2={WIDTH - PADDING} y2={HEIGHT - PADDING} stroke="#94a3b8" />
-              <line x1={PADDING} y1={PADDING} x2={PADDING} y2={HEIGHT - PADDING} stroke="#94a3b8" />
-
-              {/* Grid Lines H */}
-              {chartModel.gridLines.map((gridLine) => (
-                <g key={gridLine.level}>
-                  <line
-                    x1={PADDING}
-                    y1={gridLine.y}
-                    x2={WIDTH - PADDING}
-                    y2={gridLine.y}
-                    stroke="#e2e8f0"
-                    strokeDasharray="3,3"
-                  />
-                  <text x={PADDING - 5} y={gridLine.y + 4} textAnchor="end" fontSize="10" fill="#64748b">
-                    {gridLine.level}m
-                  </text>
-                </g>
-              ))}
-
-              {/* Time Labels (Approx every hour) */}
-              {chartModel.timeLabels.map((label) => (
-                <text key={label.key} x={label.x} y={HEIGHT - PADDING + 15} textAnchor="middle" fontSize="10" fill="#64748b">
-                  {label.label}
-                </text>
-              ))}
-
-              {/* Required Tide Line (Red Limit) */}
-              {chartModel.isReqLineVisible && (
-                <>
-                  <line
-                    x1={PADDING}
-                    y1={chartModel.reqY}
-                    x2={WIDTH - PADDING}
-                    y2={chartModel.reqY}
-                    stroke="#dc2626"
-                    strokeWidth="2"
-                    strokeDasharray="4,2"
-                  />
-                  <text
-                    x={WIDTH - PADDING - 10}
-                    y={chartModel.reqY - 5}
-                    textAnchor="end"
-                    fill="#dc2626"
-                    fontSize="10"
-                    fontWeight="bold"
-                  >
-                    Required: {calculations.requiredTideHeight.toFixed(1)}m
-                  </text>
-
-                  {/* Shading Unsafe Area (Below Line) */}
-                  <rect
-                    x={PADDING}
-                    y={chartModel.reqY}
-                    width={WIDTH - 2 * PADDING}
-                    height={Math.max(0, HEIGHT - PADDING - chartModel.reqY)}
-                    fill="#dc2626"
-                    fillOpacity="0.05"
-                  />
-                </>
-              )}
-
-              {/* Safe Windows Highlight - Hidden during drill until answered */}
-              {(!drillMode || drillFeedback !== null) &&
-                chartModel.safeWindowRects.map((windowRect, i) => (
-                  <rect
-                    key={i}
-                    x={windowRect.x}
-                    y={PADDING}
-                    width={windowRect.width}
-                    height={HEIGHT - 2 * PADDING}
-                    fill="#16a34a"
-                    fillOpacity="0.1"
-                  />
-                ))}
-
-              {/* Tide Curve */}
-              <path d={chartModel.pathD} fill="none" stroke="#2563eb" strokeWidth="2" />
-
-              {/* HW/LW Dots */}
-              <circle cx={chartModel.hwPoint.x} cy={chartModel.hwPoint.y} r="4" fill="#2563eb" />
-              <circle cx={chartModel.lwPoint.x} cy={chartModel.lwPoint.y} r="4" fill="#2563eb" />
-            </svg>
-          </div>
-
-          {/* Windows Text Summary */}
-          <div className="mt-4 p-4 bg-green-50 border border-green-100 rounded-lg">
-            <h4 className="font-semibold text-green-800 flex items-center gap-2">
-              <Clock className="w-4 h-4" /> Safe Navigation Windows
-            </h4>
-            {calculations.safeWindows.length > 0 ? (
-              <div className="mt-2 flex flex-wrap gap-2">
-                {calculations.safeWindows.map((w, i) => (
-                  <Badge key={i} variant="outline" className="bg-white border-green-200 text-green-700">
-                    {formatTime(w.start)} — {formatTime(w.end)}
-                  </Badge>
-                ))}
-              </div>
-            ) : (
-              <p className="mt-2 text-sm text-red-600 font-medium">
-                No safe passage windows available with current parameters!
-              </p>
-            )}
-          </div>
-        </CardContent>
-      </Card>
     </div>
   );
+
+  const statusCopy = {
+    always_safe: "Always safe within the entered event window (subject to the stated assumptions).",
+    never_safe: "Never safe within the entered event window.",
+    safe_window: "A predicted safe window exists within the entered events.",
+    no_usable_window: "The mathematical safe interval is narrower than one usable five-minute planning interval.",
+    boundary: "Boundary case: the required height equals a published tidal event.",
+    out_of_model: "Out of model: correct the event sequence before using a result.",
+    invalid: "Invalid input: correct the highlighted fields before using a result.",
+  }[model.plan.status];
+
+  return <div className="space-y-6">
+    <Card className="border-amber-200 bg-amber-50/50">
+      <CardHeader><CardTitle className="flex items-center gap-2 text-lg"><AlertTriangle className="h-5 w-5" /> Scope and assumptions</CardTitle></CardHeader>
+      <CardContent className="space-y-2 text-sm">
+        <p>This teaching aid applies smooth harmonic interpolation only between a preceding LW, the intervening HW, and the following LW from one official tide table. It does not extrapolate beyond those events and is not a navigational prediction.</p>
+        <p>Use consecutive events for the same standard port, chart datum and stated local time zone. Start with the date of the preceding LW; each earlier clock time is explicitly treated as falling on the next calendar day. Confirm secondary-port corrections where applicable.</p>
+        <p>Predictions omit pressure, wind, waves, swell, silting and survey uncertainty. Check current official predictions and observations, and choose clearance for the vessel, conditions and consequences.</p>
+      </CardContent>
+    </Card>
+
+    <div className="grid gap-6 md:grid-cols-2">
+      <Card><CardHeader><CardTitle className="text-lg">Vessel and charted value</CardTitle></CardHeader><CardContent className="space-y-4">
+        {([["draft", "Draft (m)", draft, setDraft], ["clearance", "Under-keel clearance (m)", clearance, setClearance], ["chartedDepth", "Signed charted value (m)", chartedDepth, setChartedDepth]] as const).map(([key, label, value, setter]) => <div className="space-y-1" key={key}>
+          <Label htmlFor={key}>{label}</Label><Input id={key} type="number" step="0.1" value={value} aria-invalid={Boolean(model.plan.errors[key])} onChange={(event) => setter(event.target.value)} />
+          {model.plan.errors[key] && <p className="text-xs text-red-700">{model.plan.errors[key]}</p>}
+        </div>)}
+        <div className="rounded-md bg-slate-100 p-3 text-sm"><p><strong>Depth example:</strong> 2.0 m charted depth → enter <strong>+2.0</strong>.</p><p><strong>Drying example:</strong> 1.2 m drying height → enter <strong>−1.2</strong>.</p></div>
+        {model.plan.requiredTide !== null && <p className="font-medium">Required height of tide: {model.plan.requiredTide.toFixed(1)} m</p>}
+      </CardContent></Card>
+      <Card><CardHeader><CardTitle className="text-lg">Bounding tidal events</CardTitle><CardDescription>Enter consecutive LW–HW–LW events in chronological order.</CardDescription></CardHeader><CardContent className="space-y-4">
+        {eventInput("Preceding Low Water", <ArrowDown className="h-4 w-4" />, previousLow, setPreviousLow, "previousLow")}
+        {eventInput("High Water", <ArrowUp className="h-4 w-4" />, high, setHigh, "high")}
+        {eventInput("Following Low Water", <ArrowDown className="h-4 w-4" />, followingLow, setFollowingLow, "followingLow")}
+      </CardContent></Card>
+    </div>
+
+    <Card><CardHeader><CardTitle>Passage planning window</CardTitle><CardDescription>{statusCopy}</CardDescription></CardHeader><CardContent>
+      {chart ? <>
+        <div className="w-full overflow-x-auto"><svg role="img" aria-label="Predicted tidal height and required height within the entered events" width="100%" height={HEIGHT} viewBox={`0 0 ${WIDTH} ${HEIGHT}`} className="min-w-[36rem] rounded border bg-slate-50">
+          {chart.heightTicks.map((tick) => <g key={tick}><line x1={PADDING} x2={WIDTH-PADDING} y1={chart.y(tick)} y2={chart.y(tick)} stroke="#e2e8f0" /><text x={PADDING-6} y={chart.y(tick)+4} textAnchor="end" fontSize="10">{tick.toFixed(1)}m</text></g>)}
+          {chart.timeTicks.map((tick) => <text key={tick} x={chart.x(tick)} y={HEIGHT-PADDING+18} textAnchor="middle" fontSize="10">{formatTidalTime(tick)}</text>)}
+          {chart.safeRects.map((rect, index) => <rect key={index} x={rect.x} y={PADDING} width={rect.width} height={HEIGHT-PADDING*2} fill="#16a34a" fillOpacity="0.12" />)}
+          {chart.requiredLineVisible && <line x1={PADDING} x2={WIDTH-PADDING} y1={chart.y(model.plan.requiredTide as number)} y2={chart.y(model.plan.requiredTide as number)} stroke="#dc2626" strokeWidth="2" strokeDasharray="4 3" />}
+          <path d={chart.path} fill="none" stroke="#2563eb" strokeWidth="2" />
+        </svg></div>
+        <div className="mt-4 rounded-lg border p-4"><h4 className="flex items-center gap-2 font-semibold"><Clock className="h-4 w-4" /> Result</h4>
+          <p className="mt-1 text-sm">{statusCopy}</p>
+          {model.plan.status === "boundary" && model.plan.safeWindows.map((window, index) => window.start === window.end
+            ? <Badge key={index} variant="outline" className="mt-2 mr-2">exact boundary at {formatTidalTime(window.start)}</Badge>
+            : <Badge key={index} variant="outline" className="mt-2 mr-2">about {formatTidalTime(conservativeWindow(window).start)}–{formatTidalTime(conservativeWindow(window).end)}</Badge>)}
+          {model.plan.status !== "boundary" && model.plan.status !== "no_usable_window" && model.plan.safeWindows.map((window, index) => { const display = conservativeWindow(window); return <Badge key={index} variant="outline" className="mt-2 mr-2">about {formatTidalTime(display.start)}–{formatTidalTime(display.end)}</Badge>; })}
+          {model.plan.status === "no_usable_window" && <p className="mt-2 text-sm font-medium text-red-700">No usable five-minute window; do not plan a passage from this result.</p>}
+          {!chart.requiredLineVisible && <p className="mt-2 text-xs text-muted-foreground">The required-tide line is outside the plotted tidal-height scale; the result state above still uses the exact value.</p>}
+          {model.plan.status !== "no_usable_window" && model.plan.safeWindows.some((window) => window.start < window.end) && <p className="mt-2 text-xs text-muted-foreground">Crossings are calculated analytically; usable displayed limits are rounded inward to five minutes and remain approximate.</p>}
+        </div>
+      </> : <div role="alert" className="rounded-md border border-red-200 bg-red-50 p-4 text-red-800"><p className="font-semibold">No result or chart is shown.</p><p className="text-sm">{statusCopy}</p></div>}
+    </CardContent></Card>
+  </div>;
 };
 
 export default TidalPassageCalculator;

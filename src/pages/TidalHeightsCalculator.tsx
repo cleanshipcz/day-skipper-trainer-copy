@@ -40,7 +40,8 @@ const TidalHeightsCalculator = () => {
           </div>
           <p>
             Use the tool below to input the day's High and Low Water data, your vessel details, and the depth of the
-            shallowest point. The graph will show you the exact time windows when it is safe to proceed.
+            shallowest point. The graph estimates a window only between the entered published events; it does not
+            replace official predictions, observations, or a prudent safety margin.
           </p>
         </div>
 
