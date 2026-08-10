@@ -72,12 +72,44 @@ describe("TransitsTheory", () => {
     expect(html).toContain("Maintaining a Transit");
   });
 
+  it("labels both off-track observer views and corrections correctly", () => {
+    const html = renderPage();
+
+    expect(html).toContain("LEFT OF LINE");
+    expect(html).toContain("rear appears left");
+    expect(html).toContain("You are left of the line — alter course to starboard");
+    expect(html).toContain("RIGHT OF LINE");
+    expect(html).toContain("rear appears right");
+    expect(html).toContain("You are right of the line — alter course to port");
+    expect(html).toContain("Observer view of transit mark alignment");
+  });
+
   it("should cover clearing transits (AC-1)", () => {
     // when
     const html = renderPage();
 
     // then
     expect(html).toContain("Clearing Transit");
+  });
+
+  it("qualifies alignment and clearing-line safety", () => {
+    const html = renderPage();
+
+    expect(html).toContain("not necessarily in safe water");
+    expect(html).toContain("south of the line as the safe");
+    expect(html).toContain("Alignment is the limit");
+    expect(html).toContain("Open</strong> only describes separation");
+    expect(html).toContain("largest-scale current official chart");
+    expect(html).toContain("List of Lights");
+    expect(html).toContain("Training sketches are not navigation data");
+  });
+
+  it("cites current authoritative publication and update sources", () => {
+    const html = renderPage();
+
+    expect(html).toContain("MCA MGN 610");
+    expect(html).toContain("UKHO ADMIRALTY general publications");
+    expect(html).toContain("UKHO ADMIRALTY Notices to Mariners");
   });
 
   it("should render a Complete Module button (AC-4)", () => {
