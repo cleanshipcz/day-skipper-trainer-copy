@@ -2,15 +2,9 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import { beaufortScale, type BeaufortLevel } from "@/data/beaufortScale";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { beaufortDrillQuestions, type DrillQuestion } from "./beaufortDrillQuestions";
 
-type RecallDirection = "speed" | "sea";
-type DrillQuestion = { id: string; direction: RecallDirection; level: BeaufortLevel };
 type DrillResult = { id: string; correct: boolean };
-
-const beaufortDrillQuestions: readonly DrillQuestion[] = beaufortScale.flatMap((level) => [
-  { id: `speed-${level.force}`, direction: "speed" as const, level },
-  { id: `sea-${level.force}`, direction: "sea" as const, level },
-]);
 
 const waveCue = (level: BeaufortLevel) =>
   level.probableWaveHeight ? `Probable waves ${level.probableWaveHeight}.` : "No probable wave height is specified.";
@@ -86,8 +80,8 @@ export const BeaufortDrill = () => {
   }
 
   const prompt = item.direction === "speed"
-    ? <>Which Beaufort force has the wind-speed band <strong>{item.level.knots} knots</strong>?</>
-    : <>Which Beaufort force has the sea description <strong>{item.level.seaState}</strong>?</>;
+    ? <>Which Beaufort force has the wind-speed band <strong>{item.cue}</strong>?</>
+    : <>Which Beaufort force matches these sea observations: <strong>{item.cue}</strong>?</>;
   const questionId = `beaufort-question-${item.id}`;
   const instructionsId = "beaufort-answer-instructions";
 

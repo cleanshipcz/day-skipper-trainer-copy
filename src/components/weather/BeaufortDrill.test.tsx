@@ -4,6 +4,7 @@ import userEvent from "@testing-library/user-event";
 import { describe, expect, it } from "vitest";
 import { beaufortScale } from "@/data/beaufortScale";
 import { BeaufortDrill } from "./BeaufortDrill";
+import { beaufortDrillQuestions } from "./beaufortDrillQuestions";
 
 const expectedQuestions = beaufortScale.flatMap((level) => [
   { direction: "speed" as const, level },
@@ -18,6 +19,14 @@ const submitAnswer = async (user: ReturnType<typeof userEvent.setup>, force: num
 };
 
 describe("BeaufortDrill", () => {
+  it("gives every sea-recall question a unique learner-visible cue", () => {
+    const seaQuestions = beaufortDrillQuestions.filter(({ direction }) => direction === "sea");
+    expect(seaQuestions).toHaveLength(13);
+    expect(new Set(seaQuestions.map(({ cue }) => cue)).size).toBe(seaQuestions.length);
+    expect(seaQuestions.find(({ level }) => level.force === 10)?.cue).toMatch(/Very high.*9.0 m.*12.5 m/i);
+    expect(seaQuestions.find(({ level }) => level.force === 11)?.cue).toMatch(/Very high.*11.5 m.*16.0 m/i);
+  });
+
   it("requires a recorded answer, locks submission, and gives useful wrong and right feedback", async () => {
     const user = userEvent.setup();
     render(<BeaufortDrill />);
@@ -53,7 +62,7 @@ describe("BeaufortDrill", () => {
     expect(answerButton(0).getAttribute("aria-pressed")).toBe("true");
     await user.click(screen.getByRole("button", { name: "Check answer" }));
     await user.click(screen.getByRole("button", { name: "Next question" }));
-    const nextHeading = screen.getByRole("heading", { level: 3, name: /Calm \(glassy\)/ });
+    const nextHeading = screen.getByRole("heading", { level: 3, name: /Calm \(glassy\).*not specified/i });
     await waitFor(() => expect(document.activeElement).toBe(nextHeading));
   });
 

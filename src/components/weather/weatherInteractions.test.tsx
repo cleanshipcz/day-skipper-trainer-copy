@@ -127,7 +127,7 @@ describe("weather interactions", () => {
     expect(screen.getByRole("status").textContent).toContain("Correct");
     await user.click(screen.getByRole("button", { name: /next question/i }));
     expect(screen.queryByRole("status")).toBeNull();
-    expect(screen.getByRole("heading", { level: 3, name: /^Which Beaufort force/ }).textContent).toMatch(/sea description/i);
+    expect(screen.getByRole("heading", { level: 3, name: /^Which Beaufort force/ }).textContent).toMatch(/sea observations/i);
     expect(screen.getByRole("button", { name: "11" })).toBeTruthy();
     expect(screen.getByRole("button", { name: "12" })).toBeTruthy();
   });
