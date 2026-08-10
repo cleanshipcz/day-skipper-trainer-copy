@@ -17,12 +17,22 @@ vi.mock("@/components/pilotage/BuoyIdentifier", () => ({
   BuoyIdentifier: ({
     onComplete,
   }: {
-    onComplete?: (result: { correctCount: number; totalAnswered: number }) => void;
+    onComplete?: (result: {
+      correctCount: number;
+      totalAnswered: number;
+    }) => void;
   }) => (
     <div data-testid="buoy-identifier-drill">
       <button
         data-testid="simulate-drill-complete"
-        onClick={() => onComplete?.({ correctCount: 10, totalAnswered: 12 })}
+        onClick={() =>
+          onComplete?.({
+            correctCount: 10,
+            totalAnswered: 12,
+            mastered: true,
+            missedIds: [],
+          })
+        }
       >
         Complete Drill
       </button>
@@ -30,17 +40,23 @@ vi.mock("@/components/pilotage/BuoyIdentifier", () => ({
   ),
 }));
 
-const mockSaveProgress = vi.fn();
+const mockSaveProgress = vi.fn().mockResolvedValue("remote");
+const mockLoadProgress = vi
+  .fn()
+  .mockResolvedValue({ status: "missing", record: null });
 
 vi.mock("@/hooks/useProgress", () => ({
   useProgress: () => ({
-    saveProgress: mockSaveProgress,
+    saveProgressDetailed: mockSaveProgress,
+    loadProgressDetailed: mockLoadProgress,
   }),
 }));
 
 describe("BuoyageTheory Page", () => {
   beforeEach(() => {
     vi.clearAllMocks();
+    mockSaveProgress.mockResolvedValue("remote");
+    mockLoadProgress.mockResolvedValue({ status: "missing", record: null });
   });
 
   // AC-1: Route renders theory content
@@ -49,7 +65,7 @@ describe("BuoyageTheory Page", () => {
     render(
       <TestRouter>
         <BuoyageTheory />
-      </TestRouter>
+      </TestRouter>,
     );
 
     // then
@@ -62,7 +78,7 @@ describe("BuoyageTheory Page", () => {
     render(
       <TestRouter>
         <BuoyageTheory />
-      </TestRouter>
+      </TestRouter>,
     );
 
     // then - tabs for all major content areas
@@ -78,11 +94,13 @@ describe("BuoyageTheory Page", () => {
     render(
       <TestRouter>
         <BuoyageTheory />
-      </TestRouter>
+      </TestRouter>,
     );
 
     // then - IALA Region A system explanation and lateral marks
-    expect(screen.getAllByText(/IALA Region A/i).length).toBeGreaterThanOrEqual(1);
+    expect(screen.getAllByText(/IALA Region A/i).length).toBeGreaterThanOrEqual(
+      1,
+    );
     expect(screen.getAllByText(/port/i).length).toBeGreaterThanOrEqual(1);
     expect(screen.getAllByText(/starboard/i).length).toBeGreaterThanOrEqual(1);
   });
@@ -94,7 +112,7 @@ describe("BuoyageTheory Page", () => {
     render(
       <TestRouter>
         <BuoyageTheory />
-      </TestRouter>
+      </TestRouter>,
     );
 
     // when
@@ -115,7 +133,7 @@ describe("BuoyageTheory Page", () => {
     render(
       <TestRouter>
         <BuoyageTheory />
-      </TestRouter>
+      </TestRouter>,
     );
 
     // when
@@ -133,7 +151,7 @@ describe("BuoyageTheory Page", () => {
     render(
       <TestRouter>
         <BuoyageTheory />
-      </TestRouter>
+      </TestRouter>,
     );
 
     // when
@@ -143,8 +161,12 @@ describe("BuoyageTheory Page", () => {
     // then - check each buoy category is represented (may appear multiple times)
     expect(await screen.findByText("Isolated Danger Mark")).toBeDefined();
     expect(screen.getByText("Safe Water Mark")).toBeDefined();
-    expect(screen.getAllByText("Special Mark").length).toBeGreaterThanOrEqual(1);
-    expect(screen.getAllByText("New Danger Mark").length).toBeGreaterThanOrEqual(1);
+    expect(screen.getAllByText("Special Mark").length).toBeGreaterThanOrEqual(
+      1,
+    );
+    expect(
+      screen.getAllByText("New Danger Mark").length,
+    ).toBeGreaterThanOrEqual(1);
   });
 
   // AC-3: Interactive BuoyIdentifier drill
@@ -154,7 +176,7 @@ describe("BuoyageTheory Page", () => {
     render(
       <TestRouter>
         <BuoyageTheory />
-      </TestRouter>
+      </TestRouter>,
     );
 
     // when
@@ -171,28 +193,113 @@ describe("BuoyageTheory Page", () => {
     render(
       <TestRouter>
         <BuoyageTheory />
-      </TestRouter>
+      </TestRouter>,
     );
 
     // then
     expect(mockSaveProgress).not.toHaveBeenCalled();
   });
 
-  it("should render a Mark as Complete button that saves progress when clicked", async () => {
+  it("saves declared mastery evidence only after the drill completes", async () => {
     // given
     const user = userEvent.setup();
     render(
       <TestRouter>
         <BuoyageTheory />
-      </TestRouter>
+      </TestRouter>,
     );
 
     // when
-    const completeButton = screen.getByRole("button", { name: /mark as complete/i });
-    await user.click(completeButton);
+    await user.click(screen.getByRole("tab", { name: /drill/i }));
+    await user.click(await screen.findByTestId("simulate-drill-complete"));
 
     // then - saves progress with topic ID pilotage-buoyage, completed=true, score=100, points=10
-    expect(mockSaveProgress).toHaveBeenCalledWith("pilotage-buoyage", true, 100, 10);
+    expect(mockSaveProgress).toHaveBeenCalledWith(
+      "pilotage-buoyage",
+      true,
+      100,
+      10,
+      expect.objectContaining({
+        revision: "iala-region-a-mastery-v1",
+        mastered: true,
+        coverageCount: 12,
+      }),
+    );
+  });
+
+  it.each([
+    ["queued", /queued to sync/i],
+    ["failed", /could not be saved/i],
+  ])("announces an observable %s save result", async (result, announcement) => {
+    mockSaveProgress.mockResolvedValue(result);
+    const user = userEvent.setup();
+    render(
+      <TestRouter>
+        <BuoyageTheory />
+      </TestRouter>,
+    );
+    await user.click(screen.getByRole("tab", { name: /drill/i }));
+    await user.click(await screen.findByTestId("simulate-drill-complete"));
+    expect(await screen.findByText(announcement)).toBeDefined();
+  });
+
+  it("restores authoritative mastery and does not award it again", async () => {
+    mockLoadProgress.mockResolvedValue({
+      status: "remote",
+      record: {
+        completed: true,
+        answers_history: {
+          revision: "iala-region-a-mastery-v1",
+          mastered: true,
+        },
+      },
+    });
+    const user = userEvent.setup();
+    render(
+      <TestRouter>
+        <BuoyageTheory />
+      </TestRouter>,
+    );
+    expect(await screen.findByText(/Buoy mastery saved/i)).toBeDefined();
+    await user.click(screen.getByRole("tab", { name: /drill/i }));
+    await user.click(await screen.findByTestId("simulate-drill-complete"));
+    expect(mockSaveProgress).not.toHaveBeenCalled();
+  });
+
+  it("does not save locally restored mastery while authoritative hydration is pending", async () => {
+    let resolveLoad!: (value: {
+      status: string;
+      record: {
+        completed: boolean;
+        answers_history: { revision: string; mastered: boolean };
+      };
+    }) => void;
+    mockLoadProgress.mockReturnValue(
+      new Promise((resolve) => {
+        resolveLoad = resolve;
+      }),
+    );
+    const user = userEvent.setup();
+    render(
+      <TestRouter>
+        <BuoyageTheory />
+      </TestRouter>,
+    );
+    await user.click(screen.getByRole("tab", { name: /drill/i }));
+    await user.click(await screen.findByTestId("simulate-drill-complete"));
+    expect(mockSaveProgress).not.toHaveBeenCalled();
+    resolveLoad({
+      status: "remote",
+      record: {
+        completed: true,
+        answers_history: {
+          revision: "iala-region-a-mastery-v1",
+          mastered: true,
+        },
+      },
+    });
+    expect(await screen.findByText(/Buoy mastery saved/i)).toBeDefined();
+    expect(mockSaveProgress).not.toHaveBeenCalled();
   });
 
   it("should have a back to pilotage menu button", () => {
@@ -200,50 +307,90 @@ describe("BuoyageTheory Page", () => {
     render(
       <TestRouter>
         <BuoyageTheory />
-      </TestRouter>
+      </TestRouter>,
     );
 
     // then
     expect(
-      screen.getByRole("button", { name: /back to pilotage/i })
+      screen.getByRole("button", { name: /back to pilotage/i }),
     ).toBeDefined();
   });
 
   it("renders colour-independent visuals, light decoding, and source editions", () => {
-    render(<TestRouter><BuoyageTheory /></TestRouter>);
+    render(
+      <TestRouter>
+        <BuoyageTheory />
+      </TestRouter>,
+    );
     const visual = screen.getByTestId("buoy-visual-lateral-port");
     expect(visual.getAttribute("role")).toBe("img");
-    expect(visual.querySelector("desc")?.textContent).toMatch(/Body: Can, pillar or spar/);
+    expect(visual.querySelector("desc")?.textContent).toMatch(
+      /Body: Can, pillar or spar/,
+    );
     expect(screen.getByText(/Q \/ VQ/)).toBeDefined();
-    expect(screen.getByText(/R1001, Maritime Buoyage System, edition 2.0/)).toBeDefined();
-    expect(visual.getAttribute("class")).toContain("forced-colors:text-[CanvasText]");
+    expect(
+      screen.getByText(/R1001, Maritime Buoyage System, edition 2.0/),
+    ).toBeDefined();
+    expect(visual.getAttribute("class")).toContain(
+      "forced-colors:text-[CanvasText]",
+    );
   });
 
   it("uses responsive wrapping instead of fixed-width mark content", () => {
-    render(<TestRouter><BuoyageTheory /></TestRouter>);
+    render(
+      <TestRouter>
+        <BuoyageTheory />
+      </TestRouter>,
+    );
     const visual = screen.getByTestId("buoy-visual-lateral-port");
     expect(visual.getAttribute("class")).toContain("w-full");
-    expect(screen.getByRole("tab", { name: /lateral/i }).className).toContain("whitespace-normal");
+    expect(screen.getByRole("tab", { name: /lateral/i }).className).toContain(
+      "whitespace-normal",
+    );
     expect(visual.closest("figure")?.className).toContain("min-w-0");
   });
 
   it("draws correct cardinal geometry and coloured topmarks", async () => {
     const user = userEvent.setup();
-    render(<TestRouter><BuoyageTheory /></TestRouter>);
-    expect(screen.getByTestId("topmark-lateral-port").getAttribute("data-topmark-colour")).toBe("#dc2626");
-    expect(screen.getByTestId("topmark-lateral-starboard").getAttribute("data-topmark-colour")).toBe("#15803d");
+    render(
+      <TestRouter>
+        <BuoyageTheory />
+      </TestRouter>,
+    );
+    expect(
+      screen
+        .getByTestId("topmark-lateral-port")
+        .getAttribute("data-topmark-colour"),
+    ).toBe("#dc2626");
+    expect(
+      screen
+        .getByTestId("topmark-lateral-starboard")
+        .getAttribute("data-topmark-colour"),
+    ).toBe("#15803d");
     await user.click(screen.getByRole("tab", { name: /cardinal/i }));
     const east = screen.getByTestId("topmark-cardinal-east");
     const west = screen.getByTestId("topmark-cardinal-west");
     expect(east.getAttribute("data-topmark-arrangement")).toBe("cones-base");
-    expect([...east.querySelectorAll("path")].map((node) => node.getAttribute("data-cone-direction"))).toEqual(["up", "down"]);
+    expect(
+      [...east.querySelectorAll("path")].map((node) =>
+        node.getAttribute("data-cone-direction"),
+      ),
+    ).toEqual(["up", "down"]);
     expect(west.getAttribute("data-topmark-arrangement")).toBe("cones-point");
-    expect([...west.querySelectorAll("path")].map((node) => node.getAttribute("data-cone-direction"))).toEqual(["down", "up"]);
+    expect(
+      [...west.querySelectorAll("path")].map((node) =>
+        node.getAttribute("data-cone-direction"),
+      ),
+    ).toEqual(["down", "up"]);
     expect(east.getAttribute("data-topmark-colour")).toBe("#111827");
   });
 
   it("uses can and conical lateral body silhouettes as non-colour cues", () => {
-    render(<TestRouter><BuoyageTheory /></TestRouter>);
+    render(
+      <TestRouter>
+        <BuoyageTheory />
+      </TestRouter>,
+    );
     const port = screen.getByTestId("body-outline-lateral-port");
     const starboard = screen.getByTestId("body-outline-lateral-starboard");
     expect(port.getAttribute("data-body-silhouette")).toBe("can");
