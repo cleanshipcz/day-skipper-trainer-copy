@@ -135,11 +135,41 @@ describe("ClearingBearingsTheory Page", () => {
     // then
     expect(await screen.findByText("Using a Compass to Monitor Clearing Bearings")).toBeDefined();
     expect(await screen.findByText(/monitoring procedure/i)).toBeDefined();
-    expect(screen.getByText(/045° True → 041° Magnetic → 043° Compass/i)).toBeDefined();
+    expect(screen.getByText(/045° True → 049° Magnetic → 051° Compass/i)).toBeDefined();
+    expect(screen.getByText(/045°T \+ 4° = 049°M/i)).toBeDefined();
+    expect(screen.getByText(/051°C − 2° = 049°M; 049°M − 4° = 045°T/i)).toBeDefined();
     expect(screen.getByText(/Positively identify the object/i)).toBeDefined();
     expect(screen.getByText(/Monitor the trend/i)).toBeDefined();
     expect(screen.getAllByText(/Notices to Mariners/i).length).toBeGreaterThanOrEqual(1);
     expect(screen.getByText(/One clearing limit protects one side only/i)).toBeDefined();
+    expect(screen.getByRole("link", { name: /MGN 379.*Amendment 1/i }).getAttribute("href")).toBe(
+      "https://www.gov.uk/government/publications/mgn-379-amendment-1-navigation-use-of-electronic-navigation-aids",
+    );
+  });
+
+  it("plots each limiting line outside the full hazard margin", async () => {
+    const user = userEvent.setup();
+    render(<TestRouter><ClearingBearingsTheory /></TestRouter>);
+    await user.click(screen.getByRole("tab", { name: /plotting/i }));
+
+    const lines = screen.getAllByTestId("limiting-line");
+    const margins = screen.getAllByTestId("hazard-margin");
+    const distances = lines.map((line, index) => {
+      const margin = margins[index];
+      const x1 = Number(line.getAttribute("x1"));
+      const y1 = Number(line.getAttribute("y1"));
+      const x2 = Number(line.getAttribute("x2"));
+      const y2 = Number(line.getAttribute("y2"));
+      const cx = Number(margin.getAttribute("cx"));
+      const cy = Number(margin.getAttribute("cy"));
+      const radius = Number(margin.getAttribute("r"));
+      const signedDistance = ((y2 - y1) * cx - (x2 - x1) * cy + x2 * y1 - y2 * x1) /
+        Math.hypot(y2 - y1, x2 - x1);
+      return { signedDistance, radius };
+    });
+
+    expect(distances[0].signedDistance).toBeLessThan(-distances[0].radius);
+    expect(distances[1].signedDistance).toBeGreaterThan(distances[1].radius);
   });
 
   // AC-2: Interactive ClearingBearingTool rendered in Practice tab

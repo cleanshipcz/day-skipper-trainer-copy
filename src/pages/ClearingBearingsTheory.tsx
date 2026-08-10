@@ -33,7 +33,16 @@ type WorkedLimitProps = {
   mirror?: boolean;
 };
 
+const WORKED_LIMIT_GEOMETRY = {
+  line: { x1: 65, y1: 38, x2: 390, y2: 223 },
+  nltHazard: { cx: 250, cy: 190, radius: 22, marginRadius: 32 },
+  nmtHazard: { cx: 250, cy: 96, radius: 22, marginRadius: 32 },
+} as const;
+
 const WorkedLimit = ({ title, limit, safeLabel, mirror = false }: WorkedLimitProps) => (
+  (() => {
+    const hazard = mirror ? WORKED_LIMIT_GEOMETRY.nmtHazard : WORKED_LIMIT_GEOMETRY.nltHazard;
+    return (
   <figure className="space-y-2">
     <svg
       viewBox="0 0 420 230"
@@ -49,14 +58,14 @@ const WorkedLimit = ({ title, limit, safeLabel, mirror = false }: WorkedLimitPro
           <line x1="0" y1="0" x2="0" y2="10" stroke="#60a5fa" strokeWidth="3" />
         </pattern>
       </defs>
-      <polygon points={mirror ? "65,38 335,192 420,230 420,0 65,0" : "65,38 335,192 420,230 0,230 0,0 65,0"} fill={`url(#safe-${mirror ? "right" : "left"})`} opacity="0.9" />
-      <line x1="65" y1="38" x2="390" y2="223" stroke="currentColor" strokeWidth="3" />
+      <polygon points={mirror ? "0,230 420,230 390,223 65,38 0,0" : "0,0 420,0 420,230 390,223 65,38"} fill={`url(#safe-${mirror ? "right" : "left"})`} opacity="0.9" />
+      <line {...WORKED_LIMIT_GEOMETRY.line} data-testid="limiting-line" stroke="currentColor" strokeWidth="3" />
       <circle cx="65" cy="38" r="10" fill="#f59e0b" stroke="#713f12" strokeWidth="2" />
       <text x="82" y="28" className="fill-current text-[13px] font-semibold">Charted object</text>
-      <circle cx="275" cy="153" r="24" fill="#ef4444" opacity="0.8" />
-      <circle cx="275" cy="153" r="38" fill="none" stroke="#dc2626" strokeWidth="3" strokeDasharray="7 5" />
-      <text x="245" y="158" className="fill-white text-[12px] font-bold">HAZARD</text>
-      <text x="284" y="112" className="fill-red-700 dark:fill-red-300 text-[12px]">margin</text>
+      <circle cx={hazard.cx} cy={hazard.cy} r={hazard.radius} fill="#ef4444" opacity="0.8" />
+      <circle data-testid="hazard-margin" cx={hazard.cx} cy={hazard.cy} r={hazard.marginRadius} fill="none" stroke="#dc2626" strokeWidth="3" strokeDasharray="7 5" />
+      <text x="220" y={hazard.cy + 5} className="fill-white text-[12px] font-bold">HAZARD</text>
+      <text x="260" y={hazard.cy - 26} className="fill-red-700 dark:fill-red-300 text-[12px]">margin</text>
       <path d={mirror ? "M340 65 l8 18 l-16 0 z" : "M105 180 l8 18 l-16 0 z"} fill="#172554" />
       <text x={mirror ? "300" : "45"} y={mirror ? "58" : "218"} className="fill-current text-[12px]">Observer sector</text>
       <text x={mirror ? "270" : "12"} y="90" className="fill-blue-900 dark:fill-blue-100 text-[14px] font-bold">SAFE SIDE</text>
@@ -64,6 +73,8 @@ const WorkedLimit = ({ title, limit, safeLabel, mirror = false }: WorkedLimitPro
     </svg>
     <figcaption className="text-sm text-muted-foreground">{safeLabel}</figcaption>
   </figure>
+    );
+  })()
 );
 
 const ClearingBearingsTheory = () => {
@@ -353,9 +364,9 @@ const ClearingBearingsTheory = () => {
             <Card>
               <CardHeader><CardTitle className="text-lg">Worked conversion for the observing instrument</CardTitle></CardHeader>
               <CardContent className="text-sm text-muted-foreground space-y-2">
-                <p><strong>Chart limit 045° True → 041° Magnetic → 043° Compass.</strong></p>
-                <p>Example corrections for the <strong>hand-bearing compass actually used</strong>: variation 4°W, so 045°T − 4° = 041°M; that instrument's checked deviation is 2°W, so 041°M + 2° = 043°C. Reverse check: 043°C − 2° = 041°M + 4° = 045°T.</p>
-                <p>Write the signs and reference beside every value. Do not borrow the steering-compass deviation card: deviation is specific to the instrument, heading, installation and nearby magnetic influences. If the hand-bearing compass error is not known, establish it or compare in True/Magnetic using another suitable observation.</p>
+                <p><strong>Chart limit 045° True → 049° Magnetic → 051° Compass.</strong></p>
+                <p>Example corrections for the <strong>hand-bearing compass actually used</strong>: variation 4°W, so going True to Magnetic add west: 045°T + 4° = 049°M. That instrument's checked deviation is 2°W, so going Magnetic to Compass add west: 049°M + 2° = 051°C. Reverse check: 051°C − 2° = 049°M; 049°M − 4° = 045°T.</p>
+                <p>Write the signs and reference beside every value. Do not use a steering-compass deviation card for a hand-bearing compass: deviation is specific to the actual observing instrument, heading, installation and nearby magnetic influences. If observing with the vessel's steering compass, use its current deviation for that heading; if the hand-bearing compass error is not known, establish it or compare in True/Magnetic using another suitable observation.</p>
               </CardContent>
             </Card>
 
@@ -438,7 +449,7 @@ const ClearingBearingsTheory = () => {
                 <p className="font-medium">Authoritative references</p>
                 <ul className="list-disc list-inside space-y-1">
                   <li><a className="underline" href="https://www.admiralty.co.uk/maritime-safety-information/admiralty-notices-to-mariners" target="_blank" rel="noreferrer">UK Hydrographic Office — ADMIRALTY Notices to Mariners</a></li>
-                  <li><a className="underline" href="https://www.gov.uk/government/publications/mgn-379-mf-navigation-use-of-electronic-navigation-aids" target="_blank" rel="noreferrer">MCA MGN 379 (M+F) — use of electronic navigation aids</a></li>
+                  <li><a className="underline" href="https://www.gov.uk/government/publications/mgn-379-amendment-1-navigation-use-of-electronic-navigation-aids" target="_blank" rel="noreferrer">MCA MGN 379 (M+F) Amendment 1 — use of electronic navigation aids</a></li>
                   <li><a className="underline" href="https://www.gov.uk/government/publications/solas-v-regulations-safety-of-navigation" target="_blank" rel="noreferrer">MCA — SOLAS Chapter V safety of navigation guidance</a></li>
                 </ul>
               </CardContent>
