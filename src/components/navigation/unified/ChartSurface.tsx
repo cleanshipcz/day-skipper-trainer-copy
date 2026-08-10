@@ -1,4 +1,4 @@
-import { forwardRef, useMemo } from "react";
+import { forwardRef, useId, useMemo } from "react";
 
 // Admiralty Colors
 const COLORS = {
@@ -19,10 +19,13 @@ interface ChartSurfaceProps {
   className?: string;
   labelScale?: number; // Scaling factor for text labels (for Zoom)
   onClick?: React.MouseEventHandler<SVGSVGElement>;
+  ariaLabel?: string;
+  description?: string;
 }
 
 const ChartSurface = forwardRef<SVGSVGElement, ChartSurfaceProps>(
-  ({ width, height, scale, viewBox, children, className, labelScale = 1, onClick }, ref) => {
+  ({ width, height, scale, viewBox, children, className, labelScale = 1, onClick, ariaLabel, description }, ref) => {
+    const descriptionId = useId();
     const resolvedViewBox = viewBox || `0 0 ${width} ${height}`;
 
     const [vx, vy, vw, vh] = useMemo(
@@ -109,7 +112,11 @@ const ChartSurface = forwardRef<SVGSVGElement, ChartSurfaceProps>(
         onClick={onClick}
         style={{ backgroundColor: COLORS.DEEP }}
         preserveAspectRatio="xMidYMid meet"
+        role="img"
+        aria-label={ariaLabel}
+        aria-describedby={description ? descriptionId : undefined}
       >
+        {description && <desc id={descriptionId}>{description}</desc>}
         <defs>
           <pattern id="grid" width={scale} height={scale} patternUnits="userSpaceOnUse">
             <path

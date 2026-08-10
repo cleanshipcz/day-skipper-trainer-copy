@@ -1,4 +1,4 @@
-import { useMemo, useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { Compass, Maximize2, Minimize2, RotateCcw } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
@@ -19,7 +19,10 @@ const lineEnds = (lop: Lop) => {
 
 const UnifiedChartTable = () => {
   const svgRef = useRef<SVGSVGElement>(null);
-  const [fullscreen, setFullscreen] = useState(false);
+  const resultRef = useRef<HTMLDivElement>(null);
+  const reciprocalRef = useRef<HTMLInputElement>(null);
+  const landmarkButtonRefs = useRef<Record<string, HTMLButtonElement | null>>({});
+  const [enlarged, setEnlarged] = useState(false);
   const [selected, setSelected] = useState<Landmark | null>(null);
   const [time, setTime] = useState("1042");
   const [log, setLog] = useState("18.6");
@@ -33,6 +36,9 @@ const UnifiedChartTable = () => {
   const terminal = lops.length === 3 && solution !== null;
   const passed = terminal && Math.hypot(solution.fix.x - SCENARIO_ORACLE.x, solution.fix.y - SCENARIO_ORACLE.y) <= FIX_TOLERANCE;
   const annotation = recorded.length ? `${recorded[0].time}${recorded.at(-1)?.time !== recorded[0].time ? `–${recorded.at(-1)?.time}` : ""}` : "";
+
+  useEffect(() => { if (terminal) resultRef.current?.focus(); }, [terminal]);
+  useEffect(() => { if (recorded.length && !terminal) reciprocalRef.current?.focus(); }, [recorded.length, terminal]);
 
   const sight = (landmark: Landmark) => {
     if (terminal) return;
@@ -64,13 +70,11 @@ const UnifiedChartTable = () => {
     setFeedback(`Recorded ${selected.name} at ${time}, log ${log}. Enter its reciprocal and tap that object on the chart.`);
   };
 
-  const plotAt = (event: React.MouseEvent<SVGSVGElement>) => {
+  const plotLandmark = (nearest: Landmark) => {
     if (terminal) return;
     const sighted = recorded.find((item) => item.landmark.id === plotChoice);
     if (!sighted) return setFeedback("Record a corrected sight, then select it for plotting.");
-    const point = clientToSvgPoint(event.clientX, event.clientY, event.currentTarget.getBoundingClientRect());
-    const nearest = landmarks.reduce((best, item) => Math.hypot(item.x - point.x, item.y - point.y) < Math.hypot(best.x - point.x, best.y - point.y) ? item : best);
-    if (nearest.id !== sighted.landmark.id || Math.hypot(nearest.x - point.x, nearest.y - point.y) > 30) return setFeedback(`Start the LOP at ${sighted.landmark.name}; tap its chart symbol.`);
+    if (nearest.id !== sighted.landmark.id) return setFeedback(`Start the LOP at ${sighted.landmark.name}; choose its chart symbol.`);
     if (lops.some((lop) => lop.landmarkId === nearest.id)) return setFeedback(`${nearest.name} already has an LOP. Duplicate lines do not add evidence.`);
     const entered = Number(reciprocalInput);
     const correct = reciprocal(sighted.trueBearing);
@@ -80,6 +84,18 @@ const UnifiedChartTable = () => {
     const next = [...lops, lineFromLandmark(nearest, entered)];
     setLops(next);
     setFeedback(next.length === 3 ? "Three unique LOPs plotted. The fix is now assessed against the scenario evidence." : `LOP ${next.length} accepted. Sight another object.`);
+    if (next.length < 3) {
+      const nextLandmark = landmarks.find((item) => !recorded.some((record) => record.landmark.id === item.id));
+      requestAnimationFrame(() => { if (nextLandmark) landmarkButtonRefs.current[nextLandmark.id]?.focus(); });
+    }
+  };
+
+  const plotAt = (event: React.MouseEvent<SVGSVGElement>) => {
+    const point = clientToSvgPoint(event.clientX, event.clientY, event.currentTarget.getBoundingClientRect());
+    const nearest = landmarks.reduce((best, item) => Math.hypot(item.x - point.x, item.y - point.y) < Math.hypot(best.x - point.x, best.y - point.y) ? item : best);
+    const sighted = recorded.find((item) => item.landmark.id === plotChoice);
+    if (!sighted || Math.hypot(nearest.x - point.x, nearest.y - point.y) > 30) return setFeedback(sighted ? `Start the LOP at ${sighted.landmark.name}; choose its chart symbol.` : "Record a corrected sight, then select it for plotting.");
+    plotLandmark(nearest);
   };
 
   const reset = () => {
@@ -87,22 +103,25 @@ const UnifiedChartTable = () => {
     setFeedback("Sight a conspicuous object, then record and correct its bearing.");
   };
 
-  return <Card className={fullscreen ? "fixed inset-0 z-50 flex h-dvh flex-col rounded-none bg-background" : "mt-8 border-2 border-primary/20"}>
+  const chartDescription = `Practice chart with three fixed objects: ${landmarks.map((item) => `${item.name} at chart coordinate ${item.x}, ${item.y}`).join("; ")}. ${lops.length} unique lines of position plotted.${terminal && solution ? ` Assessed position ${solution.fix.x.toFixed(1)}, ${solution.fix.y.toFixed(1)}; ${passed ? "passed" : "failed"}.` : ""}`;
+
+  return <Card id="position-fix-exercise" className={`mt-8 border-2 border-primary/20 ${enlarged ? "ring-4 ring-primary/30" : ""}`}>
     <CardHeader className="flex-row flex-wrap items-start justify-between gap-3 pb-3">
       <div><CardTitle className="flex items-center gap-2"><Compass className="h-5 w-5" />Position-fix chart table</CardTitle><CardDescription>Sight → record/correct → plot three unique reciprocal LOPs → assess the fix.</CardDescription></div>
-      <div className="flex gap-2"><Button variant="outline" size="sm" onClick={reset}><RotateCcw className="mr-2 h-4 w-4" />Reset</Button><Button aria-label={fullscreen ? "Exit full screen chart" : "Open full screen chart"} variant="outline" size="icon" onClick={() => setFullscreen((value) => !value)}>{fullscreen ? <Minimize2 /> : <Maximize2 />}</Button></div>
+      <div className="flex flex-wrap gap-2"><Button className="min-h-11" variant="outline" size="sm" onClick={reset}><RotateCcw aria-hidden className="mr-2 h-4 w-4" />Reset exercise</Button><Button className="hidden min-h-11 lg:inline-flex" aria-controls="position-chart-region" aria-expanded={enlarged} aria-pressed={enlarged} variant="outline" size="sm" onClick={() => setEnlarged((value) => !value)}>{enlarged ? <Minimize2 aria-hidden /> : <Maximize2 aria-hidden />}<span className="ml-2">Enlarge chart inline</span></Button></div>
     </CardHeader>
-    <CardContent className={`grid min-h-0 gap-4 ${fullscreen ? "flex-1 overflow-auto p-3 lg:grid-cols-[22rem_1fr]" : "lg:grid-cols-[20rem_1fr]"}`}>
-      <div className="space-y-4 text-sm">
-        <fieldset disabled={terminal} className="space-y-2"><legend className="font-bold">1. Sight and record</legend><div className="flex flex-wrap gap-2">{landmarks.map((item) => <Button key={item.id} type="button" size="sm" variant={selected?.id === item.id ? "default" : "outline"} onClick={() => sight(item)}>Sight {item.name}</Button>)}</div>
-        {selected && <div className="grid grid-cols-3 gap-2 rounded border p-2"><label>Time<input aria-label="Observation time" className="mt-1 w-full rounded border p-2" value={time} onChange={(e) => setTime(e.target.value)} /></label><label>Log NM<input aria-label="Log reading" className="mt-1 w-full rounded border p-2" value={log} onChange={(e) => setLog(e.target.value)} /></label><label>True °T<input aria-label="Corrected true bearing" inputMode="decimal" className="mt-1 w-full rounded border p-2" value={trueInput} onChange={(e) => setTrueInput(e.target.value)} /></label><Button className="col-span-3" type="button" onClick={record}>Record corrected sight</Button></div>}</fieldset>
+    <CardContent data-layout={enlarged ? "expanded" : "split"} className={`grid min-h-0 gap-4 ${enlarged ? "grid-cols-1 p-3" : "lg:grid-cols-[20rem_1fr]"}`}>
+      <div data-workflow-controls className={`min-w-0 space-y-4 text-sm ${enlarged ? "order-2" : ""}`}>
+        <fieldset disabled={terminal} className="min-w-0 space-y-2"><legend className="font-bold">1. Sight and record</legend><p id="sight-instructions" className="text-muted-foreground">Use Tab and Enter to select an object. The selected state is announced.</p><div className="flex flex-wrap gap-2">{landmarks.map((item) => <Button ref={(node) => { landmarkButtonRefs.current[item.id] = node; }} aria-describedby="sight-instructions" aria-pressed={selected?.id === item.id} className="min-h-11" key={item.id} type="button" size="sm" variant={selected?.id === item.id ? "default" : "outline"} onClick={() => sight(item)}>Sight {item.name}</Button>)}</div>
+        {selected && <div className="grid min-w-0 grid-cols-1 gap-2 rounded border p-2"><label className="min-w-0">Time<input aria-label="Observation time" className="mt-1 min-h-11 min-w-0 w-full rounded border p-2 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring" value={time} onChange={(e) => setTime(e.target.value)} /></label><label className="min-w-0">Log NM<input aria-label="Log reading" className="mt-1 min-h-11 min-w-0 w-full rounded border p-2 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring" value={log} onChange={(e) => setLog(e.target.value)} /></label><label className="min-w-0">True °T<input aria-label="Corrected true bearing" inputMode="decimal" className="mt-1 min-h-11 min-w-0 w-full rounded border p-2 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring" value={trueInput} onChange={(e) => setTrueInput(e.target.value)} /></label><Button className="min-h-11" type="button" onClick={record}>Record corrected sight</Button></div>}</fieldset>
         {recorded.length > 0 && <div><strong>Recorded evidence</strong><ol className="mt-1 list-decimal pl-5">{recorded.map((item) => <li key={item.landmark.id}>{item.time}, log {item.log}: {item.landmark.name} {item.landmark.magneticBearing.toFixed(1)}°M → {item.trueBearing.toFixed(1)}°T</li>)}</ol><p className="mt-1 text-muted-foreground">Keep observations within 2 minutes and 0.3 NM so this exercise can treat them as one fix; otherwise transfer LOPs to a common time.</p></div>}
-        <fieldset disabled={terminal || !recorded.length} className="space-y-2"><legend className="font-bold">2. Plot reciprocal</legend><label>Recorded sight<select aria-label="Sight to plot" className="ml-2 rounded border p-2" value={plotChoice} onChange={(e) => setPlotChoice(e.target.value)}><option value="">Choose…</option>{recorded.map((item) => <option key={item.landmark.id} value={item.landmark.id}>{item.landmark.name}</option>)}</select></label><label className="block">Reciprocal °T<input aria-label="Reciprocal bearing" inputMode="decimal" className="ml-2 w-24 rounded border p-2" value={reciprocalInput} onChange={(e) => setReciprocalInput(e.target.value)} /></label><p>Then tap/click the matching object on the chart.</p></fieldset>
-        <p role="status" aria-live="polite" className="rounded border bg-muted p-3">{feedback}</p>
-        {terminal && solution && <div role="status" className={`rounded border-2 p-3 ${passed ? "border-green-600 bg-green-50 text-green-950" : "border-red-600 bg-red-50 text-red-950"}`}><strong>{passed ? `Fix passed — ${annotation}` : `Assessment failed — ${annotation}`}</strong><p>Calculated position: ({solution.fix.x.toFixed(1)}, {solution.fix.y.toFixed(1)}). Cocked-hat radius: {solution.uncertainty.toFixed(1)} chart units.</p><p>{passed ? "Fix agrees with the independently specified scenario position." : `Fix is outside the ${FIX_TOLERANCE}-unit tolerance. Review the recorded corrections and reciprocals, then reset and retry.`}</p></div>}
+        <fieldset disabled={terminal || !recorded.length} className="space-y-2"><legend className="font-bold">2. Plot reciprocal</legend><label className="block">Recorded sight<select aria-label="Sight to plot" className="mt-1 min-h-11 w-full rounded border p-2" value={plotChoice} onChange={(e) => setPlotChoice(e.target.value)}><option value="">Choose…</option>{recorded.map((item) => <option key={item.landmark.id} value={item.landmark.id}>{item.landmark.name}</option>)}</select></label><label className="block">Reciprocal °T<input ref={reciprocalRef} aria-label="Reciprocal bearing" inputMode="decimal" className="ml-2 min-h-11 w-28 rounded border p-2" value={reciprocalInput} onChange={(e) => setReciprocalInput(e.target.value)} /></label><p id="plot-instructions">Either tap/click the matching chart object or use the precise keyboard-equivalent button.</p><Button className="min-h-11 w-full" aria-describedby="plot-instructions" type="button" variant="outline" onClick={() => { const sighted = recorded.find((item) => item.landmark.id === plotChoice); if (sighted) plotLandmark(sighted.landmark); else setFeedback("Choose a recorded sight to plot first."); }}>Plot selected sight precisely</Button></fieldset>
+        <p role="status" aria-live="polite" aria-atomic="true" className="rounded border bg-muted p-3">{feedback}</p>
+        {lops.length > 0 && <div aria-label="Plotted lines of position"><strong>LOP history</strong><ol className="list-decimal pl-5">{lops.map((lop) => <li key={lop.landmarkId}>{landmarks.find((item) => item.id === lop.landmarkId)?.name}: {lop.reciprocalBearing.toFixed(1)}°T reciprocal</li>)}</ol></div>}
+        {terminal && solution && <div ref={resultRef} tabIndex={-1} role={passed ? "status" : "alert"} aria-live="assertive" className={`rounded border-2 p-3 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring ${passed ? "border-green-600 bg-green-50 text-green-950" : "border-red-600 bg-red-50 text-red-950"}`}><strong>{passed ? `Fix passed — ${annotation}` : `Assessment failed — ${annotation}`}</strong><p>Calculated position: ({solution.fix.x.toFixed(1)}, {solution.fix.y.toFixed(1)}). Cocked-hat radius: {solution.uncertainty.toFixed(1)} chart units.</p><p>{passed ? "Fix agrees with the independently specified scenario position." : `Fix is outside the ${FIX_TOLERANCE}-unit tolerance. Review the recorded corrections and reciprocals, then reset and retry.`}</p></div>}
       </div>
-      <div className="aspect-[8/5] w-full self-start overflow-hidden rounded border">
-        <ChartSurface ref={svgRef} width={CHART_WIDTH} height={CHART_HEIGHT} scale={100} viewBox="0 0 800 500" className="cursor-crosshair touch-manipulation" onClick={plotAt}>
+      <div id="position-chart-region" className={`aspect-[8/5] w-full self-start overflow-hidden rounded border ${enlarged ? "order-1" : ""}`}>
+        <ChartSurface ref={svgRef} ariaLabel="Position-fix practice chart" description={chartDescription} width={CHART_WIDTH} height={CHART_HEIGHT} scale={100} viewBox="0 0 800 500" className="cursor-crosshair touch-manipulation" onClick={plotAt}>
           {landmarks.map((item) => <g key={item.id} aria-label={item.name}><circle cx={item.x} cy={item.y} r="10" fill="#d04297" stroke="white" strokeWidth="2" /><text x={item.x} y={item.y - 15} textAnchor="middle" fontSize="13" fontWeight="bold">{item.name}</text></g>)}
           {lops.map((lop) => { const line = lineEnds(lop); return <line key={lop.landmarkId} {...line} stroke="black" strokeWidth="2" />; })}
           {solution?.intersections.map((point, index) => <circle key={index} cx={point.x} cy={point.y} r="4" fill="#ef4444" />)}
