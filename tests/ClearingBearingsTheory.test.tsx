@@ -94,6 +94,9 @@ describe("ClearingBearingsTheory Page", () => {
     // then
     expect(await screen.findByText("Plotting Clearing Bearings on a Chart")).toBeDefined();
     expect(await screen.findByText(/identify the hazard/i)).toBeDefined();
+    expect(screen.getByRole("img", { name: /worked NLT 045 degrees True limit/i })).toBeDefined();
+    expect(screen.getAllByText(/SAFE SIDE/i).length).toBe(2);
+    expect(screen.getByText(/Tide changes available depth, not the charted hazard's position/i)).toBeDefined();
   });
 
   // AC-1: Theory covering not-less-than / not-more-than conventions
@@ -112,6 +115,8 @@ describe("ClearingBearingsTheory Page", () => {
     // then
     expect(await screen.findByText(/not less than/i)).toBeDefined();
     expect(await screen.findByText(/not more than/i)).toBeDefined();
+    expect(screen.getByText(/North-wrap example: 359° \/ 000°/i)).toBeDefined();
+    expect(screen.getByText(/Never decide this case with raw/i)).toBeDefined();
   });
 
   // AC-1: Theory covering using a compass to monitor
@@ -130,6 +135,50 @@ describe("ClearingBearingsTheory Page", () => {
     // then
     expect(await screen.findByText("Using a Compass to Monitor Clearing Bearings")).toBeDefined();
     expect(await screen.findByText(/monitoring procedure/i)).toBeDefined();
+    expect(screen.getByText(/045° True → 049° Magnetic → 051° Compass/i)).toBeDefined();
+    expect(screen.getByText(/045°T \+ 4° = 049°M/i)).toBeDefined();
+    expect(screen.getByText(/051°C − 2° = 049°M; 049°M − 4° = 045°T/i)).toBeDefined();
+    expect(screen.getByText(/Positively identify the object/i)).toBeDefined();
+    expect(screen.getByText(/Monitor the trend/i)).toBeDefined();
+    expect(screen.getAllByText(/Notices to Mariners/i).length).toBeGreaterThanOrEqual(1);
+    expect(screen.getByText(/One clearing limit protects one side only/i)).toBeDefined();
+    expect(screen.getByRole("link", { name: /MGN 379.*Amendment 1/i }).getAttribute("href")).toBe(
+      "https://www.gov.uk/government/publications/mgn-379-amendment-1-navigation-use-of-electronic-navigation-aids",
+    );
+  });
+
+  it("plots each limiting line outside the full hazard margin", async () => {
+    const user = userEvent.setup();
+    render(<TestRouter><ClearingBearingsTheory /></TestRouter>);
+    await user.click(screen.getByRole("tab", { name: /plotting/i }));
+
+    const lines = screen.getAllByTestId("limiting-line");
+    const margins = screen.getAllByTestId("hazard-margin");
+    const observers = screen.getAllByTestId("safe-observer");
+    const labels = screen.getAllByTestId("safe-label");
+    const signedDistanceFromLine = (line: HTMLElement, x: number, y: number) => {
+      const x1 = Number(line.getAttribute("x1"));
+      const y1 = Number(line.getAttribute("y1"));
+      const x2 = Number(line.getAttribute("x2"));
+      const y2 = Number(line.getAttribute("y2"));
+      return ((y2 - y1) * x - (x2 - x1) * y + x2 * y1 - y2 * x1) /
+        Math.hypot(y2 - y1, x2 - x1);
+    };
+    const distances = lines.map((line, index) => {
+      const margin = margins[index];
+      const cx = Number(margin.getAttribute("cx"));
+      const cy = Number(margin.getAttribute("cy"));
+      const radius = Number(margin.getAttribute("r"));
+      const signedDistance = signedDistanceFromLine(line, cx, cy);
+      return { signedDistance, radius };
+    });
+
+    expect(distances[0].signedDistance).toBeLessThan(-distances[0].radius);
+    expect(distances[1].signedDistance).toBeGreaterThan(distances[1].radius);
+    expect(signedDistanceFromLine(lines[0], Number(observers[0].getAttribute("cx")), Number(observers[0].getAttribute("cy")))).toBeGreaterThan(0);
+    expect(signedDistanceFromLine(lines[0], Number(labels[0].getAttribute("x")), Number(labels[0].getAttribute("y")))).toBeGreaterThan(0);
+    expect(signedDistanceFromLine(lines[1], Number(observers[1].getAttribute("cx")), Number(observers[1].getAttribute("cy")))).toBeLessThan(0);
+    expect(signedDistanceFromLine(lines[1], Number(labels[1].getAttribute("x")), Number(labels[1].getAttribute("y")))).toBeLessThan(0);
   });
 
   // AC-2: Interactive ClearingBearingTool rendered in Practice tab
