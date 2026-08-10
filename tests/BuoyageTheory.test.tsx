@@ -208,4 +208,46 @@ describe("BuoyageTheory Page", () => {
       screen.getByRole("button", { name: /back to pilotage/i })
     ).toBeDefined();
   });
+
+  it("renders colour-independent visuals, light decoding, and source editions", () => {
+    render(<TestRouter><BuoyageTheory /></TestRouter>);
+    const visual = screen.getByTestId("buoy-visual-lateral-port");
+    expect(visual.getAttribute("role")).toBe("img");
+    expect(visual.querySelector("desc")?.textContent).toMatch(/Body: Can, pillar or spar/);
+    expect(screen.getByText(/Q \/ VQ/)).toBeDefined();
+    expect(screen.getByText(/R1001, Maritime Buoyage System, edition 2.0/)).toBeDefined();
+    expect(visual.getAttribute("class")).toContain("forced-colors:text-[CanvasText]");
+  });
+
+  it("uses responsive wrapping instead of fixed-width mark content", () => {
+    render(<TestRouter><BuoyageTheory /></TestRouter>);
+    const visual = screen.getByTestId("buoy-visual-lateral-port");
+    expect(visual.getAttribute("class")).toContain("w-full");
+    expect(screen.getByRole("tab", { name: /lateral/i }).className).toContain("whitespace-normal");
+    expect(visual.closest("figure")?.className).toContain("min-w-0");
+  });
+
+  it("draws correct cardinal geometry and coloured topmarks", async () => {
+    const user = userEvent.setup();
+    render(<TestRouter><BuoyageTheory /></TestRouter>);
+    expect(screen.getByTestId("topmark-lateral-port").getAttribute("data-topmark-colour")).toBe("#dc2626");
+    expect(screen.getByTestId("topmark-lateral-starboard").getAttribute("data-topmark-colour")).toBe("#15803d");
+    await user.click(screen.getByRole("tab", { name: /cardinal/i }));
+    const east = screen.getByTestId("topmark-cardinal-east");
+    const west = screen.getByTestId("topmark-cardinal-west");
+    expect(east.getAttribute("data-topmark-arrangement")).toBe("cones-base");
+    expect([...east.querySelectorAll("path")].map((node) => node.getAttribute("data-cone-direction"))).toEqual(["up", "down"]);
+    expect(west.getAttribute("data-topmark-arrangement")).toBe("cones-point");
+    expect([...west.querySelectorAll("path")].map((node) => node.getAttribute("data-cone-direction"))).toEqual(["down", "up"]);
+    expect(east.getAttribute("data-topmark-colour")).toBe("#111827");
+  });
+
+  it("uses can and conical lateral body silhouettes as non-colour cues", () => {
+    render(<TestRouter><BuoyageTheory /></TestRouter>);
+    const port = screen.getByTestId("body-outline-lateral-port");
+    const starboard = screen.getByTestId("body-outline-lateral-starboard");
+    expect(port.getAttribute("data-body-silhouette")).toBe("can");
+    expect(starboard.getAttribute("data-body-silhouette")).toBe("conical");
+    expect(port.getAttribute("d")).not.toBe(starboard.getAttribute("d"));
+  });
 });
