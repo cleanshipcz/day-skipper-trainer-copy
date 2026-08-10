@@ -51,9 +51,12 @@ describe("ClearingBearingTool", () => {
     expect(screen.getByText(/Limit 290°T NMT/)).toBeDefined();
   });
 
-  it("gives explanatory feedback for an unsafe answer", () => {
+  it("gives explanatory feedback for an unsafe answer", async () => {
     renderTool(); answer(180, "NLT");
-    expect(screen.getByRole("alert").textContent).toMatch(/Replot.*tangent/i);
+    const feedback = screen.getByRole("region", { name: /answer feedback/i });
+    expect(feedback.textContent).toMatch(/Replot.*tangent/i);
+    expect(feedback.hasAttribute("aria-live")).toBe(false);
+    await waitFor(() => expect(document.activeElement).toBe(feedback));
   });
 
   it("advances only after scenario one is mastered", () => {
@@ -71,11 +74,15 @@ describe("ClearingBearingTool", () => {
     expect(screen.getByText(/clearance radius of 40 units/)).toBeDefined();
   });
 
-  it("requires the learner to choose NLT or NMT", () => {
+  it("requires the learner to choose NLT or NMT", async () => {
     renderTool();
     expect(screen.getByRole("group", { name: /safe-side rule/i })).toBeDefined();
     fireEvent.click(screen.getByRole("button", { name: /check plotted answer/i }));
-    expect(screen.getByRole("alert").textContent).toMatch(/Choose NLT or NMT/);
+    const feedback = screen.getByRole("region", { name: /answer feedback/i });
+    expect(feedback.textContent).toMatch(/Choose NLT or NMT/);
+    expect(screen.queryByRole("button", { name: /next scenario/i })).toBeNull();
+    expect(feedback.hasAttribute("aria-live")).toBe(false);
+    await waitFor(() => expect(document.activeElement).toBe(feedback));
   });
 
   it("records mastery only after both scenarios and explicit declaration", async () => {
