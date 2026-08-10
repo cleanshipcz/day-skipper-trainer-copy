@@ -1,224 +1,50 @@
-import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
-import { ArrowLeft, ChevronRight, CheckCircle2, TrendingUp, Calculator } from "lucide-react";
-import { useNavigate } from "react-router-dom";
 import { useState } from "react";
+import { useNavigate } from "react-router-dom";
+import { ArrowLeft, Calculator, ChevronRight, Compass, TrendingUp } from "lucide-react";
+import { Button } from "@/components/ui/button";
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { TOPIC_IDS } from "@/constants/topicRegistry";
 import { TheoryCompletionButton } from "@/features/progress/TheoryCompletionButton";
 
 const TidalHeightsTheory = () => {
   const navigate = useNavigate();
-  const [conceptAnswer, setConceptAnswer] = useState<"" | "4.1" | "4.4">("");
+  const [heightAnswer, setHeightAnswer] = useState<"" | "3.9" | "4.2">("");
+  const [timeAnswer, setTimeAnswer] = useState<"" | "both" | "one">("");
+  const checksPassed = heightAnswer === "3.9" && timeAnswer === "both";
 
-  return (
-    <div className="min-h-screen bg-background">
-      {/* Header */}
-      <header className="border-b border-border bg-card/50 backdrop-blur-sm sticky top-0 z-40">
-        <div className="container mx-auto px-4 py-4">
-          <div className="flex items-center justify-between">
-            <div className="flex items-center gap-3">
-              <Button variant="ghost" size="icon" onClick={() => navigate("/navigation/tides")}>
-                <ArrowLeft className="w-5 h-5" />
-              </Button>
-              <div>
-                <h1 className="text-xl font-bold">Calculating Tidal Heights</h1>
-                <p className="text-sm text-muted-foreground">Using curves and rules</p>
-              </div>
-            </div>
-            <TheoryCompletionButton topicId={TOPIC_IDS.TIDES_HEIGHTS_THEORY} catalogueRevision="tides-heights-theory-v1" evidenceId="rule-of-twelves-check" evidenceSatisfied={conceptAnswer === "4.1"} lockedLabel="Complete the height check" />
-          </div>
-        </div>
-      </header>
+  return <div className="min-h-screen bg-background">
+    <header className="sticky top-0 z-40 border-b bg-card/95 backdrop-blur-sm">
+      <div className="container mx-auto flex items-center justify-between gap-4 px-4 py-4">
+        <div className="flex min-w-0 items-center gap-3"><Button variant="ghost" size="icon" aria-label="Back to tides" onClick={() => navigate("/navigation/tides")}><ArrowLeft className="h-5 w-5" /></Button><div><h1 className="text-xl font-bold">Calculating Tidal Heights</h1><p className="text-sm text-muted-foreground">From published predictions to a conservative passage decision</p></div></div>
+        <TheoryCompletionButton topicId={TOPIC_IDS.TIDES_HEIGHTS_THEORY} catalogueRevision="tides-heights-theory-v2" evidenceId="two-direction-curve-checks" evidenceSatisfied={checksPassed} lockedLabel="Pass both calculation checks" />
+      </div>
+    </header>
 
-      <main className="container mx-auto px-4 py-8 space-y-8 max-w-4xl">
-        {/* Definitions Section */}
-        <section className="space-y-4">
-          <h2 className="text-2xl font-bold text-primary">Key Definitions</h2>
-          <Card>
-            <CardHeader>
-              <CardTitle className="flex items-center gap-2">
-                <CheckCircle2 className="w-5 h-5 text-emerald-500" />
-                Terminology & Formulae
-              </CardTitle>
-            </CardHeader>
-            <CardContent className="space-y-6">
-              <div className="grid md:grid-cols-2 gap-6">
-                <div className="space-y-3">
-                  <h4 className="font-semibold text-blue-700">Tidal Levels</h4>
-                  <ul className="space-y-2 text-sm text-muted-foreground">
-                    <li>
-                      <strong>Standard Port:</strong> A main port where tidal predictions are directly calculated and
-                      accurately provided in the Almanac.
-                    </li>
-                    <li>
-                      <strong>Chart Datum (CD):</strong> The level from which depths are measured on a chart. Usually
-                      Lowest Astronomical Tide (LAT).
-                    </li>
-                    <li>
-                      <strong>Height of Tide (HOT):</strong> The vertical distance of the water surface <em>above</em>{" "}
-                      Chart Datum at a specific time.
-                    </li>
-                    <li>
-                      <strong>Charted Depth:</strong> The measured vertical distance from Chart Datum to the seabed.
-                    </li>
-                    <li>
-                      <strong>Drying Height:</strong> The height of the seabed <em>above</em> Chart Datum (shown
-                      underlined on charts).
-                    </li>
-                  </ul>
-                </div>
+    <main className="container mx-auto max-w-5xl space-y-8 px-4 py-8">
+      <Card><CardHeader><CardTitle className="flex items-center gap-2"><Compass className="h-5 w-5 text-blue-600" />Start with the publication</CardTitle></CardHeader><CardContent className="space-y-4 text-sm">
+        <p>A <strong>standard port</strong> has its own daily HW/LW predictions and a labelled curve in the official almanac or tide tables. A <strong>secondary port</strong> is derived by applying the publication's time and height corrections to its named standard port. Do those corrections first; never copy a standard-port curve answer straight to a secondary port.</p>
+        <div className="overflow-x-auto"><table className="w-full min-w-[34rem] border-collapse text-left"><caption className="mb-2 text-left font-semibold">Training extract — Northhaven standard port, 18 June (times in local zone; heights above CD)</caption><thead><tr className="bg-muted"><th className="border p-2">Date</th><th className="border p-2">LW</th><th className="border p-2">Height</th><th className="border p-2">HW</th><th className="border p-2">Height</th><th className="border p-2">LW</th><th className="border p-2">Height</th></tr></thead><tbody><tr><td className="border p-2">18 Jun</td><td className="border p-2">03:50</td><td className="border p-2">0.8 m</td><td className="border p-2">10:00</td><td className="border p-2">4.8 m</td><td className="border p-2">16:00</td><td className="border p-2">1.2 m</td></tr><tr><td className="border p-2">18/19 Jun</td><td className="border p-2">—</td><td className="border p-2">—</td><td className="border p-2">21:40</td><td className="border p-2">4.6 m</td><td className="border p-2">03:50 (+1 day)</td><td className="border p-2">0.8 m</td></tr></tbody></table></div>
+        <p className="rounded-md border-l-4 border-amber-500 bg-amber-50 p-3 text-amber-950">Check the publication's date, time zone/DST note, units and datum. Predictions are astronomical: pressure, wind, river flow, swell and local effects can change both height and time. Compare with current gauge/harbour observations and notices.</p>
+      </CardContent></Card>
 
-                <div className="space-y-3">
-                  <h4 className="font-semibold text-blue-700">Vessel & Passage</h4>
-                  <ul className="space-y-2 text-sm text-muted-foreground">
-                    <li>
-                      <strong>Draft:</strong> The depth of the vessel's keel below the waterline.
-                    </li>
-                    <li>
-                      <strong>Clearance:</strong> The safety margin required under the keel.
-                    </li>
-                  </ul>
+      <Card><CardHeader><CardTitle className="flex items-center gap-2"><TrendingUp className="h-5 w-5 text-blue-600" />Use the standard-port curve</CardTitle><CardDescription>The publication's curve, not a generic sine wave, is the primary method.</CardDescription></CardHeader><CardContent className="space-y-5">
+        <svg viewBox="0 0 720 270" role="img" aria-labelledby="curve-title curve-desc" className="h-auto w-full rounded-md border bg-slate-50"><title id="curve-title">Labelled standard-port tidal curve</title><desc id="curve-desc">A falling curve from high water at ten hundred and 4.8 metres to low water at sixteen hundred and 1.2 metres, crossing 3.9 metres at noon and 3 metres at thirteen hundred.</desc><line x1="70" y1="220" x2="680" y2="220" stroke="#334155"/><line x1="70" y1="30" x2="70" y2="220" stroke="#334155"/><text x="15" y="35" fontSize="14">HOT (m)</text><text x="625" y="255" fontSize="14">Time</text>{[1,2,3,4,5].map((h) => <g key={h}><line x1="65" y1={220-h*36} x2="680" y2={220-h*36} stroke="#cbd5e1"/><text x="48" y={225-h*36} fontSize="12">{h}</text></g>)}{[10,11,12,13,14,15,16].map((h,i) => <g key={h}><line x1={90+i*90} y1="220" x2={90+i*90} y2="225" stroke="#334155"/><text x={76+i*90} y="242" fontSize="12">{h}:00</text></g>)}<path d="M90 47 C170 50 225 70 270 80 S385 112 450 148 S560 177 630 177" fill="none" stroke="#2563eb" strokeWidth="4"/><circle cx="90" cy="47" r="5" fill="#2563eb"/><circle cx="630" cy="177" r="5" fill="#2563eb"/><line x1="270" y1="80" x2="270" y2="220" stroke="#059669" strokeDasharray="5 4"/><line x1="70" y1="80" x2="270" y2="80" stroke="#059669" strokeDasharray="5 4"/><text x="100" y="43" fontSize="13">HW 10:00, 4.8 m</text><text x="515" y="172" fontSize="13">LW 16:00, 1.2 m</text><text x="278" y="75" fontSize="13" fill="#047857">12:00 ≈ 3.9 m</text></svg>
+        <ol className="list-decimal space-y-2 pl-5 text-sm"><li>Select the two <strong>adjacent</strong> events bracketing the required time: HW→LW is falling, LW→HW is rising. Write the date beside any time that crosses midnight.</li><li>Mark their published times and heights on the correct spring/neap curve sheet exactly as its instructions require.</li><li><strong>Height at time:</strong> enter at the requested clock time, move to the curve, then across through the height construction to read metres above CD.</li><li><strong>Time for height:</strong> convert the vessel/depth problem to required HOT, enter at that height, reverse the construction to the curve, then read the time. Search both adjacent limbs when both rising and falling answers matter.</li><li>Record source values, limb, units and result. Read only to the curve's resolution (normally about 0.1 m and 5–10 min), then apply a conservative margin—never imply false precision.</li></ol>
+      </CardContent></Card>
 
-                  <div className="bg-slate-100 p-3 rounded border border-slate-200 mt-4">
-                    <h4 className="font-bold text-slate-800 text-sm mb-2">Essential Formulae</h4>
-                    <div className="space-y-1 text-sm font-mono text-blue-600">
-                      <p>Depth of Water = Charted Depth + HOT</p>
-                      <p>Required HOT = Draft + Clearance - Charted Depth</p>
-                      <p className="text-xs text-slate-500 italic mt-1">(If Drying Height, treat Depth as negative)</p>
-                    </div>
-                  </div>
-                </div>
-              </div>
-            </CardContent>
-          </Card>
-        </section>
+      <div className="grid gap-6 lg:grid-cols-2">
+        <Card><CardHeader><CardTitle>Worked 1: height at time</CardTitle></CardHeader><CardContent className="space-y-3 text-sm"><p><strong>18 Jun, falling:</strong> HW 10:00 4.8 m; LW 16:00 1.2 m. At 12:00 the labelled curve reads <strong>HOT ≈ 3.9 m above CD</strong>.</p><p>At charted depth 1.4 m: water depth ≈ 1.4 + 3.9 = <strong>5.3 m</strong>. Over drying height 0.6 m (seabed above CD): depth ≈ 3.9 − 0.6 = <strong>3.3 m</strong>. Treating drying height as a negative charted depth gives the same arithmetic.</p><p>Quote 3.9 m, not 3.900 m. Reduce the planning value if uncertainty/current observations warrant it.</p></CardContent></Card>
+        <Card><CardHeader><CardTitle>Worked 2: time(s) for height</CardTitle></CardHeader><CardContent className="space-y-3 text-sm"><p>Draft 2.0 m + UKC 0.4 m over drying height 0.6 m requires HOT = 2.0 + 0.4 + 0.6 = <strong>3.0 m</strong>.</p><p>The curve gives about <strong>13:00 falling</strong>. On the following rising limb from the published LW 16:00 1.2 m to HW 21:40 4.6 m, it gives about <strong>18:55 rising</strong>. Water is adequate <strong>before the falling crossing and after the rising crossing</strong>; approximately 13:00–18:55 is the unsafe interval, with each safe boundary moved further away from danger by the chosen time/height margin.</p><p><strong>Midnight discipline:</strong> for HW 18 Jun 21:40 4.6 m to LW 19 Jun 03:50 0.8 m, HOT 2.7 m occurs about <strong>19 Jun 00:45</strong>, not “18 Jun 00:45”.</p></CardContent></Card>
+      </div>
 
-        <section className="rounded-lg border p-5 space-y-3"><h2 className="font-bold">Height concept check</h2><p>Using the worked 5.0 m HW and 3.6 m range, what is the estimated height two hours after HW?</p><label className="mr-5"><input type="radio" name="height-check" onChange={() => setConceptAnswer("4.1")} /> 4.1 m</label><label><input type="radio" name="height-check" onChange={() => setConceptAnswer("4.4")} /> 4.4 m</label>{conceptAnswer && <p role="status">{conceptAnswer === "4.1" ? "Correct — the first two drops total 3/12 of the range." : "Check the cumulative first- and second-hour fractions."}</p>}</section>
+      <Card><CardHeader><CardTitle>Datums, clearance and limits</CardTitle></CardHeader><CardContent className="grid gap-4 text-sm md:grid-cols-2"><div className="space-y-2"><p><strong>Under-keel:</strong> depth of water = charted depth + HOT; over a drying height, depth = HOT − drying height. Required HOT = draft + UKC − charted depth.</p><p><strong>Overhead:</strong> charted clearance is commonly referred to a high-water datum, not CD. Follow the chart/publication convention; compare available clearance with air draught plus margin. Do not combine values from different datums.</p></div><div className="space-y-2"><p>The <strong>Rule of Twelves</strong> (1, 2, 3, 3, 2, 1 twelfths per hour) is only a rough check for a fairly regular six-hour semidiurnal rise/fall. The equal 3rd and 4th hours are the maximum changes. Do not use it for strongly distorted, shallow-water or double high/low tides.</p><p>Standard-port predictions do not remove secondary-port corrections or weather/local uncertainty. If the margin matters, wait for more water, use observed levels and local advice, or do not proceed.</p></div></CardContent></Card>
 
-        {/* Section 1: Standard Ports & Curves */}
-        <section className="space-y-4">
-          <h2 className="text-2xl font-bold text-primary">Tidal Curves</h2>
-          <Card>
-            <CardHeader>
-              <CardTitle className="flex items-center gap-2">
-                <TrendingUp className="w-5 h-5 text-blue-500" />
-                Standard Ports
-              </CardTitle>
-            </CardHeader>
-            <CardContent className="space-y-4">
-              <p>
-                Tidal predictions for <strong>Standard Ports</strong> are very accurate. The Almanac provides a{" "}
-                <strong>Tidal Curve</strong> for these ports.
-              </p>
-              <p className="text-muted-foreground">
-                The curve allows you to find the height of tide at any time between High Water (HW) and Low Water (LW),
-                or find the time at which a specific height will occur.
-              </p>
-              <div className="bg-slate-50 p-4 rounded-lg border text-sm space-y-2">
-                <h4 className="font-semibold">The Process:</h4>
-                <ol className="list-decimal list-inside space-y-1 ml-2">
-                  <li>Enter HW times and heights and LW times and heights from the tables.</li>
-                  <li>Plot the HW height and LW height on the bottom scale.</li>
-                  <li>Join these points with a diagonal line.</li>
-                  <li>Enter the time on the bottom time scale (adjusting for Springs/Neaps).</li>
-                  <li>Go up to the curve, across to the diagonal line, and down to read the height (or vice versa).</li>
-                </ol>
-              </div>
-            </CardContent>
-          </Card>
-        </section>
+      <Card><CardHeader><CardTitle className="flex items-center gap-2"><Calculator className="h-5 w-5"/>Calculation checks</CardTitle></CardHeader><CardContent className="space-y-5 text-sm"><fieldset><legend className="font-semibold">1. On the worked falling limb, what HOT should be recorded at 12:00?</legend><label className="mr-6 inline-flex gap-2"><input type="radio" name="height-check" onChange={() => setHeightAnswer("3.9")}/>3.9 m above CD</label><label className="inline-flex gap-2"><input type="radio" name="height-check" onChange={() => setHeightAnswer("4.2")}/>4.2 m water depth</label>{heightAnswer && <p role="status" className="mt-2">{heightAnswer === "3.9" ? "Correct — enter at 12:00 and read about 3.9 m above CD; add charted depth separately." : "Try again — keep height of tide above CD separate from depth of water."}</p>}</fieldset><fieldset><legend className="font-semibold">2. Required HOT is 3.0 m, crossed at 13:00 falling and about 18:55 rising. Which statement is safe?</legend><label className="mr-6 inline-flex gap-2"><input type="radio" name="time-check" onChange={() => setTimeAnswer("both")}/>Adequate before 13:00 and after 18:55, then add margin</label><label className="inline-flex gap-2"><input type="radio" name="time-check" onChange={() => setTimeAnswer("one")}/>Adequate from 13:00 to 18:55</label>{timeAnswer && <p role="status" className="mt-2">{timeAnswer === "both" ? "Correct — on the falling limb the crossing ends adequacy; on the rising limb it restores it. Move both limits conservatively away from danger." : "Unsafe — height is below the requirement between the falling and rising crossings."}</p>}</fieldset></CardContent></Card>
 
-        {/* Section 2: Rule of Twelves */}
-        <section className="space-y-4">
-          <h2 className="text-2xl font-bold text-primary">The Rule of Twelves</h2>
-          <Card>
-            <CardHeader>
-              <CardTitle className="flex items-center gap-2">
-                <Calculator className="w-5 h-5 text-green-500" />
-                Quick Estimation
-              </CardTitle>
-              <CardDescription>
-                When you don't have a curve, or need a quick mental estimate for a semi-diurnal tide (approx 6 hours
-                duration).
-              </CardDescription>
-            </CardHeader>
-            <CardContent>
-              <div className="grid md:grid-cols-2 gap-8 items-start">
-                <div className="space-y-4">
-                  <p>
-                    The tide does not rise constantly. It starts slow, accelerates in the middle hours, and slows down
-                    at the end. The total range is divided into twelfths.
-                  </p>
-                  <ul className="space-y-2 text-sm bg-blue-50 p-4 rounded-md">
-                    <li className="flex justify-between">
-                      <span>1st Hour</span> <span className="font-bold">1/12</span>
-                    </li>
-                    <li className="flex justify-between">
-                      <span>2nd Hour</span> <span className="font-bold">2/12</span>
-                    </li>
-                    <li className="flex justify-between">
-                      <span>3rd Hour</span> <span className="font-bold">3/12</span> of Range (Fastest!)
-                    </li>
-                    <li className="flex justify-between">
-                      <span>4th Hour</span> <span className="font-bold">3/12</span> of Range
-                    </li>
-                    <li className="flex justify-between">
-                      <span>5th Hour</span> <span className="font-bold">2/12</span>
-                    </li>
-                    <li className="flex justify-between">
-                      <span>6th Hour</span> <span className="font-bold">1/12</span>
-                    </li>
-                  </ul>
-                  <p className="text-xs text-muted-foreground">
-                    *Note: This is an approximation and should be used with caution, especially in shallow waters.
-                  </p>
-                </div>
-
-                {/* Visual Example */}
-                <div className="bg-slate-900 text-white p-6 rounded-xl shadow-lg">
-                  <h4 className="font-bold mb-4 text-emerald-400">Example Calculation</h4>
-                  <div className="space-y-2 text-sm">
-                    <div className="flex justify-between border-b border-slate-700 pb-1">
-                      <span>High Water</span> <span>12:00 (5.0m)</span>
-                    </div>
-                    <div className="flex justify-between border-b border-slate-700 pb-1">
-                      <span>Low Water</span> <span>18:00 (1.4m)</span>
-                    </div>
-                    <div className="flex justify-between text-emerald-400 font-bold py-2">
-                      <span>Range</span> <span>3.6m</span>
-                    </div>
-                    <div className="flex justify-between opacity-80">
-                      <span>1/12 of Range</span> <span>0.3m</span>
-                    </div>
-
-                    <div className="mt-4 pt-2 border-t border-slate-700">
-                      <p className="mb-2">Height at 14:00 (2 hours after HW)?</p>
-                      <ul className="space-y-1 text-slate-300">
-                        <li>1st Hr (1.0m drop? No, 1/12 = 0.3m)</li>
-                        <li>2nd Hr (2/12 = 0.6m)</li>
-                        <li>Total Drop = 0.9m</li>
-                        <li className="text-white font-bold pt-1">Height = 5.0m - 0.9m = 4.1m</li>
-                      </ul>
-                    </div>
-                  </div>
-                </div>
-              </div>
-            </CardContent>
-          </Card>
-        </section>
-
-        <div className="flex justify-center pt-8">
-          <Button
-            size="lg"
-            onClick={() => navigate("/navigation/tides/heights-calc")}
-            className="bg-emerald-600 hover:bg-emerald-700"
-          >
-            Go to Practice Tool <ChevronRight className="ml-2 w-4 h-4" />
-          </Button>
-        </div>
-      </main>
-    </div>
-  );
+      <Card className="border-blue-200 bg-blue-50"><CardContent className="pt-6 text-sm"><strong>Practice-tool boundary:</strong> the planner is a learning aid using a smooth mathematical approximation. It is useful for rehearsing depth/clearance arithmetic and exploring windows, but it does not reproduce a named port's official curve, secondary-port corrections, weather or live observations. Recalculate from current official publications before navigation.</CardContent></Card>
+      <div className="flex justify-center"><Button size="lg" onClick={() => navigate("/navigation/tides/heights-calc")} className="bg-emerald-600 hover:bg-emerald-700">Open the practice tool <ChevronRight className="ml-2 h-4 w-4"/></Button></div>
+    </main>
+  </div>;
 };
 
 export default TidalHeightsTheory;
