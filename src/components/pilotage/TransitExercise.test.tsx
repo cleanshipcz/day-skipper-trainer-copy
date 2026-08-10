@@ -1,4 +1,5 @@
 import { fireEvent, render, screen } from "@testing-library/react";
+import userEvent from "@testing-library/user-event";
 import { describe, expect, it, vi } from "vitest";
 import { renderToStaticMarkup } from "react-dom/server";
 import { TransitExercise, TransitSightPicture } from "./TransitExercise";
@@ -42,5 +43,58 @@ describe("TransitExercise", () => {
     expect(qualification).toBeGreaterThan(svgEnd);
     expect(html).toContain("whitespace-normal break-words");
     expect(html).toContain('aria-describedby="transit-safety-aligned"');
+  });
+
+  it.each([375, 768, 1280])("keeps a scalable graphic and 44px controls at %ipx", (width) => {
+    Object.defineProperty(window, "innerWidth", { configurable: true, value: width });
+    const { container } = render(<TransitExercise onComplete={vi.fn()}/>);
+    expect(screen.getByRole("img", {name:/observer sight picture/i}).getAttribute("viewBox")).toBe("0 0 600 400");
+    expect(container.querySelector(".min-h-11")).toBeTruthy();
+    expect((container.querySelector('[style*="touch-action"]') as HTMLElement).style.touchAction).toBe("pan-y pinch-zoom");
+  });
+
+  it("announces feedback, then tabs forward into the retry choices", async () => {
+    const user = userEvent.setup();
+    render(<TransitExercise onComplete={vi.fn()}/>);
+    const choice = screen.getByRole("button", {name:"Front mark appears left"});
+    choice.focus();
+    await user.keyboard("{Enter}");
+    const status = screen.getByRole("status");
+    expect(document.activeElement).toBe(status);
+    expect(choice.getAttribute("aria-pressed")).toBe("true");
+    expect(status.getAttribute("aria-live")).toBe("polite");
+    expect(status.compareDocumentPosition(screen.getByRole("button", {name:"Front mark appears left"})) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
+    await user.tab();
+    expect(document.activeElement).toBe(screen.getByRole("button", {name:"Front mark appears left"}));
+  });
+
+  it("captures a touch swipe and ignores cancelled gestures", () => {
+    const { container } = render(<TransitExercise onComplete={vi.fn()}/>);
+    const surface = container.querySelector('[style*="touch-action"]') as HTMLDivElement;
+    let captured:number|null = null;
+    surface.setPointerCapture = vi.fn(id => { captured = id; });
+    surface.hasPointerCapture = vi.fn(id => captured === id);
+    surface.releasePointerCapture = vi.fn(() => { captured = null; });
+
+    fireEvent.pointerDown(surface, {pointerId:3,pointerType:"touch",isPrimary:true,clientX:120,clientY:80});
+    fireEvent.pointerCancel(surface, {pointerId:3,pointerType:"touch",isPrimary:true,clientX:20,clientY:80});
+    expect(screen.queryByRole("status")).toBeNull();
+
+    fireEvent.pointerDown(surface, {pointerId:4,pointerType:"touch",isPrimary:true,clientX:120,clientY:80});
+    fireEvent.pointerUp(surface, {pointerId:4,pointerType:"touch",isPrimary:true,clientX:20,clientY:82});
+    expect(screen.getByRole("status").textContent).toMatch(/not left/i);
+  });
+
+  it("describes each rendered mark relationship without adding a navigation conclusion", () => {
+    const descriptions = TRANSIT_SCENARIOS.map(scenario => {
+      const html = renderToStaticMarkup(<TransitSightPicture scenario={scenario}/>);
+      return html.match(/<desc[^>]*>(.*?)<\/desc>/)?.[1];
+    });
+    expect(descriptions).toEqual([
+      "A nearer red front mark and a farther purple rear mark. In this sight picture, marks are in line.",
+      "A nearer red front mark and a farther purple rear mark. In this sight picture, front mark appears left.",
+      "A nearer red front mark and a farther purple rear mark. In this sight picture, front mark appears right.",
+    ]);
+    expect(descriptions.join(" ")).not.toMatch(/safe|steer|alter/i);
   });
 });
