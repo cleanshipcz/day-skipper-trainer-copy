@@ -40,4 +40,16 @@ describe("visual pilotage mastery bank", () => {
     expect(svg).toMatch(/data-topmark-outline="special"[^>]+stroke="#111827"[^>]+stroke-width="16"/);
     expect(svg).toMatch(/data-topmark-outline="emergency-wreck"[^>]+stroke="#111827"[^>]+stroke-width="15"/);
   });
+
+  it("keys the transit correction to a specific direction and explains the track geometry", () => {
+    const correction = questions.find((item) => item.id === "pilotage-9");
+
+    expect(correction).toBeDefined();
+    expect(correction?.question).toMatch(/heading towards the leading marks.*rear mark appears left/is);
+    expect(correction?.options[correction.correctAnswer]).toMatch(/alter to starboard/i);
+    expect(correction?.options[correction.correctAnswer]).not.toMatch(/towards?.*(line|alignment)|restores? .*alignment/i);
+    expect(correction?.options.filter((option) => /alter to starboard/i.test(option))).toHaveLength(1);
+    expect(correction?.explanation).toMatch(/rear-left means the vessel is left of track/i);
+    expect(correction?.explanation).toMatch(/alteration to starboard moves the vessel back towards the leading line/i);
+  });
 });
