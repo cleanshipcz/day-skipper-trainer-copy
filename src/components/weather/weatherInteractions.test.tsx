@@ -144,5 +144,15 @@ describe("weather interactions", () => {
     expect(screen.getByTestId("selected-area-marker").getAttribute("data-area")).toBe("Dogger");
     expect(screen.getByTestId("selected-area-marker").textContent).toContain("Dogger");
     expect(screen.getByRole("group", { name: "Shipping forecast area list" })).toBeTruthy();
+    const map = screen.getByRole("img", { name: /Met Office Shipping Forecast sea areas/i });
+    expect(map.getAttribute("viewBox")).toBe("0 0 600 739");
+    expect(map.getAttribute("class")).toContain("w-full");
+    expect(map.querySelectorAll('[role="button"]')).toHaveLength(31);
+    expect(map.querySelector('[aria-label^="Dogger:"]')?.getAttribute("aria-pressed")).toBe("true");
+    const southeastIceland = map.querySelector<SVGElement>('[aria-label^="Southeast Iceland:"]')!;
+    southeastIceland.focus();
+    await user.keyboard("{Enter}");
+    expect(southeastIceland.getAttribute("aria-pressed")).toBe("true");
+    expect(screen.getByRole("status").textContent).toMatch(/Southeast Iceland.*southeast of Iceland/i);
   });
 });
