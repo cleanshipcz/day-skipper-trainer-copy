@@ -154,22 +154,31 @@ describe("ClearingBearingsTheory Page", () => {
 
     const lines = screen.getAllByTestId("limiting-line");
     const margins = screen.getAllByTestId("hazard-margin");
-    const distances = lines.map((line, index) => {
-      const margin = margins[index];
+    const observers = screen.getAllByTestId("safe-observer");
+    const labels = screen.getAllByTestId("safe-label");
+    const signedDistanceFromLine = (line: HTMLElement, x: number, y: number) => {
       const x1 = Number(line.getAttribute("x1"));
       const y1 = Number(line.getAttribute("y1"));
       const x2 = Number(line.getAttribute("x2"));
       const y2 = Number(line.getAttribute("y2"));
+      return ((y2 - y1) * x - (x2 - x1) * y + x2 * y1 - y2 * x1) /
+        Math.hypot(y2 - y1, x2 - x1);
+    };
+    const distances = lines.map((line, index) => {
+      const margin = margins[index];
       const cx = Number(margin.getAttribute("cx"));
       const cy = Number(margin.getAttribute("cy"));
       const radius = Number(margin.getAttribute("r"));
-      const signedDistance = ((y2 - y1) * cx - (x2 - x1) * cy + x2 * y1 - y2 * x1) /
-        Math.hypot(y2 - y1, x2 - x1);
+      const signedDistance = signedDistanceFromLine(line, cx, cy);
       return { signedDistance, radius };
     });
 
     expect(distances[0].signedDistance).toBeLessThan(-distances[0].radius);
     expect(distances[1].signedDistance).toBeGreaterThan(distances[1].radius);
+    expect(signedDistanceFromLine(lines[0], Number(observers[0].getAttribute("cx")), Number(observers[0].getAttribute("cy")))).toBeGreaterThan(0);
+    expect(signedDistanceFromLine(lines[0], Number(labels[0].getAttribute("x")), Number(labels[0].getAttribute("y")))).toBeGreaterThan(0);
+    expect(signedDistanceFromLine(lines[1], Number(observers[1].getAttribute("cx")), Number(observers[1].getAttribute("cy")))).toBeLessThan(0);
+    expect(signedDistanceFromLine(lines[1], Number(labels[1].getAttribute("x")), Number(labels[1].getAttribute("y")))).toBeLessThan(0);
   });
 
   // AC-2: Interactive ClearingBearingTool rendered in Practice tab

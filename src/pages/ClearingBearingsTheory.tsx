@@ -42,6 +42,9 @@ const WORKED_LIMIT_GEOMETRY = {
 const WorkedLimit = ({ title, limit, safeLabel, mirror = false }: WorkedLimitProps) => (
   (() => {
     const hazard = mirror ? WORKED_LIMIT_GEOMETRY.nmtHazard : WORKED_LIMIT_GEOMETRY.nltHazard;
+    const safeAnnotation = mirror
+      ? { observerX: 105, observerY: 180, labelX: 45, labelY: 205 }
+      : { observerX: 330, observerY: 65, labelX: 270, labelY: 42 };
     return (
   <figure className="space-y-2">
     <svg
@@ -66,9 +69,9 @@ const WorkedLimit = ({ title, limit, safeLabel, mirror = false }: WorkedLimitPro
       <circle data-testid="hazard-margin" cx={hazard.cx} cy={hazard.cy} r={hazard.marginRadius} fill="none" stroke="#dc2626" strokeWidth="3" strokeDasharray="7 5" />
       <text x="220" y={hazard.cy + 5} className="fill-white text-[12px] font-bold">HAZARD</text>
       <text x="260" y={hazard.cy - 26} className="fill-red-700 dark:fill-red-300 text-[12px]">margin</text>
-      <path d={mirror ? "M340 65 l8 18 l-16 0 z" : "M105 180 l8 18 l-16 0 z"} fill="#172554" />
-      <text x={mirror ? "300" : "45"} y={mirror ? "58" : "218"} className="fill-current text-[12px]">Observer sector</text>
-      <text x={mirror ? "270" : "12"} y="90" className="fill-blue-900 dark:fill-blue-100 text-[14px] font-bold">SAFE SIDE</text>
+      <circle data-testid="safe-observer" cx={safeAnnotation.observerX} cy={safeAnnotation.observerY} r="8" fill="#172554" />
+      <text x={safeAnnotation.observerX - 48} y={safeAnnotation.observerY - 14} className="fill-current text-[12px]">Observer sector</text>
+      <text data-testid="safe-label" x={safeAnnotation.labelX} y={safeAnnotation.labelY} className="fill-blue-900 dark:fill-blue-100 text-[14px] font-bold">SAFE SIDE</text>
       <text x="160" y="96" className="fill-current text-[12px] font-semibold">{limit}</text>
     </svg>
     <figcaption className="text-sm text-muted-foreground">{safeLabel}</figcaption>
