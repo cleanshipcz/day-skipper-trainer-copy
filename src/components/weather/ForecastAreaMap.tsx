@@ -32,6 +32,7 @@ export const ForecastAreaMap = ({ createExerciseOrder = shuffledForecastAreas }:
   const [retriedCurrent, setRetriedCurrent] = useState(false);
   const [complete, setComplete] = useState(false);
   const chooserRef = useRef<HTMLDivElement>(null);
+  const resultsHeadingRef = useRef<HTMLHeadingElement>(null);
   const idPrefix = useId().replaceAll(":", "");
   const target = order[questionIndex];
   const prompt = target ? forecastPrompt(target, questionIndex) : undefined;
@@ -56,6 +57,7 @@ export const ForecastAreaMap = ({ createExerciseOrder = shuffledForecastAreas }:
     setRetries(0);
     setRetriedCurrent(false);
     setComplete(false);
+    queueMicrotask(() => chooserRef.current?.focus());
   };
   const startGuided = () => {
     setMode("guided");
@@ -65,6 +67,7 @@ export const ForecastAreaMap = ({ createExerciseOrder = shuffledForecastAreas }:
     if (questionIndex === order.length - 1) {
       setComplete(true);
       setFeedback(undefined);
+      queueMicrotask(() => resultsHeadingRef.current?.focus());
       return;
     }
     const nextIndex = questionIndex + 1;
@@ -90,7 +93,7 @@ export const ForecastAreaMap = ({ createExerciseOrder = shuffledForecastAreas }:
           <p className="text-sm text-muted-foreground">Choose on the map or in the area chooser. Keyboard users can use geographic arrow navigation.</p>
         </section>}
         {mode === "guided" && complete && <section aria-labelledby={`${idPrefix}-results-heading`} className="space-y-3 rounded-lg border p-4">
-          <h4 id={`${idPrefix}-results-heading`} className="text-lg font-semibold">Geography exercise complete</h4>
+          <h4 ref={resultsHeadingRef} tabIndex={-1} id={`${idPrefix}-results-heading`} className="text-lg font-semibold focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring">Geography exercise complete</h4>
           <p role="status">Covered all {order.length} forecast areas. First-try correct: {firstTryCorrect} of {order.length}. Retries: {retries}.</p>
           <button type="button" onClick={restart} className="min-h-11 rounded-md border px-4 py-2">Restart guided exercise</button>
         </section>}

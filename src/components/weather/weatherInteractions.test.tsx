@@ -215,10 +215,12 @@ describe("weather interactions", () => {
       await user.click(screen.getByRole("option", { name: forecastAreas[index].name }));
       await user.click(screen.getByRole("button", { name: index === forecastAreas.length - 1 ? "See results" : "Next area" }));
     }
-    expect(screen.getByRole("heading", { name: "Geography exercise complete" })).toBeTruthy();
+    const resultsHeading = screen.getByRole("heading", { name: "Geography exercise complete" });
+    expect(document.activeElement).toBe(resultsHeading);
     expect(screen.getByRole("status").textContent).toContain("First-try correct: 31 of 31. Retries: 0");
     await user.click(screen.getByRole("button", { name: "Restart guided exercise" }));
     expect(screen.getByText("Area 1 of 31")).toBeTruthy();
+    expect(document.activeElement).toBe(screen.getByRole("listbox", { name: "Shipping forecast area chooser" }));
     expect(screen.queryByRole("heading", { name: "Geography exercise complete" })).toBeNull();
   });
 
