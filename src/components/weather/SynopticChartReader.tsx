@@ -5,7 +5,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 
 const synopticScenarios = [
   { label: "Frontal depression west of Ireland, with labelled isobars, connected fronts and a warm sector", question: "With the low to the west, which system is shown?", options: ["Low pressure", "High pressure", "Ridge"], answer: 0 },
-  { label: "Cold front moving east across the British Isles, shown by attached triangles", question: "Which front do the triangles identify?", options: ["Warm", "Cold", "Occluded"], answer: 1 },
+  { label: "Cold front advancing north across the British Isles, shown by attached triangles", question: "Which front do the triangles identify?", options: ["Warm", "Cold", "Occluded"], answer: 1 },
   { label: "Northern Hemisphere low with labelled isobars and anticlockwise surface circulation", question: "How does surface wind circulate around the low?", options: ["Clockwise", "Anticlockwise", "Straight inward"], answer: 1 },
 ] as const;
 
@@ -52,28 +52,28 @@ const IntegratedFrontalDepression = () => (
   <ChartFrame label={synopticScenarios[0].label}>
     <Isobars />
     <g data-chart-marker="integrated-frontal-system" fill="none" strokeLinecap="round" strokeLinejoin="round">
-      <g data-front-type="warm" data-connected-to="low" data-direction="east" aria-label="Warm front moving east; red semicircles attached north of the front line" stroke="#b91c1c" strokeWidth="5">
+      <g data-front-type="warm" data-connected-to="low" data-direction="north" aria-label="Warm front advancing north; red semicircles attached north of the front line" stroke="#b91c1c" strokeWidth="5">
         <path d="M220 131C300 139 368 145 485 151" />
-        <path d="M273 136a13 13 0 0 1 26 2M335 141a13 13 0 0 1 26 2M399 145a13 13 0 0 1 26 2M457 149a11 11 0 0 1 22 1" />
+        <path d="M273 136Q286 112 299 138M335 141Q348 117 361 143M399 145Q412 121 425 147M457 149Q468 129 479 150" />
       </g>
-      <g data-front-type="cold" data-connected-to="low" data-direction="southeast" aria-label="Cold front moving southeast; blue triangles attached east of the front line" stroke="#1d4ed8" strokeWidth="5">
+      <g data-front-type="cold" data-connected-to="low" data-direction="east" aria-label="Cold front advancing east; blue triangle apexes point east from the front line" stroke="#1d4ed8" strokeWidth="5">
         <path d="M196 138C171 174 139 211 91 273" />
         <path d="M169 176l18 13-27 8zM139 213l18 14-28 7zM108 251l17 14-27 6z" fill="none" />
       </g>
-      <g data-front-type="occluded" data-connected-to="low" data-direction="north" aria-label="Occluded front moving north; alternating triangles and semicircles attached east of the line" stroke="#7e22ce" strokeWidth="5">
+      <g data-front-type="occluded" data-connected-to="low" data-direction="east" aria-label="Occluded front advancing east; alternating triangles and semicircles attached east of the line" stroke="#7e22ce" strokeWidth="5">
         <path d="M199 102C191 72 180 43 163 18" />
-        <path d="M190 75l15-9-19-7zM178 47a11 11 0 0 1 18-12" />
+        <path d="M190 75L205 66 186 59ZM178 47Q197 48 196 35" />
       </g>
     </g>
     <path data-warm-sector="true" d="M213 145C260 161 277 202 243 239C194 224 163 203 151 185Z" fill="#f59e0b" opacity="0.16" stroke="currentColor" strokeDasharray="5 5" />
     <text x="204" y="190" fill="currentColor" fontSize="14" fontWeight="700">Warm sector</text>
-    <text x="467" y="138" fill="currentColor" fontSize="12">moving east</text>
+    <text x="447" y="126" fill="currentColor" fontSize="12">advancing north</text>
   </ChartFrame>
 );
 
 const ColdFrontChart = () => (
   <ChartFrame label={synopticScenarios[1].label}>
-    <g data-chart-marker="cold-front" data-direction="east" data-front-type="cold" fill="none" stroke="#1d4ed8" strokeWidth="6" strokeLinejoin="round">
+    <g data-chart-marker="cold-front" data-direction="north" data-front-type="cold" fill="none" stroke="#1d4ed8" strokeWidth="6" strokeLinejoin="round" aria-label="Cold front advancing north; triangle apexes point north from the front line">
       <path d="M105 165C220 145 338 160 505 125" />
       <path d="M165 155l18-22 11 19zM252 151l20-23 10 25zM344 151l21-25 10 22zM437 140l20-25 11 20z" />
     </g>

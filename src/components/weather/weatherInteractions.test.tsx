@@ -6,6 +6,17 @@ import { BeaufortDrill } from "./BeaufortDrill";
 import { SynopticChartReader } from "./SynopticChartReader";
 import { ForecastAreaMap } from "./ForecastAreaMap";
 
+type Point = readonly [number, number];
+
+const expectSymbolPointsTowardMovement = (line: readonly [Point, Point], base: readonly [Point, Point], symbolPoint: Point, movement: Point) => {
+  const midpoint: Point = [(base[0][0] + base[1][0]) / 2, (base[0][1] + base[1][1]) / 2];
+  const symbolVector: Point = [symbolPoint[0] - midpoint[0], symbolPoint[1] - midpoint[1]];
+  expect(symbolVector[0] * movement[0] + symbolVector[1] * movement[1]).toBeGreaterThan(0);
+  const lineVector: Point = [line[1][0] - line[0][0], line[1][1] - line[0][1]];
+  const cross = ([x1, y1]: Point, [x2, y2]: Point) => x1 * y2 - y1 * x2;
+  expect(Math.sign(cross(lineVector, symbolVector))).toBe(Math.sign(cross(lineVector, movement)));
+};
+
 describe("weather interactions", () => {
   it("supports keyboard answers and advances the synoptic scenario", async () => {
     const user = userEvent.setup();
@@ -25,10 +36,23 @@ describe("weather interactions", () => {
       const front = integratedChart.querySelector(`[data-front-type="${type}"]`);
       expect(front?.getAttribute("data-connected-to")).toBe("low");
       expect(front?.querySelectorAll("path").length).toBeGreaterThanOrEqual(2);
-      expect(front?.getAttribute("aria-label")).toMatch(/attached/i);
     }
-    expect(integratedChart.querySelector('[data-front-type="warm"]')?.getAttribute("aria-label")).toMatch(/semicircles/i);
-    expect(integratedChart.querySelector('[data-front-type="cold"]')?.getAttribute("aria-label")).toMatch(/triangles/i);
+    const warm = integratedChart.querySelector('[data-front-type="warm"]')!;
+    const cold = integratedChart.querySelector('[data-front-type="cold"]')!;
+    const occluded = integratedChart.querySelector('[data-front-type="occluded"]')!;
+    expect(warm.querySelectorAll("path")[0].getAttribute("d")).toBe("M220 131C300 139 368 145 485 151");
+    expect(warm.querySelectorAll("path")[1].getAttribute("d")).toContain("M273 136Q286 112 299 138");
+    expect(cold.querySelectorAll("path")[0].getAttribute("d")).toBe("M196 138C171 174 139 211 91 273");
+    expect(cold.querySelectorAll("path")[1].getAttribute("d")).toContain("M169 176l18 13-27 8z");
+    expect(occluded.querySelectorAll("path")[0].getAttribute("d")).toBe("M199 102C191 72 180 43 163 18");
+    expect(occluded.querySelectorAll("path")[1].getAttribute("d")).toBe("M190 75L205 66 186 59ZM178 47Q197 48 196 35");
+    expectSymbolPointsTowardMovement([[220, 131], [485, 151]], [[273, 136], [299, 138]], [286, 112], [0, -1]);
+    expectSymbolPointsTowardMovement([[196, 138], [91, 273]], [[169, 176], [160, 197]], [187, 189], [1, 0]);
+    expectSymbolPointsTowardMovement([[199, 102], [163, 18]], [[190, 75], [186, 59]], [205, 66], [1, 0]);
+    expectSymbolPointsTowardMovement([[199, 102], [163, 18]], [[178, 47], [196, 35]], [197, 48], [1, 0]);
+    expect(warm.getAttribute("data-direction")).toBe("north");
+    expect(cold.getAttribute("data-direction")).toBe("east");
+    expect(occluded.getAttribute("data-direction")).toBe("east");
     expect(integratedChart.querySelector('[data-front-type="occluded"]')?.getAttribute("aria-label")).toMatch(/alternating triangles and semicircles/i);
     expect(container.textContent).not.toContain("▶");
 
@@ -37,10 +61,13 @@ describe("weather interactions", () => {
     await user.keyboard("{Enter}");
     expect(screen.getByRole("status").textContent).toContain("Correct");
     await user.click(screen.getByRole("button", { name: "Next chart" }));
-    expect(screen.getByRole("img", { name: /cold front moving east.*attached triangles/i })).toBeTruthy();
+    expect(screen.getByRole("img", { name: /cold front advancing north.*attached triangles/i })).toBeTruthy();
     const front = document.querySelector('[data-chart-marker="cold-front"]');
-    expect(front?.getAttribute("data-direction")).toBe("east");
+    expect(front?.getAttribute("data-direction")).toBe("north");
     expect(front?.querySelectorAll("path")).toHaveLength(2);
+    expect(front?.querySelectorAll("path")[0].getAttribute("d")).toBe("M105 165C220 145 338 160 505 125");
+    expect(front?.querySelectorAll("path")[1].getAttribute("d")).toContain("M165 155l18-22 11 19z");
+    expectSymbolPointsTowardMovement([[105, 165], [505, 125]], [[165, 155], [194, 152]], [183, 133], [0, -1]);
     expect(front?.textContent).not.toContain("▶");
   });
 
