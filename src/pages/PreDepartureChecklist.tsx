@@ -7,13 +7,16 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { checklistPhases, checklistSupportingRoutes, preDepartureChecklist } from "@/data/preDepartureChecklist";
 import {
   canSelectStatus,
+  assessReadinessRestore,
+  createReadinessSession,
   emptyReadinessEntry,
   isResolved,
   isReadinessContextComplete,
   readinessStatusLabels,
-  parseReadinessPayload,
+  READINESS_RETENTION_DAYS,
   summarizeReadiness,
   transitionEntry,
+  validateReadinessCatalogue,
   type ReadinessEntries,
   type ReadinessStatus,
 } from "@/features/readiness/readinessRecord";
@@ -21,15 +24,18 @@ import { useProgress } from "@/hooks/useProgress";
 import { TOPIC_IDS } from "@/constants/topicRegistry";
 
 const statuses = ["not_checked", "satisfactory", "not_applicable", "defect", "blocked", "unknown"] as const;
+const confirmAction = (message: string) => typeof window.confirm !== "function" || window.confirm(message);
 
 export default function PreDepartureChecklist() {
   const navigate = useNavigate();
   const [params] = useSearchParams();
-  const { loadProgressDetailed, saveProgressDetailed } = useProgress();
+  const { loadProgressDetailed, saveProgressDetailed, quarantineReadinessRecord } = useProgress();
   const [entries, setEntries] = useState<ReadinessEntries>({});
   const [context, setContext] = useState({ vessel: "", voyage: "", conditions: "" });
+  const [session, setSession] = useState(() => createReadinessSession());
+  const [loadDiagnostic, setLoadDiagnostic] = useState("");
   const [loadState, setLoadState] = useState<"loading" | "ready" | "failed">("loading");
-  const [saveState, setSaveState] = useState<"idle" | "saving" | "saved" | "failed" | "anonymous">("idle");
+  const [saveState, setSaveState] = useState<"idle" | "saving" | "saved" | "offline" | "failed" | "anonymous">("idle");
   const [loadAttempt, setLoadAttempt] = useState(0);
   const [completionConfirmed, setCompletionConfirmed] = useState(false);
   const revision = useRef(0);
@@ -40,25 +46,39 @@ export default function PreDepartureChecklist() {
   const resolvedCount = summary.satisfactory + summary.notApplicable;
   const percent = Math.round((resolvedCount / preDepartureChecklist.length) * 100);
   const itemName = (id: string) => preDepartureChecklist.find((item) => item.id === id)?.label ?? id;
+  const catalogue = validateReadinessCatalogue(preDepartureChecklist);
 
   useEffect(() => {
     let active = true;
     hydrated.current = false;
+    if (!catalogue.valid) {
+      setLoadState("failed");
+      return () => { active = false; };
+    }
     setLoadState("loading");
-    void loadProgressDetailed(TOPIC_IDS.PASSAGE_PLANNING_CHECKLIST).then((result) => {
+    void loadProgressDetailed(TOPIC_IDS.PASSAGE_PLANNING_CHECKLIST).then(async (result) => {
       if (!active) return;
       if (result.status === "failed") {
         setLoadState("failed");
         return;
       }
-      const payload = result.status === "remote"
-        ? parseReadinessPayload(result.record.answers_history?.readinessRecord, preDepartureChecklist)
+      const assessment = result.status === "remote"
+        ? assessReadinessRestore(result.record.answers_history?.readinessRecord, preDepartureChecklist)
         : null;
-      if (payload) {
+      if (assessment && !assessment.catalogueValid) { setLoadState("failed"); return; }
+      const parsed = assessment?.catalogueValid ? assessment.parsed : null;
+      const payload = parsed?.status === "valid" ? parsed.payload : null;
+      if (payload && catalogue.valid) {
+        setSession(payload);
         setContext(payload.context);
         setEntries(payload.entries);
-        setCompletionConfirmed(Boolean(result.status === "remote" && result.record.completed && summarizeReadiness(preDepartureChecklist, payload.entries).complete));
+        setCompletionConfirmed(Boolean(result.status === "remote" && result.record.completed && payload.completedAt && summarizeReadiness(preDepartureChecklist, payload.entries).complete));
+        setLoadDiagnostic("");
       } else {
+        if (parsed && parsed.status !== "valid") {
+          if (!(await quarantineReadinessRecord()) || !active) { setLoadState("failed"); return; }
+          setLoadDiagnostic(`${parsed.diagnostic} Durable completion and saved evidence were revoked.`);
+        }
         setCompletionConfirmed(false);
       }
       hydrated.current = true;
@@ -68,17 +88,32 @@ export default function PreDepartureChecklist() {
       if (active) setLoadState("failed");
     });
     return () => { active = false; };
-  }, [loadAttempt, loadProgressDetailed]);
+  }, [catalogue.valid, loadAttempt, loadProgressDetailed, quarantineReadinessRecord]);
 
   const persistRecord = useCallback(async (completed: boolean, currentRevision: number) => {
     setSaveState("saving");
-    const readinessRecord = { version: 1 as const, context, entries, updatedAt: new Date().toISOString() };
+    const now = new Date();
+    const readinessRecord = { ...session, catalogueFingerprint: catalogue.fingerprint, context, entries, updatedAt: now.toISOString(), expiresAt: new Date(now.getTime() + READINESS_RETENTION_DAYS * 86_400_000).toISOString(), completedAt: completed ? session.completedAt ?? now.toISOString() : undefined };
     const result = await saveProgressDetailed(TOPIC_IDS.PASSAGE_PLANNING_CHECKLIST, completed, completed ? 100 : 0, completed ? 10 : 0, { readinessRecord });
     if (revision.current !== currentRevision) return result;
-    if (result === "remote" || result === "queued") setCompletionConfirmed(completed);
-    setSaveState(result === "failed" || result === "conflict" ? "failed" : result === "anonymous" ? "anonymous" : "saved");
+    if (result === "remote" || result === "queued") {
+      setCompletionConfirmed(completed);
+      setSession(readinessRecord);
+    }
+    setSaveState(result === "failed" || result === "conflict" ? "failed" : result === "anonymous" ? "anonymous" : result === "queued" ? "offline" : "saved");
     return result;
-  }, [context, entries, saveProgressDetailed]);
+  }, [catalogue.fingerprint, context, entries, saveProgressDetailed, session]);
+
+  const startNewSession = (message = "Start a new readiness session? Existing saved decisions and completion evidence will be replaced.") => {
+    if (!confirmAction(message)) return;
+    const next = createReadinessSession();
+    setSession(next);
+    setContext(next.context);
+    setEntries({});
+    setCompletionConfirmed(false);
+    setLoadDiagnostic("");
+    markChanged();
+  };
 
   const markChanged = () => {
     revision.current += 1;
@@ -119,6 +154,7 @@ export default function PreDepartureChecklist() {
   };
 
   const setContextField = (field: "vessel" | "voyage" | "conditions", value: string) => {
+    if (Object.keys(entries).length > 0 && !confirmAction("Changing departure context revokes completion and requires every readiness item to be reassessed. Continue?")) return;
     markChanged();
     setContext((current) => ({ ...current, [field]: value }));
     setCompletionConfirmed(false);
@@ -147,9 +183,12 @@ export default function PreDepartureChecklist() {
         {(["vessel", "voyage", "conditions"] as const).map((field) => <label key={field} className="text-sm font-medium capitalize">{field}<input aria-label={field} disabled={loadState !== "ready"} className="mt-1 w-full rounded border bg-background p-2 font-normal" value={context[field]} onChange={(event) => setContextField(field, event.target.value)} placeholder={`Actual ${field}`} /></label>)}
       </CardContent></Card>
       {!contextComplete && <p id="readiness-context-requirement" className="text-sm text-amber-700 dark:text-amber-300" role="status">Enter the actual vessel, voyage and current conditions before recording completion. Blank or whitespace-only context is not completion evidence; drafts still save.</p>}
+      {!catalogue.valid && <div role="alert" className="rounded border border-destructive p-3"><strong>Checklist unavailable.</strong> {catalogue.diagnostics.join(" ")}</div>}
+      {loadDiagnostic && <div role="alert" className="rounded border border-amber-600 p-3"><p>{loadDiagnostic}</p><Button type="button" variant="outline" className="mt-2" onClick={() => startNewSession("Start a fresh readiness session using the current catalogue?")}>Start new session</Button></div>}
       {loadState === "loading" && <p role="status" aria-live="polite">Loading saved readiness record…</p>}
       {loadState === "failed" && <div role="alert" className="rounded border border-destructive p-3"><p>Saved readiness evidence could not be loaded. No stale or partial record has been used.</p><Button type="button" variant="outline" className="mt-2" onClick={() => setLoadAttempt((attempt) => attempt + 1)}>Retry saved record</Button></div>}
-      {loadState === "ready" && <p role="status" aria-live="polite">{saveState === "saving" ? "Saving readiness record…" : saveState === "saved" ? "Readiness record saved." : saveState === "failed" ? "Readiness record could not be saved; keep this page open and retry an edit." : saveState === "anonymous" ? "Sign in to preserve this readiness record across navigation and devices." : "Readiness record ready."}</p>}
+      {loadState === "ready" && <p role="status" aria-live="polite">{saveState === "saving" ? "Saving readiness record…" : saveState === "saved" ? "Readiness record saved." : saveState === "offline" ? "Readiness record saved offline and queued for retry; server confirmation is pending." : saveState === "failed" ? "Readiness record could not be saved; keep this page open and retry an edit." : saveState === "anonymous" ? "Sign in to preserve this readiness record across navigation and devices." : "Readiness record ready."}</p>}
+      <Card><CardContent className="space-y-2 pt-6"><p className="text-sm"><strong>Session:</strong> {session.sessionId}. Scoped to the signed-in learner and this vessel and passage/departure context.</p><p className="text-xs text-muted-foreground">Readiness evidence becomes eligible for expiry {READINESS_RETENTION_DAYS} days after the last save. It is redacted on your next access; periodic deletion occurs only if the operator has configured the service-role retention sweep, so actual deletion may be later. It is private learning-progress data; do not record secrets, unnecessary personal data or certification claims.</p><div className="flex flex-wrap gap-2"><Button type="button" variant="outline" onClick={() => startNewSession()}>Start new / reset session</Button>{completionConfirmed && <Button type="button" variant="outline" onClick={() => { if (confirmAction("Reopen this completed session? Durable completion will be revoked until every required item is reassessed and completion is recorded again.")) { setCompletionConfirmed(false); setEntries((current) => Object.fromEntries(Object.entries(current).map(([id, entry]) => [id, transitionEntry(entry, "not_checked", new Date().toISOString())]))); markChanged(); } }}>Reopen and reassess</Button>}</div></CardContent></Card>
       <Progress value={percent} />
       <p aria-live="polite">{percent}% resolved ({summary.satisfactory} satisfactory, {summary.notApplicable} not applicable, {summary.blocked} blocked, {summary.notChecked} incomplete)</p>
       {summary.blocked > 0 && <Card className="border-destructive"><CardContent className="space-y-1 pt-6" role="alert"><h2 className="font-bold">No-go: readiness is blocked</h2><p>Stop the affected operation. Do not depart or conceal the finding. Escalate to the skipper and the responsible competent person or authority, correct the defect where authorised, record evidence, then reassess this item and every dependent decision when vessel, voyage or conditions change.</p></CardContent></Card>}
@@ -167,7 +206,7 @@ export default function PreDepartureChecklist() {
               {dependencyBlocked && <p className="text-sm text-amber-700 dark:text-amber-300"><strong>Resolve first:</strong> {unmet.map(itemName).join("; ")}</p>}
               {item.conditional && <div className="rounded border p-2 text-sm"><p><strong>Conditional:</strong> {item.conditional.when}</p><p><strong>Applicability authority:</strong> {item.conditional.authority}</p></div>}
               <div className="flex flex-wrap gap-2" aria-label={`${item.label} status`}>
-                {statuses.filter((status) => canSelectStatus(item, status)).map((status) => <Button key={status} type="button" size="sm" variant={entry.status === status ? "default" : "outline"} aria-pressed={entry.status === status} disabled={loadState !== "ready" || (dependencyBlocked && status !== "not_checked")} onClick={() => setStatus(item.id, status)}>{readinessStatusLabels[status]}</Button>)}
+                {statuses.filter((status) => canSelectStatus(item, status)).map((status) => <Button key={status} type="button" size="sm" variant={entry.status === status ? "default" : "outline"} aria-pressed={entry.status === status} disabled={!catalogue.valid || loadState !== "ready" || (dependencyBlocked && status !== "not_checked")} onClick={() => setStatus(item.id, status)}>{readinessStatusLabels[status]}</Button>)}
               </div>
               {entry.status === "not_applicable" && <label className="block text-sm font-medium">Not-applicable reason and authority checked<input aria-label={`${item.label} not-applicable reason`} className="mt-1 w-full rounded border bg-background p-2 font-normal" value={entry.reason} onChange={(event) => setField(item.id, "reason", event.target.value)} /></label>}
               {entry.status !== "not_checked" && <div className="grid gap-2 sm:grid-cols-2">

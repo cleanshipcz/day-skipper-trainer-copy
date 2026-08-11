@@ -121,7 +121,7 @@ describeLiveDb("live DB concurrency stress — progress integrity", () => {
 
       const readinessIds = ["passage-plan","charts-notices","tides-ukc","forecast","planning-decision","crew-fitness","crew-brief","documents-shore","hull-openings","bilge-steering","rig-deck","electrical-gas","nav-signals","emergency-readiness","conditional-survival","provisions","stowage-hatches","cold-fluids","machinery-space","prop-clear","ventilation","start-sequence","pressure-charge","cooling-exhaust","running-scan","controls-steering","vhf-dsc","departure-ready","final-information","final-decision"];
       const validEntry = { status: "satisfactory", reason: "", notes: "", evidence: "checked", responsiblePerson: "skipper", recordedAt: "2026-08-11T16:00:00Z", history: [] };
-      const fullReadiness = { version: 1, context: { vessel: "Aster", voyage: "Cowes", conditions: "F4" }, entries: Object.fromEntries(readinessIds.map((id) => [id, validEntry])), updatedAt: "2026-08-11T16:00:00Z" };
+      const fullReadiness = { version: 2, sessionId: "live-db-session", catalogueFingerprint: "fnv1a-live", context: { vessel: "Aster", voyage: "Cowes", conditions: "F4" }, entries: Object.fromEntries(readinessIds.map((id) => [id, validEntry])), createdAt: "2026-08-11T15:00:00Z", updatedAt: "2026-08-11T16:00:00Z", expiresAt: "2099-09-10T16:00:00Z", completedAt: "2026-08-11T16:00:00Z" };
       const adversarialReadiness = [
         { p_completed: null, p_answers_history: { readinessRecord: fullReadiness } },
         { p_completed: true, p_answers_history: {} },

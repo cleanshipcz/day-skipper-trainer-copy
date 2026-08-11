@@ -2,10 +2,12 @@ import { act, fireEvent, render, screen, waitFor, within } from "@testing-librar
 import { MemoryRouter } from "react-router-dom";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { preDepartureChecklist } from "@/data/preDepartureChecklist";
+import { validateReadinessCatalogue } from "@/features/readiness/readinessRecord";
 
 const loadProgressDetailed = vi.fn().mockResolvedValue({ status: "missing", record: null });
 const saveProgressDetailed = vi.fn().mockResolvedValue("remote");
-vi.mock("@/hooks/useProgress", () => ({ useProgress: () => ({ loadProgressDetailed, saveProgressDetailed }) }));
+const quarantineReadinessRecord = vi.fn().mockResolvedValue(true);
+vi.mock("@/hooks/useProgress", () => ({ useProgress: () => ({ loadProgressDetailed, saveProgressDetailed, quarantineReadinessRecord }) }));
 import PreDepartureChecklist from "./PreDepartureChecklist";
 
 const renderChecklist = async () => {
@@ -24,6 +26,7 @@ describe("PreDepartureChecklist", () => {
   beforeEach(() => {
     loadProgressDetailed.mockReset().mockResolvedValue({ status: "missing", record: null });
     saveProgressDetailed.mockReset().mockResolvedValue("remote");
+    quarantineReadinessRecord.mockReset().mockResolvedValue(true);
   });
   it("separates training practice from certification and renders ordered phases", async () => {
     await renderChecklist();
@@ -33,6 +36,11 @@ describe("PreDepartureChecklist", () => {
     const headings = screen.getAllByRole("heading").map((node) => node.textContent).filter((text) => /^\d\. /.test(text ?? ""));
     expect(headings).toEqual(["1. Planning and current information", "2. Crew and vessel readiness", "3. Pre-start checks", "4. Safe start", "5. Immediate running checks", "6. Final go / no-go"]);
     expect(screen.getByRole("link", { name: "Engine checks" }).getAttribute("href")).toBe("/engine");
+  });
+
+  it("honestly describes access-triggered expiry and operator-dependent sweeping", async () => {
+    await renderChecklist();
+    expect(screen.getByText(/eligible for expiry 30 days/i).textContent).toMatch(/redacted on your next access.*only if the operator has configured/i);
   });
 
   it("models all review states but prevents blanket not-applicable", async () => {
@@ -152,7 +160,7 @@ describe("PreDepartureChecklist", () => {
 
   it("hydrates validated saved evidence with correction history and autosaves edits", async () => {
     loadProgressDetailed.mockResolvedValueOnce({ status: "remote", record: { answers_history: { readinessRecord: {
-      version: 1, updatedAt: "2026-08-11T16:00:00.000Z", context: { vessel: "Aster", voyage: "Cowes", conditions: "F4" }, entries: {
+      version: 2, sessionId: "session-test", catalogueFingerprint: validateReadinessCatalogue(preDepartureChecklist).fingerprint, createdAt: "2026-08-11T14:00:00.000Z", updatedAt: "2026-08-11T16:00:00.000Z", expiresAt: "2099-08-11T16:00:00.000Z", context: { vessel: "Aster", voyage: "Cowes", conditions: "F4" }, entries: {
         "passage-plan": { status: "satisfactory", reason: "", notes: "Revised", evidence: "Plan 3", responsiblePerson: "Skipper", recordedAt: "2026-08-11T15:00:00.000Z", history: [{ status: "defect", reason: "", notes: "Old route", evidence: "Plan 2", responsiblePerson: "Skipper", recordedAt: "2026-08-11T14:00:00.000Z", supersededAt: "2026-08-11T15:00:00.000Z" }] },
       },
     } } } });
@@ -161,7 +169,7 @@ describe("PreDepartureChecklist", () => {
     expect(within(itemGroup(/Review the current berth-to-berth plan/)).getByDisplayValue("Plan 3")).toBeTruthy();
     fireEvent.change(within(itemGroup(/Review the current berth-to-berth plan/)).getByRole("textbox", { name: /notes/ }), { target: { value: "Rechecked" } });
     await waitFor(() => expect(saveProgressDetailed).toHaveBeenCalled());
-    expect(saveProgressDetailed.mock.calls.at(-1)?.[4]).toMatchObject({ readinessRecord: { version: 1, entries: { "passage-plan": { notes: "Rechecked", history: [expect.objectContaining({ status: "defect" })] } } } });
+    expect(saveProgressDetailed.mock.calls.at(-1)?.[4]).toMatchObject({ readinessRecord: { version: 2, entries: { "passage-plan": { notes: "Rechecked", history: [expect.objectContaining({ status: "defect" })] } } } });
   });
 
   it("shows an accessible load failure and retries without using stale evidence", async () => {
@@ -171,5 +179,20 @@ describe("PreDepartureChecklist", () => {
     fireEvent.click(screen.getByRole("button", { name: "Retry saved record" }));
     await screen.findByText("Readiness record ready.");
     expect(loadProgressDetailed).toHaveBeenCalledTimes(2);
+  });
+
+  it("revokes durable completion before reporting an invalid saved session ready", async () => {
+    loadProgressDetailed.mockResolvedValueOnce({ status: "remote", record: { completed: true, answers_history: { readinessRecord: { version: 1 } } } });
+    await renderChecklist();
+    expect(quarantineReadinessRecord).toHaveBeenCalledOnce();
+    expect(screen.getByRole("alert").textContent).toMatch(/revoked/i);
+  });
+
+  it("blocks when invalid-session quarantine fails", async () => {
+    loadProgressDetailed.mockResolvedValueOnce({ status: "remote", record: { completed: true, answers_history: { readinessRecord: { version: 1 } } } });
+    quarantineReadinessRecord.mockResolvedValueOnce(false);
+    render(<MemoryRouter><PreDepartureChecklist /></MemoryRouter>);
+    expect((await screen.findByRole("alert")).textContent).toMatch(/could not be loaded/i);
+    expect(screen.queryByText("Readiness record ready.")).toBeNull();
   });
 });
