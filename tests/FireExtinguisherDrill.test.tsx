@@ -122,7 +122,23 @@ describe("FireExtinguisherDrill", () => {
     localStorage.setItem("forged-complete", JSON.stringify({ version: 2, scenarioIds, answers: fireResponseScenarios.map((scenario) => ({ scenarioId: scenario.id, optionId: scenario.correctOptionId })), currentIndex: scenarioIds.length, answered: false, selectedOptionId: null }));
     const onComplete = vi.fn();
     render(<TestRouter><FireExtinguisherDrill storageKey="forged-complete" onComplete={onComplete} /></TestRouter>);
-    expect(screen.getByText(/restored practice evidence/i)).toBeDefined();
+    expect(screen.getByText(/includes restored practice answers/i)).toBeDefined();
+    expect(screen.getByText(/cannot establish a trusted pass or award points/i)).toBeDefined();
+    expect(onComplete).not.toHaveBeenCalled();
+  });
+
+  it("keeps a partly restored attempt untrusted after the final answer is submitted live", async () => {
+    const user = userEvent.setup();
+    const scenarioIds = fireResponseScenarios.map((scenario) => scenario.id);
+    const restoredAnswers = fireResponseScenarios.slice(0, -1).map((scenario) => ({ scenarioId: scenario.id, optionId: scenario.correctOptionId }));
+    localStorage.setItem("forged-partial", JSON.stringify({ version: 2, scenarioIds, answers: restoredAnswers, currentIndex: restoredAnswers.length, answered: false, selectedOptionId: null }));
+    const onComplete = vi.fn();
+    render(<TestRouter><FireExtinguisherDrill storageKey="forged-partial" onComplete={onComplete} /></TestRouter>);
+    const finalScenario = fireResponseScenarios.at(-1)!;
+    await user.click(screen.getByTestId(`response-option-${finalScenario.correctOptionId}`));
+    await user.click(screen.getByRole("button", { name: /^check answer$/i }));
+    await user.click(screen.getByRole("button", { name: /next scenario/i }));
+    expect(screen.getByText(/includes restored practice answers/i)).toBeDefined();
     expect(screen.getByText(/cannot establish a trusted pass or award points/i)).toBeDefined();
     expect(onComplete).not.toHaveBeenCalled();
   });

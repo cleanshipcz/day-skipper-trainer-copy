@@ -53,7 +53,7 @@ interface DrillState {
   readonly totalAnswered: number;
   readonly incorrectScenarioIds: readonly string[];
   readonly answers: readonly { scenarioId: string; optionId: string }[];
-  readonly restoredCompletion: boolean;
+  readonly hasRestoredAnswers: boolean;
 }
 
 const initialState = (scenarios: readonly FireResponseScenario[]): DrillState => ({
@@ -65,7 +65,7 @@ const initialState = (scenarios: readonly FireResponseScenario[]): DrillState =>
   totalAnswered: 0,
   incorrectScenarioIds: [],
   answers: [],
-  restoredCompletion: false,
+  hasRestoredAnswers: false,
 });
 
 const restoreState = (storageKey?: string): DrillState => {
@@ -88,7 +88,7 @@ const restoreState = (storageKey?: string): DrillState => {
     if (answered ? selectedOptionId !== answers.at(-1)?.optionId : selectedOptionId !== null && !selectedIsValid) return initialState(fireResponseScenarios);
     const correctCount = answers.filter((answer, index) => scenarios[index].correctOptionId === answer.optionId).length;
     const incorrectScenarioIds = answers.filter((answer, index) => scenarios[index].correctOptionId !== answer.optionId).map((answer) => answer.scenarioId);
-    return { scenarios, currentIndex: expectedIndex, selectedOptionId, answered, correctCount, totalAnswered: answers.length, incorrectScenarioIds, answers, restoredCompletion: !answered && expectedIndex === scenarios.length };
+    return { scenarios, currentIndex: expectedIndex, selectedOptionId, answered, correctCount, totalAnswered: answers.length, incorrectScenarioIds, answers, hasRestoredAnswers: answers.length > 0 };
   } catch { return initialState(fireResponseScenarios); }
 };
 
@@ -125,7 +125,7 @@ export const FireExtinguisherDrill = ({ onComplete, storageKey, onPersistenceRec
 
   // H1: Fire onComplete callback when drill finishes (once only)
   useEffect(() => {
-    if (isComplete && !state.restoredCompletion && !completedRef.current) {
+    if (isComplete && !state.hasRestoredAnswers && !completedRef.current) {
       completedRef.current = true;
       const result = {
         correctCount: state.correctCount,
@@ -136,7 +136,7 @@ export const FireExtinguisherDrill = ({ onComplete, storageKey, onPersistenceRec
       completedResultRef.current = result;
       onComplete(result);
     }
-  }, [isComplete, onComplete, state.correctCount, state.incorrectScenarioIds, state.restoredCompletion, state.totalAnswered]);
+  }, [isComplete, onComplete, state.correctCount, state.hasRestoredAnswers, state.incorrectScenarioIds, state.totalAnswered]);
 
   const handleSelect = useCallback((optionId: string) => {
     setState((prev) =>
@@ -226,7 +226,7 @@ export const FireExtinguisherDrill = ({ onComplete, storageKey, onPersistenceRec
             {state.correctCount} / {state.totalAnswered}
           </div>
           <p role="status" aria-live="polite" className="text-sm">
-            {state.restoredCompletion ? "Restored practice evidence is shown for review only. It cannot establish a trusted pass or award points; restart to complete a verified in-session attempt." : passed ? "Pass evidence recorded. This drill supports practice; it does not certify firefighting competence." : `Retry required: score at least ${FIRE_DRILL_PASS_PERCENT}% after answering every scenario.`}
+            {state.hasRestoredAnswers ? "This attempt includes restored practice answers and is shown for review only. It cannot establish a trusted pass or award points; restart to complete a fresh verified in-session attempt." : passed ? "Pass evidence recorded. This drill supports practice; it does not certify firefighting competence." : `Retry required: score at least ${FIRE_DRILL_PASS_PERCENT}% after answering every scenario.`}
           </p>
           {!passed && state.incorrectScenarioIds.length > 0 && <div className="text-sm"><p className="font-medium">Review these decisions before retrying:</p><ul className="list-disc pl-5">{state.incorrectScenarioIds.map((id) => <li key={id}>{state.scenarios.find((scenario) => scenario.id === id)?.description}</li>)}</ul></div>}
           <Button onClick={handleReset} className="w-full">
