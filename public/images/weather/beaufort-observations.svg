@@ -1,0 +1,9 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 720 240" role="img" aria-labelledby="title desc">
+  <title id="title">Three sea-surface observation panels</title><desc id="desc">Panel A has unbroken wavelets, B has longer small waves with frequent white horses, and C has long higher waves and foam streaks.</desc>
+  <rect width="720" height="240" fill="#ecfeff"/>
+  <g font-family="sans-serif" fill="#0f172a" text-anchor="middle"><text x="120" y="32" font-size="24" font-weight="bold">A</text><text x="360" y="32" font-size="24" font-weight="bold">B</text><text x="600" y="32" font-size="24" font-weight="bold">C</text></g>
+  <g fill="none" stroke="#0369a1" stroke-width="5"><path d="M20 150 q25-22 50 0 t50 0 t50 0 t50 0"/><path d="M250 155 q38-50 76 0 t76 0 t76 0"/><path d="M490 165 q55-90 110 0 t110 0"/></g>
+  <g fill="none" stroke="#fff" stroke-width="8"><path d="M275 126 q18-20 36 0 M350 126 q18-20 36 0 M425 126 q18-20 36 0"/><path d="M520 118 q35-42 70 0 M620 118 q35-42 70 0 M510 185 l150-25 M550 205 l135-22"/></g>
+  <g font-family="sans-serif" font-size="14" fill="#334155" text-anchor="middle"><text x="120" y="205">wavelets; no breaking crests</text><text x="360" y="205">longer small waves; white horses</text><text x="600" y="205">higher long waves; foam streaks</text></g>
+  <text x="18" y="232" font-family="sans-serif" font-size="12" fill="#334155">Educational schematic based on the Met Office Beaufort scale; not a measured wave-height diagram.</text>
+</svg>
