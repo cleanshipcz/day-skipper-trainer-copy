@@ -43,6 +43,12 @@ describe("readiness record model", () => {
       required: { ...emptyReadinessEntry(), status: "satisfactory" },
       conditional: { ...emptyReadinessEntry(), status: "not_applicable", reason: "No equipment fitted; manual section 4 checked" },
     })).toMatchObject({ outcome: "complete", complete: true, notApplicable: 1 });
+    for (const reason of ["\t\n", "\u00a0", "\u2007\u202f\ufeff"]) {
+      expect(summarizeReadiness(items, {
+        required: { ...emptyReadinessEntry(), status: "satisfactory" },
+        conditional: { ...emptyReadinessEntry(), status: "not_applicable", reason },
+      })).toMatchObject({ outcome: "incomplete", complete: false, notApplicable: 0 });
+    }
   });
 
   it.each(["defect", "blocked", "unknown"] as const)("treats %s as a no-go blocker", (status) => {

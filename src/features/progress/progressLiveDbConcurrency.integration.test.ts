@@ -135,6 +135,10 @@ describeLiveDb("live DB concurrency stress — progress integrity", () => {
         { p_completed: true, p_answers_history: { readinessRecord: { ...fullReadiness, context: { ...fullReadiness.context, conditions: "\u2007\u202f\ufeff" } } } },
         { p_completed: true, p_answers_history: { readinessRecord: { ...fullReadiness, entries: { ...fullReadiness.entries, "passage-plan": { ...validEntry, status: null } } } } },
         { p_completed: true, p_answers_history: { readinessRecord: { ...fullReadiness, entries: { ...fullReadiness.entries, "passage-plan": { ...validEntry, history: [{ ...validEntry, supersededAt: null }] } } } } },
+        ...["\t\n", "\u00a0", "\u2007\u202f\ufeff"].map((reason) => ({
+          p_completed: true,
+          p_answers_history: { readinessRecord: { ...fullReadiness, entries: { ...fullReadiness.entries, "conditional-survival": { ...validEntry, status: "not_applicable", reason } } } },
+        })),
       ];
       for (const forged of adversarialReadiness) {
         const outcome = await userClient.rpc("save_readiness_record_progress", forged as never);

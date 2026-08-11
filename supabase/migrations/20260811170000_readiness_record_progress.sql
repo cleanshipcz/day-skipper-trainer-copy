@@ -60,7 +60,7 @@ begin
        or jsonb_typeof(item.value->'evidence') is distinct from 'string'
        or jsonb_typeof(item.value->'responsiblePerson') is distinct from 'string'
        or jsonb_typeof(item.value->'history') is distinct from 'array'
-       or (item.value->>'status' = 'not_applicable' and (not (item.key = any(na_ids)) or btrim(item.value->>'reason') = ''))
+       or (item.value->>'status' = 'not_applicable' and (not (item.key = any(na_ids)) or btrim(item.value->>'reason', whitespace_chars) = ''))
        or (item.value->>'status' <> 'not_checked' and jsonb_typeof(item.value->'recordedAt') is distinct from 'string')
        or (item.value->>'status' = 'not_checked' and item.value ? 'recordedAt') then
       raise exception 'Invalid readiness entry' using errcode = '22023';
@@ -85,7 +85,7 @@ begin
   end loop;
   select count(*) into resolved_count from unnest(allowed_ids) id
    where entries->id->>'status' = 'satisfactory'
-      or (id = any(na_ids) and entries->id->>'status' = 'not_applicable' and btrim(entries->id->>'reason') <> '');
+      or (id = any(na_ids) and entries->id->>'status' = 'not_applicable' and btrim(entries->id->>'reason', whitespace_chars) <> '');
   if p_completed and (
        resolved_count <> cardinality(allowed_ids)
        or btrim(v_record->'context'->>'vessel', whitespace_chars) = ''
