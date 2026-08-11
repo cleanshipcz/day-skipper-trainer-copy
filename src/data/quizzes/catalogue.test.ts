@@ -44,6 +44,28 @@ describe("asynchronous quiz catalogue", () => {
     }
   });
 
+  test("accepts non-leaking visual equivalents that incidentally identify labelled panels", () => {
+    const bank = [{ ...validQuestion, options: ["Panel B", "Panel A"], image: "/images/example.png",
+      imageAlt: "Panels A and B show different observable wave and foam patterns.", scenario: {
+        accessibleName: "Sea observation panels",
+        description: "Panel observations are supplied without an answer key.",
+        facts: [{ label: "Panel B", value: "Small waves and frequent white horses" }],
+      } }];
+    expect(validateQuizBank("test-topic", bank)).toBe(bank);
+  });
+
+  test.each([
+    ["image alternative", { imageAlt: "The correct answer is Panel B based on the diagram." }],
+    ["structured equivalent", { imageAlt: undefined, scenario: {
+      accessibleName: "Sea observation panels",
+      description: "The keyed answer is Panel B.",
+      facts: [{ label: "Observation", value: "Small waves and frequent white horses" }],
+    } }],
+  ])("rejects a leaky %s", (_label, visual) => {
+    expect(() => validateQuizBank("test-topic", [{ ...validQuestion, options: ["Panel B", "Panel A"],
+      image: "/images/example.png", ...visual }])).toThrow(/visual equivalent must not reveal the correct option/i);
+  });
+
   test.each([
     ["an object", null, /test-topic.*index 0.*must be an object/i],
     ["a trimmed id", { ...validQuestion, id: " topic-1" }, /test-topic.*topic-1.*id must be.*trimmed/i],

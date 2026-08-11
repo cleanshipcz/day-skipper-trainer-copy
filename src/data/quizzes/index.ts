@@ -39,6 +39,20 @@ const definitions: Record<QuizTopicId, { meta: TopicMeta; importer: QuizImporter
 const cache = new Map<QuizTopicId, Promise<readonly Question[]>>();
 
 const normalizedOption = (value: string) => value.normalize("NFKC").trim().replace(/\s+/g, " ").toLocaleLowerCase("en");
+const normalizedAssessmentText = (value: string) => value.normalize("NFKC").toLocaleLowerCase("en")
+  .replace(/[^\p{L}\p{N}]+/gu, " ").trim().replace(/\s+/g, " ");
+const escapesPattern = (value: string) => value.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+const revealsCorrectOption = (text: string, correctOption: string) => {
+  const normalizedCorrect = normalizedAssessmentText(correctOption);
+  // Explicit answer-key language is reliable leakage. Merely mentioning a
+  // panel, vessel, or other short/common option in observational data is not.
+  if (normalizedCorrect.length < 3) return false;
+  const option = escapesPattern(normalizedCorrect);
+  const normalizedText = normalizedAssessmentText(text);
+  return new RegExp(`(?:correct|right|keyed) (?:answer )?(?:is )?${option}(?: |$)`).test(normalizedText)
+    || new RegExp(`(?:answer|solution) (?:is )?${option}(?: |$)`).test(normalizedText)
+    || new RegExp(`(?:^| )${option} (?:is )?(?:the )?(?:correct|right|keyed) answer(?: |$)`).test(normalizedText);
+};
 const localQuizImage = /^\/images\/(?:[A-Za-z0-9_-]+\/)*[A-Za-z0-9_-]+\.(?:png|jpe?g|webp|svg)$/i;
 
 const questionError = (topicId: string, index: number, candidate: unknown, detail: string) => {
@@ -106,6 +120,12 @@ export const validateQuizBank = (topicId: string, candidate: unknown): readonly 
       );
       if (!hasMeaningfulAlt && !hasStructuredEquivalent) {
         throw questionError(topicId, index, value, "visual questions require a meaningful imageAlt or structured scenario equivalent.");
+      }
+      const correctOption = question.options[question.correctAnswer as number] as string;
+      const structuredText = hasStructuredEquivalent ? JSON.stringify(scenario) : "";
+      if ((hasMeaningfulAlt && revealsCorrectOption(question.imageAlt as string, correctOption))
+        || (hasStructuredEquivalent && revealsCorrectOption(structuredText, correctOption))) {
+        throw questionError(topicId, index, value, "visual equivalent must not reveal the correct option.");
       }
     }
   }
