@@ -35,6 +35,7 @@
     "src/features/quiz/randomization.ts",
     "src/features/quiz/scoring.ts",
     "src/features/quiz/sessionProgress.ts",
+    "src/features/quiz/weatherReview.ts",
     "src/features/spaced-repetition/reviewQuestions.ts",
     "src/features/spaced-repetition/reviewService.ts",
     "src/features/spaced-repetition/sm2.ts",

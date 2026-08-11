@@ -2,6 +2,7 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
 import { render, screen, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { MemoryRouter, Route, Routes, useLocation } from "react-router-dom";
+import { buildQuizSessionProgress } from "@/features/quiz/sessionProgress";
 
 const mocks = vi.hoisted(() => ({
   loadProgress: vi.fn(),
@@ -16,7 +17,7 @@ vi.mock("@/contexts/AuthHooks", () => ({ useAuth: () => ({ user: mocks.user }) }
 vi.mock("@/hooks/useProgress", () => ({ useProgress: () => mocks }));
 vi.mock("@/integrations/supabase/client", () => ({ supabase: { rpc: mocks.rpc } }));
 vi.mock("@/data/quizzes", () => ({
-  isQuizTopicId: (topic: string) => ["test", "anchorwork", "engine", "nautical-terms-quiz", "ropework", "lights-signals", "colregs"].includes(topic),
+  isQuizTopicId: (topic: string) => ["test", "anchorwork", "engine", "nautical-terms-quiz", "ropework", "lights-signals", "colregs", "weather"].includes(topic),
   topicMeta: {
     test: { title: "A very long localized quiz title that must reflow", subtitle: "Long localized supporting text" },
     "nautical-terms-quiz": { title: "Full Nautical Terms Quiz", subtitle: "Terms" },
@@ -25,6 +26,7 @@ vi.mock("@/data/quizzes", () => ({
     anchorwork: { title: "Anchorwork Quiz", subtitle: "Anchoring" },
     engine: { title: "Engine Checks Quiz", subtitle: "Engine safety" },
     colregs: { title: "Combined Rules Diagnostic", subtitle: "Rules" },
+    weather: { title: "Meteorology Quiz", subtitle: "Weather" },
   },
   loadQuizTopic: mocks.loadQuizTopic,
 }));
@@ -97,6 +99,57 @@ describe("Quiz accessible interaction and reflow", () => {
     expect(await screen.findByText("Route: /engine#engine-objectives")).toBeTruthy();
   });
 
+  it("provides an accessible Meteorology result review and targeted leaf navigation", async () => {
+    const user = userEvent.setup();
+    mocks.loadQuizTopic.mockResolvedValue([
+      { ...questions[0], id: "w1", leaf: "weather-systems", learningObjective: "Read pressure systems" },
+      { ...questions[1], id: "w2", leaf: "beaufort-sea-state", learningObjective: "Read sea state" },
+      { ...questions[1], id: "w3", leaf: "marine-forecasts", learningObjective: "Read forecasts" },
+      { ...questions[1], id: "w4", leaf: "fog-visibility", learningObjective: "Act in fog" },
+    ]);
+    renderQuiz("/quiz/weather");
+    for (let index = 0; index < 4; index += 1) {
+      const radios = await screen.findAllByRole("radio");
+      const wrong = radios.find((radio) => radio.getAttribute("aria-label")?.includes("wrong") || radio.parentElement?.textContent?.includes("wrong"));
+      await user.click(wrong!);
+      await user.click(screen.getByRole("button", { name: "Submit Answer" }));
+      await user.click(screen.getByRole("button", { name: index === 3 ? "View Results" : "Next Question" }));
+    }
+    const completion = await screen.findByRole("heading", { name: "Quiz Complete!" });
+    await waitFor(() => expect(document.activeElement).toBe(completion));
+    expect(screen.getByRole("status").textContent).toContain("More review needed");
+    expect(screen.getByRole("heading", { name: "Review missed objectives" })).toBeTruthy();
+    expect(screen.getAllByText("Your answer:")[0].parentElement?.textContent).toContain("wrong");
+    expect(screen.getAllByText("Correct answer:")[0].parentElement?.textContent).toContain("correct");
+    await user.click(screen.getByRole("button", { name: /Review Weather Systems & Fronts/ }));
+    expect(await screen.findByText("Current path: /weather/systems")).toBeTruthy();
+  });
+
+  it("restores a failed completed attempt for review without starting a replacement attempt", async () => {
+    const user = userEvent.setup();
+    const weatherQuestions = [
+      { ...questions[0], id: "w1", leaf: "weather-systems", learningObjective: "Read pressure systems" },
+      { ...questions[1], id: "w2", leaf: "beaufort-sea-state", learningObjective: "Read sea state" },
+      { ...questions[1], id: "w3", leaf: "marine-forecasts", learningObjective: "Read forecasts" },
+      { ...questions[1], id: "w4", leaf: "fog-visibility", learningObjective: "Act in fog" },
+    ];
+    mocks.user = { id: "learner" };
+    mocks.loadQuizTopic.mockResolvedValue(weatherQuestions);
+    mocks.loadProgress.mockResolvedValue({
+      completed: false,
+      score: 0,
+      answers_history: { ...buildQuizSessionProgress([0, 0, 0, 0], 3, weatherQuestions), completed: true },
+    });
+
+    renderQuiz("/quiz/weather");
+    expect(await screen.findByRole("heading", { name: "Review missed objectives" })).toBeTruthy();
+    expect(screen.getAllByText("Your answer:")).toHaveLength(4);
+    expect(mocks.rpc).not.toHaveBeenCalledWith("start_quiz_attempt", expect.anything());
+
+    await user.click(screen.getByRole("button", { name: "Retry Quiz" }));
+    await waitFor(() => expect(mocks.rpc).toHaveBeenCalledWith("start_quiz_attempt", { p_topic_id: "weather" }));
+  });
+
   it("routes a missed sound objective to its exact theory tab and rule", async () => {
     const user = userEvent.setup();
     mocks.loadQuizTopic.mockResolvedValue([{ ...questions[0], id: "cr17", prerequisite: "Lights & Signals", remediationRoute: "/rules/lights/theory?section=sounds#rule-35" }]);
@@ -126,6 +179,22 @@ describe("Quiz accessible interaction and reflow", () => {
     await user.click(await screen.findByRole("button", { name: "Back to Home" }));
     expect(await screen.findByText("Current path: /")).toBeTruthy();
     expect(screen.queryByRole("button", { name: "Nautical Terms" })).toBeNull();
+  });
+
+  it("shows authenticated catalogue failures and offers retry instead of masking them as hydration", async () => {
+    const user = userEvent.setup();
+    mocks.user = { id: "learner" };
+    mocks.loadQuizTopic
+      .mockRejectedValueOnce(new Error("catalogue unavailable"))
+      .mockResolvedValueOnce(questions);
+    renderQuiz();
+
+    expect(await screen.findByRole("heading", { name: "Quiz unavailable" })).toBeTruthy();
+    expect(screen.getByText(/saved progress is unchanged/i)).toBeTruthy();
+    expect(mocks.loadProgress).not.toHaveBeenCalled();
+    await user.click(screen.getByRole("button", { name: "Retry loading" }));
+    expect((await screen.findAllByRole("radio")).length).toBeGreaterThan(0);
+    await waitFor(() => expect(mocks.loadProgress).toHaveBeenCalled());
   });
 
   it("exposes scenario observations as named structured text alongside keyboard-operable answers", async () => {

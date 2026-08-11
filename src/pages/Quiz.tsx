@@ -24,6 +24,7 @@ import {
   createEmptyQuizAnswers,
   isCurrentCompletedQuizCatalogue,
   parseSavedQuizSession,
+  parseCompletedQuizSession,
   persistQuizSessionProgress,
   restoreAnonymousQuizSession,
   saveAnonymousQuizSession,
@@ -36,6 +37,7 @@ import { resolveQuizParentDestination } from "@/constants/topicRegistry";
 import { engineTheoryRoute } from "@/data/engineAssessment";
 import { anchorQuizRemediationTopic, anchorTheoryRoute } from "@/features/anchorwork/learningPath";
 import { victuallingQuizRemediationRoute, victuallingTheoryRoute } from "@/features/victualling/learningPath";
+import { buildWeatherLeafResults, weatherResultMessage } from "@/features/quiz/weatherReview";
 
 const quizAttemptKey = (owner: string, topic: string) => ownerStorageKey("quiz-attempt", owner, topic);
 interface QuizWorkflow {
@@ -99,6 +101,7 @@ const Quiz = () => {
   const [catalogueError, setCatalogueError] = useState(false);
   const [anonymousStorageNotice, setAnonymousStorageNotice] = useState<string | null>(null);
   const [loadGeneration, setLoadGeneration] = useState(0);
+  const [sessionHydrated, setSessionHydrated] = useState(false);
   useEffect(() => {
     let active = true;
     setSourceQuestions(null);
@@ -182,6 +185,8 @@ const Quiz = () => {
   // Initialize answers array when questions change
   useEffect(() => {
     if (!sourceQuestions) return;
+    let active = true;
+    setSessionHydrated(false);
     const initQuiz = async () => {
       setIsComplete(false);
       setCompletionSaveError(false);
@@ -228,8 +233,19 @@ const Quiz = () => {
               ? JSON.parse(savedData.answers_history)
               : savedData.answers_history;
 
+          const completed = parseCompletedQuizSession(savedRaw, questions);
+          if (savedData.completed && owner && isCurrentCompletedQuizCatalogue(savedRaw, questions)) {
+            void seedReviews(owner, generation);
+          }
+          if (completed && isCurrentCompletedQuizCatalogue(savedRaw, questions)) {
+            setSubmittedAnswers(completed.answers);
+            setCurrentQuestion(completed.currentQuestion);
+            setTentativeAnswer(null);
+            setIsComplete(true);
+            return;
+          }
+
           if (savedData.completed) {
-            if (owner && isCurrentCompletedQuizCatalogue(savedRaw, questions)) void seedReviews(owner, generation);
             setSubmittedAnswers(createEmptyQuizAnswers(questions.length));
             setCurrentQuestion(0);
             setTentativeAnswer(null);
@@ -262,7 +278,8 @@ const Quiz = () => {
       }
       setSubmittedAnswers(createEmptyQuizAnswers(questions.length));
     };
-    initQuiz();
+    void initQuiz().finally(() => { if (active) setSessionHydrated(true); });
+    return () => { active = false; };
   }, [sourceQuestions, questions, topicKey, user?.id, loadProgress, saveProgress, resetProgress, seedReviews]);
 
   const startAuthenticatedAttempt = useCallback((): Promise<QuizWorkflow | null> => {
@@ -314,7 +331,7 @@ const Quiz = () => {
   }, [questions.length, sourceQuestions, topicKey]);
 
   useEffect(() => {
-    if (!sourceQuestions) return;
+    if (!sourceQuestions || !sessionHydrated || isComplete) return;
     const owner = user?.id;
     const existing = readQuizWorkflow(owner, topicKey, questions.length);
     setWorkflow(existing);
@@ -322,7 +339,7 @@ const Quiz = () => {
     attemptStartRequestRef.current = null;
     attemptRecoveryRef.current = false;
     if (owner && !existing) void startAuthenticatedAttempt();
-  }, [user?.id, topicKey, attemptCycle, sourceQuestions, questions.length, startAuthenticatedAttempt]);
+  }, [user?.id, topicKey, attemptCycle, sourceQuestions, questions.length, startAuthenticatedAttempt, sessionHydrated, isComplete]);
 
   const assessedAnswer = submittedAnswers[currentQuestion] ?? null;
   const showExplanation = assessedAnswer !== null;
@@ -385,6 +402,10 @@ const Quiz = () => {
         </Card>
       </div>
     );
+  }
+
+  if (user && !sessionHydrated) {
+    return <main className="min-h-screen grid place-items-center p-4" aria-live="polite">Loading saved quiz progress…</main>;
   }
 
   const question = questions[currentQuestion];
@@ -557,6 +578,12 @@ const Quiz = () => {
     const displayedCorrectAnswers = workflow?.completion?.correctAnswers ?? correctAnswers;
     const percentage = workflow?.completion?.percentage ?? percentageScore(correctAnswers, questions.length);
     const passed = workflow?.completion?.passed ?? percentage >= 70;
+    const completedAnswers = workflow?.completion
+      ? parseSavedQuizSession(workflow.completion.session, questions)?.answers ?? submittedAnswers
+      : submittedAnswers;
+    const missedQuestions = questions.filter((question, index) => completedAnswers[index] !== question.correctAnswer);
+    const weatherLeaves = topicKey === "weather" ? buildWeatherLeafResults(questions, completedAnswers) : [];
+    const weatherMessage = weatherResultMessage(percentage);
 
     return (
       <div className="min-h-screen bg-gradient-to-br from-background via-ocean-light/10 to-background flex items-center justify-center p-3 sm:p-4">
@@ -579,7 +606,12 @@ const Quiz = () => {
               </p>
             </div>
 
-            {passed ? (
+            {topicKey === "weather" ? (
+              <div className={`p-4 border-2 rounded-lg text-center ${passed ? "bg-success/10 border-success" : "bg-accent/10 border-accent"}`} role="status" aria-live="polite">
+                <p className={`font-semibold ${passed ? "text-success" : "text-accent"}`}>{weatherMessage.heading}</p>
+                <p className="text-sm text-muted-foreground mt-1">{weatherMessage.detail}</p>
+              </div>
+            ) : passed ? (
               <div className="p-4 bg-success/10 border-2 border-success rounded-lg text-center">
                 <p className="font-semibold text-success">🎉 Excellent work!</p>
                 <p className="text-sm text-muted-foreground mt-1">You've mastered this topic!</p>
@@ -590,6 +622,33 @@ const Quiz = () => {
                 <p className="text-sm text-muted-foreground mt-1">Review the material and try again</p>
               </div>
             )}
+
+            {topicKey === "weather" && <section aria-labelledby="weather-performance-heading" className="space-y-3">
+              <h2 id="weather-performance-heading" className="text-xl font-semibold">Performance by learning area</h2>
+              <div className="grid gap-3 sm:grid-cols-2">
+                {weatherLeaves.map((leaf) => <div key={leaf.id} className="rounded-lg border p-3">
+                  <h3 className="font-semibold">{leaf.label}</h3>
+                  <p className="text-sm text-muted-foreground">{leaf.assessed === 0 ? `Not demonstrated (0 of ${leaf.total} assessed)` : `${leaf.correct} of ${leaf.total} objectives correct`}</p>
+                  {leaf.missed.length > 0 && <Button variant="link" className="h-auto px-0 py-1" onClick={() => navigate(leaf.route)}>Review {leaf.label}</Button>}
+                </div>)}
+              </div>
+            </section>}
+
+            {missedQuestions.length > 0 && <section aria-labelledby="missed-review-heading" className="space-y-3">
+              <h2 id="missed-review-heading" className="text-xl font-semibold">Review missed objectives</h2>
+              {missedQuestions.map((missed) => {
+                const index = questions.indexOf(missed);
+                const learnerAnswer = completedAnswers[index];
+                return <article key={missed.id} className="rounded-lg border p-4" aria-labelledby={`review-${missed.id}`}>
+                  <h3 id={`review-${missed.id}`} className="font-semibold">{missed.learningObjective ?? missed.question}</h3>
+                  <dl className="mt-2 space-y-1 text-sm">
+                    <div><dt className="inline font-medium">Your answer: </dt><dd className="inline">{learnerAnswer === null ? "Not answered" : missed.options[learnerAnswer]}</dd></div>
+                    <div><dt className="inline font-medium">Correct answer: </dt><dd className="inline">{missed.options[missed.correctAnswer]}</dd></div>
+                  </dl>
+                  <p className="mt-2 text-sm text-muted-foreground">{missed.explanation}</p>
+                </article>;
+              })}
+            </section>}
 
             <div className="flex flex-col gap-3 sm:flex-row">
               <Button variant="outline" className="flex-1" onClick={() => navigate(topicKey === "anchorwork"
