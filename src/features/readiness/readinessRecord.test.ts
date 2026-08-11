@@ -24,6 +24,9 @@ describe("readiness record model", () => {
     expect(isReadinessContextComplete({ vessel: "Aster", voyage: "Cowes", conditions: "F4" })).toBe(true);
     expect(isReadinessContextComplete({ vessel: "   ", voyage: "Cowes", conditions: "F4" })).toBe(false);
     expect(isReadinessContextComplete({ vessel: "Aster", voyage: "", conditions: "F4" })).toBe(false);
+    expect(isReadinessContextComplete({ vessel: "\t\n", voyage: "Cowes", conditions: "F4" })).toBe(false);
+    expect(isReadinessContextComplete({ vessel: "Aster", voyage: "\u00a0", conditions: "F4" })).toBe(false);
+    expect(isReadinessContextComplete({ vessel: "Aster", voyage: "Cowes", conditions: "\u2007\u202f\ufeff" })).toBe(false);
   });
   it("starts unresolved and permits not-applicable only for a contextual item", () => {
     expect(summarizeReadiness(items, {})).toMatchObject({ outcome: "incomplete", notChecked: 2 });

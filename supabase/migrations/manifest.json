@@ -28,5 +28,5 @@
   "20260809210000_canonical_tides_progress.sql": "a0164ea2ec29f519fe0fb6baf08eeb23f9dbfbf301b381dfffef223ddc5b1d7b",
   "20260810223000_expand_weather_quiz_attempts.sql": "e19b4f4a941dd90a471a41958678f99ec3e42ca993d8e5e8ae574b2cda6780dc",
   "20260811153000_revisioned_passage_plan_progress.sql": "7ffe81f455611f210fd5b82d1da9ae56cd920851ffb39c2cc776b030eed3fb89",
-  "20260811170000_readiness_record_progress.sql": "b79c74f32a4963c4309fb244f941687972192685f43fcd4db7333b9abf2a6a7e"
+  "20260811170000_readiness_record_progress.sql": "d9971999de4e9d15c3756aec93ace53cced0f19a2c7b4764c94f94782dd23a1d"
 }

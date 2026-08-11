@@ -14,6 +14,14 @@ declare
     'passage-plan','charts-notices','tides-ukc','forecast','planning-decision','crew-fitness','crew-brief','documents-shore','hull-openings','bilge-steering','rig-deck','electrical-gas','nav-signals','emergency-readiness','conditional-survival','provisions','stowage-hatches','cold-fluids','machinery-space','prop-clear','ventilation','start-sequence','pressure-charge','cooling-exhaust','running-scan','controls-steering','vhf-dsc','departure-ready','final-information','final-decision'
   ];
   na_ids constant text[] := array['conditional-survival','ventilation'];
+  -- ECMAScript String.prototype.trim whitespace and line terminators, kept in
+  -- sync with the client completion gate (ASCII controls, Unicode spaces,
+  -- NBSP and BOM). btrim treats this as a set of trim characters.
+  whitespace_chars constant text := E' \t\n\r\f' || chr(11)
+    || chr(160) || chr(5760) || chr(8192) || chr(8193) || chr(8194)
+    || chr(8195) || chr(8196) || chr(8197) || chr(8198) || chr(8199)
+    || chr(8200) || chr(8201) || chr(8202) || chr(8232) || chr(8233)
+    || chr(8239) || chr(8287) || chr(12288) || chr(65279);
   resolved_count integer;
   was_completed boolean := false;
   awarded boolean := false;
@@ -80,9 +88,9 @@ begin
       or (id = any(na_ids) and entries->id->>'status' = 'not_applicable' and btrim(entries->id->>'reason') <> '');
   if p_completed and (
        resolved_count <> cardinality(allowed_ids)
-       or btrim(v_record->'context'->>'vessel') = ''
-       or btrim(v_record->'context'->>'voyage') = ''
-       or btrim(v_record->'context'->>'conditions') = ''
+       or btrim(v_record->'context'->>'vessel', whitespace_chars) = ''
+       or btrim(v_record->'context'->>'voyage', whitespace_chars) = ''
+       or btrim(v_record->'context'->>'conditions', whitespace_chars) = ''
      ) then
     raise exception 'Readiness completion does not match evidence and context' using errcode = '22023';
   end if;
