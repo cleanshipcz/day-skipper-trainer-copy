@@ -157,6 +157,9 @@ describe("FireSafetyTheory Page", () => {
     // then - fire prevention heading and engine room procedure
     expect(await screen.findByText("Fire Prevention at Sea")).toBeDefined();
     expect(await screen.findByText("Engine Room Fire Procedure")).toBeDefined();
+    expect(await screen.findByTestId("escape-first-procedure")).toBeDefined();
+    expect(screen.getByText(/alarm, muster, escape and call early/i)).toBeDefined();
+    expect(screen.getByText(/do not reopen/i)).toBeDefined();
   });
 
   it("should render the interactive drill component in the Drill tab", async () => {

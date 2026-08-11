@@ -229,6 +229,84 @@ export const fireScenarios: readonly FireScenario[] = [
   },
 ];
 
+export interface FireResponseOption {
+  readonly id: string;
+  readonly label: string;
+}
+
+export interface FireResponseScenario {
+  readonly id: string;
+  readonly description: string;
+  readonly question: string;
+  readonly options: readonly FireResponseOption[];
+  readonly correctOptionId: string;
+  readonly explanation: string;
+}
+
+/** Decision-focused checks: equipment selection and ratings are assessed separately above. */
+export const fireResponseScenarios: readonly FireResponseScenario[] = [
+  {
+    id: "offshore-cabin-smoke",
+    description: "Offshore, smoke is coming from the accommodation and one crew member has not yet reached the cockpit.",
+    question: "What is the skipper's first complete response?",
+    options: [
+      { id: "alarm-muster", label: "Raise the alarm, account for and move crew to a safe muster/escape position, make an early distress call, then isolate or attack only if safe" },
+      { id: "investigate", label: "Enter alone to locate the fire before disturbing the crew" },
+      { id: "fight-first", label: "Choose an extinguisher and attack immediately, then call for help if it fails" },
+    ],
+    correctOptionId: "alarm-muster",
+    explanation: "People and escape come first. Offshore, alert everyone, account for crew, establish a safe escape/muster position and communicate distress early; only then consider isolation or a safe, limited attack.",
+  },
+  {
+    id: "alongside-fire",
+    description: "Alongside in a marina, a fire is growing near the shore-power inlet and the pontoon route remains clear.",
+    question: "Which sequence best protects people and neighbouring craft?",
+    options: [
+      { id: "evacuate-call", label: "Raise the alarm, evacuate everyone ashore by the clear route, call the fire and rescue service/marina, warn nearby craft, and isolate power only from a safe location" },
+      { id: "unplug", label: "Reach through smoke to unplug shore power before telling anyone" },
+      { id: "cast-off", label: "Cast off immediately with crew below so the marina is protected" },
+    ],
+    correctOptionId: "evacuate-call",
+    explanation: "Alongside, use the available land escape promptly and summon shore emergency services. Do not create electrical or casting-off hazards; isolate only with a safe, known control.",
+  },
+  {
+    id: "immediate-evacuation",
+    description: "Flames and dense smoke have cut off the controls and are advancing toward the crew's only remaining exit.",
+    question: "What should happen now?",
+    options: [
+      { id: "leave-now", label: "Evacuate immediately by the viable route, send distress/location information as able, and do not delay for equipment or belongings" },
+      { id: "shutdown", label: "Delay escape until every fuel, battery and ventilation shutdown is completed" },
+      { id: "retrieve", label: "Send one person below for the grab bag and extinguishers" },
+    ],
+    correctOptionId: "leave-now",
+    explanation: "An escape route under threat makes evacuation immediate. Shutdowns, equipment and belongings are never worth trapping a person; transmit distress details without delaying escape.",
+  },
+  {
+    id: "engine-space-closed",
+    description: "Offshore, a detector alarms and smoke is visible at the closed engine-space boundary. The vessel has an approved fixed system and labelled remote shutdowns.",
+    question: "What is the correct closed-space response sequence?",
+    options: [
+      { id: "closed-discharge", label: "Alarm and muster, call early, stop engine/generator, fuel and ventilation remotely, confirm everyone is out, keep the space sealed, discharge the approved fixed system as instructed, monitor and do not reopen" },
+      { id: "open-check", label: "Open the hatch to confirm the seat of fire, then discharge a portable extinguisher" },
+      { id: "discharge-first", label: "Release the fixed system immediately, then check whether anyone remains inside and stop ventilation" },
+    ],
+    correctOptionId: "closed-discharge",
+    explanation: "Follow the vessel and system instructions: evacuate and account for people, communicate, complete required shutdowns, preserve enclosure, discharge, then monitor for re-ignition. Reopening admits oxygen and may expose crew to fire or agent; await competent emergency-service advice.",
+  },
+  {
+    id: "smoke-entry",
+    description: "A small fire may still be burning behind an accommodation door, but smoke obscures the deckhead and a second exit is not available.",
+    question: "Should a crew member enter to isolate or fight it?",
+    options: [
+      { id: "withdraw", label: "No—close the boundary if possible, withdraw, protect the escape route and update the distress call" },
+      { id: "crawl-in", label: "Yes—crawl below the smoke while another crew member waits outside" },
+      { id: "brief-entry", label: "Yes—make one brief entry because the fire may still be small" },
+    ],
+    correctOptionId: "withdraw",
+    explanation: "Untrained crew without suitable breathing protection must not enter smoke. Loss of visibility, toxic gases and a single escape route make withdrawal the correct decision.",
+  },
+];
+
 /** Content may ship only after sign-off by a competent marine fire-safety reviewer. */
 export interface FireSafetyReleaseReview {
   readonly required: true;

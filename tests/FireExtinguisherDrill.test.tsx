@@ -2,7 +2,7 @@ import { describe, it, expect, vi, beforeEach } from "vitest";
 import { render, screen } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { FireExtinguisherDrill } from "../src/components/safety/FireExtinguisherDrill";
-import { fireScenarios, fireExtinguishers } from "../src/data/fireExtinguishers";
+import { fireResponseScenarios } from "../src/data/fireExtinguishers";
 import TestRouter from "./TestRouter";
 
 // Mock sonner toast
@@ -18,7 +18,7 @@ describe("FireExtinguisherDrill", () => {
     vi.clearAllMocks();
   });
 
-  it("should render a fire scenario with selectable extinguisher options", () => {
+  it("renders a fire scenario with decision-sequence options", () => {
     // when
     render(
       <TestRouter>
@@ -30,10 +30,10 @@ describe("FireExtinguisherDrill", () => {
     expect(screen.getByTestId("fire-scenario")).toBeDefined();
 
     // then - should show extinguisher options to choose from
-    const options = screen.getAllByTestId(/^extinguisher-option-/);
+    const options = screen.getAllByTestId(/^response-option-/);
     expect(options.length).toBeGreaterThanOrEqual(3);
-    expect(screen.getByText(/medium name alone is never enough/i)).toBeDefined();
-    expect(options.every((option) => /marked|BS EN|approved/i.test(option.textContent ?? ""))).toBe(true);
+    expect(screen.getByText(/assesses decisions and sequence/i)).toBeDefined();
+    expect(screen.getByText(/does not ask you to match extinguisher/i)).toBeDefined();
   });
 
   it("should display feedback when an extinguisher is selected and submitted", async () => {
@@ -46,7 +46,7 @@ describe("FireExtinguisherDrill", () => {
     );
 
     // when - select an option and submit
-    const options = screen.getAllByTestId(/^extinguisher-option-/);
+    const options = screen.getAllByTestId(/^response-option-/);
     await user.click(options[0]);
 
     const submitButton = screen.getByRole("button", { name: /check/i });
@@ -54,7 +54,7 @@ describe("FireExtinguisherDrill", () => {
 
     // then - should show a result (correct or incorrect)
     expect(screen.getByTestId("drill-result")).toBeDefined();
-    expect(screen.getByText(/before discharge:/i)).toBeDefined();
+    expect(screen.getByTestId("drill-result").textContent).toMatch(/people|alongside|evacuation|vessel|smoke/i);
   });
 
   it("should allow advancing to next scenario after answering", async () => {
@@ -67,7 +67,7 @@ describe("FireExtinguisherDrill", () => {
     );
 
     // when - select an option and submit
-    const options = screen.getAllByTestId(/^extinguisher-option-/);
+    const options = screen.getAllByTestId(/^response-option-/);
     await user.click(options[0]);
     const submitButton = screen.getByRole("button", { name: /check/i });
     await user.click(submitButton);
@@ -113,10 +113,10 @@ describe("FireExtinguisherDrill", () => {
     );
 
     // when - answer all scenarios by selecting any option and advancing
-    for (let i = 0; i < fireScenarios.length; i++) {
-      const options = screen.getAllByTestId(/^extinguisher-option-/);
+    for (let i = 0; i < fireResponseScenarios.length; i++) {
+      const options = screen.getAllByTestId(/^response-option-/);
       await user.click(options[0]);
-      const submitButton = screen.getByRole("button", { name: /check/i });
+      const submitButton = screen.getByRole("button", { name: /^check answer$/i });
       await user.click(submitButton);
       const nextButton = screen.getByRole("button", { name: /next/i });
       await user.click(nextButton);
@@ -140,10 +140,10 @@ describe("FireExtinguisherDrill", () => {
     );
 
     // when - answer all scenarios
-    for (let i = 0; i < fireScenarios.length; i++) {
-      const options = screen.getAllByTestId(/^extinguisher-option-/);
+    for (let i = 0; i < fireResponseScenarios.length; i++) {
+      const options = screen.getAllByTestId(/^response-option-/);
       await user.click(options[0]);
-      const submitButton = screen.getByRole("button", { name: /check/i });
+      const submitButton = screen.getByRole("button", { name: /^check answer$/i });
       await user.click(submitButton);
       const nextButton = screen.getByRole("button", { name: /next/i });
       await user.click(nextButton);
@@ -154,7 +154,7 @@ describe("FireExtinguisherDrill", () => {
     expect(onComplete).toHaveBeenCalledWith(
       expect.objectContaining({
         correctCount: expect.any(Number),
-        totalAnswered: fireScenarios.length,
+        totalAnswered: fireResponseScenarios.length,
       })
     );
   });
