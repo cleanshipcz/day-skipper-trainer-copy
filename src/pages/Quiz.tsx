@@ -378,10 +378,6 @@ const Quiz = () => {
     return <main className="min-h-screen grid place-items-center p-4" aria-live="polite">Loading quiz…</main>;
   }
 
-  if (user && !sessionHydrated) {
-    return <main className="min-h-screen grid place-items-center p-4" aria-live="polite">Loading saved quiz progress…</main>;
-  }
-
   if (catalogueError || !questions.length) {
     return (
       <div className="min-h-screen bg-gradient-to-br from-background via-ocean-light/10 to-background flex items-center justify-center p-4">
@@ -406,6 +402,10 @@ const Quiz = () => {
         </Card>
       </div>
     );
+  }
+
+  if (user && !sessionHydrated) {
+    return <main className="min-h-screen grid place-items-center p-4" aria-live="polite">Loading saved quiz progress…</main>;
   }
 
   const question = questions[currentQuestion];

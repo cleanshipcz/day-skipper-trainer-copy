@@ -181,6 +181,22 @@ describe("Quiz accessible interaction and reflow", () => {
     expect(screen.queryByRole("button", { name: "Nautical Terms" })).toBeNull();
   });
 
+  it("shows authenticated catalogue failures and offers retry instead of masking them as hydration", async () => {
+    const user = userEvent.setup();
+    mocks.user = { id: "learner" };
+    mocks.loadQuizTopic
+      .mockRejectedValueOnce(new Error("catalogue unavailable"))
+      .mockResolvedValueOnce(questions);
+    renderQuiz();
+
+    expect(await screen.findByRole("heading", { name: "Quiz unavailable" })).toBeTruthy();
+    expect(screen.getByText(/saved progress is unchanged/i)).toBeTruthy();
+    expect(mocks.loadProgress).not.toHaveBeenCalled();
+    await user.click(screen.getByRole("button", { name: "Retry loading" }));
+    expect((await screen.findAllByRole("radio")).length).toBeGreaterThan(0);
+    await waitFor(() => expect(mocks.loadProgress).toHaveBeenCalled());
+  });
+
   it("exposes scenario observations as named structured text alongside keyboard-operable answers", async () => {
     const user = userEvent.setup();
     mocks.loadQuizTopic.mockResolvedValueOnce([{ ...questions[0], id: "cr5", scenario: {
