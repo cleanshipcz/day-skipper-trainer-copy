@@ -239,6 +239,13 @@ export const persistQuizSessionProgress = async ({
   saveProgress,
   progress,
 }: PersistQuizSessionProgressArgs) => {
-  if (!isAuthenticated) return;
-  await saveProgress(canonicalQuizProgressKey(topicKey), false, 0, 0, progress);
+  if (!isAuthenticated) return "anonymous" as const;
+  try {
+    const result = await saveProgress(canonicalQuizProgressKey(topicKey), false, 0, 0, progress);
+    if (result === false || result === "failed" || result === "conflict") return "failed" as const;
+    if (result === "queued") return "queued" as const;
+    return "saved" as const;
+  } catch {
+    return "failed" as const;
+  }
 };

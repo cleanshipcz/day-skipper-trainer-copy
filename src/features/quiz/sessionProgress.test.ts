@@ -112,6 +112,31 @@ describe("quiz session progress helpers", () => {
     expect(saveProgress).toHaveBeenCalledWith("quiz-engine", false, 0, 0, progress);
   });
 
+  it.each([
+    [false, "failed"],
+    ["failed", "failed"],
+    ["queued", "queued"],
+    [true, "saved"],
+  ])("reports persistence result %s as %s", async (saveResult, expected) => {
+    const result = await persistQuizSessionProgress({
+      isAuthenticated: true,
+      topicKey: "engine",
+      saveProgress: vi.fn().mockResolvedValue(saveResult),
+      progress: buildQuizSessionProgress([1, null], 0, catalogue),
+    });
+    expect(result).toBe(expected);
+  });
+
+  it("turns rejected persistence into a recoverable failure", async () => {
+    const result = await persistQuizSessionProgress({
+      isAuthenticated: true,
+      topicKey: "engine",
+      saveProgress: vi.fn().mockRejectedValue(new Error("offline")),
+      progress: buildQuizSessionProgress([1, null], 0, catalogue),
+    });
+    expect(result).toBe("failed");
+  });
+
   it("skips persistence for anonymous users", async () => {
     const saveProgress = vi.fn();
     await persistQuizSessionProgress({ isAuthenticated: false, topicKey: "engine", saveProgress, progress: buildQuizSessionProgress([null, null], 0, catalogue) });
