@@ -19,6 +19,8 @@ export interface Question {
   readonly learningObjective?: string;
   readonly prerequisite?: string;
   readonly remediationRoute?: string;
+  /** Stable curriculum group used to build post-attempt diagnostics. */
+  readonly leaf?: string;
 }
 
 /** Metadata displayed in the quiz header for a given topic. */

@@ -16,7 +16,7 @@ vi.mock("@/contexts/AuthHooks", () => ({ useAuth: () => ({ user: mocks.user }) }
 vi.mock("@/hooks/useProgress", () => ({ useProgress: () => mocks }));
 vi.mock("@/integrations/supabase/client", () => ({ supabase: { rpc: mocks.rpc } }));
 vi.mock("@/data/quizzes", () => ({
-  isQuizTopicId: (topic: string) => ["test", "anchorwork", "engine", "nautical-terms-quiz", "ropework", "lights-signals", "colregs"].includes(topic),
+  isQuizTopicId: (topic: string) => ["test", "anchorwork", "engine", "nautical-terms-quiz", "ropework", "lights-signals", "colregs", "weather"].includes(topic),
   topicMeta: {
     test: { title: "A very long localized quiz title that must reflow", subtitle: "Long localized supporting text" },
     "nautical-terms-quiz": { title: "Full Nautical Terms Quiz", subtitle: "Terms" },
@@ -25,6 +25,7 @@ vi.mock("@/data/quizzes", () => ({
     anchorwork: { title: "Anchorwork Quiz", subtitle: "Anchoring" },
     engine: { title: "Engine Checks Quiz", subtitle: "Engine safety" },
     colregs: { title: "Combined Rules Diagnostic", subtitle: "Rules" },
+    weather: { title: "Meteorology Quiz", subtitle: "Weather" },
   },
   loadQuizTopic: mocks.loadQuizTopic,
 }));
@@ -95,6 +96,32 @@ describe("Quiz accessible interaction and reflow", () => {
     await user.click(screen.getByRole("button", { name: "Submit Answer" }));
     await user.click(await screen.findByRole("button", { name: "Review this objective in Engine theory" }));
     expect(await screen.findByText("Route: /engine#engine-objectives")).toBeTruthy();
+  });
+
+  it("provides an accessible Meteorology result review and targeted leaf navigation", async () => {
+    const user = userEvent.setup();
+    mocks.loadQuizTopic.mockResolvedValue([
+      { ...questions[0], id: "w1", leaf: "weather-systems", learningObjective: "Read pressure systems" },
+      { ...questions[1], id: "w2", leaf: "beaufort-sea-state", learningObjective: "Read sea state" },
+      { ...questions[1], id: "w3", leaf: "marine-forecasts", learningObjective: "Read forecasts" },
+      { ...questions[1], id: "w4", leaf: "fog-visibility", learningObjective: "Act in fog" },
+    ]);
+    renderQuiz("/quiz/weather");
+    for (let index = 0; index < 4; index += 1) {
+      const radios = await screen.findAllByRole("radio");
+      const wrong = radios.find((radio) => radio.getAttribute("aria-label")?.includes("wrong") || radio.parentElement?.textContent?.includes("wrong"));
+      await user.click(wrong!);
+      await user.click(screen.getByRole("button", { name: "Submit Answer" }));
+      await user.click(screen.getByRole("button", { name: index === 3 ? "View Results" : "Next Question" }));
+    }
+    const completion = await screen.findByRole("heading", { name: "Quiz Complete!" });
+    await waitFor(() => expect(document.activeElement).toBe(completion));
+    expect(screen.getByRole("status").textContent).toContain("More review needed");
+    expect(screen.getByRole("heading", { name: "Review missed objectives" })).toBeTruthy();
+    expect(screen.getAllByText("Your answer:")[0].parentElement?.textContent).toContain("wrong");
+    expect(screen.getAllByText("Correct answer:")[0].parentElement?.textContent).toContain("correct");
+    await user.click(screen.getByRole("button", { name: /Review Weather Systems & Fronts/ }));
+    expect(await screen.findByText("Current path: /weather/systems")).toBeTruthy();
   });
 
   it("routes a missed sound objective to its exact theory tab and rule", async () => {

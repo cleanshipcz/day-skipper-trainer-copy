@@ -222,6 +222,17 @@ export const parseSavedQuizSession = (
   return "version" in record ? parseIdentitySession(record, questions) : parseSafeLegacySession(record, questions);
 };
 
+/** Restores immutable answer evidence for a completed attempt without resuming it as an active quiz. */
+export const parseCompletedQuizSession = (
+  raw: Json | undefined,
+  questions: readonly Question[],
+): RestoredQuizSession | null => {
+  if (!raw || typeof raw !== "object" || Array.isArray(raw) || raw.completed !== true) return null;
+  const evidence = { ...raw } as Record<string, unknown>;
+  delete evidence.completed;
+  return parseSavedQuizSession(evidence as Json, questions);
+};
+
 export const persistQuizSessionProgress = async ({
   isAuthenticated,
   topicKey,

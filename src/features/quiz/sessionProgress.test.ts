@@ -2,7 +2,7 @@ import { describe, expect, it, vi } from "vitest";
 import type { Question } from "@/data/quizzes/types";
 import {
   ANONYMOUS_QUIZ_SESSION_MAX_AGE_MS, anonymousQuizSessionKey, buildQuizSessionProgress,
-  clearAnonymousQuizSession, createEmptyQuizAnswers, parseSavedQuizSession,
+  clearAnonymousQuizSession, createEmptyQuizAnswers, parseCompletedQuizSession, parseSavedQuizSession,
   isCurrentCompletedQuizCatalogue,
   persistQuizSessionProgress, restoreAnonymousQuizSession, saveAnonymousQuizSession,
 } from "./sessionProgress";
@@ -23,6 +23,12 @@ describe("quiz session progress helpers", () => {
       answers: [{ questionId: "q1", optionId: "Right" }, { questionId: "q2", optionId: "Maybe" }],
       currentQuestionId: "q2",
     });
+  });
+
+  it("restores completed answer evidence for result review without treating it as an active session", () => {
+    const completed = { ...buildQuizSessionProgress([1, 0], 1, catalogue), completed: true };
+    expect(parseSavedQuizSession(completed, catalogue)).toBeNull();
+    expect(parseCompletedQuizSession(completed, catalogue)).toEqual({ answers: [1, 0], currentQuestion: 1 });
   });
 
   it("restores answers after question and option reorder", () => {
