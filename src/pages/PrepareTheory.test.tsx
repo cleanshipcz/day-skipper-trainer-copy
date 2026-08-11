@@ -4,7 +4,8 @@ import { MemoryRouter } from "react-router-dom";
 
 vi.mock("@/hooks/useProgress", () => ({ useProgress: () => ({ loadProgress: vi.fn().mockResolvedValue(null), saveProgress: vi.fn() }) }));
 const { default: PrepareTheory } = await import("./PrepareTheory");
-const { prepareSteps } = await import("@/data/prepareSteps");
+const { prepareSteps, prepareSupportingRoutes } = await import("@/data/prepareSteps");
+const { appRoutes } = await import("@/app/routes");
 const renderPage = () => renderToStaticMarkup(<MemoryRouter><PrepareTheory /></MemoryRouter>);
 
 describe("PrepareTheory", () => {
@@ -57,5 +58,25 @@ describe("PrepareTheory", () => {
     expect(html).toContain("RYA passage planning guidance");
     expect(html).toContain("Notices to Mariners");
     expect(html).toContain("Check edition, update date, area and validity");
+  });
+
+  it("uses semantic links for the step-specific lessons and applied workflow", () => {
+    const html = renderPage();
+    expect(prepareSupportingRoutes["Passage appraisal"]).toContainEqual(expect.objectContaining({ label: "Marine Forecasts", route: "/weather/forecasts" }));
+    expect(html).toContain('href="/passage-planning/builder"');
+    expect(html).toContain('href="/passage-planning/checklist"');
+    expect(html).toContain('href="/quiz/passage-planning"');
+    expect(html).toContain(">Back to Passage Planning</a>");
+    expect(html).not.toContain("See also:");
+  });
+
+  it("keeps every curated destination registered to prevent route drift and 404s", () => {
+    const configuredPaths = appRoutes.map(({ path }) => path);
+    const supportingPaths = Object.values(prepareSupportingRoutes).flatMap((links) => links.map(({ route }) => route));
+    const workflowPaths = ["/passage-planning", "/passage-planning/builder", "/passage-planning/checklist", "/quiz/passage-planning"];
+    const isRegistered = (route: string) => configuredPaths.includes(route) || (route.startsWith("/quiz/") && configuredPaths.includes("/quiz/:topicId"));
+
+    expect(Object.keys(prepareSupportingRoutes)).toEqual(prepareSteps.map(({ title }) => title));
+    expect([...supportingPaths, ...workflowPaths].every(isRegistered)).toBe(true);
   });
 });
