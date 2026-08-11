@@ -2,6 +2,13 @@ import { describe, expect, it } from "vitest";
 import { checklistPhases, checklistSupportingRoutes, preDepartureChecklist } from "./preDepartureChecklist";
 
 describe("pre-departure safety gate catalogue",()=>{
+  it("does not confuse variable instructions with whole-item N/A eligibility",()=>{
+    expect(preDepartureChecklist.find(item=>item.id==="nav-signals")?.conditional).toBeTruthy();
+    expect(preDepartureChecklist.find(item=>item.id==="nav-signals")?.notApplicableAllowed).toBeUndefined();
+    expect(preDepartureChecklist.find(item=>item.id==="cooling-exhaust")?.conditional).toBeTruthy();
+    expect(preDepartureChecklist.find(item=>item.id==="cooling-exhaust")?.notApplicableAllowed).toBeUndefined();
+    expect(preDepartureChecklist.find(item=>item.id==="ventilation")?.notApplicableAllowed).toBe(true);
+  });
   it("has six explicit phases in operational order and valid backward dependencies",()=>{
     expect(checklistPhases).toEqual(["Planning and current information","Crew and vessel readiness","Pre-start checks","Safe start","Immediate running checks","Final go / no-go"]);
     const ids=preDepartureChecklist.map(item=>item.id);

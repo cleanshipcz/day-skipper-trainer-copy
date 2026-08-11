@@ -119,6 +119,36 @@ describeLiveDb("live DB concurrency stress — progress integrity", () => {
       expect(lightsRow?.score).toBe(100);
       expect(lightsRow?.answers_history).toEqual(fullLightsEvidence);
 
+      const readinessIds = ["passage-plan","charts-notices","tides-ukc","forecast","planning-decision","crew-fitness","crew-brief","documents-shore","hull-openings","bilge-steering","rig-deck","electrical-gas","nav-signals","emergency-readiness","conditional-survival","provisions","stowage-hatches","cold-fluids","machinery-space","prop-clear","ventilation","start-sequence","pressure-charge","cooling-exhaust","running-scan","controls-steering","vhf-dsc","departure-ready","final-information","final-decision"];
+      const validEntry = { status: "satisfactory", reason: "", notes: "", evidence: "checked", responsiblePerson: "skipper", recordedAt: "2026-08-11T16:00:00Z", history: [] };
+      const fullReadiness = { version: 1, context: { vessel: "Aster", voyage: "Cowes", conditions: "F4" }, entries: Object.fromEntries(readinessIds.map((id) => [id, validEntry])), updatedAt: "2026-08-11T16:00:00Z" };
+      const adversarialReadiness = [
+        { p_completed: null, p_answers_history: { readinessRecord: fullReadiness } },
+        { p_completed: true, p_answers_history: {} },
+        { p_completed: true, p_answers_history: { readinessRecord: { ...fullReadiness, context: null } } },
+        { p_completed: true, p_answers_history: { readinessRecord: { ...fullReadiness, updatedAt: null } } },
+        { p_completed: true, p_answers_history: { readinessRecord: { ...fullReadiness, context: { ...fullReadiness.context, vessel: "   " } } } },
+        { p_completed: true, p_answers_history: { readinessRecord: { ...fullReadiness, context: { ...fullReadiness.context, voyage: "" } } } },
+        { p_completed: true, p_answers_history: { readinessRecord: { ...fullReadiness, context: { ...fullReadiness.context, conditions: "\t" } } } },
+        { p_completed: true, p_answers_history: { readinessRecord: { ...fullReadiness, context: { ...fullReadiness.context, vessel: "\n\r\f" } } } },
+        { p_completed: true, p_answers_history: { readinessRecord: { ...fullReadiness, context: { ...fullReadiness.context, voyage: "\u00a0" } } } },
+        { p_completed: true, p_answers_history: { readinessRecord: { ...fullReadiness, context: { ...fullReadiness.context, conditions: "\u2007\u202f\ufeff" } } } },
+        { p_completed: true, p_answers_history: { readinessRecord: { ...fullReadiness, entries: { ...fullReadiness.entries, "passage-plan": { ...validEntry, status: null } } } } },
+        { p_completed: true, p_answers_history: { readinessRecord: { ...fullReadiness, entries: { ...fullReadiness.entries, "passage-plan": { ...validEntry, history: [{ ...validEntry, supersededAt: null }] } } } } },
+        ...["\t\n", "\u00a0", "\u2007\u202f\ufeff"].map((reason) => ({
+          p_completed: true,
+          p_answers_history: { readinessRecord: { ...fullReadiness, entries: { ...fullReadiness.entries, "conditional-survival": { ...validEntry, status: "not_applicable", reason } } } },
+        })),
+      ];
+      for (const forged of adversarialReadiness) {
+        const outcome = await userClient.rpc("save_readiness_record_progress", forged as never);
+        expect(outcome.error).not.toBeNull();
+      }
+      const forgedReadinessRow = await admin.from("user_progress").select("topic_id").eq("user_id", userId).eq("topic_id", "passage-planning-checklist").maybeSingle();
+      expect(forgedReadinessRow.data).toBeNull();
+      const forgedReadinessAward = await admin.from("progress_awards").select("topic_id", { count: "exact", head: true }).eq("user_id", userId).eq("topic_id", "passage-planning-checklist");
+      expect(forgedReadinessAward.count).toBe(0);
+
       const checkpoint = (sequenceIndex: number, attempts: number, families = ["sheltered", "harbour", "exposed", "tidal"]) => ({
         version: 1, completedFamilies: families, attempts, failedChecks: Math.min(2, attempts),
         scenarioSeed: 7, sequenceIndex,

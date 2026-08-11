@@ -58,6 +58,13 @@ export const saveProgressRecord = async ({
   const lightsEvidenceCount = Array.isArray(lightsPayload?.visitedSectionIds) ? new Set(lightsPayload.visitedSectionIds).size : 0;
   const passagePayload = answersHistory as { expectedServerHead?: unknown; passagePlanRecord?: { ownerId?: unknown; revision?: unknown; updatedAt?: unknown; lineage?: unknown; plan?: unknown } } | undefined;
   const passageRecord = passagePayload?.passagePlanRecord;
+  const readinessPayload = answersHistory as { readinessRecord?: { version?: unknown; context?: unknown; entries?: unknown; updatedAt?: unknown } } | undefined;
+  if (topicId === "passage-planning-checklist" && (
+    readinessPayload?.readinessRecord?.version !== 1
+    || !readinessPayload.readinessRecord.context || typeof readinessPayload.readinessRecord.context !== "object"
+    || !readinessPayload.readinessRecord.entries || typeof readinessPayload.readinessRecord.entries !== "object"
+    || typeof readinessPayload.readinessRecord.updatedAt !== "string"
+  )) throw new Error("Pre-departure readiness requires a valid evidence record");
   if (topicId === "passage-planning-builder" && (
     !passageRecord || passageRecord.ownerId !== userId
     || !Number.isSafeInteger(passageRecord.revision) || (passageRecord.revision as number) < 0
@@ -107,6 +114,11 @@ export const saveProgressRecord = async ({
         p_completed: completed,
         p_score: score,
         p_expected_updated_at: passagePayload?.expectedServerHead as string|null,
+        p_answers_history: answersHistory as Record<string, unknown>,
+      })
+    : topicId === "passage-planning-checklist"
+      ? await supabaseClient.rpc("save_readiness_record_progress", {
+        p_completed: completed,
         p_answers_history: answersHistory as Record<string, unknown>,
       })
       : await supabaseClient.rpc("save_topic_progress", {
