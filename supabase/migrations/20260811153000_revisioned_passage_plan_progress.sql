@@ -78,7 +78,7 @@ begin
     or (v_incoming -> 'plan' ->> 'speed')::numeric>80
     or (v_incoming -> 'plan' ->> 'departure')::timestamptz < now()-interval '24 hours'
     or (v_incoming -> 'plan' ->> 'departure')::timestamptz > now()+interval '366 days'
-    or exists(select 1 from (values('departureBerth'),('destinationBerth'),('limits'),('abortDecision'),('alternatives'),('manualVerification')) required(key)
+    or exists(select 1 from (values('departureBerth'),('destinationBerth'),('limits'),('abortDecision'),('alternatives')) required(key)
       where length(btrim(coalesce(v_incoming -> 'plan' -> 'safety' ->> required.key,'')))=0)
     or exists(select 1 from (values('weather'),('tide'),('chart'),('publications'),('preparedAt'),('revisedAt')) required(key)
       where length(btrim(coalesce(v_incoming -> 'plan' -> 'provenance' ->> required.key,'')))=0)
@@ -162,7 +162,9 @@ begin
   if v_existing is not null and not (
     ((v_incoming->>'revision')::integer=v_existing_revision and v_incoming->>'updatedAt'=v_existing->>'updatedAt'
       and v_incoming->'plan'=v_existing->'plan' and (p_completed or p_completed=v_existing_completed))
-    or ((v_incoming->>'revision')::integer=v_existing_revision+1 and v_incoming->>'updatedAt'<>v_existing->>'updatedAt')
+    or ((v_incoming->>'revision')::integer=v_existing_revision+1
+      and v_incoming->>'updatedAt'<>v_existing->>'updatedAt'
+      and v_incoming->'lineage' ? (v_existing->>'updatedAt'))
   ) then raise exception 'Passage plan revision conflict' using errcode='40001'; end if;
 
   v_completion_awarded := coalesce(p_completed,false) and not v_existing_completed;
