@@ -72,4 +72,7 @@ describe("FuelCalculator", () => {
   it("keeps derived errors silent during partial typing then announces once politely on blur",()=>{
     render(<FuelCalculator />);const distance=screen.getByLabelText("Route distance (nautical miles)");const speed=screen.getByLabelText("Conservative passage SOG (knots)");fireEvent.change(distance,{target:{value:"2000"}});fireEvent.change(speed,{target:{value:"0.1"}});expect(screen.queryByText(/Derived passage duration/)).toBeNull();fireEvent.blur(speed);const message=screen.getByText(/Derived passage duration/);const region=message.closest('[aria-live="polite"]');expect(region?.getAttribute("aria-atomic")).toBe("true");expect(region?.querySelectorAll("p")).toHaveLength(1);
   });
+  it("resets a derived group when a sibling contributor changes",()=>{
+    render(<FuelCalculator />);const distance=screen.getByLabelText("Route distance (nautical miles)");const speed=screen.getByLabelText("Conservative passage SOG (knots)");fireEvent.blur(distance);fireEvent.change(distance,{target:{value:"2000"}});fireEvent.blur(distance);expect(screen.queryByText(/Derived passage duration/)).toBeNull();fireEvent.change(speed,{target:{value:"0.1"}});expect(screen.queryByText(/Derived passage duration/)).toBeNull();fireEvent.blur(speed);expect(screen.getByText(/Derived passage duration/)).toBeTruthy();
+  });
 });
