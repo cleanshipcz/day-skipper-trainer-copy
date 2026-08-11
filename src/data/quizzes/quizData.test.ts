@@ -185,6 +185,7 @@ describe("Ropework taught-to-assessed coverage", () => {
 describe("MOB safety guidance", () => {
   it("maps every required applied recovery outcome to valid questions", async () => {
     const { default: questions, MOB_LEARNING_OUTCOMES } = await import("./safetyMob");
+    const { MOB_CRITICAL_QUESTION_IDS } = await import("../../features/quiz/mobAssessment");
     const ids = new Set(questions.map(({ id }) => id));
 
     expect(Object.keys(MOB_LEARNING_OUTCOMES).sort()).toEqual([
@@ -205,6 +206,7 @@ describe("MOB safety guidance", () => {
       assessedBy.forEach((id) => expect(ids.has(id), `${outcome} references missing ${id}`).toBe(true));
     }
     expect(new Set(Object.values(MOB_LEARNING_OUTCOMES).flat()).size).toBe(questions.length);
+    expect(MOB_CRITICAL_QUESTION_IDS.every((id) => ids.has(id))).toBe(true);
   });
 
   it("publishes a prerequisite, objective and lesson remediation path for every MOB scenario", async () => {
@@ -233,22 +235,22 @@ describe("MOB safety guidance", () => {
         return [question.question, ...question.options, question.explanation];
       }).join(" ");
 
-    expect(correctOption("mob4")).toMatch(/vessel, rig, wind, sea state, traffic and sea room/i);
-    expect(byId.get("mob4")?.explanation).toMatch(/no named return or approach is universal/i);
-    expect(byId.get("mob4")?.explanation).toMatch(/abort early/i);
-    expect(copyFor("mob4")).not.toMatch(/casualty (?:is|on your) (?:the )?leeward side/i);
+    expect(correctOption("mob-applied-approach-v2")).toMatch(/vessel, rig, wind, sea state, traffic and sea room/i);
+    expect(byId.get("mob-applied-approach-v2")?.explanation).toMatch(/no named return or approach is universal/i);
+    expect(byId.get("mob-applied-approach-v2")?.explanation).toMatch(/abort early/i);
+    expect(copyFor("mob-applied-approach-v2")).not.toMatch(/casualty (?:is|on your) (?:the )?leeward side/i);
 
-    expect(correctOption("mob5")).toMatch(/neutral or stop the engine/i);
-    expect(byId.get("mob5")?.explanation).toMatch(/fatal injury/i);
+    expect(correctOption("mob-applied-propeller-v2")).toMatch(/neutral or stop the engine/i);
+    expect(byId.get("mob-applied-propeller-v2")?.explanation).toMatch(/fatal injury/i);
 
-    expect(correctOption("mob8")).toMatch(/horizontal or near-horizontal/i);
-    expect(copyFor("mob8")).not.toMatch(/reflow syndrome|cold blood.*rush/i);
+    expect(correctOption("mob-applied-cold-recovery-v2")).toMatch(/horizontal or near-horizontal/i);
+    expect(copyFor("mob-applied-cold-recovery-v2")).not.toMatch(/reflow syndrome|cold blood.*rush/i);
 
-    expect(correctOption("mob3")).toMatch(/DSC distress alert.*Channel 16/i);
-    expect(byId.get("mob3")?.explanation).toMatch(/Channel 70 is digital-only/i);
+    expect(correctOption("mob-applied-distress-v2")).toMatch(/DSC distress alert.*Channel 16/i);
+    expect(byId.get("mob-applied-distress-v2")?.explanation).toMatch(/Channel 70 is digital-only/i);
 
-    expect(correctOption("mob12")).toMatch(/abort early under control/i);
-    expect(byId.get("mob12")?.explanation).toMatch(/additional casualties/i);
+    expect(correctOption("mob-applied-integrated-v2")).toMatch(/abort early under control/i);
+    expect(byId.get("mob-applied-integrated-v2")?.explanation).toMatch(/additional casualties/i);
   });
 
   it("reconciles parent and result copy with the 12-item applied check", async () => {
@@ -322,7 +324,6 @@ const ORIGINAL_IDS: Record<string, readonly string[]> = {
   anchorwork: ["a1", "a2", "a3", "a4", "a5"],
   victualling: ["v1", "v2", "v3", "v4", "v5"],
   rig: ["rg1", "rg2", "rg3", "rg4", "rg5"],
-  "safety-mob-quiz": ["mob1", "mob2", "mob3", "mob4", "mob5"],
 };
 
 const EXPANDED_TOPICS = [
@@ -330,8 +331,17 @@ const EXPANDED_TOPICS = [
   { topicId: "anchorwork", fileName: "anchorwork" },
   { topicId: "victualling", fileName: "victualling" },
   { topicId: "rig", fileName: "rig" },
-  { topicId: "safety-mob-quiz", fileName: "safetyMob" },
 ] as const;
+
+describe("MOB applied-bank identity retirement", () => {
+  it("does not transfer historical recall-item evidence to semantically new scenarios", async () => {
+    const { default: questions } = await import("./safetyMob");
+    const retired = new Set(Array.from({ length: 12 }, (_, index) => `mob${index + 1}`));
+
+    expect(questions.every(({ id }) => id.startsWith("mob-applied-") && id.endsWith("-v2"))).toBe(true);
+    expect(questions.every(({ id }) => !retired.has(id))).toBe(true);
+  });
+});
 
 describe("E0-S2: Expanded quiz backward compatibility", () => {
   describe.each(EXPANDED_TOPICS)(

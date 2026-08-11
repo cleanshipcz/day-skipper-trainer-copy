@@ -1,17 +1,17 @@
 import type { Question } from "./types";
 
 export const MOB_LEARNING_OUTCOMES = {
-  "alarm-mark-spotter": ["mob1"],
-  "vessel-control": ["mob2"],
-  distress: ["mob3"],
-  "return-approach": ["mob4"],
-  "propeller-safety": ["mob5"],
-  "equipment-methods": ["mob6", "mob7"],
-  "incapacitated-cold-handling": ["mob8"],
-  aftercare: ["mob9"],
-  "prevention-drills": ["mob10"],
-  "crew-roles": ["mob11"],
-  "integrated-recovery": ["mob12"],
+  "alarm-mark-spotter": ["mob-applied-immediate-v2"],
+  "vessel-control": ["mob-applied-control-v2"],
+  distress: ["mob-applied-distress-v2"],
+  "return-approach": ["mob-applied-approach-v2"],
+  "propeller-safety": ["mob-applied-propeller-v2"],
+  "equipment-methods": ["mob-applied-equipment-v2", "mob-applied-secure-v2"],
+  "incapacitated-cold-handling": ["mob-applied-cold-recovery-v2"],
+  aftercare: ["mob-applied-aftercare-v2"],
+  "prevention-drills": ["mob-applied-prevention-v2"],
+  "crew-roles": ["mob-applied-roles-v2"],
+  "integrated-recovery": ["mob-applied-integrated-v2"],
 } as const;
 
 const prerequisite = "Review the Man Overboard lesson and practise the vessel's own recovery plan before relying on this quiz.";
@@ -19,7 +19,7 @@ const remediationRoute = "/safety/mob";
 
 const safetyMobQuestions: readonly Question[] = [
   {
-    id: "mob1",
+    id: "mob-applied-immediate-v2",
     learningObjective: "Raise the alarm, provide flotation, mark the position and maintain an uninterrupted lookout",
     prerequisite,
     remediationRoute,
@@ -34,7 +34,7 @@ const safetyMobQuestions: readonly Question[] = [
     explanation: "Shout to alert the crew, throw flotation/visible markers, record the MOB position and appoint one uninterrupted spotter. The electronic mark supports rather than replaces visual contact and its accuracy depends on the equipment and timing. Delaying those actions, entering the water, or giving the spotter a second task risks losing the casualty. Review Immediate Actions in the Man Overboard lesson and rehearse the allocation aboard your vessel.",
   },
   {
-    id: "mob2",
+    id: "mob-applied-control-v2",
     learningObjective: "Control speed and prevent a second casualty while organising the response",
     prerequisite,
     remediationRoute,
@@ -49,7 +49,7 @@ const safetyMobQuestions: readonly Question[] = [
     explanation: "Maintain control of the vessel while the alarm, mark and lookout continue; brief and secure crew so the emergency does not create another casualty. A rushed turn, an overloaded rail or an unattended helm can compound the incident. The exact sail/engine response is vessel- and condition-dependent. Review Immediate Actions and your vessel's practised role plan.",
   },
   {
-    id: "mob3",
+    id: "mob-applied-distress-v2",
     learningObjective: "Escalate distress communications without delaying immediate recovery actions",
     prerequisite,
     remediationRoute,
@@ -64,7 +64,7 @@ const safetyMobQuestions: readonly Question[] = [
     explanation: "A missing person in the water is grave and imminent danger: send the DSC distress alert when fitted, then follow with the MAYDAY voice message on Channel 16. Channel 70 is digital-only; without DSC, call directly on Channel 16. Communications should be delegated where possible so vessel control and lookout continue. Review Distress Call in the lesson and the radio manufacturer's procedure.",
   },
   {
-    id: "mob4",
+    id: "mob-applied-approach-v2",
     learningObjective: "Select and execute a vessel- and condition-appropriate return and final approach",
     prerequisite,
     remediationRoute,
@@ -79,7 +79,7 @@ const safetyMobQuestions: readonly Question[] = [
     explanation: "No named return or approach is universal. Choose a practised option that fits the vessel and current constraints, brief the crew, approach slowly enough to remain in control and abort early if unsafe. Williamson-turn guidance is primarily a powered-ship technique, not an exact small-craft guarantee; a high-speed approach leaves little margin. Review Maneuvers and practise alternatives in safe conditions.",
   },
   {
-    id: "mob5",
+    id: "mob-applied-propeller-v2",
     learningObjective: "Keep the casualty clear of a turning propeller during the approach and recovery",
     prerequisite,
     remediationRoute,
@@ -94,7 +94,7 @@ const safetyMobQuestions: readonly Question[] = [
     explanation: "A turning propeller can cause fatal injury. Select neutral or stop the engine before the casualty enters its danger area, while retaining the control needed for the conditions and using the vessel's practised approach. Reverse and low speed do not remove propeller risk. Review Maneuvers and Recovery, including the vessel-specific propeller exclusion plan.",
   },
   {
-    id: "mob6",
+    id: "mob-applied-equipment-v2",
     learningObjective: "Prepare recovery equipment and a method matched to casualty capability and vessel geometry",
     prerequisite,
     remediationRoute,
@@ -109,7 +109,7 @@ const safetyMobQuestions: readonly Question[] = [
     explanation: "Prepare a vessel-compatible recovery point and tested lifting aid before contact; wet clothing, cold shock and freeboard can make self-recovery impossible. A ladder is limited to a capable casualty, improvised neck lifting is dangerous, and late rigging prolongs immersion. Equipment must suit its instructions, loads and trained crew. Review Recovery and physically rehearse your fitted system.",
   },
   {
-    id: "mob7",
+    id: "mob-applied-secure-v2",
     learningObjective: "Secure the casualty alongside before attempting the lift",
     prerequisite,
     remediationRoute,
@@ -124,7 +124,7 @@ const safetyMobQuestions: readonly Question[] = [
     explanation: "First establish a secure connection using the vessel's practised equipment, then recover without exposing crew or casualty to the propeller, crushing or falls. Speed, a one-handed grip and an unsecured rescuer can create another casualty; circling may lose precious time unless an unsafe approach requires aborting. Review Recovery and the equipment manufacturer's limitations.",
   },
   {
-    id: "mob8",
+    id: "mob-applied-cold-recovery-v2",
     learningObjective: "Recover and handle an incapacitated or cold casualty gently and near-horizontally where practicable",
     prerequisite,
     remediationRoute,
@@ -139,7 +139,7 @@ const safetyMobQuestions: readonly Question[] = [
     explanation: "Cold, incapacitated casualties need gentle handling and supported horizontal or near-horizontal recovery where practicable; vertical recovery can increase cardiac-arrest risk. Do not delay, force walking or rub limbs. The method still depends on vessel and equipment capability, so request rescue support early. Review Cold Shock & Hypothermia and current recognised first-aid guidance.",
   },
   {
-    id: "mob9",
+    id: "mob-applied-aftercare-v2",
     learningObjective: "Provide immediate first aid, prevent further heat loss and arrange professional aftercare",
     prerequisite,
     remediationRoute,
@@ -154,7 +154,7 @@ const safetyMobQuestions: readonly Question[] = [
     explanation: "Recovery is not the end of care. Assess using current first-aid guidance, prevent further heat loss, monitor continuously and seek professional medical or rescue advice; deterioration can follow immersion. Alcohol and uncontrolled rapid heating are unsafe, and leaving the casualty alone misses changes. Review Recovery, then refresh recognised first-aid training.",
   },
   {
-    id: "mob10",
+    id: "mob-applied-prevention-v2",
     learningObjective: "Use drills and prevention controls to reduce occurrence and make recovery executable",
     prerequisite,
     remediationRoute,
@@ -169,7 +169,7 @@ const safetyMobQuestions: readonly Question[] = [
     explanation: "Prevention comes first: suitable lifejackets/harness use, safe movement and clipping arrangements reduce risk. Role briefing, accessible checked equipment and realistic drills expose limits before an emergency. A drill object is not a person, but rehearsal still tests communication, manoeuvring and rigging. Review Drills and record improvements to the vessel plan.",
   },
   {
-    id: "mob11",
+    id: "mob-applied-roles-v2",
     learningObjective: "Coordinate helm, lookout, communications and recovery preparation without role conflict",
     prerequisite,
     remediationRoute,
@@ -184,7 +184,7 @@ const safetyMobQuestions: readonly Question[] = [
     explanation: "Distinct roles preserve vessel control, uninterrupted visual contact, timely help and recovery readiness. Crew numbers may require combining tasks, but never casually sacrifice helm or lookout; brief explicit handovers. The other allocations introduce gaps exactly when workload peaks. Review Immediate Actions and rehearse both full-crew and short-handed variants.",
   },
   {
-    id: "mob12",
+    id: "mob-applied-integrated-v2",
     learningObjective: "Integrate approach, crew safety, securing, recovery and aftercare when conditions change",
     prerequisite,
     remediationRoute,

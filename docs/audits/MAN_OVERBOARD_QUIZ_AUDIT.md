@@ -13,9 +13,9 @@
 
 ## 2026-08-11 applied-outcome revision
 
-The stable `mob1`–`mob12` identifiers are retained for progress compatibility, but the former recall-heavy content is replaced. `MOB_LEARNING_OUTCOMES` is the machine-tested traceability source for alarm/mark/spotter, vessel control, distress, return/approach, propeller safety, equipment/methods, incapacitated/cold handling, aftercare, prevention/drills, crew roles, and an integrated recovery decision. Every item now declares its objective, prerequisite and `/safety/mob` remediation route.
+The former `mob1`–`mob12` identifiers are deliberately retired because the applied scenarios have different semantic identities and spaced repetition is keyed by question ID. The replacement `mob-applied-*-v2` namespace invalidates incompatible saved sessions through the existing catalogue-ID validator and prevents historical recall-item mastery transferring to the new questions. `MOB_LEARNING_OUTCOMES` is the machine-tested traceability source for alarm/mark/spotter, vessel control, distress, return/approach, propeller safety, equipment/methods, incapacitated/cold handling, aftercare, prevention/drills, crew roles, and an integrated recovery decision. Every item declares its objective, prerequisite and `/safety/mob` remediation route.
 
-The parent lesson now advertises all 12 scenarios. A 70% result remains the application's existing pass threshold, but MOB result copy explicitly calls it quiz completion rather than operational mastery and directs the learner to correct misses and rehearse aboard the actual vessel.
+The parent lesson now advertises all 12 scenarios. A result must meet the application's 70% threshold and correctly demonstrate the distress, propeller-safety and incapacitated/cold-casualty outcomes. MOB result copy explicitly calls this quiz completion rather than operational mastery and directs the learner to correct misses and rehearse aboard the actual vessel.
 
 ### Release gate: qualified review required
 

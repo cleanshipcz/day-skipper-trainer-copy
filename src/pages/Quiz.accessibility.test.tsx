@@ -17,7 +17,7 @@ vi.mock("@/contexts/AuthHooks", () => ({ useAuth: () => ({ user: mocks.user }) }
 vi.mock("@/hooks/useProgress", () => ({ useProgress: () => mocks }));
 vi.mock("@/integrations/supabase/client", () => ({ supabase: { rpc: mocks.rpc } }));
 vi.mock("@/data/quizzes", () => ({
-  isQuizTopicId: (topic: string) => ["test", "anchorwork", "engine", "nautical-terms-quiz", "ropework", "lights-signals", "colregs", "weather"].includes(topic),
+  isQuizTopicId: (topic: string) => ["test", "anchorwork", "engine", "nautical-terms-quiz", "ropework", "lights-signals", "colregs", "weather", "safety-mob-quiz"].includes(topic),
   topicMeta: {
     test: { title: "A very long localized quiz title that must reflow", subtitle: "Long localized supporting text" },
     "nautical-terms-quiz": { title: "Full Nautical Terms Quiz", subtitle: "Terms" },
@@ -27,6 +27,7 @@ vi.mock("@/data/quizzes", () => ({
     engine: { title: "Engine Checks Quiz", subtitle: "Engine safety" },
     colregs: { title: "Combined Rules Diagnostic", subtitle: "Rules" },
     weather: { title: "Meteorology Quiz", subtitle: "Weather" },
+    "safety-mob-quiz": { title: "Man Overboard Applied Recovery Check", subtitle: "12 applied scenarios" },
   },
   loadQuizTopic: mocks.loadQuizTopic,
 }));
@@ -177,6 +178,63 @@ describe("Quiz accessible interaction and reflow", () => {
     await user.click(screen.getByRole("button", { name: "Submit Answer" }));
     await user.click(await screen.findByRole("button", { name: "Review Steering & Sailing theory" }));
     expect(await screen.findByText("Route: /rules/colregs#rule-17")).toBeTruthy();
+  });
+
+  it("shows and follows MOB prerequisite and missed-objective remediation links", async () => {
+    const user = userEvent.setup();
+    mocks.loadQuizTopic.mockResolvedValue([{ ...questions[0], id: "mob-applied-distress-v2", learningObjective: "Escalate distress", prerequisite: "Review and practise the MOB plan", remediationRoute: "/safety/mob" }]);
+    renderQuiz("/quiz/safety-mob-quiz");
+
+    expect(await screen.findByText(/Prerequisite: review and rehearse/i)).toBeTruthy();
+    expect(screen.getByText(/Objective: Escalate distress/i)).toBeTruthy();
+    await user.click(screen.getByRole("radio", { name: "First wrong" }));
+    await user.click(screen.getByRole("button", { name: "Submit Answer" }));
+    await user.click(await screen.findByRole("button", { name: "Review this objective in the Man Overboard lesson" }));
+    expect(await screen.findByText("Current path: /safety/mob")).toBeTruthy();
+  });
+
+  it("persists a 9/12 MOB critical-outcome miss as not passed", async () => {
+    const critical = new Set(["mob-applied-distress-v2", "mob-applied-propeller-v2", "mob-applied-cold-recovery-v2"]);
+    const mobQuestions = [
+      ...critical,
+      ...Array.from({ length: 9 }, (_, index) => `mob-applied-other-${index}-v2`),
+    ].map((id) => ({
+      id,
+      question: id,
+      options: [`unsafe ${id}`, `safe ${id}`],
+      correctAnswer: 1,
+      explanation: `Review ${id}`,
+      learningObjective: id,
+      prerequisite: "Review and practise the MOB plan",
+      remediationRoute: "/safety/mob",
+    }));
+    mocks.user = { id: "mob-learner" };
+    mocks.loadQuizTopic.mockResolvedValue(mobQuestions);
+    mocks.rpc.mockImplementation((name: string) => Promise.resolve(name === "start_quiz_attempt"
+      ? { data: { attempt_id: "mob-attempt", started_at: new Date().toISOString() }, error: null }
+      : { data: null, error: null }));
+    const user = userEvent.setup();
+    renderQuiz("/quiz/safety-mob-quiz");
+
+    await screen.findByText("Quiz progress is ready to save.");
+    for (let index = 0; index < mobQuestions.length; index += 1) {
+      const heading = await screen.findByRole("heading", { level: 3 });
+      const id = heading.textContent!;
+      await user.click(screen.getByRole("radio", { name: `${critical.has(id) ? "unsafe" : "safe"} ${id}` }));
+      await user.click(screen.getByRole("button", { name: "Submit Answer" }));
+      await user.click(await screen.findByRole("button", { name: index === mobQuestions.length - 1 ? "View Results" : "Next Question" }));
+    }
+
+    expect(await screen.findByText("75%")).toBeTruthy();
+    expect(screen.getByText("Further MOB review needed")).toBeTruthy();
+    expect(screen.queryByText("Applied recovery check passed")).toBeNull();
+    await waitFor(() => expect(mocks.saveProgress).toHaveBeenCalledWith(
+      expect.stringContaining("safety-mob-quiz"),
+      false,
+      75,
+      0,
+      expect.objectContaining({ completed: true }),
+    ));
   });
 
   it("uses the same safe fallback in the unavailable state", async () => {
