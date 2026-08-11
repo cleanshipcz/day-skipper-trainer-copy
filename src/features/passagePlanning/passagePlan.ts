@@ -23,6 +23,7 @@ export interface PassagePlanRecord {
   ownerId: string;
   revision: number;
   updatedAt: string;
+  lineage: string[];
   completedRevision: number | null;
   completionStatus: "draft" | "queued" | "confirmed";
   plan: PassagePlan;
@@ -40,7 +41,11 @@ export function reconcilePassagePlanRecords(local: PassagePlanRecord | null, rem
   if (!local) return remote ? { status:"remote", record:remote } : null;
   if (!remote) return { status:"local", record:local };
   if (local.ownerId !== remote.ownerId) return { status:"conflict", local, remote };
-  if (local.revision !== remote.revision) return local.revision > remote.revision ? { status:"local", record:local } : { status:"remote", record:remote };
+  if (local.revision !== remote.revision) {
+    const newer=local.revision>remote.revision?local:remote,older=newer===local?remote:local;
+    if(!newer.lineage.includes(older.updatedAt))return {status:"conflict",local,remote};
+    return newer===local?{status:"local",record:local}:{status:"remote",record:remote};
+  }
   if (stablePlan(local.plan) === stablePlan(remote.plan)) {
     const record = local.updatedAt >= remote.updatedAt ? local : remote;
     const completion = completionRank[local.completionStatus] >= completionRank[remote.completionStatus] ? local : remote;
@@ -50,7 +55,7 @@ export function reconcilePassagePlanRecords(local: PassagePlanRecord | null, rem
 }
 
 export function makePassagePlanRecord(plan: PassagePlan, ownerId: string, previous?: PassagePlanRecord | null, now = new Date().toISOString()): PassagePlanRecord {
-  return { persistenceVersion:PASSAGE_PLAN_PERSISTENCE_VERSION, ownerId, revision:(previous?.revision ?? 0)+1, updatedAt:now, completedRevision:null, completionStatus:"draft", plan };
+  return { persistenceVersion:PASSAGE_PLAN_PERSISTENCE_VERSION, ownerId, revision:(previous?.revision ?? 0)+1, updatedAt:now, lineage:previous?[...previous.lineage,previous.updatedAt]:[], completedRevision:null, completionStatus:"draft", plan };
 }
 
 const emptyInboundLeg = () => ({ course:0, distanceNm:0, notes:"", tidalGate:"", weatherWindow:"" });
@@ -153,11 +158,12 @@ export function decodePassagePlanRecord(raw: string | null, expectedOwnerId: str
     if (source.ownerId !== expectedOwnerId || !Number.isSafeInteger(source.revision) || (source.revision as number)<0 || typeof source.updatedAt!=="string" || Number.isNaN(Date.parse(source.updatedAt)) || !(source.completedRevision===null || Number.isSafeInteger(source.completedRevision)) || !(source.completionStatus===undefined || source.completionStatus==="draft" || source.completionStatus==="queued" || source.completionStatus==="confirmed")) return {ok:false,message:"The saved passage plan has invalid persistence metadata or belongs to another owner."};
     const decoded=decodePassagePlanCache(JSON.stringify(source.plan));
     if(!decoded.ok)return decoded;
-    const completedRevision=source.completedRevision as number|null;return {ok:true,migrated:false,record:{persistenceVersion:PASSAGE_PLAN_PERSISTENCE_VERSION,ownerId:expectedOwnerId,revision:source.revision as number,updatedAt:source.updatedAt,completedRevision,completionStatus:(source.completionStatus as PassagePlanRecord["completionStatus"]|undefined)??(completedRevision===source.revision?"confirmed":"draft"),plan:decoded.plan}};
+    const lineage=Array.isArray(source.lineage)&&source.lineage.every(item=>typeof item==="string"&&!Number.isNaN(Date.parse(item)))?source.lineage as string[]:[];
+    const completedRevision=source.completedRevision as number|null;return {ok:true,migrated:false,record:{persistenceVersion:PASSAGE_PLAN_PERSISTENCE_VERSION,ownerId:expectedOwnerId,revision:source.revision as number,updatedAt:source.updatedAt,lineage,completedRevision,completionStatus:(source.completionStatus as PassagePlanRecord["completionStatus"]|undefined)??(completedRevision===source.revision?"confirmed":"draft"),plan:decoded.plan}};
   }
   const decoded=decodePassagePlanCache(raw);
   if(!decoded.ok)return decoded;
-  return {ok:true,migrated:true,record:{persistenceVersion:PASSAGE_PLAN_PERSISTENCE_VERSION,ownerId:expectedOwnerId,revision:0,updatedAt:new Date(0).toISOString(),completedRevision:null,completionStatus:"draft",plan:decoded.plan}};
+  return {ok:true,migrated:true,record:{persistenceVersion:PASSAGE_PLAN_PERSISTENCE_VERSION,ownerId:expectedOwnerId,revision:0,updatedAt:new Date(0).toISOString(),lineage:[],completedRevision:null,completionStatus:"draft",plan:decoded.plan}};
 }
 
 export function parsePassagePlanCache(raw: string | null): PassagePlan | null {
