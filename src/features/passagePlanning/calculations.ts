@@ -182,6 +182,7 @@ export function calculateLegEtas(waypoints: readonly PlanWaypoint[], departure: 
   return waypoints.slice(1).map((waypoint) => {
     if (!waypoint.inboundLeg || !Number.isFinite(waypoint.inboundLeg.distanceNm)) return "";
     elapsed += waypoint.inboundLeg.distanceNm / speedKnots;
-    return new Date(Date.parse(departure) + elapsed * 3_600_000).toISOString();
+    const eta=Date.parse(departure)+elapsed*3_600_000;
+    return Number.isFinite(eta)&&!Number.isNaN(new Date(eta).getTime()) ? new Date(eta).toISOString() : "";
   });
 }

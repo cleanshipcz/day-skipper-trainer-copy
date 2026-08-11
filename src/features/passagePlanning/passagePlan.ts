@@ -1,4 +1,4 @@
-import { parseWaypointCoordinate, type PlanWaypoint } from "./calculations";
+import { calculatePassage, parseWaypointCoordinate, passageValidationIssues, totalRouteDistance, type PassageCalculation, type PlanWaypoint } from "./calculations";
 
 export const PASSAGE_PLAN_CACHE_VERSION = 3;
 
@@ -74,29 +74,52 @@ const isWaypoint = (value: unknown): value is PlanWaypoint => {
     && typeof leg.course === "number" && typeof leg.distanceNm === "number";
 };
 
+export type PassagePlanParseResult =
+  | { ok: true; plan: PassagePlan; migrated: boolean }
+  | { ok: false; code: "empty" | "malformed-json" | "unsupported-version" | "invalid-structure"; message: string };
+
+const text = (value: unknown) => typeof value === "string" ? value : "";
+const finite = (value: unknown) => typeof value === "number" && Number.isFinite(value) ? value : undefined;
+const sanitizeText = (value: string) => Array.from(value).filter(character=>{const code=character.charCodeAt(0);return code===9||code===10||code===13||code>=32&&code!==127}).join("").slice(0,4000);
+
+/** Migrates shape only. Semantic validation intentionally happens after this step. */
+export function decodePassagePlanCache(raw: string | null): PassagePlanParseResult {
+  if (!raw) return { ok:false, code:"empty", message:"No saved passage plan was found." };
+  let value: unknown;
+  try { value=JSON.parse(raw); } catch { return { ok:false, code:"malformed-json", message:"The saved passage plan is not valid JSON." }; }
+  if (!value || typeof value !== "object" || Array.isArray(value)) return { ok:false, code:"invalid-structure", message:"The saved passage plan has an invalid top-level structure." };
+  const source=value as Record<string,unknown>;
+  if (source.version !== PASSAGE_PLAN_CACHE_VERSION) return { ok:false, code:"unsupported-version", message:`Passage plan version ${String(source.version)} is not supported.` };
+  if (!Array.isArray(source.points) || !source.points.every(isWaypoint) || !source.safety || typeof source.safety!=="object" || !source.provenance || typeof source.provenance!=="object") return { ok:false, code:"invalid-structure", message:"The saved passage plan is incomplete; safe fields could not be recovered." };
+  const safety=source.safety as Record<string,unknown>, provenance=source.provenance as Record<string,unknown>;
+  const speed=finite(source.speed);
+  if(speed===undefined || source.coordinateFormat!=="degrees-decimal-minutes" || source.datum!=="WGS84") return { ok:false, code:"invalid-structure", message:"The saved passage plan has invalid required field types." };
+  const plan:PassagePlan={
+    version:PASSAGE_PLAN_CACHE_VERSION,
+    name:sanitizeText(text(source.name)), departure:sanitizeText(text(source.departure)), speed,
+    ...(finite(source.fuelRate)!==undefined?{fuelRate:finite(source.fuelRate)}:{}),
+    ...(finite(source.reservePercent)!==undefined?{reservePercent:finite(source.reservePercent)}:{}),
+    coordinateFormat:"degrees-decimal-minutes", datum:"WGS84", coordinatePrecision:sanitizeText(text(source.coordinatePrecision)),
+    safety:{departureBerth:sanitizeText(text(safety.departureBerth)),destinationBerth:sanitizeText(text(safety.destinationBerth)),limits:sanitizeText(text(safety.limits)),abortDecision:sanitizeText(text(safety.abortDecision)),alternatives:sanitizeText(text(safety.alternatives)),manualVerification:sanitizeText(text(safety.manualVerification))},
+    provenance:{weather:sanitizeText(text(provenance.weather)),tide:sanitizeText(text(provenance.tide)),chart:sanitizeText(text(provenance.chart)),publications:sanitizeText(text(provenance.publications)),preparedAt:sanitizeText(text(provenance.preparedAt)),revisedAt:sanitizeText(text(provenance.revisedAt))},
+    points:source.points.map(point=>({...point,id:sanitizeText(point.id),name:sanitizeText(point.name),latitude:sanitizeText(point.latitude),longitude:sanitizeText(point.longitude),inboundLeg:point.inboundLeg&&{...point.inboundLeg,notes:sanitizeText(point.inboundLeg.notes),tidalGate:sanitizeText(point.inboundLeg.tidalGate),weatherWindow:sanitizeText(point.inboundLeg.weatherWindow)}})),
+  };
+  return {ok:true,plan,migrated:false};
+}
+
 export function parsePassagePlanCache(raw: string | null): PassagePlan | null {
-  if (!raw) return null;
-  try {
-    const value: unknown = JSON.parse(raw);
-    if (!value || typeof value !== "object") return null;
-    const plan = value as Record<string, unknown>;
-    if (
-      plan.version !== PASSAGE_PLAN_CACHE_VERSION ||
-      typeof plan.name !== "string" ||
-      typeof plan.departure !== "string" ||
-      typeof plan.speed !== "number" ||
-      plan.coordinateFormat !== "degrees-decimal-minutes" || plan.datum !== "WGS84" || typeof plan.coordinatePrecision !== "string" ||
-      !plan.safety || typeof plan.safety !== "object" || !plan.provenance || typeof plan.provenance !== "object" ||
-      !Array.isArray(plan.points) ||
-      !plan.points.every(isWaypoint) ||
-      (plan.fuelRate !== undefined && typeof plan.fuelRate !== "number") ||
-      (plan.reservePercent !== undefined && typeof plan.reservePercent !== "number")
-    ) return null;
-    const parsed = plan as unknown as PassagePlan;
-    return validatePassagePlan(parsed).length === 0 ? parsed : null;
-  } catch {
-    return null;
-  }
+  const result=decodePassagePlanCache(raw);
+  return result.ok && validatePassagePlan(result.plan).length===0 ? result.plan : null;
+}
+
+export type PassagePlanCalculationResult = {ok:true;totalDistanceNm:number;calculation:PassageCalculation}|{ok:false;issues:string[]};
+/** Uses the shared calculator model and never throws on user/persisted input. */
+export function calculatePassagePlanSummary(plan:PassagePlan):PassagePlanCalculationResult {
+  const totalDistanceNm=totalRouteDistance(plan.points);
+  const input={distanceNm:totalDistanceNm,speedKnots:plan.speed,engineHours:totalDistanceNm/plan.speed,fuelLitresPerHour:plan.fuelRate??1,additionalFuelLitres:0,reservePercent:plan.reservePercent??0.1,usableFuelLitres:100000,departureTime:plan.departure};
+  const issues=passageValidationIssues(input).map(issue=>issue.message);
+  if(issues.length)return {ok:false,issues};
+  try{return {ok:true,totalDistanceNm,calculation:calculatePassage(input)}}catch(error){return {ok:false,issues:[error instanceof Error?error.message:"Passage calculation failed."]}}
 }
 
 export function validatePassagePlan(plan: PassagePlan, nowMs = Date.now()): string[] {
@@ -129,7 +152,11 @@ export function validatePassagePlan(plan: PassagePlan, nowMs = Date.now()): stri
     }
   });
   if (plan.fuelRate !== undefined && (!Number.isFinite(plan.fuelRate) || plan.fuelRate <= 0 || plan.fuelRate > 500)) errors.push("Fuel rate must be greater than 0 and no more than 500 litres/hour.");
-  if (plan.reservePercent !== undefined && (!Number.isFinite(plan.reservePercent) || plan.reservePercent < 0 || plan.reservePercent > 200)) errors.push("Fuel reserve must be between 0% and 200%.");
+  if (plan.reservePercent !== undefined && (!Number.isFinite(plan.reservePercent) || plan.reservePercent < 0.1 || plan.reservePercent > 200)) errors.push("Fuel reserve must be between 0.1% and 200%.");
+  const total=totalRouteDistance(plan.points), duration=total/plan.speed, eta=Date.parse(plan.departure)+duration*3_600_000;
+  if(plan.points.length>=2&&(!Number.isFinite(total)||total<=0||!Number.isFinite(duration)||duration<=0||duration>1000))errors.push("Derived route duration must be finite, positive and no more than 1,000 hours.");
+  else if(plan.points.length>=2&&(!Number.isFinite(eta)||Number.isNaN(new Date(eta).getTime())))errors.push("Departure plus route duration must produce a representable ETA.");
+  if(plan.fuelRate!==undefined&&Number.isFinite(duration)&&plan.reservePercent!==undefined){const fuel=duration*plan.fuelRate*(1+plan.reservePercent/100);if(!Number.isFinite(fuel)||fuel<=0||fuel>100000)errors.push("Derived total fuel must be finite, positive and no more than 100,000 litres.");}
   return errors;
 }
 
