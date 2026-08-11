@@ -58,12 +58,16 @@ export const saveProgressRecord = async ({
   const lightsEvidenceCount = Array.isArray(lightsPayload?.visitedSectionIds) ? new Set(lightsPayload.visitedSectionIds).size : 0;
   const passagePayload = answersHistory as { expectedServerHead?: unknown; passagePlanRecord?: { ownerId?: unknown; revision?: unknown; updatedAt?: unknown; lineage?: unknown; plan?: unknown } } | undefined;
   const passageRecord = passagePayload?.passagePlanRecord;
-  const readinessPayload = answersHistory as { readinessRecord?: { version?: unknown; context?: unknown; entries?: unknown; updatedAt?: unknown } } | undefined;
+  const readinessPayload = answersHistory as { readinessRecord?: { version?: unknown; sessionId?: unknown; catalogueFingerprint?: unknown; context?: unknown; entries?: unknown; createdAt?: unknown; updatedAt?: unknown; expiresAt?: unknown } } | undefined;
   if (topicId === "passage-planning-checklist" && (
-    readinessPayload?.readinessRecord?.version !== 1
+    readinessPayload?.readinessRecord?.version !== 2
+    || typeof readinessPayload.readinessRecord.sessionId !== "string" || !readinessPayload.readinessRecord.sessionId.trim()
+    || typeof readinessPayload.readinessRecord.catalogueFingerprint !== "string" || !readinessPayload.readinessRecord.catalogueFingerprint.trim()
     || !readinessPayload.readinessRecord.context || typeof readinessPayload.readinessRecord.context !== "object"
     || !readinessPayload.readinessRecord.entries || typeof readinessPayload.readinessRecord.entries !== "object"
+    || typeof readinessPayload.readinessRecord.createdAt !== "string"
     || typeof readinessPayload.readinessRecord.updatedAt !== "string"
+    || typeof readinessPayload.readinessRecord.expiresAt !== "string"
   )) throw new Error("Pre-departure readiness requires a valid evidence record");
   if (topicId === "passage-planning-builder" && (
     !passageRecord || passageRecord.ownerId !== userId
@@ -117,7 +121,7 @@ export const saveProgressRecord = async ({
         p_answers_history: answersHistory as Record<string, unknown>,
       })
     : topicId === "passage-planning-checklist"
-      ? await supabaseClient.rpc("save_readiness_record_progress", {
+      ? await supabaseClient.rpc("save_readiness_record_progress_v2", {
         p_completed: completed,
         p_answers_history: answersHistory as Record<string, unknown>,
       })

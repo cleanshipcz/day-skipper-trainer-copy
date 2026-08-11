@@ -55,8 +55,32 @@ export const validateReadinessCatalogue = (items: readonly ChecklistItem[]): Cat
   });
   items.forEach((item) => (item.dependsOn ?? []).forEach((dependency) => {
     if (!seen.has(dependency)) diagnostics.push(`Item ${item.id} depends on missing item ${dependency}.`);
+    else if (items.findIndex((candidate) => candidate.id === dependency) >= items.findIndex((candidate) => candidate.id === item.id)) diagnostics.push(`Item ${item.id} must follow its dependency ${dependency}.`);
   }));
-  const source = items.map((item, index) => `${index}:${item.id}:${item.phase}:${item.label}:${item.notApplicableAllowed === true}:${(item.dependsOn ?? []).join(",")}`).join("|");
+  const visiting = new Set<string>();
+  const visited = new Set<string>();
+  const byId = new Map(items.map((item) => [item.id, item]));
+  const visit = (id: string) => {
+    if (visiting.has(id)) { diagnostics.push(`Readiness catalogue contains a dependency cycle at ${id}.`); return; }
+    if (visited.has(id)) return;
+    visiting.add(id);
+    (byId.get(id)?.dependsOn ?? []).forEach((dependency) => { if (byId.has(dependency)) visit(dependency); });
+    visiting.delete(id);
+    visited.add(id);
+  };
+  items.forEach((item) => visit(item.id));
+  // JSON encoding makes field boundaries unambiguous. Every user-facing or
+  // structural field that can affect a safety decision participates.
+  const source = JSON.stringify(items.map((item, index) => ({
+    order: index,
+    id: item.id,
+    phase: item.phase,
+    label: item.label,
+    why: item.why,
+    dependsOn: [...(item.dependsOn ?? [])],
+    conditional: item.conditional ? { when: item.conditional.when, authority: item.conditional.authority } : null,
+    notApplicableAllowed: item.notApplicableAllowed === true,
+  })));
   let hash = 2166136261;
   for (let i = 0; i < source.length; i += 1) hash = Math.imul(hash ^ source.charCodeAt(i), 16777619);
   return { valid: diagnostics.length === 0, diagnostics, fingerprint: `fnv1a-${(hash >>> 0).toString(16)}` };

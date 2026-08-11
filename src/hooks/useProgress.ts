@@ -28,6 +28,10 @@ export const useProgress = () => {
       try {
         const supabase = await loadProgressClient();
         if (ownerRef.current !== user.id) return { status: "failed", record: null };
+        if (topicId === "passage-planning-checklist") {
+          const { error: cleanupError } = await supabase.rpc("expire_readiness_record_progress");
+          if (cleanupError) throw cleanupError;
+        }
         const { data, error } = await supabase
           .from("user_progress")
           .select("*")

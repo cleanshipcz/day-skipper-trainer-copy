@@ -74,6 +74,16 @@ describe("readiness record model", () => {
     expect(validateReadinessCatalogue([{ ...required, id: " ", label: "" }]).valid).toBe(false);
   });
 
+  it("fingerprints all decision guidance and rejects cycles or forward dependencies", () => {
+    const base = validateReadinessCatalogue(items).fingerprint;
+    expect(validateReadinessCatalogue([{ ...required, why: "Changed safety rationale" }, conditional]).fingerprint).not.toBe(base);
+    expect(validateReadinessCatalogue([required, { ...conditional, conditional: { ...conditional.conditional, authority: "Changed authority" } }]).fingerprint).not.toBe(base);
+    const cyclic = [{ ...required, dependsOn: ["conditional"] }, { ...conditional, dependsOn: ["required"] }];
+    const result = validateReadinessCatalogue(cyclic);
+    expect(result.valid).toBe(false);
+    expect(result.diagnostics.join(" ")).toMatch(/must follow|cycle/);
+  });
+
   it("rejects legacy, expired and catalogue-stale durable sessions", () => {
     expect(parseReadinessSession({ version: 1 }, items).status).toBe("legacy");
     const base = { version: 2, sessionId: "session", catalogueFingerprint: validateReadinessCatalogue(items).fingerprint, context: { vessel: "A", voyage: "B", conditions: "C" }, entries: {}, createdAt: "2026-01-01T00:00:00.000Z", updatedAt: "2026-01-01T00:00:00.000Z", expiresAt: "2026-02-01T00:00:00.000Z" };
