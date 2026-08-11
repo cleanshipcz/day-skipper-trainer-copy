@@ -1,6 +1,6 @@
 import { readFileSync } from "node:fs";
 import { describe, expect, it } from "vitest";
-import questions, { WEATHER_AUTHORITATIVE_SOURCES, WEATHER_QUIZ_COVERAGE_MATRIX } from "./weather";
+import questions, { WEATHER_AUTHORITATIVE_SOURCES, WEATHER_OBJECTIVE_IDS, WEATHER_QUIZ_COVERAGE_MATRIX } from "./weather";
 import { validateQuizBank } from "./index";
 
 describe("applied meteorology quiz bank", () => {
@@ -9,7 +9,18 @@ describe("applied meteorology quiz bank", () => {
     expect(questions).toHaveLength(21);
     expect(WEATHER_QUIZ_COVERAGE_MATRIX.map(({ questionId }) => questionId)).toEqual(questions.map(({ id }) => id));
     expect(new Set(WEATHER_QUIZ_COVERAGE_MATRIX.map(({ questionId }) => questionId)).size).toBe(21);
-    expect(new Set(WEATHER_QUIZ_COVERAGE_MATRIX.map(({ leaf }) => leaf))).toEqual(new Set(["weather-systems", "beaufort-sea-state", "marine-forecasts", "fog-visibility"]));
+    const expectedObjectiveIds = [
+      "systems-isobar-spacing", "systems-low-circulation", "systems-pressure-tendency", "systems-front-timing", "systems-cold-front-passage",
+      "beaufort-force-4-range", "beaufort-force-4-sea-cues", "beaufort-force-6-decision", "beaufort-wind-versus-sea-state", "beaufort-combined-conditions-decision",
+      "forecast-official-warnings", "forecast-navtex-msi", "forecast-veering-strengthening", "forecast-area-fields-synopsis", "forecast-area-validity-go-no-go",
+      "fog-advection-onset", "fog-definition-very-poor", "fog-radar-ais-limitations", "fog-rule-19-forward-contact", "fog-radiation-clearance", "fog-visibility-boundary",
+    ];
+    expect(Object.keys(WEATHER_OBJECTIVE_IDS)).toEqual(questions.map(({ id }) => id));
+    expect(Object.values(WEATHER_OBJECTIVE_IDS)).toEqual(expectedObjectiveIds);
+    expect(WEATHER_QUIZ_COVERAGE_MATRIX.map(({ objectiveId }) => objectiveId)).toEqual(expectedObjectiveIds);
+    expect(Object.fromEntries(["weather-systems", "beaufort-sea-state", "marine-forecasts", "fog-visibility"].map((leaf) => [leaf, WEATHER_QUIZ_COVERAGE_MATRIX.filter((row) => row.leaf === leaf).length]))).toEqual({
+      "weather-systems": 5, "beaufort-sea-state": 5, "marine-forecasts": 5, "fog-visibility": 6,
+    });
     for (const row of WEATHER_QUIZ_COVERAGE_MATRIX) {
       expect(row.objective?.length, row.questionId).toBeGreaterThan(12);
       expect(row.sourceIds.length, row.questionId).toBeGreaterThan(0);
@@ -21,6 +32,9 @@ describe("applied meteorology quiz bank", () => {
   it("preserves safety-critical forecast, visibility and restricted-visibility facts", () => {
     const byId = new Map(questions.map((question) => [question.id, question]));
     const answer = (id: string) => { const q = byId.get(id)!; return q.options[q.correctAnswer]; };
+    expect(answer("weather-2")).toMatch(/easterly wind.*westward.*inward/i);
+    expect(byId.get("weather-2")?.explanation).toMatch(/north side.*westward.*from the east/i);
+    expect(byId.get("weather-2")?.options.filter((option) => /\bwesterly wind/i.test(option))).toEqual(["Mainly westerly wind, flowing eastward and outward around the low"]);
     expect(answer("weather-8")).toMatch(/22.?27 kt.*strong breeze/i);
     expect(answer("weather-10")).toMatch(/wind opposes.*tidal|steeper.*hazardous/i);
     expect(answer("weather-14")).toMatch(/wind, sea state, weather and visibility.*general synopsis/i);
