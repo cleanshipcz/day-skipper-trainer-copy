@@ -1,9 +1,10 @@
 import { describe, it, expect, vi, beforeEach } from "vitest";
-import { render, screen } from "@testing-library/react";
+import { fireEvent, render, screen } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { FireExtinguisherDrill } from "../src/components/safety/FireExtinguisherDrill";
 import { fireResponseScenarios } from "../src/data/fireExtinguishers";
 import TestRouter from "./TestRouter";
+import { toast } from "sonner";
 
 // Mock sonner toast
 vi.mock("sonner", () => ({
@@ -87,6 +88,19 @@ describe("FireExtinguisherDrill", () => {
 
     // then - should display score tracking
     expect(screen.getByTestId("drill-score")).toBeDefined();
+  });
+
+  it("commits one answer for duplicate activation and exposes native single-choice semantics", () => {
+    render(<TestRouter><FireExtinguisherDrill onComplete={vi.fn()} /></TestRouter>);
+    const radios = screen.getAllByRole("radio");
+    expect(new Set(radios.map((radio) => radio.getAttribute("name"))).size).toBe(1);
+    fireEvent.click(radios[0]);
+    const submit = screen.getByRole("button", { name: /^check answer$/i });
+    fireEvent.click(submit);
+    fireEvent.click(submit);
+    expect(screen.getByTestId("drill-score").textContent).toMatch(/\/ 1/);
+    expect(vi.mocked(toast.success).mock.calls.length + vi.mocked(toast.error).mock.calls.length).toBe(1);
+    expect(screen.getByTestId("drill-result").getAttribute("role")).toBe("status");
   });
 
   it("should render a reset button to restart the drill", () => {

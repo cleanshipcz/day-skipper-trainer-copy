@@ -18,11 +18,15 @@ import {
 export interface DrillResult {
   readonly correctCount: number;
   readonly totalAnswered: number;
+  readonly incorrectScenarioIds: readonly string[];
 }
+
+export const FIRE_DRILL_PASS_PERCENT = 80;
 
 interface FireExtinguisherDrillProps {
   /** Called once when the student finishes all scenarios. */
   readonly onComplete: (result: DrillResult) => void;
+  readonly storageKey?: string;
 }
 
 /**
@@ -45,6 +49,7 @@ interface DrillState {
   readonly answered: boolean;
   readonly correctCount: number;
   readonly totalAnswered: number;
+  readonly incorrectScenarioIds: readonly string[];
 }
 
 const initialState = (scenarios: readonly FireResponseScenario[]): DrillState => ({
@@ -54,14 +59,30 @@ const initialState = (scenarios: readonly FireResponseScenario[]): DrillState =>
   answered: false,
   correctCount: 0,
   totalAnswered: 0,
+  incorrectScenarioIds: [],
 });
 
-export const FireExtinguisherDrill = ({ onComplete }: FireExtinguisherDrillProps) => {
+const restoreState = (storageKey?: string): DrillState => {
+  if (!storageKey) return initialState(fireResponseScenarios);
+  try {
+    const saved = JSON.parse(localStorage.getItem(storageKey) ?? "null") as Partial<DrillState> & { scenarioIds?: unknown };
+    const ids = Array.isArray(saved.scenarioIds) ? saved.scenarioIds.filter((id): id is string => typeof id === "string") : [];
+    const scenarios = ids.map((id) => fireResponseScenarios.find((scenario) => scenario.id === id)).filter((scenario): scenario is FireResponseScenario => Boolean(scenario));
+    if (scenarios.length !== fireResponseScenarios.length || typeof saved.currentIndex !== "number") return initialState(fireResponseScenarios);
+    const totalAnswered = Math.min(scenarios.length, Math.max(0, Number(saved.totalAnswered) || 0));
+    const incorrectScenarioIds = Array.isArray(saved.incorrectScenarioIds) ? saved.incorrectScenarioIds.filter((id): id is string => typeof id === "string" && scenarios.some((scenario) => scenario.id === id)) : [];
+    return { scenarios, currentIndex: Math.min(scenarios.length, Math.max(0, saved.currentIndex)), selectedOptionId: typeof saved.selectedOptionId === "string" ? saved.selectedOptionId : null, answered: saved.answered === true, correctCount: Math.min(totalAnswered, Math.max(0, Number(saved.correctCount) || 0)), totalAnswered, incorrectScenarioIds };
+  } catch { return initialState(fireResponseScenarios); }
+};
+
+export const FireExtinguisherDrill = ({ onComplete, storageKey }: FireExtinguisherDrillProps) => {
   const [state, setState] = useState<DrillState>(() =>
-    initialState(fireResponseScenarios)
+    restoreState(storageKey)
   );
 
   const completedRef = useRef(false);
+  const submittedScenarioRef = useRef<string | null>(null);
+  const feedbackRef = useRef<HTMLDivElement>(null);
 
   const currentScenario = state.scenarios[state.currentIndex] as
     | FireResponseScenario
@@ -73,6 +94,11 @@ export const FireExtinguisherDrill = ({ onComplete }: FireExtinguisherDrillProps
     state.answered &&
     state.selectedOptionId === currentScenario?.correctOptionId;
 
+  useEffect(() => {
+    if (!storageKey) return;
+    try { localStorage.setItem(storageKey, JSON.stringify({ ...state, scenarios: undefined, scenarioIds: state.scenarios.map((scenario) => scenario.id) })); } catch { /* Parent save status reports durable failures. */ }
+  }, [state, storageKey]);
+
   // H1: Fire onComplete callback when drill finishes (once only)
   useEffect(() => {
     if (isComplete && !completedRef.current) {
@@ -80,9 +106,10 @@ export const FireExtinguisherDrill = ({ onComplete }: FireExtinguisherDrillProps
       onComplete({
         correctCount: state.correctCount,
         totalAnswered: state.totalAnswered,
+        incorrectScenarioIds: state.incorrectScenarioIds,
       });
     }
-  }, [isComplete, onComplete, state.correctCount, state.totalAnswered]);
+  }, [isComplete, onComplete, state.correctCount, state.incorrectScenarioIds, state.totalAnswered]);
 
   const handleSelect = useCallback((optionId: string) => {
     setState((prev) =>
@@ -94,7 +121,8 @@ export const FireExtinguisherDrill = ({ onComplete }: FireExtinguisherDrillProps
   const handleSubmit = useCallback(() => {
     setState((prev) => {
       const scenario = prev.scenarios[prev.currentIndex];
-      if (!scenario || prev.selectedOptionId === null) return prev;
+      if (!scenario || prev.selectedOptionId === null || prev.answered || submittedScenarioRef.current === scenario.id) return prev;
+      submittedScenarioRef.current = scenario.id;
 
       const correct =
         scenario.correctOptionId === prev.selectedOptionId;
@@ -113,26 +141,34 @@ export const FireExtinguisherDrill = ({ onComplete }: FireExtinguisherDrillProps
         ...prev,
         answered: true,
         correctCount: prev.correctCount + (correct ? 1 : 0),
-        totalAnswered: prev.totalAnswered + 1,
+        totalAnswered: Math.min(prev.scenarios.length, prev.totalAnswered + 1),
+        incorrectScenarioIds: correct ? prev.incorrectScenarioIds : [...new Set([...prev.incorrectScenarioIds, scenario.id])],
       };
     });
   }, []);
 
+  useEffect(() => {
+    if (state.answered) feedbackRef.current?.focus();
+  }, [state.answered]);
+
   const handleNext = useCallback(() => {
-    setState((prev) => ({
-      ...prev,
-      currentIndex: prev.currentIndex + 1,
-      selectedOptionId: null,
-      answered: false,
-    }));
+    setState((prev) => {
+      if (!prev.answered) return prev;
+      submittedScenarioRef.current = null;
+      return { ...prev, currentIndex: Math.min(prev.scenarios.length, prev.currentIndex + 1), selectedOptionId: null, answered: false };
+    });
   }, []);
 
   const handleReset = useCallback(() => {
     completedRef.current = false;
+    submittedScenarioRef.current = null;
+    if (storageKey) localStorage.removeItem(storageKey);
     setState(initialState(fireResponseScenarios));
-  }, []);
+  }, [storageKey]);
 
   if (isComplete) {
+    const scorePercent = state.totalAnswered === 0 ? 0 : Math.round((state.correctCount / state.totalAnswered) * 100);
+    const passed = state.totalAnswered === state.scenarios.length && scorePercent >= FIRE_DRILL_PASS_PERCENT;
     return (
       <Card className="border-2 border-primary/20">
         <CardHeader>
@@ -145,6 +181,10 @@ export const FireExtinguisherDrill = ({ onComplete }: FireExtinguisherDrillProps
           <div data-testid="drill-score" className="text-center text-2xl font-bold">
             {state.correctCount} / {state.totalAnswered}
           </div>
+          <p role="status" aria-live="polite" className="text-sm">
+            {passed ? "Pass evidence recorded. This drill supports practice; it does not certify firefighting competence." : `Retry required: score at least ${FIRE_DRILL_PASS_PERCENT}% after answering every scenario.`}
+          </p>
+          {!passed && state.incorrectScenarioIds.length > 0 && <div className="text-sm"><p className="font-medium">Review these decisions before retrying:</p><ul className="list-disc pl-5">{state.incorrectScenarioIds.map((id) => <li key={id}>{state.scenarios.find((scenario) => scenario.id === id)?.description}</li>)}</ul></div>}
           <Button onClick={handleReset} className="w-full">
             <RefreshCcw className="w-4 h-4 mr-2" />
             Restart Drill
@@ -158,7 +198,7 @@ export const FireExtinguisherDrill = ({ onComplete }: FireExtinguisherDrillProps
 
   return (
     <div className="space-y-6">
-      <div className="flex items-center justify-between">
+      <div className="flex min-w-0 flex-wrap items-center justify-between gap-2">
         <div data-testid="drill-score" className="text-sm text-muted-foreground">
           Score: {state.correctCount} / {state.totalAnswered} &middot; Question{" "}
           {state.currentIndex + 1} of {state.scenarios.length}
@@ -185,7 +225,8 @@ export const FireExtinguisherDrill = ({ onComplete }: FireExtinguisherDrillProps
             {currentScenario.question}
           </p>
 
-          <div className="grid gap-3 sm:grid-cols-2">
+          <fieldset className="grid min-w-0 gap-3 sm:grid-cols-2">
+            <legend className="sr-only">Choose one response to this fire scenario</legend>
             {currentScenario.options.map((option) => {
               const isSelected =
                 state.selectedOptionId === option.id;
@@ -205,29 +246,32 @@ export const FireExtinguisherDrill = ({ onComplete }: FireExtinguisherDrillProps
               }
 
               return (
-                <button
+                <label
                   key={option.id}
                   data-testid={`response-option-${option.id}`}
-                  type="button"
-                  className={`p-4 rounded-lg border-2 text-left transition-colors ${borderClass}`}
-                  disabled={state.answered}
-                  onClick={() => handleSelect(option.id)}
+                  className={`flex min-h-11 min-w-0 cursor-pointer items-start gap-3 rounded-lg border-2 p-4 text-left transition-colors forced-colors:border-[CanvasText] ${borderClass}`}
                 >
-                  <span className="text-sm font-medium">{option.label}</span>
+                  <input type="radio" name={`fire-response-${currentScenario.id}`} className="mt-0.5 size-5 shrink-0" checked={isSelected} disabled={state.answered} onChange={() => handleSelect(option.id)} />
+                  <span className="min-w-0 break-words text-sm font-medium">{option.label}</span>
                   {showResult && isCorrectAnswer && (
                     <CheckCircle2 className="w-5 h-5 text-green-600 mt-2" />
                   )}
                   {showResult && isSelected && !isCorrectAnswer && (
                     <XCircle className="w-5 h-5 text-red-600 mt-2" />
                   )}
-                </button>
+                </label>
               );
             })}
-          </div>
+          </fieldset>
 
           {state.answered && (
             <div
               data-testid="drill-result"
+              ref={feedbackRef}
+              tabIndex={-1}
+              role="status"
+              aria-live="polite"
+              aria-atomic="true"
               className={`p-4 rounded-lg ${
                 isCorrect
                   ? "bg-green-50 dark:bg-green-900/20 border border-green-200"
@@ -243,17 +287,18 @@ export const FireExtinguisherDrill = ({ onComplete }: FireExtinguisherDrillProps
             </div>
           )}
 
-          <div className="flex gap-3 pt-2">
+          <div className="flex min-w-0 flex-wrap gap-3 pt-2">
             {!state.answered ? (
               <Button
+                key="submit-answer"
                 onClick={handleSubmit}
-                className="flex-1"
+                className="h-auto min-h-11 min-w-0 flex-1 whitespace-normal"
                 disabled={state.selectedOptionId === null}
               >
                 Check Answer
               </Button>
             ) : (
-              <Button onClick={handleNext} className="flex-1">
+              <Button key="next-scenario" onClick={handleNext} className="h-auto min-h-11 min-w-0 flex-1 whitespace-normal">
                 Next Scenario
               </Button>
             )}

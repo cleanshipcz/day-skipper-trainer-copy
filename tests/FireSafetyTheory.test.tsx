@@ -3,7 +3,7 @@ import { render, screen } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import FireSafetyTheory from "../src/pages/FireSafetyTheory";
 import TestRouter from "./TestRouter";
-import type { FireSafetyReleaseReview } from "../src/data/fireExtinguishers";
+import { fireResponseScenarios, type FireSafetyReleaseReview } from "../src/data/fireExtinguishers";
 
 const approvedReview: FireSafetyReleaseReview = {
   required: true,
@@ -18,12 +18,13 @@ const approvedReview: FireSafetyReleaseReview = {
 // H1: The mock must accept and expose onComplete prop so we can test the parent wires it.
 const mockOnComplete = vi.fn();
 vi.mock("@/components/safety/FireExtinguisherDrill", () => ({
-  FireExtinguisherDrill: ({ onComplete }: { onComplete?: (result: { correctCount: number; totalAnswered: number }) => void }) => {
+  FIRE_DRILL_PASS_PERCENT: 80,
+  FireExtinguisherDrill: ({ onComplete }: { onComplete?: (result: { correctCount: number; totalAnswered: number; incorrectScenarioIds: string[] }) => void }) => {
     // Store the callback so tests can invoke it
     mockOnComplete.mockImplementation((result) => onComplete?.(result));
     return (
       <div data-testid="fire-extinguisher-drill">
-        <button data-testid="simulate-drill-complete" onClick={() => onComplete?.({ correctCount: 5, totalAnswered: 6 })}>
+        <button data-testid="simulate-drill-complete" onClick={() => onComplete?.({ correctCount: 5, totalAnswered: 6, incorrectScenarioIds: [] })}>
           Complete Drill
         </button>
       </div>
@@ -32,16 +33,23 @@ vi.mock("@/components/safety/FireExtinguisherDrill", () => ({
 }));
 
 const mockSaveProgress = vi.fn();
+const mockLoadProgressDetailed = vi.fn();
 
 vi.mock("@/hooks/useProgress", () => ({
   useProgress: () => ({
     saveProgress: mockSaveProgress,
+    saveProgressDetailed: mockSaveProgress,
+    loadProgressDetailed: mockLoadProgressDetailed,
+    ownerId: null,
   }),
 }));
 
 describe("FireSafetyTheory Page", () => {
   beforeEach(() => {
     vi.clearAllMocks();
+    localStorage.clear();
+    mockLoadProgressDetailed.mockResolvedValue({ status: "anonymous", record: null });
+    mockSaveProgress.mockResolvedValue("anonymous");
   });
 
   it("withholds lesson, drill and completion until competent review is complete", () => {
@@ -188,7 +196,7 @@ describe("FireSafetyTheory Page", () => {
       </TestRouter>
     );
 
-    // then - saveProgress should NOT have been called yet
+    // then - progress should not save merely because the page mounted
     expect(mockSaveProgress).not.toHaveBeenCalled();
   });
 
@@ -202,12 +210,16 @@ describe("FireSafetyTheory Page", () => {
       </TestRouter>
     );
 
-    // when - click the completion button
+    for (const tabName of [/fire types/i, /extinguishers/i, /prevention/i]) {
+      await user.click(screen.getByRole("tab", { name: tabName }));
+    }
+    await user.click(screen.getByRole("tab", { name: /fire triangle/i }));
+    // when - click the completion button after recording all evidence
     const completeButton = screen.getByRole("button", { name: /mark as complete/i });
     await user.click(completeButton);
 
     // then - saveProgress called with topic ID, completed=true, score=100, points=10
-    expect(mockSaveProgress).toHaveBeenCalledWith("safety-fire", true, 100, 10);
+    expect(mockSaveProgress).toHaveBeenCalledWith("safety-fire", true, 100, 10, expect.objectContaining({ completionState: "completed" }));
   });
 
   // H1: Drill completion awards points via saveProgress
@@ -232,6 +244,7 @@ describe("FireSafetyTheory Page", () => {
       true,
       expect.any(Number),
       10,
+      expect.objectContaining({ passed: true, totalAnswered: fireResponseScenarios.length }),
     );
   });
 
