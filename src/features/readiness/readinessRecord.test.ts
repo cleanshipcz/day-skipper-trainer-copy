@@ -3,6 +3,7 @@ import type { ChecklistItem } from "@/data/preDepartureChecklist";
 import {
   canSelectStatus,
   emptyReadinessEntry,
+  isReadinessContextComplete,
   summarizeReadiness,
   transitionEntry,
 } from "./readinessRecord";
@@ -19,6 +20,11 @@ const conditional = {
 const items = [required, conditional];
 
 describe("readiness record model", () => {
+  it("requires trimmed vessel, voyage and conditions context for completion", () => {
+    expect(isReadinessContextComplete({ vessel: "Aster", voyage: "Cowes", conditions: "F4" })).toBe(true);
+    expect(isReadinessContextComplete({ vessel: "   ", voyage: "Cowes", conditions: "F4" })).toBe(false);
+    expect(isReadinessContextComplete({ vessel: "Aster", voyage: "", conditions: "F4" })).toBe(false);
+  });
   it("starts unresolved and permits not-applicable only for a contextual item", () => {
     expect(summarizeReadiness(items, {})).toMatchObject({ outcome: "incomplete", notChecked: 2 });
     expect(canSelectStatus(required, "not_applicable")).toBe(false);

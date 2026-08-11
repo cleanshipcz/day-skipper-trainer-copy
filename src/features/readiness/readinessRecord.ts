@@ -87,6 +87,9 @@ export interface ReadinessRecordPayload {
   updatedAt: string;
 }
 
+export const isReadinessContextComplete = (context: ReadinessRecordPayload["context"]) =>
+  context.vessel.trim().length > 0 && context.voyage.trim().length > 0 && context.conditions.trim().length > 0;
+
 const isString = (value: unknown): value is string => typeof value === "string";
 const isStatus = (value: unknown): value is ReadinessStatus => isString(value) && value in readinessStatusLabels;
 const isTimestamp = (value: unknown): value is string => isString(value) && !Number.isNaN(Date.parse(value));

@@ -78,8 +78,13 @@ begin
   select count(*) into resolved_count from unnest(allowed_ids) id
    where entries->id->>'status' = 'satisfactory'
       or (id = any(na_ids) and entries->id->>'status' = 'not_applicable' and btrim(entries->id->>'reason') <> '');
-  if p_completed is distinct from (resolved_count = cardinality(allowed_ids)) then
-    raise exception 'Readiness completion does not match evidence' using errcode = '22023';
+  if p_completed and (
+       resolved_count <> cardinality(allowed_ids)
+       or btrim(v_record->'context'->>'vessel') = ''
+       or btrim(v_record->'context'->>'voyage') = ''
+       or btrim(v_record->'context'->>'conditions') = ''
+     ) then
+    raise exception 'Readiness completion does not match evidence and context' using errcode = '22023';
   end if;
   perform pg_advisory_xact_lock(hashtextextended(owner::text || ':passage-planning-checklist', 0));
   select coalesce(completed, false) into was_completed from public.user_progress where user_id = owner and topic_id = 'passage-planning-checklist';

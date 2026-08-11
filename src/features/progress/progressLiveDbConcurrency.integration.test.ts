@@ -127,6 +127,9 @@ describeLiveDb("live DB concurrency stress — progress integrity", () => {
         { p_completed: true, p_answers_history: {} },
         { p_completed: true, p_answers_history: { readinessRecord: { ...fullReadiness, context: null } } },
         { p_completed: true, p_answers_history: { readinessRecord: { ...fullReadiness, updatedAt: null } } },
+        { p_completed: true, p_answers_history: { readinessRecord: { ...fullReadiness, context: { ...fullReadiness.context, vessel: "   " } } } },
+        { p_completed: true, p_answers_history: { readinessRecord: { ...fullReadiness, context: { ...fullReadiness.context, voyage: "" } } } },
+        { p_completed: true, p_answers_history: { readinessRecord: { ...fullReadiness, context: { ...fullReadiness.context, conditions: "\t" } } } },
         { p_completed: true, p_answers_history: { readinessRecord: { ...fullReadiness, entries: { ...fullReadiness.entries, "passage-plan": { ...validEntry, status: null } } } } },
         { p_completed: true, p_answers_history: { readinessRecord: { ...fullReadiness, entries: { ...fullReadiness.entries, "passage-plan": { ...validEntry, history: [{ ...validEntry, supersededAt: null }] } } } } },
       ];

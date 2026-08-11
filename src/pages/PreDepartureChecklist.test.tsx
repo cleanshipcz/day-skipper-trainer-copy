@@ -1,4 +1,4 @@
-import { fireEvent, render, screen, waitFor, within } from "@testing-library/react";
+import { act, fireEvent, render, screen, waitFor, within } from "@testing-library/react";
 import { MemoryRouter } from "react-router-dom";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { preDepartureChecklist } from "@/data/preDepartureChecklist";
@@ -14,6 +14,11 @@ const renderChecklist = async () => {
   return view;
 };
 const itemGroup = (label: RegExp | string) => screen.getByRole("group", { name: label });
+const completeContext = () => {
+  fireEvent.change(screen.getByRole("textbox", { name: "vessel" }), { target: { value: "Aster" } });
+  fireEvent.change(screen.getByRole("textbox", { name: "voyage" }), { target: { value: "Cowes passage" } });
+  fireEvent.change(screen.getByRole("textbox", { name: "conditions" }), { target: { value: "F4, good visibility" } });
+};
 
 describe("PreDepartureChecklist", () => {
   beforeEach(() => {
@@ -66,6 +71,7 @@ describe("PreDepartureChecklist", () => {
 
   it("enforces prerequisites, completes only resolved items, and relocks dependents after correction", async () => {
     await renderChecklist();
+    completeContext();
     const planningDecision = itemGroup(/Record the planning-stage/);
     expect((within(planningDecision).getByRole("button", { name: "Satisfactory" }) as HTMLButtonElement).disabled).toBe(true);
 
@@ -96,6 +102,7 @@ describe("PreDepartureChecklist", () => {
 
   it("invalidates completed evidence when vessel context changes", async () => {
     await renderChecklist();
+    completeContext();
     for (let pass = 0; pass < preDepartureChecklist.length + 2; pass++) {
       const next = screen.getAllByRole("group").map((group) => within(group).queryByRole("button", { name: "Satisfactory" })).find((button) => button && !(button as HTMLButtonElement).disabled && button.getAttribute("aria-pressed") !== "true");
       if (!next) break;
@@ -109,12 +116,15 @@ describe("PreDepartureChecklist", () => {
 
   it("requires explicit completion, autosaves completed evidence consistently, and revokes it after a blocker", async () => {
     await renderChecklist();
+    completeContext();
+    await act(() => new Promise((resolve) => setTimeout(resolve, 350)));
+    saveProgressDetailed.mockClear();
     for (let pass = 0; pass < preDepartureChecklist.length + 2; pass++) {
       const next = screen.getAllByRole("group").map((group) => within(group).queryByRole("button", { name: "Satisfactory" })).find((button) => button && !(button as HTMLButtonElement).disabled && button.getAttribute("aria-pressed") !== "true");
       if (!next) break;
       fireEvent.click(next);
     }
-    await new Promise((resolve) => setTimeout(resolve, 350));
+    await act(() => new Promise((resolve) => setTimeout(resolve, 350)));
     expect(saveProgressDetailed).not.toHaveBeenCalled();
     fireEvent.click(screen.getByRole("button", { name: "Record training checklist completion" }));
     await waitFor(() => expect(saveProgressDetailed).toHaveBeenLastCalledWith(expect.any(String), true, 100, 10, expect.any(Object)));
@@ -127,6 +137,17 @@ describe("PreDepartureChecklist", () => {
     fireEvent.click(within(first).getByRole("button", { name: "Defect" }));
     await waitFor(() => expect(saveProgressDetailed.mock.calls.length).toBeGreaterThan(completedEditCalls));
     expect(saveProgressDetailed.mock.calls.at(-1)?.[1]).toBe(false);
+  });
+
+  it("blocks completion with accessible guidance until all context is non-blank", async () => {
+    await renderChecklist();
+    const button = screen.getByRole("button", { name: "Record training checklist completion" });
+    expect(button.getAttribute("aria-describedby")).toBe("readiness-context-requirement");
+    expect(screen.getByText(/Enter the actual vessel, voyage and current conditions/).getAttribute("role")).toBe("status");
+    fireEvent.change(screen.getByRole("textbox", { name: "vessel" }), { target: { value: "   " } });
+    expect(screen.getByText(/whitespace-only context is not completion evidence/)).toBeTruthy();
+    completeContext();
+    expect(button.getAttribute("aria-describedby")).toBeNull();
   });
 
   it("hydrates validated saved evidence with correction history and autosaves edits", async () => {

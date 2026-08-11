@@ -9,6 +9,7 @@ import {
   canSelectStatus,
   emptyReadinessEntry,
   isResolved,
+  isReadinessContextComplete,
   readinessStatusLabels,
   parseReadinessPayload,
   summarizeReadiness,
@@ -34,6 +35,8 @@ export default function PreDepartureChecklist() {
   const revision = useRef(0);
   const hydrated = useRef(false);
   const summary = summarizeReadiness(preDepartureChecklist, entries);
+  const contextComplete = isReadinessContextComplete(context);
+  const completionReady = summary.complete && contextComplete;
   const resolvedCount = summary.satisfactory + summary.notApplicable;
   const percent = Math.round((resolvedCount / preDepartureChecklist.length) * 100);
   const itemName = (id: string) => preDepartureChecklist.find((item) => item.id === id)?.label ?? id;
@@ -125,12 +128,12 @@ export default function PreDepartureChecklist() {
 
   useEffect(() => {
     if (!hydrated.current || loadState !== "ready" || revision.current === 0 || saveState !== "idle") return;
-    if (summary.complete && !completionConfirmed) return;
+    if (completionReady && !completionConfirmed) return;
     const currentRevision = revision.current;
-    const completed = summary.complete && completionConfirmed;
+    const completed = completionReady && completionConfirmed;
     const timeout = window.setTimeout(() => { void persistRecord(completed, currentRevision); }, 300);
     return () => window.clearTimeout(timeout);
-  }, [completionConfirmed, context, entries, loadState, persistRecord, saveState, summary.complete]);
+  }, [completionConfirmed, completionReady, context, entries, loadState, persistRecord, saveState]);
 
   return (
     <main className="container mx-auto max-w-4xl space-y-6 p-4 py-8">
@@ -143,6 +146,7 @@ export default function PreDepartureChecklist() {
       <Card><CardHeader><CardTitle>Record context</CardTitle></CardHeader><CardContent className="grid gap-3 sm:grid-cols-3">
         {(["vessel", "voyage", "conditions"] as const).map((field) => <label key={field} className="text-sm font-medium capitalize">{field}<input aria-label={field} disabled={loadState !== "ready"} className="mt-1 w-full rounded border bg-background p-2 font-normal" value={context[field]} onChange={(event) => setContextField(field, event.target.value)} placeholder={`Actual ${field}`} /></label>)}
       </CardContent></Card>
+      {!contextComplete && <p id="readiness-context-requirement" className="text-sm text-amber-700 dark:text-amber-300" role="status">Enter the actual vessel, voyage and current conditions before recording completion. Blank or whitespace-only context is not completion evidence; drafts still save.</p>}
       {loadState === "loading" && <p role="status" aria-live="polite">Loading saved readiness record…</p>}
       {loadState === "failed" && <div role="alert" className="rounded border border-destructive p-3"><p>Saved readiness evidence could not be loaded. No stale or partial record has been used.</p><Button type="button" variant="outline" className="mt-2" onClick={() => setLoadAttempt((attempt) => attempt + 1)}>Retry saved record</Button></div>}
       {loadState === "ready" && <p role="status" aria-live="polite">{saveState === "saving" ? "Saving readiness record…" : saveState === "saved" ? "Readiness record saved." : saveState === "failed" ? "Readiness record could not be saved; keep this page open and retry an edit." : saveState === "anonymous" ? "Sign in to preserve this readiness record across navigation and devices." : "Readiness record ready."}</p>}
@@ -177,9 +181,9 @@ export default function PreDepartureChecklist() {
         </CardContent></Card>
       ))}
 
-      <Card className={summary.outcome === "complete" ? "border-success" : summary.outcome === "blocked" ? "border-destructive" : "border-accent"}><CardHeader><CardTitle>Final go / no-go summary</CardTitle></CardHeader><CardContent className="space-y-2"><p><strong>{summary.outcome === "complete" ? "Checklist record complete" : summary.outcome === "blocked" ? "No-go — blocked items remain" : "Incomplete — required items remain"}</strong></p><p>Satisfactory: {summary.satisfactory}. Not applicable with reason: {summary.notApplicable}. Blocked/defect/unknown: {summary.blocked}. Not checked or invalid N/A: {summary.notChecked}.</p><p className="text-sm text-muted-foreground">A complete practice record still does not certify the vessel or authorise departure. The skipper must make and continually reassess the real go/no-go decision.</p></CardContent></Card>
+      <Card className={completionReady ? "border-success" : summary.outcome === "blocked" ? "border-destructive" : "border-accent"}><CardHeader><CardTitle>Final go / no-go summary</CardTitle></CardHeader><CardContent className="space-y-2"><p><strong>{completionReady ? "Checklist record complete" : summary.outcome === "blocked" ? "No-go — blocked items remain" : summary.complete ? "Incomplete — vessel, voyage and conditions context required" : "Incomplete — required items remain"}</strong></p><p>Satisfactory: {summary.satisfactory}. Not applicable with reason: {summary.notApplicable}. Blocked/defect/unknown: {summary.blocked}. Not checked or invalid N/A: {summary.notChecked}.</p><p className="text-sm text-muted-foreground">A complete practice record still does not certify the vessel or authorise departure. The skipper must make and continually reassess the real go/no-go decision.</p></CardContent></Card>
       <Card><CardHeader><CardTitle>Supporting lessons and tools</CardTitle></CardHeader><CardContent><p className="mb-3 text-sm text-muted-foreground">Use these for detailed calculation, inspection or drill.</p><ul className="space-y-2">{checklistSupportingRoutes.map((item) => <li key={item.route}><Link className="font-medium text-primary underline underline-offset-4" to={item.route}>{item.label}</Link><span className="text-muted-foreground"> — {item.scope}</span></li>)}</ul></CardContent></Card>
-      <Button disabled={!summary.complete || loadState !== "ready" || saveState === "saving"} onClick={() => { const currentRevision = revision.current; void persistRecord(true, currentRevision); }}>Record training checklist completion</Button>
+      <Button aria-describedby={!contextComplete ? "readiness-context-requirement" : undefined} disabled={!completionReady || loadState !== "ready" || saveState === "saving"} onClick={() => { const currentRevision = revision.current; void persistRecord(true, currentRevision); }}>Record training checklist completion</Button>
     </main>
   );
 }
