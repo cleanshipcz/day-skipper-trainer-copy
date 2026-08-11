@@ -533,6 +533,14 @@ export type Database = {
           points_awarded: boolean
         }[]
       }
+      save_readiness_record_progress: {
+        Args: { p_answers_history: Json; p_completed: boolean }
+        Returns: {
+          awarded_points: number
+          completion_awarded: boolean
+          points_awarded: boolean
+        }[]
+      }
       save_topic_progress: {
         Args: {
           p_answers_history?: Json

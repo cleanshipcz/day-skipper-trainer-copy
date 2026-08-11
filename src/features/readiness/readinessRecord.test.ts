@@ -14,6 +14,7 @@ const conditional = {
   label: "Conditional",
   why: "Context",
   conditional: { when: "When fitted", authority: "Vessel manual" },
+  notApplicableAllowed: true,
 } satisfies ChecklistItem;
 const items = [required, conditional];
 
@@ -46,6 +47,7 @@ describe("readiness record model", () => {
     const initial = { ...emptyReadinessEntry(), status: "not_applicable" as const, reason: "Not fitted" };
     const corrected = transitionEntry(initial, "satisfactory", "2026-08-11T16:00:00.000Z");
     expect(corrected).toMatchObject({ status: "satisfactory", reason: "", recordedAt: "2026-08-11T16:00:00.000Z" });
+    expect(corrected.history).toEqual([expect.objectContaining({ status: "not_applicable", reason: "Not fitted", supersededAt: "2026-08-11T16:00:00.000Z" })]);
     expect(transitionEntry(corrected, "not_checked", "later").recordedAt).toBeUndefined();
   });
 });
