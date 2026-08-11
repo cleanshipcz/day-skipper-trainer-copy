@@ -43,7 +43,6 @@ export function reconcilePassagePlanRecords(local: PassagePlanRecord | null, rem
     const record = local.updatedAt >= remote.updatedAt ? local : remote;
     return { status:"same", record:{ ...record, completedRevision:local.completedRevision === local.revision && remote.completedRevision === remote.revision ? record.revision : null } };
   }
-  if (local.updatedAt !== remote.updatedAt) return local.updatedAt > remote.updatedAt ? { status:"local", record:local } : { status:"remote", record:remote };
   return { status:"conflict", local, remote };
 }
 
