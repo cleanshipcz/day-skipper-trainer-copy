@@ -206,6 +206,36 @@ describe("Quiz accessible interaction and reflow", () => {
     await waitFor(() => expect(mocks.saveProgress).toHaveBeenCalledTimes(1));
   });
 
+  it("reveals no correctness while trying every option and commits the score exactly once", async () => {
+    mocks.user = { id: "quiz-user" };
+    mocks.loadQuizTopic.mockResolvedValueOnce([{
+      ...questions[0],
+      options: ["Alpha", "Bravo", "Charlie", "Delta"],
+      correctAnswer: 2,
+    }]);
+    const user = userEvent.setup();
+    renderQuiz();
+
+    const score = await screen.findByText("Score: 0/1");
+    for (const option of ["Alpha", "Bravo", "Charlie", "Delta"]) {
+      await user.click(screen.getByRole("radio", { name: option }));
+      expect(score.textContent).toBe("Score: 0/1");
+      expect(screen.queryByText("Correct")).toBeNull();
+      expect(screen.queryByText("Incorrect")).toBeNull();
+      expect(screen.queryByRole("status")).toBeNull();
+      expect(mocks.saveProgress).not.toHaveBeenCalled();
+    }
+
+    await user.click(screen.getByRole("radio", { name: "Charlie" }));
+    const submit = screen.getByRole("button", { name: "Submit Answer" });
+    await user.click(submit);
+
+    await waitFor(() => expect(score.textContent).toBe("Score: 1/1"));
+    expect(screen.getByRole("status").textContent).toContain("Correct");
+    expect(screen.getAllByRole("radio").every((radio) => (radio as HTMLInputElement).disabled)).toBe(true);
+    await waitFor(() => expect(mocks.saveProgress).toHaveBeenCalledTimes(1));
+  });
+
   it("prevents navigation from overtaking a pending assessment save", async () => {
     mocks.user = { id: "quiz-user" };
     let releaseSave!: (value: boolean) => void;
