@@ -118,10 +118,10 @@ export function calculatePassagePlanSummary(plan:PassagePlan):PassagePlanCalcula
   const totalDistanceNm=totalRouteDistance(plan.points);
   const duration=totalDistanceNm/plan.speed;
   const input={distanceNm:totalDistanceNm,speedKnots:plan.speed,engineHours:duration,fuelLitresPerHour:plan.fuelRate??1,additionalFuelLitres:0,reservePercent:plan.reservePercent??0,usableFuelLitres:100000,departureTime:plan.departure};
-  const issues=validatePassagePlan(plan).filter(issue=>/SOG|distance|duration|ETA|Fuel rate|Fuel reserve|total fuel/i.test(issue));
+  const issues=validatePassagePlan(plan).filter(issue=>/departure time|SOG|distance|duration|ETA|Fuel rate|Fuel reserve|total fuel/i.test(issue));
   if(issues.length)return {ok:false,issues};
-  const calculation=calculatePassageValues(input);
-  return Number.isFinite(calculation.hours)&&Number.isFinite(calculation.fuelWithReserveLitres)?{ok:true,totalDistanceNm,calculation}:{ok:false,issues:["Derived passage totals must be finite."]};
+  try { const calculation=calculatePassageValues(input);return Number.isFinite(calculation.hours)&&Number.isFinite(calculation.fuelWithReserveLitres)?{ok:true,totalDistanceNm,calculation}:{ok:false,issues:["Derived passage totals must be finite."]}; }
+  catch(error){return {ok:false,issues:[error instanceof Error?error.message:"Passage calculation failed."]}}
 }
 
 export function validatePassagePlan(plan: PassagePlan, nowMs = Date.now()): string[] {
@@ -158,7 +158,7 @@ export function validatePassagePlan(plan: PassagePlan, nowMs = Date.now()): stri
   const total=totalRouteDistance(plan.points), duration=total/plan.speed, eta=Date.parse(plan.departure)+duration*3_600_000;
   if(plan.points.length>=2&&(!Number.isFinite(total)||total<=0||!Number.isFinite(duration)||duration<=0||duration>1000))errors.push("Derived route duration must be finite, positive and no more than 1,000 hours.");
   else if(plan.points.length>=2&&(!Number.isFinite(eta)||Number.isNaN(new Date(eta).getTime())))errors.push("Departure plus route duration must produce a representable ETA.");
-  if(plan.fuelRate!==undefined&&Number.isFinite(duration)&&plan.reservePercent!==undefined){const fuel=duration*plan.fuelRate*(1+plan.reservePercent/100);if(!Number.isFinite(fuel)||fuel<=0||fuel>100000)errors.push("Derived total fuel must be finite, positive and no more than 100,000 litres.");}
+  if(plan.fuelRate!==undefined&&Number.isFinite(duration)){const fuel=duration*plan.fuelRate*(1+(plan.reservePercent??0)/100);if(!Number.isFinite(fuel)||fuel<=0||fuel>100000)errors.push("Derived total fuel must be finite, positive and no more than 100,000 litres.");}
   return errors;
 }
 
