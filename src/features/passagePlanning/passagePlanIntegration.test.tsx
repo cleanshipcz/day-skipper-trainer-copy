@@ -21,4 +21,22 @@ it("blanks immediately on account switches and ignores stale hydration",async()=
  await act(async()=>aSecond.resolve(persisted("Fresh A")));
  await waitFor(()=>expect((screen.getByLabelText("Plan name") as HTMLInputElement).value).toBe("Fresh A"));
 });
+it("confirms removal, announces its impact, focuses the survivor and supports undo",async()=>{
+ const confirm=vi.fn().mockReturnValue(true);vi.stubGlobal("confirm",confirm);render(<PassagePlanBuilder/>);await waitFor(()=>expect(loadProgress).toHaveBeenCalled());
+ fireEvent.click(screen.getByRole("button",{name:"Remove Bembridge Ledge"}));
+ expect(confirm).toHaveBeenCalledWith(expect.stringContaining("inbound leg to Bembridge Harbour will be cleared"));
+ await waitFor(()=>expect(document.activeElement).toBe(screen.getByLabelText("Destination waypoint")));
+ expect(screen.getByRole("status").textContent).toContain("Removed Bembridge Ledge from position 2");
+ fireEvent.click(screen.getByRole("button",{name:"Undo last removal"}));
+ await waitFor(()=>expect((document.activeElement as HTMLInputElement).value).toBe("Bembridge Ledge"));
+ expect(screen.getByRole("status").textContent).toContain("Restored Bembridge Ledge");vi.unstubAllGlobals();
+});
+it("inserts and moves with deterministic controls, focus and screen-reader position status",async()=>{
+ render(<PassagePlanBuilder/>);await waitFor(()=>expect(loadProgress).toHaveBeenCalled());fireEvent.click(screen.getByRole("button",{name:"Insert waypoint after Portsmouth entrance"}));
+ await waitFor(()=>expect(document.activeElement).toBe(screen.getAllByLabelText("Arrival waypoint")[0]));
+ fireEvent.change(document.activeElement!,{target:{value:"New mark"}});
+ fireEvent.click(screen.getByRole("button",{name:"Move New mark down"}));
+ await waitFor(()=>expect((document.activeElement as HTMLInputElement).value).toBe("New mark"));
+ expect(screen.getByRole("status").textContent).toContain("position 3");
+});
 });

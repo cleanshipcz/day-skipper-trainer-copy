@@ -13,6 +13,9 @@ export interface PassagePlan {
 }
 
 const emptyInboundLeg = () => ({ course:0, distanceNm:0, notes:"", tidalGate:"", weatherWindow:"" });
+const assertUniqueIds = (points: readonly PlanWaypoint[]) => {
+  if (new Set(points.map(point => point.id)).size !== points.length) throw new Error("Waypoint identifiers must be unique before route editing.");
+};
 
 function reconcileWaypointPredecessors(previous: readonly PlanWaypoint[], next: readonly PlanWaypoint[]): PlanWaypoint[] {
   const previousPredecessor = new Map(previous.map((point, index) => [point.id, index > 0 ? previous[index - 1].id : null]));
@@ -32,10 +35,20 @@ export function normalizeWaypointOrder(points: readonly PlanWaypoint[]): PlanWay
 }
 
 export function removeWaypoint(points: readonly PlanWaypoint[], id: string): PlanWaypoint[] {
+  assertUniqueIds(points);
   return reconcileWaypointPredecessors(points, points.filter(point => point.id !== id));
 }
 
+export function insertWaypoint(points: readonly PlanWaypoint[], point: PlanWaypoint, index: number): PlanWaypoint[] {
+  assertUniqueIds(points);
+  if (points.some(candidate => candidate.id === point.id)) throw new Error(`Duplicate waypoint id: ${point.id}`);
+  const target = Math.max(0, Math.min(index, points.length));
+  const inserted = [...points.slice(0, target), point, ...points.slice(target)];
+  return reconcileWaypointPredecessors(points, inserted);
+}
+
 export function reorderWaypoint(points: readonly PlanWaypoint[], index: number, target: number): PlanWaypoint[] {
+  assertUniqueIds(points);
   if (index < 0 || target < 0 || index >= points.length || target >= points.length || index === target) return [...points];
   const reordered = [...points];
   [reordered[index], reordered[target]] = [reordered[target], reordered[index]];
@@ -85,6 +98,7 @@ export function validatePassagePlan(plan: PassagePlan): string[] {
   if (!plan.departure || Number.isNaN(Date.parse(plan.departure))) errors.push("Choose a valid departure time.");
   if (!Number.isFinite(plan.speed) || plan.speed <= 0 || plan.speed > 80) errors.push("SOG must be greater than 0 and no more than 80 knots.");
   if (plan.points.length < 2) errors.push("Add a departure and at least one destination waypoint.");
+  if (new Set(plan.points.map(point => point.id)).size !== plan.points.length) errors.push("Waypoint identifiers must be unique. Reload or reset this plan before editing.");
   plan.points.forEach((point, index) => {
     const label = index === 0 ? "Departure" : `Leg ${index}`;
     if (!point.name.trim()) errors.push(`${label}: waypoint name is required.`);
