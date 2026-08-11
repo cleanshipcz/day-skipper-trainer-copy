@@ -133,6 +133,7 @@ const Quiz = () => {
     subtitle: "Answer the questions to test yourself",
   };
   const quizParent = resolveQuizParentDestination(topicKey);
+  const quizParentIsHome = quizParent.route === "/";
   const anchorReturnTopic = searchParams.get("returnTopic") || "scope";
 
   const [workflow, setWorkflow] = useState<QuizWorkflow | null>(null);
@@ -401,7 +402,7 @@ const Quiz = () => {
           <CardContent className="flex gap-3 flex-col sm:flex-row">
             <Button variant="outline" className="flex-1" onClick={() => navigate(quizParent.route)}>
               <ArrowLeft className="w-4 h-4 mr-2" />
-              Back to {quizParent.label}
+              {quizParentIsHome ? "Go to Home" : `Back to ${quizParent.label}`}
             </Button>
             {catalogueError && <Button className="flex-1" onClick={() => setLoadGeneration((value) => value + 1)}>
               Retry loading
@@ -668,7 +669,7 @@ const Quiz = () => {
                 <ArrowLeft className="w-4 h-4 mr-2" />
                 {topicKey === "anchorwork" && !passed ? "Review missed anchorwork skill"
                   : topicKey === "victualling" && !passed ? "Review missed Victualling skill"
-                    : `Return to ${quizParent.label}`}
+                    : quizParentIsHome ? "Go to Home" : `Return to ${quizParent.label}`}
               </Button>
               <Button
                 className="flex-1 bg-secondary text-secondary-foreground"
@@ -714,7 +715,9 @@ const Quiz = () => {
         <div className="container mx-auto px-3 py-4 sm:px-4">
           <div className="flex flex-wrap items-start justify-between gap-3">
             <div className="flex min-w-0 flex-1 items-start gap-2 sm:gap-3">
-              <Button variant="ghost" size="icon" aria-label={`Back to ${quizParent.label} from ${meta.title}`} className="shrink-0" onClick={() => navigate(quizParent.route)}>
+              <Button variant="ghost" size="icon" aria-label={quizParentIsHome
+                ? `Go to Home from ${meta.title}`
+                : `Back to ${quizParent.label} from ${meta.title}`} className="shrink-0" onClick={() => navigate(quizParent.route)}>
                 <ArrowLeft className="w-5 h-5" aria-hidden="true" />
               </Button>
               <div className="min-w-0">

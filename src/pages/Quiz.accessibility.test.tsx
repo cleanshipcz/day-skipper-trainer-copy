@@ -69,6 +69,7 @@ describe("Quiz accessible interaction and reflow", () => {
     ["/quiz/ropework", "Back to Ropework & Knots from Ropework Quiz", "/ropework"],
     ["/quiz/lights-signals", "Back to Lights & Signals Theory from Lights & Signals Mastery", "/rules/lights"],
     ["/quiz/engine", "Back to Engine Checks & Maintenance from Engine Checks Quiz", "/engine"],
+    ["/quiz/weather", "Back to Meteorology from Meteorology Quiz", "/weather"],
   ])("returns active and legacy quiz routes to their registered parent", async (path, backName, expectedPath) => {
     const user = userEvent.setup();
     renderQuiz(path);
@@ -176,7 +177,7 @@ describe("Quiz accessible interaction and reflow", () => {
     const user = userEvent.setup();
     mocks.loadQuizTopic.mockRejectedValueOnce(new Error("missing"));
     renderQuiz("/quiz/unknown-deep-link");
-    await user.click(await screen.findByRole("button", { name: "Back to Home" }));
+    await user.click(await screen.findByRole("button", { name: "Go to Home" }));
     expect(await screen.findByText("Current path: /")).toBeTruthy();
     expect(screen.queryByRole("button", { name: "Nautical Terms" })).toBeNull();
   });
@@ -195,6 +196,18 @@ describe("Quiz accessible interaction and reflow", () => {
     await user.click(screen.getByRole("button", { name: "Retry loading" }));
     expect((await screen.findAllByRole("radio")).length).toBeGreaterThan(0);
     await waitFor(() => expect(mocks.loadProgress).toHaveBeenCalled());
+  });
+
+  it.each([
+    ["load failure", () => Promise.reject(new Error("offline"))],
+    ["empty bank", () => Promise.resolve([])],
+  ])("returns an unavailable Meteorology quiz to its owning module after a %s", async (_case, load) => {
+    const user = userEvent.setup();
+    mocks.loadQuizTopic.mockImplementationOnce(load);
+    renderQuiz("/quiz/weather");
+
+    await user.click(await screen.findByRole("button", { name: "Back to Meteorology" }));
+    expect(await screen.findByText("Current path: /weather")).toBeTruthy();
   });
 
   it("exposes scenario observations as named structured text alongside keyboard-operable answers", async () => {
@@ -230,11 +243,24 @@ describe("Quiz accessible interaction and reflow", () => {
     expect(await screen.findByText("Current path: /ropework")).toBeTruthy();
   });
 
+  it("returns completed Meteorology quizzes to the module rather than a generic topic", async () => {
+    const user = userEvent.setup();
+    mocks.loadQuizTopic.mockResolvedValueOnce([questions[0]]);
+    renderQuiz("/quiz/weather");
+
+    await user.click(await screen.findByRole("radio", { name: /First correct answer/i }));
+    await user.click(screen.getByRole("button", { name: "Submit Answer" }));
+    await user.click(screen.getByRole("button", { name: "View Results" }));
+    await user.click(await screen.findByRole("button", { name: "Return to Meteorology" }));
+
+    expect(await screen.findByText("Current path: /weather")).toBeTruthy();
+  });
+
   it("labels navigation and numeric progress and exposes one radio selection", async () => {
     const user = userEvent.setup();
     renderQuiz();
 
-    expect(await screen.findByRole("button", { name: /back to home from a very long localized quiz title/i })).toBeTruthy();
+    expect(await screen.findByRole("button", { name: /go to home from a very long localized quiz title/i })).toBeTruthy();
     const progress = screen.getByRole("progressbar", { name: /progress: question 1 of 2 \(50%\)/i });
     expect(progress.getAttribute("aria-valuenow")).toBe("50");
     expect(progress.getAttribute("aria-valuetext")).toBe("Question 1 of 2");
