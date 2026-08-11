@@ -1,5 +1,7 @@
 import { describe, expect, it } from "vitest";
 import questions, { PASSAGE_PLANNING_QUIZ_COVERAGE_MATRIX } from "./passagePlanning";
+import { prepareSteps } from "../prepareSteps";
+import { buildQuizSession } from "@/features/quiz/buildQuizSession";
 
 describe("Passage Planning quiz curriculum contract", () => {
   it("traces every question to one of all four taught leaves and a stable objective", () => {
@@ -7,15 +9,27 @@ describe("Passage Planning quiz curriculum contract", () => {
     expect(new Set(PASSAGE_PLANNING_QUIZ_COVERAGE_MATRIX.map((row) => row.leaf))).toEqual(new Set(["prepare", "calculator", "plan-builder", "pre-departure"]));
     for (const row of PASSAGE_PLANNING_QUIZ_COVERAGE_MATRIX) {
       expect(row.objective.length, row.questionId).toBeGreaterThan(18);
-      expect(row.sourceRoute, row.questionId).toMatch(/^\/passage-planning\/(?:prepare|calculator|builder|checklist)/);
+      if (row.leaf === "prepare") {
+        expect(row.sourceReference, row.questionId).toMatch(/^prepare-step:/);
+        expect(prepareSteps.map(({ id }) => `prepare-step:${id}`), row.questionId).toContain(row.sourceReference);
+      } else expect(row.sourceReference, row.questionId).toMatch(/^\/passage-planning\/(?:calculator|builder|checklist)$/);
     }
   });
 
-  it("cannot randomize away a major objective because every attempt uses the complete balanced bank", () => {
+  it("the actual runtime builder cannot randomize a passage-quiz objective away", () => {
     const required = ["appraise", "regulations", "equipment", "plan", "contingencies", "execute-monitor", "time-eta", "fuel", "route-gates", "crew-safety", "vessel-readiness"];
     expect(new Set(PASSAGE_PLANNING_QUIZ_COVERAGE_MATRIX.map((row) => row.majorObjective))).toEqual(new Set(required));
     const perLeaf = Object.fromEntries(["prepare", "calculator", "plan-builder", "pre-departure"].map((leaf) => [leaf, PASSAGE_PLANNING_QUIZ_COVERAGE_MATRIX.filter((row) => row.leaf === leaf).length]));
     expect(perLeaf).toEqual({ prepare: 10, calculator: 6, "plan-builder": 6, "pre-departure": 8 });
+    const originalAnswers = new Map(questions.map((question) => [question.id, question.options[question.correctAnswer]]));
+    for (const seed of [0, 1, 2, 17, 999, 2_147_483_647]) {
+      const session = buildQuizSession(questions, seed);
+      expect(new Set(session.map(({ id }) => id)), `seed ${seed}`).toEqual(new Set(questions.map(({ id }) => id)));
+      expect(new Set(session.map(({ majorObjective }) => majorObjective)), `seed ${seed}`).toEqual(new Set(required));
+      for (const question of session) expect(question.options[question.correctAnswer], `${seed}:${question.id}`).toBe(originalAnswers.get(question.id));
+    }
+    // This contract covers the dedicated Passage Planning quiz. The separate
+    // comprehensive Exam has its own sampler and is intentionally not claimed here.
   });
 
   it("retains the audited missing applied outcomes and verified arithmetic", () => {

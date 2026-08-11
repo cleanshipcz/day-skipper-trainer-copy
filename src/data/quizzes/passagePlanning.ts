@@ -6,11 +6,13 @@ export type PassagePlanningMajorObjective = "appraise" | "regulations" | "equipm
 type PassageQuestion = Question & {
   readonly leaf: PassagePlanningLeaf;
   readonly majorObjective: PassagePlanningMajorObjective;
-  readonly sourceRoute: string;
+  readonly sourceReference: string;
 };
 
-const q = (id: string, leaf: PassagePlanningLeaf, majorObjective: PassagePlanningMajorObjective, sourceRoute: string, learningObjective: string, question: string, options: readonly string[], correctAnswer: number, explanation: string): PassageQuestion => ({
-  id: `passage-${id}`, leaf, majorObjective, sourceRoute, learningObjective, question, options, correctAnswer, explanation,
+const q = (id: string, leaf: PassagePlanningLeaf, majorObjective: PassagePlanningMajorObjective, sourceReference: string, learningObjective: string, question: string, options: readonly string[], correctAnswer: number, explanation: string): PassageQuestion => ({
+  id: `passage-${id}`, leaf, majorObjective,
+  sourceReference: leaf === "prepare" ? sourceReference.replace("/passage-planning/prepare#", "prepare-step:") : sourceReference,
+  learningObjective, question, options, correctAnswer, explanation,
 });
 
 const passagePlanningQuestions = [
@@ -49,6 +51,6 @@ const passagePlanningQuestions = [
   q("30", "pre-departure", "vessel-readiness", "/passage-planning/checklist", "Verify provisions and potable water", "What makes the provisions check passage-specific?", ["Potable water and food cover every crew member, dietary/medical needs, the planned duration and realistic delay, with safe accessible stowage", "One snack per person regardless of duration", "A marina booking at the destination", "Counting containers without checking potable quantity or contamination"], 0, "Victualling must cover the actual people and a realistic contingency, while preserving potable quality and safe stowage."),
 ] as const satisfies readonly PassageQuestion[];
 
-export const PASSAGE_PLANNING_QUIZ_COVERAGE_MATRIX = passagePlanningQuestions.map(({ id: questionId, leaf, majorObjective, learningObjective: objective, sourceRoute }) => ({ questionId, leaf, majorObjective, objective, sourceRoute }));
+export const PASSAGE_PLANNING_QUIZ_COVERAGE_MATRIX = passagePlanningQuestions.map(({ id: questionId, leaf, majorObjective, learningObjective: objective, sourceReference }) => ({ questionId, leaf, majorObjective, objective, sourceReference }));
 
 export default passagePlanningQuestions satisfies readonly Question[];
