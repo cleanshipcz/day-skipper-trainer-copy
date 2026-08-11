@@ -3,6 +3,7 @@ import { renderToStaticMarkup } from "react-dom/server";
 import { MemoryRouter } from "react-router-dom";
 
 vi.mock("@/hooks/useProgress", () => ({ useProgress: () => ({ loadProgress: vi.fn().mockResolvedValue(null), saveProgress: vi.fn() }) }));
+vi.mock("@/contexts/AuthHooks", () => ({ useAuth: () => ({ user: null }) }));
 const { default: PrepareTheory } = await import("./PrepareTheory");
 const { prepareSteps, prepareSupportingRoutes } = await import("@/data/prepareSteps");
 const { appRoutes } = await import("@/app/routes");
