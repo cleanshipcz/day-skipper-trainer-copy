@@ -2,6 +2,7 @@ import { describe, expect, it } from "vitest";
 import type { ChecklistItem } from "@/data/preDepartureChecklist";
 import {
   canSelectStatus,
+  assessReadinessRestore,
   emptyReadinessEntry,
   isReadinessContextComplete,
   parseReadinessSession,
@@ -82,6 +83,20 @@ describe("readiness record model", () => {
     const result = validateReadinessCatalogue(cyclic);
     expect(result.valid).toBe(false);
     expect(result.diagnostics.join(" ")).toMatch(/must follow|cycle/);
+  });
+
+  it("never authorizes saved-evidence quarantine when the deployed catalogue is invalid", () => {
+    const saved = { version: 1 };
+    const invalidCatalogues: ChecklistItem[][] = [
+      [required, { ...required }],
+      [{ ...required, dependsOn: ["conditional"] }, { ...conditional, dependsOn: ["required"] }],
+      [{ ...required, dependsOn: ["missing"] }],
+    ];
+    for (const catalogue of invalidCatalogues) {
+      const assessment = assessReadinessRestore(saved, catalogue);
+      expect(assessment.catalogueValid).toBe(false);
+      expect("parsed" in assessment).toBe(false);
+    }
   });
 
   it("rejects legacy, expired and catalogue-stale durable sessions", () => {

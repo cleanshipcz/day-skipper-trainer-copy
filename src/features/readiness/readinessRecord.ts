@@ -174,6 +174,12 @@ const parseHistory = (value: unknown): ReadinessHistoryEntry[] => Array.isArray(
 
 export type ReadinessParseResult = { status: "valid"; payload: ReadinessRecordPayload } | { status: "invalid" | "expired" | "catalogue_changed" | "legacy"; diagnostic: string };
 
+export const assessReadinessRestore = (value: unknown, items: readonly ChecklistItem[], now = new Date()) => {
+  const catalogue = validateReadinessCatalogue(items);
+  if (!catalogue.valid) return { catalogueValid: false as const, diagnostics: catalogue.diagnostics };
+  return { catalogueValid: true as const, parsed: parseReadinessSession(value, items, now) };
+};
+
 export const parseReadinessSession = (value: unknown, items: readonly ChecklistItem[], now = new Date()): ReadinessParseResult => {
   const catalogue = validateReadinessCatalogue(items);
   if (!catalogue.valid) return { status: "invalid", diagnostic: catalogue.diagnostics.join(" ") };

@@ -38,6 +38,11 @@ describe("PreDepartureChecklist", () => {
     expect(screen.getByRole("link", { name: "Engine checks" }).getAttribute("href")).toBe("/engine");
   });
 
+  it("honestly describes access-triggered expiry and operator-dependent sweeping", async () => {
+    await renderChecklist();
+    expect(screen.getByText(/eligible for expiry 30 days/i).textContent).toMatch(/redacted on your next access.*only if the operator has configured/i);
+  });
+
   it("models all review states but prevents blanket not-applicable", async () => {
     await renderChecklist();
     const required = itemGroup(/Review the current berth-to-berth plan/);

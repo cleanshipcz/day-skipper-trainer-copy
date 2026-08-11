@@ -7,12 +7,12 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { checklistPhases, checklistSupportingRoutes, preDepartureChecklist } from "@/data/preDepartureChecklist";
 import {
   canSelectStatus,
+  assessReadinessRestore,
   createReadinessSession,
   emptyReadinessEntry,
   isResolved,
   isReadinessContextComplete,
   readinessStatusLabels,
-  parseReadinessSession,
   READINESS_RETENTION_DAYS,
   summarizeReadiness,
   transitionEntry,
@@ -51,6 +51,10 @@ export default function PreDepartureChecklist() {
   useEffect(() => {
     let active = true;
     hydrated.current = false;
+    if (!catalogue.valid) {
+      setLoadState("failed");
+      return () => { active = false; };
+    }
     setLoadState("loading");
     void loadProgressDetailed(TOPIC_IDS.PASSAGE_PLANNING_CHECKLIST).then(async (result) => {
       if (!active) return;
@@ -58,9 +62,11 @@ export default function PreDepartureChecklist() {
         setLoadState("failed");
         return;
       }
-      const parsed = result.status === "remote"
-        ? parseReadinessSession(result.record.answers_history?.readinessRecord, preDepartureChecklist)
+      const assessment = result.status === "remote"
+        ? assessReadinessRestore(result.record.answers_history?.readinessRecord, preDepartureChecklist)
         : null;
+      if (assessment && !assessment.catalogueValid) { setLoadState("failed"); return; }
+      const parsed = assessment?.catalogueValid ? assessment.parsed : null;
       const payload = parsed?.status === "valid" ? parsed.payload : null;
       if (payload && catalogue.valid) {
         setSession(payload);
@@ -182,7 +188,7 @@ export default function PreDepartureChecklist() {
       {loadState === "loading" && <p role="status" aria-live="polite">Loading saved readiness record…</p>}
       {loadState === "failed" && <div role="alert" className="rounded border border-destructive p-3"><p>Saved readiness evidence could not be loaded. No stale or partial record has been used.</p><Button type="button" variant="outline" className="mt-2" onClick={() => setLoadAttempt((attempt) => attempt + 1)}>Retry saved record</Button></div>}
       {loadState === "ready" && <p role="status" aria-live="polite">{saveState === "saving" ? "Saving readiness record…" : saveState === "saved" ? "Readiness record saved." : saveState === "offline" ? "Readiness record saved offline and queued for retry; server confirmation is pending." : saveState === "failed" ? "Readiness record could not be saved; keep this page open and retry an edit." : saveState === "anonymous" ? "Sign in to preserve this readiness record across navigation and devices." : "Readiness record ready."}</p>}
-      <Card><CardContent className="space-y-2 pt-6"><p className="text-sm"><strong>Session:</strong> {session.sessionId}. Scoped to the signed-in learner and this vessel and passage/departure context.</p><p className="text-xs text-muted-foreground">Readiness evidence is retained for {READINESS_RETENTION_DAYS} days after the last save, then fails closed as expired. It is private learning-progress data; do not record secrets, unnecessary personal data or certification claims.</p><div className="flex flex-wrap gap-2"><Button type="button" variant="outline" onClick={() => startNewSession()}>Start new / reset session</Button>{completionConfirmed && <Button type="button" variant="outline" onClick={() => { if (confirmAction("Reopen this completed session? Durable completion will be revoked until every required item is reassessed and completion is recorded again.")) { setCompletionConfirmed(false); setEntries((current) => Object.fromEntries(Object.entries(current).map(([id, entry]) => [id, transitionEntry(entry, "not_checked", new Date().toISOString())]))); markChanged(); } }}>Reopen and reassess</Button>}</div></CardContent></Card>
+      <Card><CardContent className="space-y-2 pt-6"><p className="text-sm"><strong>Session:</strong> {session.sessionId}. Scoped to the signed-in learner and this vessel and passage/departure context.</p><p className="text-xs text-muted-foreground">Readiness evidence becomes eligible for expiry {READINESS_RETENTION_DAYS} days after the last save. It is redacted on your next access; periodic deletion occurs only if the operator has configured the service-role retention sweep, so actual deletion may be later. It is private learning-progress data; do not record secrets, unnecessary personal data or certification claims.</p><div className="flex flex-wrap gap-2"><Button type="button" variant="outline" onClick={() => startNewSession()}>Start new / reset session</Button>{completionConfirmed && <Button type="button" variant="outline" onClick={() => { if (confirmAction("Reopen this completed session? Durable completion will be revoked until every required item is reassessed and completion is recorded again.")) { setCompletionConfirmed(false); setEntries((current) => Object.fromEntries(Object.entries(current).map(([id, entry]) => [id, transitionEntry(entry, "not_checked", new Date().toISOString())]))); markChanged(); } }}>Reopen and reassess</Button>}</div></CardContent></Card>
       <Progress value={percent} />
       <p aria-live="polite">{percent}% resolved ({summary.satisfactory} satisfactory, {summary.notApplicable} not applicable, {summary.blocked} blocked, {summary.notChecked} incomplete)</p>
       {summary.blocked > 0 && <Card className="border-destructive"><CardContent className="space-y-1 pt-6" role="alert"><h2 className="font-bold">No-go: readiness is blocked</h2><p>Stop the affected operation. Do not depart or conceal the finding. Escalate to the skipper and the responsible competent person or authority, correct the defect where authorised, record evidence, then reassess this item and every dependent decision when vessel, voyage or conditions change.</p></CardContent></Card>}
