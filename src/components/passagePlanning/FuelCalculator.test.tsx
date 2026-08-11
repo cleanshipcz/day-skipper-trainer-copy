@@ -42,7 +42,7 @@ describe("FuelCalculator", () => {
     for(const label of ["Speed/fuel-rate evidence and expected conditions","Reserve basis: changes, alternatives and policy"]){const input=screen.getByLabelText(label);await user.clear(input);}
     const reserve=screen.getByLabelText("Passage-specific reserve (%)");await user.clear(reserve);await user.type(reserve,"0");
     expect(screen.getByRole("button",{name:"Calculate / update result"}).hasAttribute("disabled")).toBe(true);
-    expect(screen.getAllByRole("alert").map(node=>node.textContent).join(" ")).toMatch(/positive reserve.*vessel-specific.*why the reserve/i);
+    expect(screen.getAllByRole("alert").map(node=>node.textContent).join(" ")).toMatch(/finite number from 0.1 to 200.*vessel-specific.*why the reserve/i);
   });
   it("persists the selected resolved instant for a repeated local departure time",async()=>{
     const user=userEvent.setup(); render(<FuelCalculator timeZone="Europe/London" />);
@@ -52,5 +52,12 @@ describe("FuelCalculator", () => {
     await user.click(screen.getByRole("button",{name:"Calculate / update result"}));
     await user.click(screen.getByRole("button",{name:"Complete calculation"}));
     expect(saveProgress).toHaveBeenLastCalledWith(expect.any(String),true,100,10,expect.objectContaining({input:expect.objectContaining({departureTime:"2026-10-25T01:30:00.000Z"})}));
+  });
+  it("survives blank, exponent overflow and excessive derived duration, then calculates after correction",async()=>{
+    const user=userEvent.setup();render(<FuelCalculator />);const speed=screen.getByLabelText("Conservative passage SOG (knots)") as HTMLInputElement;
+    await user.clear(speed);expect(speed.getAttribute("min")).toBe("0.1");expect(speed.getAttribute("max")).toBe("80");expect(speed.getAttribute("step")).toBe("0.1");expect(speed.getAttribute("aria-invalid")).toBe("true");
+    fireEvent.change(speed,{target:{value:"1e999"}});expect(screen.getByRole("button",{name:"Calculate / update result"}).hasAttribute("disabled")).toBe(true);
+    fireEvent.change(screen.getByLabelText("Route distance (nautical miles)"),{target:{value:"2000"}});fireEvent.change(speed,{target:{value:"0.1"}});expect(screen.getByText(/Derived passage duration/).textContent).toContain("1,000 hours");
+    fireEvent.change(screen.getByLabelText("Route distance (nautical miles)"),{target:{value:"18"}});fireEvent.change(speed,{target:{value:"6"}});await user.click(screen.getByRole("button",{name:"Calculate / update result"}));expect(screen.getByText(/Passage duration:/)).toBeTruthy();
   });
 });

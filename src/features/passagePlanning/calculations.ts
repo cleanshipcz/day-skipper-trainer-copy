@@ -21,17 +21,54 @@ export interface PassageCalculation {
   eta?: string;
 }
 
+export type PassageInputField = keyof PassageCalculationInput | "duration" | "fuelTotal";
+export interface PassageValidationIssue { field: PassageInputField; message: string }
+export const PASSAGE_LIMITS = {
+  distanceNm: { min: 0.1, max: 2000, step: 0.1 },
+  speedKnots: { min: 0.1, max: 80, step: 0.1 },
+  engineHours: { min: 0, max: 1000, step: 0.1 },
+  fuelLitresPerHour: { min: 0.1, max: 500, step: 0.1 },
+  additionalFuelLitres: { min: 0, max: 100000, step: 0.1 },
+  reservePercent: { min: 0.1, max: 200, step: 0.1 },
+  usableFuelLitres: { min: 0.1, max: 100000, step: 0.1 },
+  maximumDurationHours: 1000,
+} as const;
+
+const numericIssue=(field:Exclude<keyof PassageCalculationInput,"departureTime">,value:number,min:number,max:number,label:string):PassageValidationIssue|undefined =>
+  !Number.isFinite(value)||value<min||value>max?{field,message:`${label} must be a finite number from ${min.toLocaleString("en-GB")} to ${max.toLocaleString("en-GB")}.`}:undefined;
+
+export function passageValidationIssues(input: PassageCalculationInput): PassageValidationIssue[] {
+  const issues:PassageValidationIssue[]=[];
+  const add=(issue:PassageValidationIssue|undefined)=>{if(issue)issues.push(issue)};
+  add(numericIssue("distanceNm",input.distanceNm,PASSAGE_LIMITS.distanceNm.min,PASSAGE_LIMITS.distanceNm.max,"Distance (nautical miles)"));
+  add(numericIssue("speedKnots",input.speedKnots,PASSAGE_LIMITS.speedKnots.min,PASSAGE_LIMITS.speedKnots.max,"Speed over ground (knots)"));
+  add(numericIssue("engineHours",input.engineHours,PASSAGE_LIMITS.engineHours.min,PASSAGE_LIMITS.engineHours.max,"Engine-running duration (hours)"));
+  add(numericIssue("fuelLitresPerHour",input.fuelLitresPerHour,PASSAGE_LIMITS.fuelLitresPerHour.min,PASSAGE_LIMITS.fuelLitresPerHour.max,"Fuel rate (litres/hour)"));
+  add(numericIssue("additionalFuelLitres",input.additionalFuelLitres,PASSAGE_LIMITS.additionalFuelLitres.min,PASSAGE_LIMITS.additionalFuelLitres.max,"Additional consumption (litres)"));
+  add(numericIssue("reservePercent",input.reservePercent,PASSAGE_LIMITS.reservePercent.min,PASSAGE_LIMITS.reservePercent.max,"Reserve (percent)"));
+  add(numericIssue("usableFuelLitres",input.usableFuelLitres,PASSAGE_LIMITS.usableFuelLitres.min,PASSAGE_LIMITS.usableFuelLitres.max,"Usable fuel (litres)"));
+  if (!issues.some(({field})=>field==="distanceNm"||field==="speedKnots")) {
+    const duration=input.distanceNm/input.speedKnots;
+    if(!Number.isFinite(duration)||duration<=0||duration>PASSAGE_LIMITS.maximumDurationHours)issues.push({field:"duration",message:`Derived passage duration must be finite, positive and no more than ${PASSAGE_LIMITS.maximumDurationHours.toLocaleString("en-GB")} hours. Increase realistic SOG or shorten the route.`});
+  }
+  if (!issues.some(({field})=>["engineHours","fuelLitresPerHour","additionalFuelLitres","reservePercent"].includes(field))) {
+    const subtotal=input.engineHours*input.fuelLitresPerHour+input.additionalFuelLitres;
+    const total=subtotal*(1+input.reservePercent/100);
+    if(!Number.isFinite(subtotal)||subtotal<=0||!Number.isFinite(total)||total<=0)issues.push({field:"fuelTotal",message:"Derived fuel subtotal and reserved total must both be finite and positive."});
+  }
+  if(input.departureTime){
+    const departure=Date.parse(input.departureTime);
+    if(!Number.isFinite(departure))issues.push({field:"departureTime",message:"Departure time must be a valid representable instant."});
+    else if(!issues.some(({field})=>field==="duration"||field==="distanceNm"||field==="speedKnots")){
+      const eta=departure+(input.distanceNm/input.speedKnots)*3_600_000;
+      if(!Number.isFinite(eta)||Number.isNaN(new Date(eta).getTime()))issues.push({field:"departureTime",message:"Departure plus passage duration must produce a representable ETA."});
+    }
+  }
+  return issues;
+}
+
 export function validatePassageInput(input: PassageCalculationInput): string[] {
-  const errors: string[] = [];
-  if (!Number.isFinite(input.distanceNm) || input.distanceNm <= 0 || input.distanceNm > 2000) errors.push("Distance must be between 0 and 2,000 nautical miles.");
-  if (!Number.isFinite(input.speedKnots) || input.speedKnots <= 0 || input.speedKnots > 80) errors.push("Speed must be between 0 and 80 knots.");
-  if (!Number.isFinite(input.fuelLitresPerHour) || input.fuelLitresPerHour <= 0 || input.fuelLitresPerHour > 500) errors.push("Fuel rate must be between 0 and 500 litres/hour.");
-  if (!Number.isFinite(input.engineHours) || input.engineHours < 0 || input.engineHours > 1000) errors.push("Engine-running time must be between 0 and 1,000 hours.");
-  if (!Number.isFinite(input.additionalFuelLitres) || input.additionalFuelLitres < 0 || input.additionalFuelLitres > 100000) errors.push("Additional consumption must be between 0 and 100,000 litres.");
-  if (!Number.isFinite(input.reservePercent) || input.reservePercent <= 0 || input.reservePercent > 200) errors.push("Enter a positive reserve up to 200%, chosen for this vessel and passage.");
-  if (!Number.isFinite(input.usableFuelLitres) || input.usableFuelLitres <= 0 || input.usableFuelLitres > 100000) errors.push("Usable fuel must be between 0 and 100,000 litres.");
-  if (input.departureTime && Number.isNaN(Date.parse(input.departureTime))) errors.push("Departure time is invalid.");
-  return errors;
+  return passageValidationIssues(input).map(({message})=>message);
 }
 
 export function calculatePassage(input: PassageCalculationInput): PassageCalculation {
