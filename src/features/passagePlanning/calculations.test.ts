@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { calculateLegEtas, calculatePassage, formatDuration, formatEta, validatePassageInput } from "./calculations";
+import { calculateLegEtas, calculatePassage, formatDuration, formatEta, possibleInstants, validatePassageInput } from "./calculations";
 describe("passage calculations", () => {
   it("calculates time, separate reserve, conservative fuel and ETA", () => expect(calculatePassage({ distanceNm: 30, speedKnots: 6, fuelLitresPerHour: 2, reservePercent: 20, departureTime: "2026-07-30T08:00:00Z" })).toEqual({ hours: 5, durationMinutes: 300, fuelLitres: 10, reserveLitres: 2, fuelWithReserveLitres: 12, practicalFuelLitres: 12, eta: "2026-07-30T13:00:00.000Z" }));
   it("carries rounded minutes into hours", () => expect(formatDuration(calculatePassage({ distanceNm: 59.6, speedKnots: 60, fuelLitresPerHour: 1, reservePercent: 0 }).durationMinutes)).toBe("1 h 0 min"));
@@ -9,6 +9,10 @@ describe("passage calculations", () => {
     expect(formatEta("2026-03-29T00:30:00.000Z", "en-GB", "Europe/Prague")).toContain("GMT+1");
     expect(formatEta("2026-03-29T01:30:00.000Z", "en-GB", "Europe/Prague")).toContain("GMT+2");
     expect(formatEta("2026-03-29T01:30:00.000Z", "cs-CZ", "Europe/Prague")).toContain("Europe/Prague");
+  });
+  it("rejects Prague's spring DST gap and exposes both autumn overlap instants", () => {
+    expect(possibleInstants("2026-03-29T02:30", "Europe/Prague")).toEqual([]);
+    expect(possibleInstants("2026-10-25T02:30", "Europe/Prague")).toEqual(["2026-10-25T00:30:00.000Z", "2026-10-25T01:30:00.000Z"]);
   });
   it("validates non-positive and unreasonable values", () => expect(validatePassageInput({ distanceNm: 0, speedKnots: 81, fuelLitresPerHour: -1, reservePercent: 201 })).toHaveLength(4));
   it("rejects invalid calculation", () => expect(() => calculatePassage({ distanceNm: 1, speedKnots: 0, fuelLitresPerHour: 1, reservePercent: 20 })).toThrow(RangeError));

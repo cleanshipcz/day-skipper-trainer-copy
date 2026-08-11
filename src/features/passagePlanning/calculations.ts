@@ -51,6 +51,21 @@ export function formatEta(isoInstant: string, locale = "en-GB", timeZone = Intl.
   }).format(new Date(isoInstant)) + ` (${timeZone})`;
 }
 
+/** Returns every instant represented by a timezone-free wall-clock value (zero for DST gaps, two for overlaps). */
+export function possibleInstants(localDateTime: string, timeZone: string): string[] {
+  const match = /^(\d{4})-(\d{2})-(\d{2})T(\d{2}):(\d{2})$/.exec(localDateTime);
+  if (!match) return [];
+  const wanted = `${match[1]}-${match[2]}-${match[3]} ${match[4]}:${match[5]}`;
+  const centre = Date.UTC(+match[1], +match[2] - 1, +match[3], +match[4], +match[5]);
+  const formatter = new Intl.DateTimeFormat("en-CA", { timeZone, year:"numeric", month:"2-digit", day:"2-digit", hour:"2-digit", minute:"2-digit", hourCycle:"h23" });
+  const found: string[] = [];
+  for (let instant = centre - 14 * 3_600_000; instant <= centre + 14 * 3_600_000; instant += 60_000) {
+    const parts = Object.fromEntries(formatter.formatToParts(instant).map(({type,value}) => [type,value]));
+    if (`${parts.year}-${parts.month}-${parts.day} ${parts.hour}:${parts.minute}` === wanted) found.push(new Date(instant).toISOString());
+  }
+  return found;
+}
+
 export interface PlanWaypoint { id: string; name: string; latitude: string; longitude: string; bearing: number; distanceNm: number; notes: string; tidalGate: string; weatherWindow: string }
 export function calculateLegEtas(waypoints: readonly PlanWaypoint[], departure: string, speedKnots: number): string[] {
   if (!Number.isFinite(speedKnots) || speedKnots <= 0 || Number.isNaN(Date.parse(departure))) return [];
