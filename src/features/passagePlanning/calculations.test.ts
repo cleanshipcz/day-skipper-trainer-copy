@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { calculateLegEtas, calculatePassage, formatDuration, formatEta, passageValidationIssues, possibleInstants, totalRouteDistance, validatePassageInput, type PlanWaypoint } from "./calculations";
+import { calculateLegEtas, calculatePassage, formatDuration, formatEta, parseWaypointCoordinate, passageValidationIssues, possibleInstants, routeGeometryIssues, totalRouteDistance, validatePassageInput, type PlanWaypoint } from "./calculations";
 describe("passage calculations", () => {
   const base = { distanceNm:30, speedKnots:6, engineHours:3, fuelLitresPerHour:2, additionalFuelLitres:2, reservePercent:25, usableFuelLitres:20 };
   it("separates passage and engine time, extra use, reserve, usable fuel and ETA", () => expect(calculatePassage({ ...base, departureTime:"2026-07-30T08:00:00Z" })).toEqual({ hours:5, durationMinutes:300, fuelLitres:6, subtotalFuelLitres:8, reserveLitres:2, fuelWithReserveLitres:10, practicalFuelLitres:10, usableFuelMarginLitres:10, hasEnoughUsableFuel:true, eta:"2026-07-30T13:00:00.000Z" }));
@@ -34,4 +34,6 @@ describe("passage calculations", () => {
   it("has no imaginary leg or ETA for a lone departure",()=>{const route=[point("A",null)];expect(totalRouteDistance(route)).toBe(0);expect(calculateLegEtas(route,"2026-01-01T00:00:00Z",3)).toEqual([])});
   it("calculates exactly one leg and destination ETA for two points",()=>{const route=[point("A",null),point("B",6)];expect(totalRouteDistance(route)).toBe(6);expect(calculateLegEtas(route,"2026-01-01T00:00:00Z",3)).toEqual(["2026-01-01T02:00:00.000Z"])});
   it("accumulates intermediate and destination ETAs without a leg beyond destination", () => {const route=[point("A",null),point("B",6),point("C",3),point("D",1.5)];expect(totalRouteDistance(route)).toBe(10.5);expect(calculateLegEtas(route,"2026-01-01T00:00:00Z",3)).toEqual(["2026-01-01T02:00:00.000Z","2026-01-01T03:00:00.000Z","2026-01-01T03:30:00.000Z"])});
+  it.each([["50°47.400'N","001°06.500'W",true],["90°00.000'N","180°00.000'E",true],["91°00.0'N","001°00.0'W",false],["50°60.0'N","001°00.0'W",false],["50.5","1.2",false],["50°00.000'Q","001°00.000'W",false]])("validates explicit WGS84 DDM coordinates %s %s",(lat,lon,valid)=>expect(Boolean(parseWaypointCoordinate(lat,lon))).toBe(valid));
+  it("flags impossible coordinate geometry without claiming hazard clearance",()=>{const route:PlanWaypoint[]=[{id:"a",name:"A",latitude:"50°00.0'N",longitude:"001°00.0'W",inboundLeg:null},{id:"b",name:"B",latitude:"50°00.0'N",longitude:"001°00.0'W",inboundLeg:{course:0,distanceNm:5,notes:"",tidalGate:"",weatherWindow:""}}];expect(routeGeometryIssues(route)[0]).toContain("identical coordinates")});
 });

@@ -8,7 +8,7 @@ it("blanks immediately on account switches and ignores stale hydration",async()=
  const deferred=<T,>()=>{let resolve!:(value:T)=>void;const promise=new Promise<T>(done=>{resolve=done});return{promise,resolve}};
  const aFirst=deferred<unknown>(),bLoad=deferred<unknown>(),aSecond=deferred<unknown>();
  loadProgress.mockImplementationOnce(()=>aFirst.promise).mockImplementationOnce(()=>bLoad.promise).mockImplementationOnce(()=>aSecond.promise);
- const persisted=(name:string)=>({answers_history:{plan:{version:2,name,departure:"2026-07-30T09:00",speed:5,points:[{id:"1",name:"Start",latitude:"",longitude:"",inboundLeg:null},{id:"2",name:"Finish",latitude:"",longitude:"",inboundLeg:{course:20,distanceNm:3,notes:"",tidalGate:"",weatherWindow:""}}]}}});
+ const persisted=(name:string)=>({answers_history:{plan:{version:3,name,departure:"2026-07-30T09:00",speed:5,coordinateFormat:"degrees-decimal-minutes",datum:"WGS84",coordinatePrecision:"0.1 minute",safety:{departureBerth:"start",destinationBerth:"finish",limits:"limits",abortDecision:"abort",alternatives:"divert",manualVerification:"manual"},provenance:{weather:"forecast",tide:"tables",chart:"chart",publications:"almanac",preparedAt:"2026-07-30T08:00",revisedAt:"2026-07-30T08:00"},points:[{id:"1",name:"Start",latitude:"50°00.0'N",longitude:"001°00.0'W",inboundLeg:null},{id:"2",name:"Finish",latitude:"50°03.0'N",longitude:"001°00.0'W",inboundLeg:{course:20,distanceNm:3,notes:"",tidalGate:"",weatherWindow:""}}]}}});
  const view=render(<PassagePlanBuilder/>);
  await act(async()=>aFirst.resolve(persisted("Private A")));
  await waitFor(()=>expect((screen.getByLabelText("Plan name") as HTMLInputElement).value).toBe("Private A"));
@@ -68,5 +68,9 @@ it("keeps edits made during a successful save dirty and resets to the submitted 
  resolve(true);await waitFor(()=>expect(screen.getByRole("status").textContent).toContain("newer route changes remain unsaved"));
  fireEvent.click(screen.getByRole("button",{name:"Reset unsaved changes"}));expect(window.confirm).toHaveBeenCalledWith(expect.stringContaining("last saved plan"));
  await waitFor(()=>expect((screen.getByLabelText("Plan name") as HTMLInputElement).value).toBe("Submitted snapshot"));vi.unstubAllGlobals();
+});
+it("links malformed coordinates to an error and focuses the first invalid field without clearing data",async()=>{
+ render(<PassagePlanBuilder/>);await waitFor(()=>expect(loadProgress).toHaveBeenCalled());const latitude=screen.getAllByLabelText("WGS84 latitude (DD°MM.mmm'N/S)")[0] as HTMLInputElement;fireEvent.change(latitude,{target:{value:"91°00.0'N"}});fireEvent.click(screen.getByRole("button",{name:"Save & complete plan"}));
+ await waitFor(()=>expect(document.activeElement).toBe(latitude));expect(latitude.value).toBe("91°00.0'N");expect(latitude.getAttribute("aria-invalid")).toBe("true");expect(screen.getByRole("alert").textContent).toContain("valid WGS84 degrees and decimal minutes");
 });
 });

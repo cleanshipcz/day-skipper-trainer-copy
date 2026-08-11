@@ -146,6 +146,26 @@ export interface PlanWaypoint {
   inboundLeg: PlanLeg | null;
 }
 
+export type ParsedCoordinate = { latitude: number; longitude: number };
+const LATITUDE = /^(\d{1,2})°(\d{1,2}(?:\.\d{1,3})?)'([NS])$/;
+const LONGITUDE = /^(\d{1,3})°(\d{1,2}(?:\.\d{1,3})?)'([EW])$/;
+
+/** Parses WGS84 degrees and decimal minutes, e.g. 50°47.400'N 001°06.500'W. */
+export function parseWaypointCoordinate(latitude: string, longitude: string): ParsedCoordinate | null {
+  const lat=LATITUDE.exec(latitude.trim()),lon=LONGITUDE.exec(longitude.trim());
+  if(!lat||!lon)return null;
+  const convert=(match:RegExpExecArray,limit:number)=>{const degrees=Number(match[1]),minutes=Number(match[2]);if(degrees>limit||minutes>=60||(degrees===limit&&minutes!==0))return null;const sign=match[3]==="S"||match[3]==="W"?-1:1;return sign*(degrees+minutes/60)};
+  const parsedLatitude=convert(lat,90),parsedLongitude=convert(lon,180);
+  return parsedLatitude===null||parsedLongitude===null?null:{latitude:parsedLatitude,longitude:parsedLongitude};
+}
+
+const greatCircleNm=(a:ParsedCoordinate,b:ParsedCoordinate)=>{const radians=(value:number)=>value*Math.PI/180;const dLat=radians(b.latitude-a.latitude),dLon=radians(b.longitude-a.longitude);const value=Math.sin(dLat/2)**2+Math.cos(radians(a.latitude))*Math.cos(radians(b.latitude))*Math.sin(dLon/2)**2;return 3440.065*2*Math.atan2(Math.sqrt(value),Math.sqrt(1-value))};
+export function routeGeometryIssues(points: readonly PlanWaypoint[]): string[] {
+  const issues:string[]=[];
+  for(let index=1;index<points.length;index+=1){const from=parseWaypointCoordinate(points[index-1].latitude,points[index-1].longitude),to=parseWaypointCoordinate(points[index].latitude,points[index].longitude),leg=points[index].inboundLeg;if(!from||!to||!leg)continue;const geometry=greatCircleNm(from,to);if(geometry<0.01&&leg.distanceNm>0.1)issues.push(`Leg ${index}: distinct route distance is recorded between effectively identical coordinates.`);else if(Math.abs(leg.distanceNm-geometry)>Math.max(2,geometry*.5))issues.push(`Leg ${index}: recorded ${leg.distanceNm.toFixed(1)} nm is discontinuous with coordinate separation ${geometry.toFixed(1)} nm.`)}
+  return issues;
+}
+
 export function routeLegs(waypoints: readonly PlanWaypoint[]): PlanLeg[] {
   return waypoints.slice(1).flatMap((point) => point.inboundLeg ? [point.inboundLeg] : []);
 }
