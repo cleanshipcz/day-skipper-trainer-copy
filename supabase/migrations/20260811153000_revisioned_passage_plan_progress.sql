@@ -67,7 +67,7 @@ begin
   end if;
   if p_completed <> coalesce(((v_incoming ->> 'completionStatus')='confirmed'
        and (v_incoming ->> 'completedRevision')::numeric=(v_incoming ->> 'revision')::numeric),false)
-     or p_score <> case when p_completed then 100 else 0 end
+     or p_score <> (case when p_completed then 100 else 0 end)
      or (not p_completed and ((v_incoming ->> 'completionStatus')<>'draft' or v_incoming -> 'completedRevision' <> 'null'::jsonb)) then
     raise exception 'Inconsistent passage plan completion metadata' using errcode='22023';
   end if;
@@ -102,7 +102,7 @@ begin
           or jsonb_typeof(value->'inboundLeg'->'course')<>'number'
           or (value->'inboundLeg'->>'course')::numeric<0 or (value->'inboundLeg'->>'course')::numeric>=360
           or jsonb_typeof(value->'inboundLeg'->'distanceNm')<>'number'
-          or (value->'inboundLeg'->>'distanceNm')::numeric<=0 or (value->'inboundLeg'->>'distanceNm')::numeric>2000))
+          or (value->'inboundLeg'->>'distanceNm')::numeric<=0 or (value->'inboundLeg'->>'distanceNm')::numeric>2000)))
     or coalesce(v_incoming -> 'plan' -> 'provenance' ->> 'weather','') !~* 'issue[[:space:]]*[:#]?[[:space:]]*[^[:space:]]+.*valid(ity)?[[:space:]]*[:#]?[[:space:]]*[^[:space:]]+'
     or coalesce(v_incoming -> 'plan' -> 'provenance' ->> 'tide','') !~* '(table|atlas|diamond|almanac).*?(edition|year)[[:space:]]*[:#]?[[:space:]]*[^[:space:]]+'
     or coalesce(v_incoming -> 'plan' -> 'provenance' ->> 'chart','') !~* 'chart[[:space:]]*(no\.?|number|#)[[:space:]]*[0-9]+.*edition[[:space:]]*[:#]?[[:space:]]*[^[:space:]]+.*correction'
