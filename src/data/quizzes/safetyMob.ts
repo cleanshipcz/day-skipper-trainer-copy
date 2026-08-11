@@ -11,11 +11,16 @@ const safetyMobQuestions: readonly Question[] = [
   },
   {
     id: "mob2",
-    question: "Which side should you approach a casualty in the water?",
-    options: ["Windward (upwind)", "Leeward (downwind)", "Astern", "Ahead"],
-    correctAnswer: 1,
+    question: "What is the safest general rule for the final approach to a casualty in the water?",
+    options: [
+      "Always put the casualty on the leeward side",
+      "Always approach stern-first under power",
+      "Choose a controlled approach for the vessel, rig, wind and sea state, with an abort route",
+      "Keep the propeller turning to hold position alongside",
+    ],
+    correctAnswer: 2,
     explanation:
-      "Approach so the casualty is on your LEEWARD side (downwind). The boat drifts heavily, so if you are upwind, the boat may drift quickly onto the person.",
+      "There is no universally safe side: the plan depends on the vessel, rig, conditions and recovery point. Approach slowly under control, brief the crew, keep an escape route, and abort early if the position is unsafe. Aim to stop alongside; before the casualty is within propeller danger, select neutral or stop the engine as conditions and vessel control allow, and never expose them to a turning propeller.",
   },
   {
     id: "mob3",
@@ -35,20 +40,20 @@ const safetyMobQuestions: readonly Question[] = [
     ],
     correctAnswer: 0,
     explanation:
-      "The Williamson Turn (60° turn then hard over) brings the vessel back onto its reciprocal track, ideal when visual contact is lost or in fog.",
+      "A Williamson turn is a standard powered-ship recovery manoeuvre intended to make good the original track in reduced visibility. Its published helm sequence is a guide, not a universal small-craft response: vessel handling, sea room, traffic and conditions determine whether it is suitable, and the vessel's practised recovery plan takes priority.",
   },
   {
     id: "mob5",
-    question: "Why should a hypothermic casualty be lifted horizontally?",
+    question: "How should a casualty who may be hypothermic be recovered from the water, where practicable?",
     options: [
       "It's easier for the winch",
-      "To prevent 'Reflow Syndrome' (heart failure)",
+      "Horizontally or near-horizontally, because vertical recovery can increase cardiac-arrest risk",
       "So they don't slip out of the harness",
       "To drain water from their lungs",
     ],
     correctAnswer: 1,
     explanation:
-      "Lifting vertically causes cold blood from legs to rush to the core, which can cause cardiac arrest (Reflow Syndrome/Hydrostatic Squeeze).",
+      "Use horizontal or near-horizontal (such as a supported 'deck-chair') recovery where practicable. Medically reviewed maritime guidance warns that vertical recovery can increase cardiac-arrest risk in a hypothermic casualty; handle them gently and follow current first-aid and rescue guidance.",
   },
   {
     id: "mob6",
@@ -78,24 +83,29 @@ const safetyMobQuestions: readonly Question[] = [
   },
   {
     id: "mob8",
-    question: "On what VHF channel should you broadcast a MAYDAY?",
-    options: ["Channel 6", "Channel 12", "Channel 16", "Channel 72"],
-    correctAnswer: 2,
-    explanation:
-      "Channel 16 (156.8 MHz) is the international distress, safety, and calling frequency. All MAYDAY calls are made on Channel 16.",
-  },
-  {
-    id: "mob9",
-    question: "What manoeuvre brings you back along your reciprocal course?",
+    question: "How should a VHF distress alert and MAYDAY voice message normally be sent?",
     options: [
-      "A crash stop",
-      "A Williamson Turn",
-      "A figure-of-eight approach",
-      "A beam reach and tack",
+      "Send both by voice on Channel 70",
+      "If DSC is fitted, send the DSC distress alert, then transmit the MAYDAY voice message on Channel 16",
+      "Send only a DSC alert; no voice follow-up is needed",
+      "Make the voice call on a working channel chosen by the skipper",
     ],
     correctAnswer: 1,
     explanation:
-      "The Williamson Turn (hard over, then when 60° off course, hard over the other way) brings the vessel back exactly along its reciprocal track.",
+      "Where a suitable DSC radio is fitted, send the digital distress alert first (DSC uses Channel 70), then follow with the MAYDAY voice call and message on Channel 16. Channel 70 is digital-only. If DSC is unavailable, make the voice distress call directly on Channel 16.",
+  },
+  {
+    id: "mob9",
+    question: "Which statement about a Williamson turn is accurate?",
+    options: [
+      "It guarantees every vessel will return exactly along its reciprocal track",
+      "It is a powered-ship manoeuvre intended to make good the original track, but execution and suitability are vessel- and condition-dependent",
+      "It is the mandatory final approach for every sailing vessel",
+      "It removes the need for a lookout and MOB position mark",
+    ],
+    correctAnswer: 1,
+    explanation:
+      "The standard published sequence uses hard-over helm, opposite helm after about 60° of heading change, then midships before the reciprocal heading. Those values describe a standard powered-ship manoeuvre, not an exact guarantee for every craft; use the vessel's practised procedure and account for sea room, traffic and conditions.",
   },
   {
     id: "mob10",
@@ -125,16 +135,16 @@ const safetyMobQuestions: readonly Question[] = [
   },
   {
     id: "mob12",
-    question: "What information must be included in a MAYDAY message?",
+    question: "Which is the most complete practical content for a MAYDAY voice message?",
     options: [
       "Only the vessel name",
-      "Vessel name, MMSI, position, nature of distress, number of persons on board",
+      "Vessel identity, position, nature of distress, assistance required, persons on board, and other useful information",
       "Just the GPS coordinates",
       "The skipper's phone number",
     ],
     correctAnswer: 1,
     explanation:
-      "A MAYDAY message must include: vessel name and callsign/MMSI, position, nature of distress, assistance required, number of POB, and any other useful information.",
+      "Give MAYDAY and identify the vessel, then state position, nature of distress, assistance required, persons on board and other useful information. Use the vessel's call sign, MMSI or other available identification as applicable; an MMSI is not universally available, especially when calling without DSC equipment.",
   },
 ] as const;
 
