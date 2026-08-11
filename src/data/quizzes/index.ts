@@ -51,7 +51,10 @@ const revealsCorrectOption = (text: string, correctOption: string) => {
   const normalizedText = normalizedAssessmentText(text);
   return new RegExp(`(?:correct|right|keyed) (?:answer )?(?:is )?${option}(?: |$)`).test(normalizedText)
     || new RegExp(`(?:answer|solution) (?:is )?${option}(?: |$)`).test(normalizedText)
-    || new RegExp(`(?:^| )${option} (?:is )?(?:the )?(?:correct|right|keyed) answer(?: |$)`).test(normalizedText);
+    || new RegExp(`(?:^| )${option} (?:is )?(?:the )?(?:correct|right|keyed) answer(?: |$)`).test(normalizedText)
+    || new RegExp(`(?:^| )${option} is the (?:answer|solution)(?: |$)`).test(normalizedText)
+    || new RegExp(`(?:^| )(?:choose|select|pick) ${option}(?: |$)`).test(normalizedText)
+    || new RegExp(`(?:^| )${option} should be (?:selected|chosen|picked)(?: |$)`).test(normalizedText);
 };
 const localQuizImage = /^\/images\/(?:[A-Za-z0-9_-]+\/)*[A-Za-z0-9_-]+\.(?:png|jpe?g|webp|svg)$/i;
 

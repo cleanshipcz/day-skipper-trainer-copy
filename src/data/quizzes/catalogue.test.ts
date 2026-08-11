@@ -61,9 +61,21 @@ describe("asynchronous quiz catalogue", () => {
       description: "The keyed answer is Panel B.",
       facts: [{ label: "Observation", value: "Small waves and frequent white horses" }],
     } }],
+    ["option-first solution", { imageAlt: "Panel B is the solution shown by the diagram." }],
+    ["choose directive", { imageAlt: "Choose Panel B after reviewing the observations." }],
+    ["selection directive", { imageAlt: "Panel B should be selected from the choices." }],
   ])("rejects a leaky %s", (_label, visual) => {
     expect(() => validateQuizBank("test-topic", [{ ...validQuestion, options: ["Panel B", "Panel A"],
       image: "/images/example.png", ...visual }])).toThrow(/visual equivalent must not reveal the correct option/i);
+  });
+
+  test.each([
+    "Choose between Panel A and Panel B using the observable wave patterns.",
+    "Panel B is an answer option labelled beside a distinct sea-state drawing.",
+    "Select the panel whose observations best fit the question; Panel B shows frequent white horses.",
+  ])("accepts nearby non-directive visual wording: %s", (imageAlt) => {
+    const bank = [{ ...validQuestion, options: ["Panel B", "Panel A"], image: "/images/example.png", imageAlt }];
+    expect(validateQuizBank("test-topic", bank)).toBe(bank);
   });
 
   test.each([
