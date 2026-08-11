@@ -1,6 +1,6 @@
 # Man Overboard Quiz Guidance Audit
 
-**Reviewed:** 11 August 2026  
+**Reviewed:** 11 August 2026
 **Scope:** all 12 questions in `src/data/quizzes/safetyMob.ts` and the supporting lesson at `/safety/man-overboard`
 
 ## Sources
