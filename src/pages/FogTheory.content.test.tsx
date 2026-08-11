@@ -56,6 +56,44 @@ describe("fog and marine visibility safety guidance", () => {
     expect(screen.getByText(/dashed\/squares/i)).toBeTruthy();
   });
 
+  it("preserves the safety-critical Rule 19 scope and alteration constraints", () => {
+    render(<Content />);
+    const scope = screen.getByRole("heading", { name: /fog, forecast terms and COLREGs/i }).closest("section")?.textContent ?? "";
+    expect(scope).toMatch(/Rules 4–10 apply in any visibility/i);
+    expect(scope).toMatch(/Rules 11–18 apply only when vessels are in sight/i);
+    expect(scope).toMatch(/Rule 19 applies.*not in sight.*in or near restricted visibility/i);
+    const avoid = screen.getByRole("heading", { name: /detect, assess and avoid/i }).closest("section")?.textContent ?? "";
+    expect(avoid).toMatch(/avoid port for a vessel forward of the beam.*except when overtaking/i);
+    expect(avoid).toMatch(/avoid altering toward a vessel abeam or abaft the beam/i);
+    expect(avoid).toMatch(/fog signal apparently forward of the beam.*minimum.*keep course.*take all way off.*extreme caution/i);
+  });
+
+  it("teaches a prioritized small-craft plan and systematic risk assessment", () => {
+    render(<Content />);
+    const plan = screen.getByRole("heading", { name: /restricted-visibility action plan/i }).closest("section")?.textContent ?? "";
+    expect(plan).toMatch(/Before entering:.*avoid, delay or divert.*lookout.*safe speed.*engine.*navigation lights.*Rule 35/i);
+    expect(plan).toMatch(/Before entering:.*lifejackets.*clip on.*competent helm.*immediate hand steering/i);
+    expect(plan).toMatch(/position.*depth.*escape water.*safe anchorage.*diversion/i);
+    expect(plan).toMatch(/If visibility falls suddenly:.*first control speed and heading/i);
+    expect(plan).toMatch(/If visibility falls suddenly:.*lifejackets.*competent helm.*immediate hand steering/i);
+    expect(plan).toMatch(/visibility, traffic density.*stopping distance and turning ability.*wind, sea and current.*draught/i);
+    const assess = screen.getByRole("heading", { name: /detect, assess and avoid/i }).closest("section")?.textContent ?? "";
+    expect(assess).toMatch(/repeated plots or equivalent systematic observations.*closest point of approach.*time to closest approach/i);
+    expect(assess).toMatch(/AIS.*missing, delayed or wrong/i);
+    expect(assess).toMatch(/radar reflector.*does not guarantee/i);
+    expect(assess).toMatch(/if in doubt, deem collision risk to exist/i);
+  });
+
+  it("covers Rule 35 and applies Rule 19 in scenarios", () => {
+    render(<Content />);
+    const scenarios = screen.getByRole("heading", { name: /sound signals and small-craft scenarios/i }).closest("section")!;
+    expect(scenarios.textContent).toMatch(/making way.*one prolonged.*stopped.*two prolonged.*sailing vessel.*one prolonged followed by two short/i);
+    expect(scenarios.textContent).toMatch(/At anchor.*bell rapidly.*five seconds.*one minute/i);
+    expect(within(scenarios).getByRole("link", { name: /Rule 35 lesson/i }).getAttribute("href")).toBe("/rules/lights/theory?section=sounds#rule-35");
+    expect(scenarios.textContent).toMatch(/Radar contact 20°.*steady bearing and decreasing range.*do not classify.*Rule 15/i);
+    expect(scenarios.textContent).toMatch(/Prolonged blast ahead.*minimum speed at which the vessel can be kept on course.*all way off/i);
+  });
+
   it("preserves fog Q17 and separately assesses very poor visibility", () => {
     const q17 = questions.find(({ id }) => id === "weather-17")!;
     expect(q17.question).toMatch(/fog.*visibility below/i);
@@ -77,6 +115,7 @@ describe("fog and marine visibility safety guidance", () => {
     expect(hrefs).toContain("https://weather.metoffice.gov.uk/guides/coast-and-sea/glossary");
     expect(hrefs).toContain("https://weather.metoffice.gov.uk/learn-about/weather/types-of-weather/fog");
     expect(hrefs).toContain("https://weather.metoffice.gov.uk/learn-about/weather/types-of-weather/humidity");
-    expect(hrefs.some((href) => href?.includes("NavRules_Handbook_Corrected_08_08_2024.pdf"))).toBe(true);
+    expect(hrefs).toContain("https://www.gov.uk/government/publications/msn-1781-mf-amendment-3-the-merchant-shipping-regulations-1996-colreg");
+    expect(hrefs).toContain("https://www.gov.uk/government/publications/mgn-369-mf-amendment-1-navigation-safety-navigation-practices-relevant-to-restricted-visibility");
   });
 });
