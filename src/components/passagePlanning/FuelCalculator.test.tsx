@@ -3,8 +3,8 @@ import userEvent from "@testing-library/user-event";
 import { describe, expect, it, vi } from "vitest";
 import { FuelCalculator } from "./FuelCalculator";
 
-const saveProgress=vi.fn();
-vi.mock("@/hooks/useProgress", () => ({ useProgress: () => ({ saveProgress }) }));
+const saveProgressDetailed=vi.fn().mockResolvedValue("anonymous");
+vi.mock("@/hooks/useProgress", () => ({ useProgress: () => ({ ownerId:null,loadProgressDetailed:vi.fn(),saveProgressDetailed }) }));
 
 describe("FuelCalculator", () => {
   it("calculates deliberately, explains the equation, and invalidates stale results accessibly", async () => {
@@ -15,7 +15,7 @@ describe("FuelCalculator", () => {
     calculate.focus(); await user.keyboard("{Enter}");
     expect(screen.getByText(/Passage duration:/).textContent).toContain("18 nm ÷ 6 kn");
     expect(screen.getByText(/Engine fuel:/).textContent).toContain("3 h × 2 L/h = 6.0000 L");
-    expect(screen.getByRole("button", { name: "Complete calculation" }).hasAttribute("disabled")).toBe(false);
+    expect(screen.getByRole("button", { name: "Complete calculation" }).hasAttribute("disabled")).toBe(true);
     const distance = screen.getByLabelText("Route distance (nautical miles)");
     await user.clear(distance); await user.type(distance, "19");
     expect(screen.queryByText(/Engine fuel:/)).toBeNull();
@@ -50,8 +50,9 @@ describe("FuelCalculator", () => {
     const occurrence=screen.getByLabelText("This time occurs twice; choose the intended offset");
     await user.selectOptions(occurrence,"2026-10-25T01:30:00.000Z");
     await user.click(screen.getByRole("button",{name:"Calculate / update result"}));
+    await user.type(screen.getByLabelText(/Explain what the time/),"The ETA and fuel reserve cover this specific passage plan.");
     await user.click(screen.getByRole("button",{name:"Complete calculation"}));
-    expect(saveProgress).toHaveBeenLastCalledWith(expect.any(String),true,100,10,expect.objectContaining({input:expect.objectContaining({departureTime:"2026-10-25T01:30:00.000Z"})}));
+    expect(saveProgressDetailed).toHaveBeenLastCalledWith(expect.any(String),true,100,0,expect.objectContaining({modelVersion:3,inputs:expect.objectContaining({departureTime:"2026-10-25T01:30:00.000Z"}),outputs:expect.any(Object),units:expect.any(Object)}));
   });
   it("survives blank, exponent overflow and excessive derived duration, then calculates after correction",async()=>{
     const user=userEvent.setup();render(<FuelCalculator />);const speed=screen.getByLabelText("Conservative passage SOG (knots)") as HTMLInputElement;
@@ -67,7 +68,7 @@ describe("FuelCalculator", () => {
   });
   it("describes fields, announces presets and results concisely, and exposes touch-sized wrapping controls",async()=>{
     const user=userEvent.setup();render(<FuelCalculator />);const distance=screen.getByLabelText("Route distance (nautical miles)");expect(distance.getAttribute("inputmode")).toBe("decimal");expect(distance.getAttribute("aria-describedby")).toContain("distanceNm-hint");expect(screen.getByText("Allowed 0.1 to 2000, in 0.1 increments.")).toBeTruthy();
-    const sail=screen.getByRole("button",{name:"Channel crossing — sail/auxiliary"});expect(sail.className).toContain("min-h-11");await user.keyboard("{Tab}");sail.focus();await user.keyboard("{Enter}");expect(sail.getAttribute("aria-pressed")).toBe("true");expect(screen.getByRole("status").textContent).toMatch(/applied.*Changed:/);await user.click(screen.getByRole("button",{name:"Calculate / update result"}));expect(screen.getByRole("status").textContent).toMatch(/Passage 12 h 0 min; practical fuel 26 litres; usable fuel sufficient/);expect(screen.getByText("Calculated plan").closest("div[aria-live]")).toBeNull();
+    const sail=screen.getByRole("button",{name:"Channel crossing — sail/auxiliary"});expect(sail.className).toContain("min-h-11");await user.keyboard("{Tab}");sail.focus();await user.keyboard("{Enter}");expect(sail.getAttribute("aria-pressed")).toBe("true");expect(screen.getAllByRole("status").some(node=>/applied.*Changed:/.test(node.textContent??""))).toBe(true);await user.click(screen.getByRole("button",{name:"Calculate / update result"}));expect(screen.getAllByRole("status").some(node=>/Passage 12 h 0 min; practical fuel 26 litres; usable fuel sufficient/.test(node.textContent??""))).toBe(true);expect(screen.getByText("Calculated plan").closest("div[aria-live]")).toBeNull();
   });
   it("keeps derived errors silent during partial typing then announces once politely on blur",()=>{
     render(<FuelCalculator />);const distance=screen.getByLabelText("Route distance (nautical miles)");const speed=screen.getByLabelText("Conservative passage SOG (knots)");fireEvent.change(distance,{target:{value:"2000"}});fireEvent.change(speed,{target:{value:"0.1"}});expect(screen.queryByText(/Derived passage duration/)).toBeNull();fireEvent.blur(speed);const message=screen.getByText(/Derived passage duration/);const region=message.closest('[aria-live="polite"]');expect(region?.getAttribute("aria-atomic")).toBe("true");expect(region?.querySelectorAll("p")).toHaveLength(1);
