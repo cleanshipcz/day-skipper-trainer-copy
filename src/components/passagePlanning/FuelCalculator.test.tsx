@@ -1,10 +1,11 @@
-import { fireEvent, render, screen } from "@testing-library/react";
+import { act, fireEvent, render, screen } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { describe, expect, it, vi } from "vitest";
 import { FuelCalculator } from "./FuelCalculator";
 
-const saveProgressDetailed=vi.fn().mockResolvedValue("anonymous");
-vi.mock("@/hooks/useProgress", () => ({ useProgress: () => ({ ownerId:null,loadProgressDetailed:vi.fn(),saveProgressDetailed }) }));
+const progressMock={ownerId:null as string|null,loadProgressDetailed:vi.fn(),saveProgressDetailed:vi.fn().mockResolvedValue("anonymous")};
+vi.mock("@/hooks/useProgress", () => ({ useProgress: () => progressMock }));
+const saveProgressDetailed=progressMock.saveProgressDetailed;
 
 describe("FuelCalculator", () => {
   it("calculates deliberately, explains the equation, and invalidates stale results accessibly", async () => {
@@ -75,5 +76,8 @@ describe("FuelCalculator", () => {
   });
   it("resets a derived group when a sibling contributor changes",()=>{
     render(<FuelCalculator />);const distance=screen.getByLabelText("Route distance (nautical miles)");const speed=screen.getByLabelText("Conservative passage SOG (knots)");fireEvent.blur(distance);fireEvent.change(distance,{target:{value:"2000"}});fireEvent.blur(distance);expect(screen.queryByText(/Derived passage duration/)).toBeNull();fireEvent.change(speed,{target:{value:"0.1"}});expect(screen.queryByText(/Derived passage duration/)).toBeNull();fireEvent.blur(speed);expect(screen.getByText(/Derived passage duration/)).toBeTruthy();
+  });
+  it("locks edits during deferred hydration and recomputes rather than trusting saved outputs",async()=>{
+    let resolveLoad:(value:unknown)=>void=()=>undefined;progressMock.ownerId="user-1";progressMock.loadProgressDetailed.mockReturnValueOnce(new Promise(resolve=>{resolveLoad=resolve}));render(<FuelCalculator />);const distance=screen.getByLabelText("Route distance (nautical miles)");expect(distance.closest("fieldset[disabled]")).toBeTruthy();const inputs={distanceNm:18,speedKnots:6,engineHours:3,fuelLitresPerHour:2,additionalFuelLitres:2,reservePercent:20,usableFuelLitres:20,evidence:"Measured vessel evidence",reserveBasis:"Route-specific reserve basis",departureTime:""};await act(async()=>resolveLoad({status:"remote",record:{completed:true,answers_history:{modelVersion:3,inputs,outputs:{practicalFuelLitres:999},interpretation:"Time fuel reserve and ETA are understood."}}}));expect(distance.closest("fieldset[disabled]")).toBeNull();expect(screen.getByText(/practical carry/).textContent).toContain("10 L");progressMock.ownerId=null;
   });
 });
