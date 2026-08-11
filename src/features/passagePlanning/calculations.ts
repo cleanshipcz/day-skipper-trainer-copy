@@ -126,12 +126,40 @@ export function possibleInstants(localDateTime: string, timeZone: string): strin
   return found;
 }
 
-export interface PlanWaypoint { id: string; name: string; latitude: string; longitude: string; bearing: number; distanceNm: number; notes: string; tidalGate: string; weatherWindow: string }
+export interface PlanLeg {
+  course: number;
+  distanceNm: number;
+  notes: string;
+  tidalGate: string;
+  weatherWindow: string;
+}
+
+/**
+ * Ordered route semantics: points[0] is the departure and has no inbound leg.
+ * Every later waypoint is an arrival and owns the leg from points[index - 1].
+ */
+export interface PlanWaypoint {
+  id: string;
+  name: string;
+  latitude: string;
+  longitude: string;
+  inboundLeg: PlanLeg | null;
+}
+
+export function routeLegs(waypoints: readonly PlanWaypoint[]): PlanLeg[] {
+  return waypoints.slice(1).flatMap((point) => point.inboundLeg ? [point.inboundLeg] : []);
+}
+
+export function totalRouteDistance(waypoints: readonly PlanWaypoint[]): number {
+  return routeLegs(waypoints).reduce((total, leg) => total + (Number.isFinite(leg.distanceNm) ? leg.distanceNm : 0), 0);
+}
+
 export function calculateLegEtas(waypoints: readonly PlanWaypoint[], departure: string, speedKnots: number): string[] {
   if (!Number.isFinite(speedKnots) || speedKnots <= 0 || Number.isNaN(Date.parse(departure))) return [];
   let elapsed = 0;
-  return waypoints.map((waypoint) => {
-    elapsed += waypoint.distanceNm / speedKnots;
+  return waypoints.slice(1).map((waypoint) => {
+    if (!waypoint.inboundLeg || !Number.isFinite(waypoint.inboundLeg.distanceNm)) return "";
+    elapsed += waypoint.inboundLeg.distanceNm / speedKnots;
     return new Date(Date.parse(departure) + elapsed * 3_600_000).toISOString();
   });
 }
