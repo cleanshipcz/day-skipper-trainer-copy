@@ -13,7 +13,7 @@ import { toast } from "sonner";
 import {
   firefightingEquipment,
   fireScenarios,
-  type ExtinguisherId,
+  type FirefightingEquipmentId,
   type FireScenario,
 } from "@/data/fireExtinguishers";
 
@@ -44,7 +44,7 @@ const shuffle = <T,>(arr: readonly T[]): T[] => {
 interface DrillState {
   readonly scenarios: readonly FireScenario[];
   readonly currentIndex: number;
-  readonly selectedExtinguisherId: ExtinguisherId | null;
+  readonly selectedExtinguisherId: FirefightingEquipmentId | null;
   readonly answered: boolean;
   readonly correctCount: number;
   readonly totalAnswered: number;
@@ -75,7 +75,7 @@ export const FireExtinguisherDrill = ({ onComplete }: FireExtinguisherDrillProps
   const isCorrect =
     state.answered &&
     state.selectedExtinguisherId !== null &&
-    currentScenario?.acceptableExtinguisherIds.includes(state.selectedExtinguisherId);
+    currentScenario?.acceptableEquipmentIds.includes(state.selectedExtinguisherId);
 
   // H1: Fire onComplete callback when drill finishes (once only)
   useEffect(() => {
@@ -88,7 +88,7 @@ export const FireExtinguisherDrill = ({ onComplete }: FireExtinguisherDrillProps
     }
   }, [isComplete, onComplete, state.correctCount, state.totalAnswered]);
 
-  const handleSelect = useCallback((extId: ExtinguisherId) => {
+  const handleSelect = useCallback((extId: FirefightingEquipmentId) => {
     setState((prev) =>
       prev.answered ? prev : { ...prev, selectedExtinguisherId: extId }
     );
@@ -101,7 +101,7 @@ export const FireExtinguisherDrill = ({ onComplete }: FireExtinguisherDrillProps
       if (!scenario || prev.selectedExtinguisherId === null) return prev;
 
       const correct =
-        scenario.acceptableExtinguisherIds.includes(prev.selectedExtinguisherId);
+        scenario.acceptableEquipmentIds.includes(prev.selectedExtinguisherId);
 
       if (correct) {
         toast.success("Correct!", {
@@ -195,7 +195,7 @@ export const FireExtinguisherDrill = ({ onComplete }: FireExtinguisherDrillProps
                 state.selectedExtinguisherId === ext.id;
               const showResult = state.answered;
               const isCorrectAnswer =
-                currentScenario.acceptableExtinguisherIds.includes(ext.id);
+                currentScenario.acceptableEquipmentIds.includes(ext.id);
 
               let borderClass = "border-border hover:border-primary/40";
               if (isSelected && !showResult) {

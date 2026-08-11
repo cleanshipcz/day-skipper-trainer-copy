@@ -7,16 +7,25 @@ export type ExtinguisherId =
   | "dry-powder"
   | "foam"
   | "co2"
-  | "wet-chemical"
-  | "fire-blanket";
+  | "wet-chemical";
+
+export type FirefightingEquipmentId =
+  | ExtinguisherId
+  | "fire-blanket"
+  | "fixed-co2-system";
 
 export const EXTINGUISHER_IDS = {
   DRY_POWDER: "dry-powder",
   FOAM: "foam",
   CO2: "co2",
   WET_CHEMICAL: "wet-chemical",
-  FIRE_BLANKET: "fire-blanket",
 } as const satisfies Record<string, ExtinguisherId>;
+
+export const EQUIPMENT_IDS = {
+  ...EXTINGUISHER_IDS,
+  FIRE_BLANKET: "fire-blanket",
+  FIXED_CO2_SYSTEM: "fixed-co2-system",
+} as const satisfies Record<string, FirefightingEquipmentId>;
 
 export interface FireExtinguisher {
   readonly id: ExtinguisherId;
@@ -121,6 +130,7 @@ export const firefightingEquipment = [
   { id: "dry-powder", type: "Dry Powder", equipmentKind: "Extinguisher", optionDetail: "Blue band • marked 13A 34B C • use only as manufacturer permits" },
   { id: "foam", type: "Foam", equipmentKind: "Extinguisher", optionDetail: "Cream band • marked 13A 21B • use only on manufacturer-approved fuels" },
   { id: "co2", type: "CO2", equipmentKind: "Extinguisher", optionDetail: "Black band • marked 34B • obey voltage, distance and enclosure instructions" },
+  { id: "fixed-co2-system", type: "Fixed CO2 System", equipmentKind: "Fixed installation", optionDetail: "Approved and sized for the protected engine space • operate only to system instructions" },
   { id: "wet-chemical", type: "Wet Chemical", equipmentKind: "Extinguisher", optionDetail: "Yellow band • marked 25F • obey pan-size and distance instructions" },
   { id: "fire-blanket", type: "Fire Blanket", equipmentKind: "Separate equipment", optionDetail: "BS EN 1869 • no extinguisher colour band or class rating" },
 ] as const;
@@ -130,9 +140,9 @@ export interface FireScenario {
   readonly description: string;
   readonly fireClass: FireClass;
   readonly electricalHazard?: boolean;
-  readonly acceptableExtinguisherIds: readonly ExtinguisherId[];
+  readonly acceptableEquipmentIds: readonly FirefightingEquipmentId[];
   /** Exact markings/approval assumed by this assessment; visible before answering. */
-  readonly assumedEquipment: Readonly<Partial<Record<ExtinguisherId, string>>>;
+  readonly assumedEquipment: Readonly<Partial<Record<FirefightingEquipmentId, string>>>;
   readonly prerequisites: string;
   readonly explanation: string;
 }
@@ -142,7 +152,7 @@ export const fireScenarios: readonly FireScenario[] = [
     id: "galley-oil",
     description: "A small pan of cooking oil catches fire on the galley stove and remains contained to the pan.",
     fireClass: "F",
-    acceptableExtinguisherIds: ["wet-chemical", "fire-blanket"],
+    acceptableEquipmentIds: ["wet-chemical", "fire-blanket"],
     assumedEquipment: {
       "wet-chemical": "Marked 25F; manufacturer instructions cover this pan size and application distance.",
       "fire-blanket": "BS EN 1869 blanket large enough to cover the pan; instructions permit this use.",
@@ -155,11 +165,11 @@ export const fireScenarios: readonly FireScenario[] = [
     id: "engine-diesel",
     description: "Diesel fuel has ignited inside an engine compartment and smoke is coming from the closed hatch.",
     fireClass: "B",
-    acceptableExtinguisherIds: ["foam", "dry-powder", "co2"],
+    acceptableEquipmentIds: ["foam", "dry-powder", "fixed-co2-system"],
     assumedEquipment: {
       foam: "Marked 21B and approved by its manufacturer for diesel through the installed fire port.",
       "dry-powder": "Marked 34B and approved for discharge through the installed fire port.",
-      co2: "Fixed CO2 system approved and sized for this engine space, with shutdown controls.",
+      "fixed-co2-system": "Fixed CO2 system approved and sized for this engine space, with shutdown controls.",
     },
     prerequisites: "Raise the alarm, stop engine/fuel/ventilation if safe, keep the compartment closed and use an approved fire port or fixed system; do not open the hatch to discharge.",
     explanation:
@@ -170,7 +180,7 @@ export const fireScenarios: readonly FireScenario[] = [
     description: "Sparks and flames are visible behind an energised electrical distribution panel at the nav station.",
     fireClass: "A",
     electricalHazard: true,
-    acceptableExtinguisherIds: ["co2", "dry-powder"],
+    acceptableEquipmentIds: ["co2", "dry-powder"],
     assumedEquipment: {
       co2: "Marked 34B and manufacturer instructions permit use at the stated electrical voltage and distance.",
       "dry-powder": "Marked 13A 34B C and manufacturer instructions permit use at the stated electrical voltage and distance.",
@@ -183,7 +193,7 @@ export const fireScenarios: readonly FireScenario[] = [
     id: "bunk-mattress",
     description: "A bunk mattress is burning in accommodation and flames are spreading to nearby fabric.",
     fireClass: "A",
-    acceptableExtinguisherIds: ["foam", "dry-powder"],
+    acceptableEquipmentIds: ["foam", "dry-powder"],
     assumedEquipment: {
       foam: "Marked 13A; manufacturer instructions cover solid combustibles at the available range.",
       "dry-powder": "Marked 13A 34B C; manufacturer instructions cover Class A material at the available range.",
@@ -196,7 +206,7 @@ export const fireScenarios: readonly FireScenario[] = [
     id: "gas-leak-ignition",
     description: "Leaking cooker LPG is burning as a jet from a cracked fitting.",
     fireClass: "C",
-    acceptableExtinguisherIds: ["dry-powder"],
+    acceptableEquipmentIds: ["dry-powder"],
     assumedEquipment: {
       "dry-powder": "Marked 13A 34B C; manufacturer instructions cover LPG after fuel isolation.",
     },
@@ -208,7 +218,7 @@ export const fireScenarios: readonly FireScenario[] = [
     id: "fuel-spill-deck",
     description: "A small petrol spill on the open cockpit sole ignites during refuelling.",
     fireClass: "B",
-    acceptableExtinguisherIds: ["foam", "dry-powder"],
+    acceptableEquipmentIds: ["foam", "dry-powder"],
     assumedEquipment: {
       foam: "Marked 21B; manufacturer confirms petrol compatibility and the stated application distance.",
       "dry-powder": "Marked 34B; manufacturer instructions cover petrol at the stated range.",

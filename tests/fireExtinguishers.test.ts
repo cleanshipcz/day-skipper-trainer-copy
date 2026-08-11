@@ -5,6 +5,7 @@ import {
   firefightingEquipment,
   fireScenarios,
   EXTINGUISHER_IDS,
+  EQUIPMENT_IDS,
   type FireExtinguisher,
   type FireClass,
   FIRE_CLASSES,
@@ -78,15 +79,15 @@ describe("fireExtinguishers data", () => {
     expect(FIRE_CLASSES).not.toContain("Electrical");
   });
 
-  it("should have valid acceptableExtinguisherIds and prerequisites in every fire scenario", () => {
+  it("should have valid acceptableEquipmentIds and prerequisites in every fire scenario", () => {
     // given
     const validIds = new Set(firefightingEquipment.map((e) => e.id));
 
     // then - every scenario's correctExtinguisherId matches a real extinguisher
     for (const scenario of fireScenarios) {
-      expect(scenario.acceptableExtinguisherIds.length).toBeGreaterThan(0);
+      expect(scenario.acceptableEquipmentIds.length).toBeGreaterThan(0);
       expect(scenario.prerequisites).toBeTruthy();
-      for (const id of scenario.acceptableExtinguisherIds) {
+      for (const id of scenario.acceptableEquipmentIds) {
         expect(validIds.has(id)).toBe(true);
         expect(scenario.assumedEquipment[id]).toMatch(/marked|BS EN|approved/i);
       }
@@ -123,14 +124,22 @@ describe("fireExtinguishers data", () => {
 
   it("shows an exact marked rating or standard and manufacturer constraint for every drill option", () => {
     for (const option of firefightingEquipment) {
-      expect(option.optionDetail).toMatch(/marked|BS EN/i);
+      expect(option.optionDetail).toMatch(/marked|BS EN|approved/i);
       expect(option.optionDetail).toMatch(/manufacturer|instructions|no extinguisher colour band/i);
     }
   });
 
   it("does not encode one universal medium where defensible alternatives depend on conditions", () => {
-    expect(fireScenarios.find((s) => s.id === "engine-diesel")?.acceptableExtinguisherIds.length).toBeGreaterThan(1);
-    expect(fireScenarios.find((s) => s.id === "bunk-mattress")?.acceptableExtinguisherIds).toContain("foam");
+    expect(fireScenarios.find((s) => s.id === "engine-diesel")?.acceptableEquipmentIds.length).toBeGreaterThan(1);
+    expect(fireScenarios.find((s) => s.id === "bunk-mattress")?.acceptableEquipmentIds).toContain("foam");
+  });
+
+  it("does not conflate portable CO2 with an approved fixed engine-space system", () => {
+    const engineScenario = fireScenarios.find((scenario) => scenario.id === "engine-diesel");
+    expect(engineScenario?.acceptableEquipmentIds).toContain(EQUIPMENT_IDS.FIXED_CO2_SYSTEM);
+    expect(engineScenario?.acceptableEquipmentIds).not.toContain(EXTINGUISHER_IDS.CO2);
+    expect(engineScenario?.assumedEquipment[EQUIPMENT_IDS.FIXED_CO2_SYSTEM]).toMatch(/fixed CO2 system/i);
+    expect(engineScenario?.assumedEquipment[EXTINGUISHER_IDS.CO2]).toBeUndefined();
   });
 
   // L1: EXTINGUISHER_IDS matches actual extinguisher IDs
