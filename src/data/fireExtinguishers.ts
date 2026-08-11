@@ -30,6 +30,14 @@ export interface FireExtinguisher {
   readonly selectionRule: string;
 }
 
+export interface FireBlanket {
+  readonly id: "fire-blanket";
+  readonly type: "Fire Blanket";
+  readonly description: string;
+  readonly safeUse: readonly string[];
+  readonly limitations: readonly string[];
+}
+
 export const fireExtinguishers: readonly FireExtinguisher[] = [
   {
     id: "dry-powder",
@@ -93,24 +101,29 @@ export const fireExtinguishers: readonly FireExtinguisher[] = [
     selectionRule:
       "Check for a Class F rating and follow the manufacturer's instructions; isolate the heat source if safe and never move the pan.",
   },
-  {
-    id: "fire-blanket",
-    type: "Fire Blanket",
-    colourCode: "No extinguisher colour code",
-    description:
-      "Separate firefighting equipment for smothering a very small, contained pan fire where the blanket can cover it completely without reaching through flames.",
-    suitableClasses: ["F"],
-    advantages: ["No discharge residue", "May contain a small pan fire when safely deployed"],
-    disadvantages: [
-      "Not an extinguisher and has no A/B/electrical rating",
-      "Deployment requires instruction and practice; hands and escape route remain at risk",
-      "Withdraw and raise the alarm if the fire is spreading or approach is unsafe",
-      "Leave in place to cool and treat as single-use after deployment",
-    ],
-    selectionRule:
-      "Use only a compliant blanket of adequate size, exactly as instructed; never use it to imply broad class suitability.",
-  },
 ];
+
+export const fireBlankets: readonly FireBlanket[] = [{
+  id: "fire-blanket",
+  type: "Fire Blanket",
+  description:
+    "Separate firefighting equipment for smothering a very small, contained pan fire where the blanket can cover it completely without reaching through flames.",
+  safeUse: ["Use a compliant blanket of adequate size", "Follow its instructions and keep an escape route"],
+  limitations: [
+    "Not an extinguisher: it has no extinguisher colour band or fire-class rating",
+    "Deployment requires instruction and practice; hands and escape route remain at risk",
+    "Withdraw if the fire is spreading or approach is unsafe",
+    "Leave in place to cool and treat as single-use after deployment",
+  ],
+}];
+
+export const firefightingEquipment = [
+  { id: "dry-powder", type: "Dry Powder", equipmentKind: "Extinguisher", optionDetail: "Blue band • marked 13A 34B C • use only as manufacturer permits" },
+  { id: "foam", type: "Foam", equipmentKind: "Extinguisher", optionDetail: "Cream band • marked 13A 21B • use only on manufacturer-approved fuels" },
+  { id: "co2", type: "CO2", equipmentKind: "Extinguisher", optionDetail: "Black band • marked 34B • obey voltage, distance and enclosure instructions" },
+  { id: "wet-chemical", type: "Wet Chemical", equipmentKind: "Extinguisher", optionDetail: "Yellow band • marked 25F • obey pan-size and distance instructions" },
+  { id: "fire-blanket", type: "Fire Blanket", equipmentKind: "Separate equipment", optionDetail: "BS EN 1869 • no extinguisher colour band or class rating" },
+] as const;
 
 export interface FireScenario {
   readonly id: string;
@@ -118,6 +131,8 @@ export interface FireScenario {
   readonly fireClass: FireClass;
   readonly electricalHazard?: boolean;
   readonly acceptableExtinguisherIds: readonly ExtinguisherId[];
+  /** Exact markings/approval assumed by this assessment; visible before answering. */
+  readonly assumedEquipment: Readonly<Partial<Record<ExtinguisherId, string>>>;
   readonly prerequisites: string;
   readonly explanation: string;
 }
@@ -128,6 +143,10 @@ export const fireScenarios: readonly FireScenario[] = [
     description: "A small pan of cooking oil catches fire on the galley stove and remains contained to the pan.",
     fireClass: "F",
     acceptableExtinguisherIds: ["wet-chemical", "fire-blanket"],
+    assumedEquipment: {
+      "wet-chemical": "Marked 25F; manufacturer instructions cover this pan size and application distance.",
+      "fire-blanket": "BS EN 1869 blanket large enough to cover the pan; instructions permit this use.",
+    },
     prerequisites: "Raise the alarm, keep an escape route, isolate the heat if safe, do not move the pan and do not use water or foam.",
     explanation:
       "Use a Class F-rated wet-chemical unit as marked, or a compliant fire blanket only when the small pan can be covered safely and completely. If approach is unsafe or fire is spreading, withdraw.",
@@ -137,6 +156,11 @@ export const fireScenarios: readonly FireScenario[] = [
     description: "Diesel fuel has ignited inside an engine compartment and smoke is coming from the closed hatch.",
     fireClass: "B",
     acceptableExtinguisherIds: ["foam", "dry-powder", "co2"],
+    assumedEquipment: {
+      foam: "Marked 21B and approved by its manufacturer for diesel through the installed fire port.",
+      "dry-powder": "Marked 34B and approved for discharge through the installed fire port.",
+      co2: "Fixed CO2 system approved and sized for this engine space, with shutdown controls.",
+    },
     prerequisites: "Raise the alarm, stop engine/fuel/ventilation if safe, keep the compartment closed and use an approved fire port or fixed system; do not open the hatch to discharge.",
     explanation:
       "There is no universal portable-medium answer. Use only equipment rated and approved for the fuel and installation. CO2 needs effective enclosure and asphyxiation controls; powder obscures and does not cool; foam depends on rating, access and fuel compatibility.",
@@ -147,6 +171,10 @@ export const fireScenarios: readonly FireScenario[] = [
     fireClass: "A",
     electricalHazard: true,
     acceptableExtinguisherIds: ["co2", "dry-powder"],
+    assumedEquipment: {
+      co2: "Marked 34B and manufacturer instructions permit use at the stated electrical voltage and distance.",
+      "dry-powder": "Marked 13A 34B C and manufacturer instructions permit use at the stated electrical voltage and distance.",
+    },
     prerequisites: "Raise the alarm and isolate electrical power if safe. Keep clear until isolation is confirmed.",
     explanation:
       "Electrical is a hazard, not a fire class. Before isolation use only a medium and unit marked/approved for energised equipment; CO2 avoids residue but gives no cooling, while rated powder contaminates equipment and impairs visibility. After isolation, treat the burning material's class.",
@@ -156,6 +184,10 @@ export const fireScenarios: readonly FireScenario[] = [
     description: "A bunk mattress is burning in accommodation and flames are spreading to nearby fabric.",
     fireClass: "A",
     acceptableExtinguisherIds: ["foam", "dry-powder"],
+    assumedEquipment: {
+      foam: "Marked 13A; manufacturer instructions cover solid combustibles at the available range.",
+      "dry-powder": "Marked 13A 34B C; manufacturer instructions cover Class A material at the available range.",
+    },
     prerequisites: "Raise the alarm, preserve the escape route and attack only if the fire is still small and the selected unit is Class A rated.",
     explanation:
       "A Class A-rated cooling medium is normally preferable for deep-seated material. Rated powder can knock flames down but its cloud, breathing/visibility effects and lack of cooling make it hazardous in a cabin; expect re-ignition and withdraw if conditions worsen.",
@@ -165,6 +197,9 @@ export const fireScenarios: readonly FireScenario[] = [
     description: "Leaking cooker LPG is burning as a jet from a cracked fitting.",
     fireClass: "C",
     acceptableExtinguisherIds: ["dry-powder"],
+    assumedEquipment: {
+      "dry-powder": "Marked 13A 34B C; manufacturer instructions cover LPG after fuel isolation.",
+    },
     prerequisites: "Do not extinguish the flame unless the gas supply can be stopped safely; otherwise unburned gas may accumulate and explode. Raise the alarm and withdraw.",
     explanation:
       "After safe fuel isolation, a cylinder specifically marked for Class C may knock down remaining flame. Not every powder cylinder has a C rating, and extinguishing without stopping the leak can make conditions worse.",
@@ -174,6 +209,10 @@ export const fireScenarios: readonly FireScenario[] = [
     description: "A small petrol spill on the open cockpit sole ignites during refuelling.",
     fireClass: "B",
     acceptableExtinguisherIds: ["foam", "dry-powder"],
+    assumedEquipment: {
+      foam: "Marked 21B; manufacturer confirms petrol compatibility and the stated application distance.",
+      "dry-powder": "Marked 34B; manufacturer instructions cover petrol at the stated range.",
+    },
     prerequisites: "Raise the alarm, stop the fuel source if safe, avoid spreading the spill and keep an upwind escape route.",
     explanation:
       "Use a unit with the necessary Class B rating and follow its application instructions. Compatible foam may blanket a contained surface but wind or a running/spreading spill can defeat it; rated powder offers rapid knockdown but little cooling and re-ignition remains possible.",
@@ -181,14 +220,28 @@ export const fireScenarios: readonly FireScenario[] = [
 ];
 
 /** Content may ship only after sign-off by a competent marine fire-safety reviewer. */
-export const FIRE_SAFETY_RELEASE_REVIEW = {
+export interface FireSafetyReleaseReview {
+  readonly required: true;
+  readonly reviewed: boolean;
+  readonly reviewerName: string | null;
+  readonly reviewerQualification: string | null;
+  readonly approvalDate: string | null;
+  readonly sourceEvidence: readonly string[];
+}
+
+export const isFireSafetyReleaseApproved = (review: FireSafetyReleaseReview): boolean =>
+  review.reviewed &&
+  Boolean(review.reviewerName?.trim()) &&
+  Boolean(review.reviewerQualification?.trim()) &&
+  Boolean(review.approvalDate?.trim()) &&
+  review.sourceEvidence.length > 0 &&
+  review.sourceEvidence.every((source) => source.trim().length > 0);
+
+export const FIRE_SAFETY_RELEASE_REVIEW: FireSafetyReleaseReview = {
   required: true,
   reviewed: false,
-  reviewDate: "2026-08-11",
-  sources: [
-    "RYA fire prevention and firefighting guidance for recreational craft",
-    "Maritime and Coastguard Agency marine fire-safety guidance, including MGN 681 (M)",
-    "UK Government fire safety guidance and BS EN 2 classification conventions",
-    "Manufacturer markings and instructions for the equipment actually carried",
-  ],
-} as const;
+  reviewerName: null,
+  reviewerQualification: null,
+  approvalDate: null,
+  sourceEvidence: [],
+};

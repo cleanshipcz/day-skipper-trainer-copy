@@ -11,7 +11,7 @@ import { Badge } from "@/components/ui/badge";
 import { RefreshCcw, CheckCircle2, XCircle } from "lucide-react";
 import { toast } from "sonner";
 import {
-  fireExtinguishers,
+  firefightingEquipment,
   fireScenarios,
   type ExtinguisherId,
   type FireScenario,
@@ -179,14 +179,18 @@ export const FireExtinguisherDrill = ({ onComplete }: FireExtinguisherDrillProps
           <CardDescription data-testid="fire-scenario">
             {currentScenario.description}
           </CardDescription>
+          <CardDescription>
+            Assessment assumption: use the exact markings and manufacturer
+            constraints shown on each option. A medium name alone is never enough.
+          </CardDescription>
         </CardHeader>
         <CardContent className="space-y-4">
           <p className="text-sm font-medium">
-            Which extinguisher would you use?
+            Which item of firefighting equipment would you use?
           </p>
 
           <div className="grid gap-3 sm:grid-cols-2">
-            {fireExtinguishers.map((ext) => {
+            {firefightingEquipment.map((ext) => {
               const isSelected =
                 state.selectedExtinguisherId === ext.id;
               const showResult = state.answered;
@@ -215,10 +219,13 @@ export const FireExtinguisherDrill = ({ onComplete }: FireExtinguisherDrillProps
                 >
                   <div className="flex items-center justify-between mb-1">
                     <span className="font-bold">{ext.type}</span>
-                    <Badge variant="outline">{ext.colourCode}</Badge>
+                    <Badge variant="outline">{ext.equipmentKind}</Badge>
                   </div>
                   <p className="text-xs text-muted-foreground">
-                    Classes: {ext.suitableClasses.join(", ")}
+                    {ext.optionDetail}
+                    {currentScenario.assumedEquipment[ext.id] && (
+                      <> Scenario approval: {currentScenario.assumedEquipment[ext.id]}</>
+                    )}
                   </p>
                   {showResult && isCorrectAnswer && (
                     <CheckCircle2 className="w-5 h-5 text-green-600 mt-2" />

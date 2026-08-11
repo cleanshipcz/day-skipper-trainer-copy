@@ -20,4 +20,4 @@ Scope: UK/EN fire classes and portable-medium guidance in the Fire Safety theory
 
 ## Release gate
 
-The source review above is an editorial technical review, not competent-person approval. Before release, a competent marine fire-safety professional must review the rendered lesson and every scenario, record their name/qualification/date, and approve the equipment-specific claims. `FIRE_SAFETY_RELEASE_REVIEW.reviewed` must remain `false` until that evidence exists.
+The source review above is an editorial technical review, not competent-person approval. The route fails closed: the lesson, drill and completion controls are withheld. Before release, a competent marine fire-safety professional must review the rendered lesson and every scenario, then record their name, qualification, approval date and non-empty source evidence. `FIRE_SAFETY_RELEASE_REVIEW.reviewed` must remain `false` and those approval fields null/empty until that evidence exists.

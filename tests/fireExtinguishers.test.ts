@@ -1,11 +1,15 @@
 import { describe, it, expect } from "vitest";
 import {
   fireExtinguishers,
+  fireBlankets,
+  firefightingEquipment,
   fireScenarios,
   EXTINGUISHER_IDS,
   type FireExtinguisher,
   type FireClass,
   FIRE_CLASSES,
+  FIRE_SAFETY_RELEASE_REVIEW,
+  isFireSafetyReleaseApproved,
 } from "../src/data/fireExtinguishers";
 
 describe("fireExtinguishers data", () => {
@@ -16,7 +20,7 @@ describe("fireExtinguishers data", () => {
 
   it("should include all four required extinguisher types", () => {
     // given
-    const requiredTypes = ["Dry Powder", "Foam", "CO2", "Fire Blanket"];
+    const requiredTypes = ["Dry Powder", "Foam", "CO2", "Wet Chemical"];
 
     // when
     const typeNames = fireExtinguishers.map((e) => e.type);
@@ -76,21 +80,52 @@ describe("fireExtinguishers data", () => {
 
   it("should have valid acceptableExtinguisherIds and prerequisites in every fire scenario", () => {
     // given
-    const validIds = new Set(fireExtinguishers.map((e) => e.id));
+    const validIds = new Set(firefightingEquipment.map((e) => e.id));
 
     // then - every scenario's correctExtinguisherId matches a real extinguisher
     for (const scenario of fireScenarios) {
       expect(scenario.acceptableExtinguisherIds.length).toBeGreaterThan(0);
       expect(scenario.prerequisites).toBeTruthy();
-      for (const id of scenario.acceptableExtinguisherIds) expect(validIds.has(id)).toBe(true);
+      for (const id of scenario.acceptableExtinguisherIds) {
+        expect(validIds.has(id)).toBe(true);
+        expect(scenario.assumedEquipment[id]).toMatch(/marked|BS EN|approved/i);
+      }
     }
   });
 
   it("classifies cooking oil as F and keeps blankets separate from extinguisher colour codes", () => {
     expect(fireScenarios.find((s) => s.id === "galley-oil")?.fireClass).toBe("F");
-    const blanket = fireExtinguishers.find((e) => e.id === "fire-blanket");
-    expect(blanket?.colourCode).toMatch(/no extinguisher/i);
-    expect(blanket?.suitableClasses).toEqual(["F"]);
+    expect(fireExtinguishers.some((e) => e.id === "fire-blanket")).toBe(false);
+    expect(fireBlankets).toHaveLength(1);
+    expect(fireBlankets[0]).not.toHaveProperty("colourCode");
+    expect(fireBlankets[0]).not.toHaveProperty("suitableClasses");
+  });
+
+  it("requires complete competent-review evidence before release", () => {
+    expect(isFireSafetyReleaseApproved(FIRE_SAFETY_RELEASE_REVIEW)).toBe(false);
+    expect(isFireSafetyReleaseApproved({
+      required: true,
+      reviewed: true,
+      reviewerName: "Competent Reviewer",
+      reviewerQualification: "Marine fire-safety qualification",
+      approvalDate: "2026-08-12",
+      sourceEvidence: ["Signed review record FS-337"],
+    })).toBe(true);
+    expect(isFireSafetyReleaseApproved({
+      required: true,
+      reviewed: true,
+      reviewerName: "Competent Reviewer",
+      reviewerQualification: null,
+      approvalDate: "2026-08-12",
+      sourceEvidence: ["Signed review record FS-337"],
+    })).toBe(false);
+  });
+
+  it("shows an exact marked rating or standard and manufacturer constraint for every drill option", () => {
+    for (const option of firefightingEquipment) {
+      expect(option.optionDetail).toMatch(/marked|BS EN/i);
+      expect(option.optionDetail).toMatch(/manufacturer|instructions|no extinguisher colour band/i);
+    }
   });
 
   it("does not encode one universal medium where defensible alternatives depend on conditions", () => {

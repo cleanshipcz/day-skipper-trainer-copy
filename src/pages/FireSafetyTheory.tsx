@@ -27,12 +27,23 @@ import {
 import { FireExtinguisherDrill, type DrillResult } from "@/components/safety/FireExtinguisherDrill";
 import { useProgress } from "@/hooks/useProgress";
 import { TOPIC_IDS } from "@/constants/topicRegistry";
-import { fireExtinguishers, FIRE_SAFETY_RELEASE_REVIEW } from "@/data/fireExtinguishers";
+import {
+  fireBlankets,
+  fireExtinguishers,
+  FIRE_SAFETY_RELEASE_REVIEW,
+  isFireSafetyReleaseApproved,
+  type FireSafetyReleaseReview,
+} from "@/data/fireExtinguishers";
 
-const FireSafetyTheory = () => {
+interface FireSafetyTheoryProps {
+  readonly releaseReview?: FireSafetyReleaseReview;
+}
+
+const FireSafetyTheory = ({ releaseReview = FIRE_SAFETY_RELEASE_REVIEW }: FireSafetyTheoryProps) => {
   const navigate = useNavigate();
   const { saveProgress } = useProgress();
   const [theoryCompleted, setTheoryCompleted] = useState(false);
+  const releaseApproved = isFireSafetyReleaseApproved(releaseReview);
 
   const handleMarkComplete = useCallback(() => {
     saveProgress(TOPIC_IDS.SAFETY_FIRE, true, 100, 10);
@@ -48,6 +59,24 @@ const FireSafetyTheory = () => {
     },
     [saveProgress]
   );
+
+  if (!releaseApproved) {
+    return (
+      <main className="container mx-auto px-4 py-8 max-w-2xl">
+        <Card className="border-amber-500" data-testid="fire-safety-release-gate">
+          <CardHeader>
+            <CardTitle>Fire safety lesson awaiting competent review</CardTitle>
+            <CardDescription>
+              The lesson, drill and completion controls are withheld until a competent marine fire-safety reviewer records their name, qualification, approval date and source evidence.
+            </CardDescription>
+          </CardHeader>
+          <CardContent>
+            <Button onClick={() => navigate("/safety")}>Back to Safety Menu</Button>
+          </CardContent>
+        </Card>
+      </main>
+    );
+  }
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-background via-ocean-light/10 to-background pb-20">
@@ -239,6 +268,23 @@ const FireSafetyTheory = () => {
                 </CardContent>
               </Card>
 
+              <Card className="border-l-4 border-l-slate-600">
+                <CardHeader>
+                  <CardTitle className="flex items-center gap-2">
+                    <Badge className="bg-slate-600">D</Badge>
+                    Class D — Combustible Metals
+                  </CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <p className="text-sm text-muted-foreground">
+                    Burning metals require a specialist agent selected for the
+                    particular metal. Ordinary ABC dry powder is not Class D
+                    powder and must never be assumed suitable from its colour
+                    band or the word “powder”.
+                  </p>
+                </CardContent>
+              </Card>
+
               <Card className="border-l-4 border-l-purple-600">
                 <CardHeader>
                   <CardTitle className="flex items-center gap-2">
@@ -320,9 +366,24 @@ const FireSafetyTheory = () => {
                 </Card>
               ))}
             </div>
-            {FIRE_SAFETY_RELEASE_REVIEW.required && !FIRE_SAFETY_RELEASE_REVIEW.reviewed && (
-              <Card className="border-amber-500"><CardContent className="pt-6 text-sm"><strong>Release gate:</strong> This training content requires sign-off by a competent marine fire-safety reviewer. Technical review date: {FIRE_SAFETY_RELEASE_REVIEW.reviewDate}.</CardContent></Card>
-            )}
+            <div className="prose dark:prose-invert max-w-none pt-4">
+              <h2 className="text-2xl font-bold">Fire Blankets</h2>
+              <p>Fire blankets are separate firefighting equipment. They are not extinguishers and do not carry extinguisher colour bands or class-suitability ratings.</p>
+            </div>
+            <div className="grid gap-4">
+              {fireBlankets.map((blanket) => (
+                <Card key={blanket.id}>
+                  <CardHeader>
+                    <CardTitle>{blanket.type}</CardTitle>
+                    <CardDescription>{blanket.description}</CardDescription>
+                  </CardHeader>
+                  <CardContent className="grid md:grid-cols-2 gap-4 text-xs text-muted-foreground">
+                    <div><p className="font-medium text-foreground mb-2">Limited safe use</p><ul>{blanket.safeUse.map((item) => <li key={item}>✓ {item}</li>)}</ul></div>
+                    <div><p className="font-medium text-foreground mb-2">Limitations</p><ul>{blanket.limitations.map((item) => <li key={item}>✗ {item}</li>)}</ul></div>
+                  </CardContent>
+                </Card>
+              ))}
+            </div>
           </TabsContent>
 
           {/* ── PREVENTION & ENGINE ROOM ───────────────────────────── */}

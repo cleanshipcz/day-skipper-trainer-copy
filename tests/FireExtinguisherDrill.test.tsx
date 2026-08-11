@@ -32,6 +32,8 @@ describe("FireExtinguisherDrill", () => {
     // then - should show extinguisher options to choose from
     const options = screen.getAllByTestId(/^extinguisher-option-/);
     expect(options.length).toBeGreaterThanOrEqual(3);
+    expect(screen.getByText(/medium name alone is never enough/i)).toBeDefined();
+    expect(options.every((option) => /marked|BS EN/i.test(option.textContent ?? ""))).toBe(true);
   });
 
   it("should display feedback when an extinguisher is selected and submitted", async () => {
