@@ -23,6 +23,7 @@ import { useProgress } from "@/hooks/useProgress";
 import { TOPIC_IDS } from "@/constants/topicRegistry";
 import { useAuth } from "@/contexts/AuthHooks";
 import { readStored, writeStored } from "@/features/persistence/browserStorage";
+import { PassagePlanArtifact } from "./PassagePlanArtifact";
 
 const ANONYMOUS_SESSION_KEY = "day-skipper-passage-plan-anonymous-session";
 const example: PlanWaypoint[] = [
@@ -231,7 +232,9 @@ export function PassagePlanBuilder() {
     mutationRevision.current += 1;setManualRevision(null);setFreshnessRevision(null);const next=savedPlan;setPlan(next);setErrors([]);setUndo(null);setDirty(false);setStatus("Unsaved changes discarded; last saved plan restored.");focusWaypoint(next.points[0].id);
   };
 
-  return <div className="space-y-5">
+  const printable = validatePassagePlan(plan).length === 0 && !dirty && !conflict && recordRef.current?.completedRevision === recordRef.current?.revision && recordRef.current?.completionStatus === "confirmed" && JSON.stringify(recordRef.current.plan) === JSON.stringify(plan);
+
+  return <><div className="space-y-5 print:hidden">
     <p className="sr-only" role="status" aria-live="polite">{status}</p>
     <div className="rounded-md border p-3 text-sm"><strong>Persistence: {syncState.replace("-"," ")}</strong><span> — {status}</span>{syncState==="failed"&&<><Button className="ml-2" size="sm" variant="outline" onClick={saveDraft}>Retry save</Button>{userId&&<Button className="ml-2" size="sm" variant="outline" onClick={()=>setHydrationAttempt(value=>value+1)}>Retry remote load</Button>}</>}</div>
     {conflict&&<div role="alert" className="rounded-md border border-amber-600 p-3"><strong>Local and remote plans conflict.</strong><p>Choose which draft to keep. The choice creates a newer revision; neither source is silently overwritten.</p><div className="flex gap-2"><Button variant="outline" onClick={()=>chooseConflict(conflict.local)}>Keep local draft</Button><Button variant="outline" onClick={()=>chooseConflict(conflict.remote)}>Use remote draft</Button></div></div>}
@@ -260,9 +263,10 @@ export function PassagePlanBuilder() {
         </>}
       </CardContent>
     </Card>)}
-    <div className="print:hidden flex flex-wrap gap-2"><Button variant="outline" onClick={() => addPoint(plan.points.length)}>Add waypoint at end</Button>{undo && <Button variant="outline" onClick={undoChange}>Undo last removal</Button>}<Button variant="outline" disabled={saving||syncState==="loading"} onClick={saveDraft}>Save draft</Button><Button disabled={saving||syncState==="loading"||syncState==="conflict"} onClick={save}>{saving ? "Saving plan…" : "Save & complete plan"}</Button><Button variant="outline" onClick={reset}>Reset unsaved changes</Button><Button variant="outline" onClick={() => window.print()}>Print plan</Button></div>
+    <div className="flex flex-wrap gap-2"><Button variant="outline" onClick={() => addPoint(plan.points.length)}>Add waypoint at end</Button>{undo && <Button variant="outline" onClick={undoChange}>Undo last removal</Button>}<Button variant="outline" disabled={saving||syncState==="loading"} onClick={saveDraft}>Save draft</Button><Button disabled={saving||syncState==="loading"||syncState==="conflict"} onClick={save}>{saving ? "Saving plan…" : "Save & complete plan"}</Button><Button variant="outline" onClick={reset}>Reset unsaved changes</Button><Button variant="outline" disabled={!printable} aria-describedby={!printable?"print-plan-help":undefined} onClick={() => window.print()}>Print approved artifact</Button></div>
+    {!printable&&<p id="print-plan-help" className="text-sm text-amber-800 dark:text-amber-300">Printing is enabled after the current revision passes validation and its completion is confirmed. The preview below remains available and watermarked.</p>}
     <Card><CardContent className="pt-6">{summary.ok?<><b>Total: {summary.totalDistanceNm.toFixed(1)} nm · {summary.calculation.hours.toFixed(1)} hours</b>{plan.fuelRate !== undefined&&<span> · Fuel with {plan.reservePercent ?? 0}% reserve: {summary.calculation.fuelWithReserveLitres.toFixed(1)} L</span>}</>:<b>Totals unavailable until calculation inputs are corrected.</b>}</CardContent></Card>
     {routeGeometryIssues(plan.points).length>0&&<aside className="rounded-md border border-amber-600 p-3"><strong>Geometry advisories (not automatic rejection)</strong><ul className="list-disc pl-5">{routeGeometryIssues(plan.points).map(issue=><li key={issue}>{issue} Routed legs may legitimately detour; manually verify the intended course and track.</li>)}</ul></aside>}
     <div className="overflow-x-auto"><table className="w-full caption-bottom text-sm"><caption className="text-left font-semibold">Ordered route review — schematic values only, not evidence of hazard clearance</caption><thead><tr><th scope="col">Position</th><th scope="col">Waypoint</th><th scope="col">WGS84 coordinate</th><th scope="col">Inbound leg</th><th scope="col">Arrival ETA</th></tr></thead><tbody>{plan.points.map((point,index)=><tr key={point.id}><th scope="row">{index+1}</th><td>{point.name||"Unnamed"}</td><td>{point.latitude} {point.longitude}</td><td>{point.inboundLeg?`${point.inboundLeg.course}° / ${point.inboundLeg.distanceNm} nm`:"Departure"}</td><td>{index?etas[index-1]?new Date(etas[index-1]).toLocaleString():"Invalid":"Departure time"}</td></tr>)}</tbody></table></div>
-  </div>;
+  </div><PassagePlanArtifact plan={plan} record={recordRef.current} dirty={dirty} conflict={Boolean(conflict)||syncState==="conflict"}/></>;
 }
