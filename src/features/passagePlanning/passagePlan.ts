@@ -116,6 +116,7 @@ export type PassagePlanCalculationResult = {ok:true;totalDistanceNm:number;calcu
 /** Uses the shared calculator model and never throws on user/persisted input. */
 export function calculatePassagePlanSummary(plan:PassagePlan):PassagePlanCalculationResult {
   const totalDistanceNm=totalRouteDistance(plan.points);
+  if(plan.points.length<2){const departureIssues=validatePassagePlan(plan).filter(issue=>/departure time/i.test(issue));return {ok:false,issues:["Add a departure and at least one destination waypoint before calculating totals.",...departureIssues]};}
   const duration=totalDistanceNm/plan.speed;
   const input={distanceNm:totalDistanceNm,speedKnots:plan.speed,engineHours:duration,fuelLitresPerHour:plan.fuelRate??1,additionalFuelLitres:0,reservePercent:plan.reservePercent??0,usableFuelLitres:100000,departureTime:plan.departure};
   const issues=validatePassagePlan(plan).filter(issue=>/departure time|SOG|distance|duration|ETA|Fuel rate|Fuel reserve|total fuel/i.test(issue));
