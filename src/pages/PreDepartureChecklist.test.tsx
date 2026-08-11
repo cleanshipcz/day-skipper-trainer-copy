@@ -2,6 +2,7 @@ import { act, fireEvent, render, screen, waitFor, within } from "@testing-librar
 import { MemoryRouter } from "react-router-dom";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { preDepartureChecklist } from "@/data/preDepartureChecklist";
+import { validateReadinessCatalogue } from "@/features/readiness/readinessRecord";
 
 const loadProgressDetailed = vi.fn().mockResolvedValue({ status: "missing", record: null });
 const saveProgressDetailed = vi.fn().mockResolvedValue("remote");
@@ -152,7 +153,7 @@ describe("PreDepartureChecklist", () => {
 
   it("hydrates validated saved evidence with correction history and autosaves edits", async () => {
     loadProgressDetailed.mockResolvedValueOnce({ status: "remote", record: { answers_history: { readinessRecord: {
-      version: 1, updatedAt: "2026-08-11T16:00:00.000Z", context: { vessel: "Aster", voyage: "Cowes", conditions: "F4" }, entries: {
+      version: 2, sessionId: "session-test", catalogueFingerprint: validateReadinessCatalogue(preDepartureChecklist).fingerprint, createdAt: "2026-08-11T14:00:00.000Z", updatedAt: "2026-08-11T16:00:00.000Z", expiresAt: "2099-08-11T16:00:00.000Z", context: { vessel: "Aster", voyage: "Cowes", conditions: "F4" }, entries: {
         "passage-plan": { status: "satisfactory", reason: "", notes: "Revised", evidence: "Plan 3", responsiblePerson: "Skipper", recordedAt: "2026-08-11T15:00:00.000Z", history: [{ status: "defect", reason: "", notes: "Old route", evidence: "Plan 2", responsiblePerson: "Skipper", recordedAt: "2026-08-11T14:00:00.000Z", supersededAt: "2026-08-11T15:00:00.000Z" }] },
       },
     } } } });
@@ -161,7 +162,7 @@ describe("PreDepartureChecklist", () => {
     expect(within(itemGroup(/Review the current berth-to-berth plan/)).getByDisplayValue("Plan 3")).toBeTruthy();
     fireEvent.change(within(itemGroup(/Review the current berth-to-berth plan/)).getByRole("textbox", { name: /notes/ }), { target: { value: "Rechecked" } });
     await waitFor(() => expect(saveProgressDetailed).toHaveBeenCalled());
-    expect(saveProgressDetailed.mock.calls.at(-1)?.[4]).toMatchObject({ readinessRecord: { version: 1, entries: { "passage-plan": { notes: "Rechecked", history: [expect.objectContaining({ status: "defect" })] } } } });
+    expect(saveProgressDetailed.mock.calls.at(-1)?.[4]).toMatchObject({ readinessRecord: { version: 2, entries: { "passage-plan": { notes: "Rechecked", history: [expect.objectContaining({ status: "defect" })] } } } });
   });
 
   it("shows an accessible load failure and retries without using stale evidence", async () => {
