@@ -34,6 +34,9 @@ declare
   v_existing_revision integer;
   v_completion_awarded boolean := false;
   v_points_awarded boolean := false;
+  v_total_distance numeric;
+  v_duration_hours numeric;
+  v_total_fuel numeric;
 begin
   if v_user_id is null then raise exception 'Authentication required' using errcode='42501'; end if;
   if p_score is null or p_score not in (0,100) then raise exception 'Passage plan score must be 0 or 100' using errcode='22023'; end if;
@@ -86,7 +89,9 @@ begin
         or length(btrim(coalesce(point->>'longitude','')))=0
         or coalesce(point->>'latitude','') !~ '^[0-9]{1,2}°[0-5][0-9](\.[0-9]{1,3})?''[NS]$'
         or coalesce(point->>'longitude','') !~ '^[0-9]{1,3}°[0-5][0-9](\.[0-9]{1,3})?''[EW]$'
-        or split_part(point->>'latitude','°',1)::numeric>90 or split_part(point->>'longitude','°',1)::numeric>180)
+        or split_part(point->>'latitude','°',1)::numeric>90 or split_part(point->>'longitude','°',1)::numeric>180
+        or (split_part(point->>'latitude','°',1)::numeric=90 and split_part(split_part(point->>'latitude','°',2),'''',1)::numeric<>0)
+        or (split_part(point->>'longitude','°',1)::numeric=180 and split_part(split_part(point->>'longitude','°',2),'''',1)::numeric<>0))
     or (select count(*)<>count(distinct point->>'id') from jsonb_array_elements(v_incoming -> 'plan' -> 'points') point)
     or v_incoming -> 'plan' ->> 'coordinateFormat'<>'degrees-decimal-minutes'
     or v_incoming -> 'plan' ->> 'datum'<>'WGS84'
@@ -97,16 +102,50 @@ begin
           or jsonb_typeof(value->'inboundLeg'->'course')<>'number'
           or (value->'inboundLeg'->>'course')::numeric<0 or (value->'inboundLeg'->>'course')::numeric>=360
           or jsonb_typeof(value->'inboundLeg'->'distanceNm')<>'number'
-          or (value->'inboundLeg'->>'distanceNm')::numeric<=0 or (value->'inboundLeg'->>'distanceNm')::numeric>10000))
-    or coalesce(v_incoming -> 'plan' -> 'provenance' ->> 'weather','') !~* 'issue.*valid'
-    or length(coalesce(v_incoming -> 'plan' -> 'provenance' ->> 'tide',''))<8
-    or length(coalesce(v_incoming -> 'plan' -> 'provenance' ->> 'chart',''))<8
-    or length(coalesce(v_incoming -> 'plan' -> 'provenance' ->> 'publications',''))<8
+          or (value->'inboundLeg'->>'distanceNm')::numeric<=0 or (value->'inboundLeg'->>'distanceNm')::numeric>2000))
+    or coalesce(v_incoming -> 'plan' -> 'provenance' ->> 'weather','') !~* 'issue[[:space:]]*[:#]?[[:space:]]*[^[:space:]]+.*valid(ity)?[[:space:]]*[:#]?[[:space:]]*[^[:space:]]+'
+    or coalesce(v_incoming -> 'plan' -> 'provenance' ->> 'tide','') !~* '(table|atlas|diamond|almanac).*?(edition|year)[[:space:]]*[:#]?[[:space:]]*[^[:space:]]+'
+    or coalesce(v_incoming -> 'plan' -> 'provenance' ->> 'chart','') !~* 'chart[[:space:]]*(no\.?|number|#)[[:space:]]*[0-9]+.*edition[[:space:]]*[:#]?[[:space:]]*[^[:space:]]+.*correction'
+    or coalesce(v_incoming -> 'plan' -> 'provenance' ->> 'publications','') !~* '(almanac|sailing directions|notices).*?(edition|year)[[:space:]]*[:#]?[[:space:]]*[^[:space:]]+'
     or (v_incoming -> 'plan' -> 'provenance' ->> 'preparedAt')::timestamptz > now()
     or (v_incoming -> 'plan' -> 'provenance' ->> 'preparedAt')::timestamptz < now()-interval '30 days'
     or (v_incoming -> 'plan' -> 'provenance' ->> 'revisedAt')::timestamptz > now()
     or (v_incoming -> 'plan' -> 'provenance' ->> 'revisedAt')::timestamptz < (v_incoming -> 'plan' -> 'provenance' ->> 'preparedAt')::timestamptz
   ) then raise exception 'Incomplete passage plan cannot be confirmed' using errcode='22023'; end if;
+
+  if p_completed then
+    select sum((point.value->'inboundLeg'->>'distanceNm')::numeric)
+      into v_total_distance
+      from jsonb_array_elements(v_incoming->'plan'->'points') with ordinality point(value,position)
+      where point.position>1;
+    v_duration_hours := v_total_distance/(v_incoming->'plan'->>'speed')::numeric;
+    if v_total_distance<=0 or v_duration_hours<=0 or v_duration_hours>1000 then
+      raise exception 'Invalid derived passage duration' using errcode='22023';
+    end if;
+    if v_incoming->'plan' ? 'fuelRate' then
+      if jsonb_typeof(v_incoming->'plan'->'fuelRate')<>'number'
+         or (v_incoming->'plan'->>'fuelRate')::numeric<=0
+         or (v_incoming->'plan'->>'fuelRate')::numeric>500 then
+        raise exception 'Invalid passage plan fuel rate' using errcode='22023';
+      end if;
+      if v_incoming->'plan' ? 'reservePercent' and
+         (jsonb_typeof(v_incoming->'plan'->'reservePercent')<>'number'
+          or (v_incoming->'plan'->>'reservePercent')::numeric<0
+          or (v_incoming->'plan'->>'reservePercent')::numeric>200) then
+        raise exception 'Invalid passage plan fuel reserve' using errcode='22023';
+      end if;
+      v_total_fuel := v_duration_hours*(v_incoming->'plan'->>'fuelRate')::numeric
+        *(1+coalesce((v_incoming->'plan'->>'reservePercent')::numeric,0)/100);
+      if v_total_fuel<=0 or v_total_fuel>100000 then
+        raise exception 'Invalid derived passage fuel' using errcode='22023';
+      end if;
+    elsif v_incoming->'plan' ? 'reservePercent' and
+          (jsonb_typeof(v_incoming->'plan'->'reservePercent')<>'number'
+           or (v_incoming->'plan'->>'reservePercent')::numeric<0
+           or (v_incoming->'plan'->>'reservePercent')::numeric>200) then
+      raise exception 'Invalid passage plan fuel reserve' using errcode='22023';
+    end if;
+  end if;
 
   perform pg_advisory_xact_lock(hashtextextended(v_user_id::text || ':' || v_topic_id, 0));
   select up.answers_history -> 'passagePlanRecord', coalesce(up.completed,false),
