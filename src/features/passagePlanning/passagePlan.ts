@@ -24,6 +24,7 @@ export interface PassagePlanRecord {
   revision: number;
   updatedAt: string;
   completedRevision: number | null;
+  completionStatus: "draft" | "queued" | "confirmed";
   plan: PassagePlan;
 }
 
@@ -32,6 +33,7 @@ export type PassagePlanReconciliation =
   | { status: "conflict"; local: PassagePlanRecord; remote: PassagePlanRecord };
 
 const stablePlan = (plan: PassagePlan) => JSON.stringify(plan);
+const completionRank = { draft:0, queued:1, confirmed:2 } as const;
 
 /** Deterministic on every device: revision wins, then timestamp; equal divergent heads conflict. */
 export function reconcilePassagePlanRecords(local: PassagePlanRecord | null, remote: PassagePlanRecord | null): PassagePlanReconciliation | null {
@@ -41,13 +43,14 @@ export function reconcilePassagePlanRecords(local: PassagePlanRecord | null, rem
   if (local.revision !== remote.revision) return local.revision > remote.revision ? { status:"local", record:local } : { status:"remote", record:remote };
   if (stablePlan(local.plan) === stablePlan(remote.plan)) {
     const record = local.updatedAt >= remote.updatedAt ? local : remote;
-    return { status:"same", record:{ ...record, completedRevision:local.completedRevision === local.revision && remote.completedRevision === remote.revision ? record.revision : null } };
+    const completion = completionRank[local.completionStatus] >= completionRank[remote.completionStatus] ? local : remote;
+    return { status:"same", record:{ ...record, completedRevision:completion.completedRevision === record.revision ? record.revision : null, completionStatus:completion.completedRevision === record.revision ? completion.completionStatus : "draft" } };
   }
   return { status:"conflict", local, remote };
 }
 
 export function makePassagePlanRecord(plan: PassagePlan, ownerId: string, previous?: PassagePlanRecord | null, now = new Date().toISOString()): PassagePlanRecord {
-  return { persistenceVersion:PASSAGE_PLAN_PERSISTENCE_VERSION, ownerId, revision:(previous?.revision ?? 0)+1, updatedAt:now, completedRevision:null, plan };
+  return { persistenceVersion:PASSAGE_PLAN_PERSISTENCE_VERSION, ownerId, revision:(previous?.revision ?? 0)+1, updatedAt:now, completedRevision:null, completionStatus:"draft", plan };
 }
 
 const emptyInboundLeg = () => ({ course:0, distanceNm:0, notes:"", tidalGate:"", weatherWindow:"" });
@@ -147,14 +150,14 @@ export function decodePassagePlanRecord(raw: string | null, expectedOwnerId: str
   try { value=JSON.parse(raw); } catch { return { ok:false, message:"The saved passage plan is not valid JSON." }; }
   const source=value && typeof value==="object" && !Array.isArray(value) ? value as Record<string,unknown> : null;
   if (source?.persistenceVersion === PASSAGE_PLAN_PERSISTENCE_VERSION) {
-    if (source.ownerId !== expectedOwnerId || !Number.isSafeInteger(source.revision) || (source.revision as number)<0 || typeof source.updatedAt!=="string" || Number.isNaN(Date.parse(source.updatedAt)) || !(source.completedRevision===null || Number.isSafeInteger(source.completedRevision))) return {ok:false,message:"The saved passage plan has invalid persistence metadata or belongs to another owner."};
+    if (source.ownerId !== expectedOwnerId || !Number.isSafeInteger(source.revision) || (source.revision as number)<0 || typeof source.updatedAt!=="string" || Number.isNaN(Date.parse(source.updatedAt)) || !(source.completedRevision===null || Number.isSafeInteger(source.completedRevision)) || !(source.completionStatus===undefined || source.completionStatus==="draft" || source.completionStatus==="queued" || source.completionStatus==="confirmed")) return {ok:false,message:"The saved passage plan has invalid persistence metadata or belongs to another owner."};
     const decoded=decodePassagePlanCache(JSON.stringify(source.plan));
     if(!decoded.ok)return decoded;
-    return {ok:true,migrated:false,record:{persistenceVersion:PASSAGE_PLAN_PERSISTENCE_VERSION,ownerId:expectedOwnerId,revision:source.revision as number,updatedAt:source.updatedAt,completedRevision:source.completedRevision as number|null,plan:decoded.plan}};
+    const completedRevision=source.completedRevision as number|null;return {ok:true,migrated:false,record:{persistenceVersion:PASSAGE_PLAN_PERSISTENCE_VERSION,ownerId:expectedOwnerId,revision:source.revision as number,updatedAt:source.updatedAt,completedRevision,completionStatus:(source.completionStatus as PassagePlanRecord["completionStatus"]|undefined)??(completedRevision===source.revision?"confirmed":"draft"),plan:decoded.plan}};
   }
   const decoded=decodePassagePlanCache(raw);
   if(!decoded.ok)return decoded;
-  return {ok:true,migrated:true,record:{persistenceVersion:PASSAGE_PLAN_PERSISTENCE_VERSION,ownerId:expectedOwnerId,revision:0,updatedAt:new Date(0).toISOString(),completedRevision:null,plan:decoded.plan}};
+  return {ok:true,migrated:true,record:{persistenceVersion:PASSAGE_PLAN_PERSISTENCE_VERSION,ownerId:expectedOwnerId,revision:0,updatedAt:new Date(0).toISOString(),completedRevision:null,completionStatus:"draft",plan:decoded.plan}};
 }
 
 export function parsePassagePlanCache(raw: string | null): PassagePlan | null {
