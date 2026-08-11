@@ -202,9 +202,13 @@ describe("MOB safety guidance", () => {
     expect(byId.get("mob2")?.explanation).toMatch(/neutral or stop the engine/i);
     expect(copyFor("mob2")).not.toMatch(/casualty (?:is|on your) (?:the )?leeward side/i);
 
-    expect(copyFor("mob4", "mob9")).toMatch(/vessel- and condition-dependent/i);
+    expect(correctOption("mob4")).toBe("Returning to a casualty in open water/fog");
+    expect(byId.get("mob4")?.explanation).toMatch(/not a universal small-craft response/i);
+    expect(byId.get("mob4")?.explanation).toMatch(/vessel handling, sea room, traffic and conditions/i);
     expect(byId.get("mob4")?.explanation).not.toMatch(/brings the vessel back exactly/i);
+    expect(correctOption("mob9")).toMatch(/vessel- and condition-dependent/i);
     expect(byId.get("mob9")?.explanation).toMatch(/not an exact guarantee for every craft/i);
+    expect(byId.get("mob9")?.explanation).toMatch(/sea room, traffic and conditions/i);
 
     expect(correctOption("mob5")).toMatch(/horizontally or near-horizontally/i);
     expect(copyFor("mob5")).not.toMatch(/reflow syndrome|cold blood.*rush/i);
@@ -214,6 +218,20 @@ describe("MOB safety guidance", () => {
 
     expect(correctOption("mob12")).toMatch(/assistance required.*other useful information/i);
     expect(byId.get("mob12")?.explanation).toMatch(/MMSI is not universally available/i);
+  });
+
+  it("keeps the supporting lesson's MAYDAY opening and sailing return context safe", async () => {
+    const { MOB_MAYDAY_VOICE_OPENING, MOB_SAIL_RETURN_GUIDANCE } = await import("../mobGuidance");
+    const sailingGuidance = Object.values(MOB_SAIL_RETURN_GUIDANCE).join(" ");
+
+    expect(MOB_MAYDAY_VOICE_OPENING).toEqual([
+      "MAYDAY, MAYDAY, MAYDAY",
+      "THIS IS YACHT [NAME], [NAME], [NAME]",
+    ]);
+    expect(MOB_MAYDAY_VOICE_OPENING.join(" ")).not.toMatch(/all stations/i);
+    expect(sailingGuidance).toMatch(/one practised return option/i);
+    expect(sailingGuidance).toMatch(/vessel, rig, wind, sea state, sea room and recovery plan/i);
+    expect(sailingGuidance).not.toMatch(/quickest|5\s*[–-]\s*6 boat lengths/i);
   });
 });
 

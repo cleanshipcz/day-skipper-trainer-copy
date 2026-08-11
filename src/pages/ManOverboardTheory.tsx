@@ -7,6 +7,7 @@ import { MOBSortingGame } from "@/components/safety/MOBSortingGame";
 import { useProgress } from "@/hooks/useProgress";
 import { useEffect } from "react";
 import { TOPIC_IDS } from "@/constants/topicRegistry";
+import { MOB_MAYDAY_VOICE_OPENING, MOB_SAIL_RETURN_GUIDANCE } from "@/data/mobGuidance";
 
 const ManOverboardTheory = () => {
   const navigate = useNavigate();
@@ -137,9 +138,8 @@ const ManOverboardTheory = () => {
               </CardHeader>
               <CardContent className="space-y-4 font-mono text-sm">
                 <div className="p-4 bg-background rounded border">
-                  <p className="text-destructive font-bold">MAYDAY, MAYDAY, MAYDAY</p>
-                  <p>ALL STATIONS, ALL STATIONS, ALL STATIONS</p>
-                  <p className="mt-2 font-bold">THIS IS YACHT [NAME], [NAME], [NAME]</p>
+                  <p className="text-destructive font-bold">{MOB_MAYDAY_VOICE_OPENING[0]}</p>
+                  <p className="mt-2 font-bold">{MOB_MAYDAY_VOICE_OPENING[1]}</p>
                   <p>CALLSIGN / MMSI / OTHER IDENTIFICATION [as applicable]</p>
                   <p className="mt-4 text-destructive font-bold">MAYDAY YACHT [NAME]</p>
                   <p>MY POSITION IS [Latitude / Longitude] (Or: "1 mile south of...")</p>
@@ -190,13 +190,13 @@ const ManOverboardTheory = () => {
               <Card>
                 <CardHeader>
                   <CardTitle>Under Sail: The Reach-Tack-Reach (Figure 8)</CardTitle>
-                  <CardDescription>Quickest return method when under sail</CardDescription>
+                  <CardDescription>{MOB_SAIL_RETURN_GUIDANCE.description}</CardDescription>
                 </CardHeader>
                 <CardContent className="space-y-4">
                   <div className="grid md:grid-cols-2 gap-4">
                     <div className="bg-muted p-4 rounded-lg">
                       <h4 className="font-bold mb-2">1. The Beam Reach</h4>
-                      <p className="text-sm">Turn away onto a Beam Reach. Sail for ~5-6 boat lengths.</p>
+                      <p className="text-sm">{MOB_SAIL_RETURN_GUIDANCE.initialLeg}</p>
                     </div>
                     <div className="bg-muted p-4 rounded-lg">
                       <h4 className="font-bold mb-2">2. The Tack</h4>
