@@ -320,7 +320,7 @@ describe("quiz review seeding identity isolation", () => {
 
     renderQuiz();
     const restored = await screen.findByRole("radio", { name: "Right" }) as HTMLInputElement;
-    expect(restored.checked).toBe(true);
+    await waitFor(() => expect(restored.checked).toBe(true));
     fireEvent.click(screen.getByRole("button", { name: "Submit Answer" }));
     fireEvent.click(screen.getByRole("button", { name: "View Results" }));
     await screen.findByRole("button", { name: "Retry Quiz" });
