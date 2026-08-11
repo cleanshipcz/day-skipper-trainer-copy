@@ -14,6 +14,16 @@ export interface PassagePlan {
 
 const emptyInboundLeg = () => ({ course:0, distanceNm:0, notes:"", tidalGate:"", weatherWindow:"" });
 
+function reconcileWaypointPredecessors(previous: readonly PlanWaypoint[], next: readonly PlanWaypoint[]): PlanWaypoint[] {
+  const previousPredecessor = new Map(previous.map((point, index) => [point.id, index > 0 ? previous[index - 1].id : null]));
+  return next.map((point, index) => {
+    if (index === 0) return { ...point, inboundLeg:null };
+    const predecessorId = next[index - 1].id;
+    const predecessorUnchanged = previousPredecessor.get(point.id) === predecessorId;
+    return { ...point, inboundLeg:predecessorUnchanged && point.inboundLeg ? point.inboundLeg : emptyInboundLeg() };
+  });
+}
+
 /** Preserves the ordered-route invariant after add/remove/reorder operations. */
 export function normalizeWaypointOrder(points: readonly PlanWaypoint[]): PlanWaypoint[] {
   return points.map((point, index) => index === 0
@@ -22,14 +32,14 @@ export function normalizeWaypointOrder(points: readonly PlanWaypoint[]): PlanWay
 }
 
 export function removeWaypoint(points: readonly PlanWaypoint[], id: string): PlanWaypoint[] {
-  return normalizeWaypointOrder(points.filter(point => point.id !== id));
+  return reconcileWaypointPredecessors(points, points.filter(point => point.id !== id));
 }
 
 export function reorderWaypoint(points: readonly PlanWaypoint[], index: number, target: number): PlanWaypoint[] {
   if (index < 0 || target < 0 || index >= points.length || target >= points.length || index === target) return [...points];
   const reordered = [...points];
   [reordered[index], reordered[target]] = [reordered[target], reordered[index]];
-  return normalizeWaypointOrder(reordered);
+  return reconcileWaypointPredecessors(points, reordered);
 }
 
 const isWaypoint = (value: unknown): value is PlanWaypoint => {
