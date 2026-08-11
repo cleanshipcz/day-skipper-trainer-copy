@@ -52,6 +52,7 @@ describe("FireExtinguisherDrill", () => {
 
     // then - should show a result (correct or incorrect)
     expect(screen.getByTestId("drill-result")).toBeDefined();
+    expect(screen.getByText(/before discharge:/i)).toBeDefined();
   });
 
   it("should allow advancing to next scenario after answering", async () => {

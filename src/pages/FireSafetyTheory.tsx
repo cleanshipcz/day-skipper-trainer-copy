@@ -27,7 +27,7 @@ import {
 import { FireExtinguisherDrill, type DrillResult } from "@/components/safety/FireExtinguisherDrill";
 import { useProgress } from "@/hooks/useProgress";
 import { TOPIC_IDS } from "@/constants/topicRegistry";
-import { fireExtinguishers } from "@/data/fireExtinguishers";
+import { fireExtinguishers, FIRE_SAFETY_RELEASE_REVIEW } from "@/data/fireExtinguishers";
 
 const FireSafetyTheory = () => {
   const navigate = useNavigate();
@@ -212,10 +212,15 @@ const FireSafetyTheory = () => {
                 <CardContent>
                   <p className="text-sm text-muted-foreground">
                     Flammable liquids and liquefiable solids: diesel, petrol,
-                    paraffin, cooking oil, paint, and varnish. Never use water —
+                    paraffin, paint, and varnish. Cooking oils and fats are Class F. Never use water —
                     it spreads burning liquid.
                   </p>
                 </CardContent>
+              </Card>
+
+              <Card className="border-l-4 border-l-red-600">
+                <CardHeader><CardTitle className="flex items-center gap-2"><Badge className="bg-red-600">F</Badge>Class F — Cooking Oils &amp; Fats</CardTitle></CardHeader>
+                <CardContent><p className="text-sm text-muted-foreground">High-temperature cooking oils and fats. Never use water or ordinary foam. Use equipment specifically marked for Class F; a fire blanket is separate equipment limited to a small, contained pan that can be covered safely.</p></CardContent>
               </Card>
 
               <Card className="border-l-4 border-l-blue-600">
@@ -237,16 +242,17 @@ const FireSafetyTheory = () => {
               <Card className="border-l-4 border-l-purple-600">
                 <CardHeader>
                   <CardTitle className="flex items-center gap-2">
-                    <Badge className="bg-purple-600">E</Badge>
-                    Electrical Fires
+                    <Badge className="bg-purple-600">Hazard</Badge>
+                    Energised Electrical Equipment
                   </CardTitle>
                 </CardHeader>
                 <CardContent>
                   <p className="text-sm text-muted-foreground">
-                    Not an official class but a critical marine hazard. Fires
+                    Not a UK/EN fire class, but a critical marine hazard. Fires
                     involving live electrical equipment — panels, wiring,
-                    chargers. Isolate the power first if safe. Never use water or
-                    foam.
+                    chargers. Isolate the power first if safe. Before isolation,
+                    use only equipment explicitly tested and marked for use on
+                    energised electrical equipment.
                   </p>
                 </CardContent>
               </Card>
@@ -297,6 +303,7 @@ const FireSafetyTheory = () => {
                             <li key={adv}>✓ {adv}</li>
                           ))}
                         </ul>
+                        <p className="text-xs mt-3"><strong>Selection:</strong> {ext.selectionRule}</p>
                       </div>
                       <div>
                         <p className="text-sm font-medium mb-2">
@@ -313,6 +320,9 @@ const FireSafetyTheory = () => {
                 </Card>
               ))}
             </div>
+            {FIRE_SAFETY_RELEASE_REVIEW.required && !FIRE_SAFETY_RELEASE_REVIEW.reviewed && (
+              <Card className="border-amber-500"><CardContent className="pt-6 text-sm"><strong>Release gate:</strong> This training content requires sign-off by a competent marine fire-safety reviewer. Technical review date: {FIRE_SAFETY_RELEASE_REVIEW.reviewDate}.</CardContent></Card>
+            )}
           </TabsContent>
 
           {/* ── PREVENTION & ENGINE ROOM ───────────────────────────── */}

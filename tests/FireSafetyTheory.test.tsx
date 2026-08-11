@@ -97,7 +97,8 @@ describe("FireSafetyTheory Page", () => {
     expect(await screen.findByText(/Class A — Solids/)).toBeDefined();
     expect(await screen.findByText(/Class B — Flammable Liquids/)).toBeDefined();
     expect(await screen.findByText(/Class C — Flammable Gases/)).toBeDefined();
-    expect(await screen.findByText(/Electrical Fires/)).toBeDefined();
+    expect(await screen.findByText(/Class F — Cooking Oils/)).toBeDefined();
+    expect(await screen.findByText(/Energised Electrical Equipment/)).toBeDefined();
   });
 
   it("should display extinguisher types when clicking the Extinguishers tab", async () => {

@@ -1,30 +1,20 @@
-/**
- * Fire extinguisher data for the Fire Safety sub-module.
- *
- * Covers the four extinguisher types a Day Skipper student must know:
- * dry powder, foam, CO2, and fire blanket. Each entry lists the fire
- * classes it is suitable for, its colour code, and practical pros/cons.
- *
- * @see docs/FEATURE_TASKS.md — Story E1-S1, AC-3
- */
+/** Fire classes used in the UK under BS EN 2. Electrical equipment is a hazard, not a class. */
+export type FireClass = "A" | "B" | "C" | "D" | "F";
 
-/** Fire classes relevant to marine environments. */
-export type FireClass = "A" | "B" | "C" | "Electrical";
+export const FIRE_CLASSES: readonly FireClass[] = ["A", "B", "C", "D", "F"] as const;
 
-export const FIRE_CLASSES: readonly FireClass[] = [
-  "A",
-  "B",
-  "C",
-  "Electrical",
-] as const;
-
-/** Known extinguisher IDs — used for compile-time validation of scenario data. */
-export type ExtinguisherId = "dry-powder" | "foam" | "co2" | "fire-blanket";
+export type ExtinguisherId =
+  | "dry-powder"
+  | "foam"
+  | "co2"
+  | "wet-chemical"
+  | "fire-blanket";
 
 export const EXTINGUISHER_IDS = {
   DRY_POWDER: "dry-powder",
   FOAM: "foam",
   CO2: "co2",
+  WET_CHEMICAL: "wet-chemical",
   FIRE_BLANKET: "fire-blanket",
 } as const satisfies Record<string, ExtinguisherId>;
 
@@ -33,154 +23,172 @@ export interface FireExtinguisher {
   readonly type: string;
   readonly colourCode: string;
   readonly description: string;
+  /** Typical classes only. The marking on the particular unit is authoritative. */
   readonly suitableClasses: readonly FireClass[];
   readonly advantages: readonly string[];
   readonly disadvantages: readonly string[];
+  readonly selectionRule: string;
 }
 
 export const fireExtinguishers: readonly FireExtinguisher[] = [
   {
     id: "dry-powder",
     type: "Dry Powder",
-    colourCode: "Blue",
+    colourCode: "Blue band",
     description:
-      "Multi-purpose extinguisher that smothers fire by coating the fuel with a fine chemical powder. The most versatile type found on boats.",
-    suitableClasses: ["A", "B", "C", "Electrical"],
-    advantages: [
-      "Works on almost all fire types",
-      "Quick knockdown of flames",
-      "Effective on electrical fires",
-    ],
+      "Knocks flames down rapidly. ABC and BC powders have different ratings: use only where the cylinder's marked rating covers the fuel and the manufacturer permits the application.",
+    suitableClasses: ["A", "B", "C"],
+    advantages: ["Rapid flame knockdown", "Some marked products cover Class C gas fires"],
     disadvantages: [
-      "Creates a cloud that reduces visibility",
-      "Does not cool the fire — risk of re-ignition",
-      "Powder damages electronics and engines",
-      "Difficult to clean up in a confined space",
+      "Dense powder clouds impair breathing and visibility in accommodation",
+      "Little cooling allows re-ignition",
+      "Residue can damage engines and electrical equipment",
     ],
+    selectionRule:
+      "Never infer suitability from 'powder' alone; check the actual A/B/C/D rating. Specialist Class D powder is not interchangeable with ABC powder.",
   },
   {
     id: "foam",
     type: "Foam",
-    colourCode: "Cream",
+    colourCode: "Cream band",
     description:
-      "Sprays a layer of aqueous foam that seals the fuel surface, cutting off oxygen and preventing flammable vapour release.",
+      "Cools Class A material and, where the unit has the required rating, blankets some Class B liquid surfaces. Performance depends on the fuel, application method and product approval.",
     suitableClasses: ["A", "B"],
-    advantages: [
-      "Seals the surface to prevent re-ignition",
-      "Effective on liquid fuel spills (diesel, petrol)",
-      "Cools the fire as it is water-based",
-    ],
+    advantages: ["Cooling on Class A fires", "Some rated products suppress vapour above compatible liquid fuels"],
     disadvantages: [
-      "Not suitable for electrical fires (conducts electricity)",
-      "Not effective on gas fires (Class C)",
-      "Can be blown away by wind on deck",
+      "Do not use on cooking oil/fat (Class F)",
+      "Do not use on gas (Class C)",
+      "Keep off energised equipment unless the specific unit is explicitly tested and marked for that use",
+      "Wind, fuel compatibility and disturbing the liquid can defeat the blanket",
     ],
+    selectionRule:
+      "Confirm the cylinder's marked A/B rating, fuel compatibility and manufacturer instructions; 'foam' is not an absolute answer for every liquid fire.",
   },
   {
     id: "co2",
     type: "CO2",
-    colourCode: "Black",
+    colourCode: "Black band",
     description:
-      "Displaces oxygen with carbon dioxide gas, suffocating the fire without leaving residue. Ideal for engine rooms and electrical panels.",
-    suitableClasses: ["B", "Electrical"],
-    advantages: [
-      "Leaves no residue — safe for electronics",
-      "Effective in enclosed engine spaces",
-      "Does not conduct electricity",
-    ],
+      "A residue-free medium commonly rated for Class B fires and useful around energised electrical equipment. It is not automatically suitable for an engine space.",
+    suitableClasses: ["B"],
+    advantages: ["Non-conductive and residue-free", "Can avoid powder contamination of electrical equipment"],
     disadvantages: [
-      "Limited range (approximately 1–2 metres)",
-      "Ineffective outdoors or in windy conditions",
-      "Risk of asphyxiation in confined spaces",
-      "Does not cool the fuel — risk of re-ignition",
+      "No cooling, so hot fuel can re-ignite",
+      "Gas disperses rapidly outdoors or through an open compartment",
+      "Dangerous asphyxiation concentration in occupied/confined spaces",
+      "A portable discharge through an open hatch can feed or spread an engine-space fire",
     ],
+    selectionRule:
+      "Use only for the marked rating and from a safe position. A fixed engine-space system must be approved for that space and used to its instructions after evacuation and shutdown prerequisites.",
+  },
+  {
+    id: "wet-chemical",
+    type: "Wet Chemical",
+    colourCode: "Yellow band",
+    description:
+      "A purpose-designed Class F medium that cools hot cooking oil and forms a sealing layer when gently applied.",
+    suitableClasses: ["F"],
+    advantages: ["Rated for cooking-oil/fat fires", "Cooling reduces re-ignition risk"],
+    disadvantages: ["Use only at the specified distance and application pattern", "Not a general-purpose marine extinguisher"],
+    selectionRule:
+      "Check for a Class F rating and follow the manufacturer's instructions; isolate the heat source if safe and never move the pan.",
   },
   {
     id: "fire-blanket",
     type: "Fire Blanket",
-    colourCode: "Red",
+    colourCode: "No extinguisher colour code",
     description:
-      "Fibreglass blanket that smothers small fires by cutting off the oxygen supply. Essential for galley fires involving cooking oil or fat.",
-    suitableClasses: ["A", "B", "Electrical"],
-    advantages: [
-      "Simple to use with no training required",
-      "Ideal for galley fat/oil fires",
-      "Can be used to wrap a person whose clothing is on fire",
-      "No clean-up or residue",
-    ],
+      "Separate firefighting equipment for smothering a very small, contained pan fire where the blanket can cover it completely without reaching through flames.",
+    suitableClasses: ["F"],
+    advantages: ["No discharge residue", "May contain a small pan fire when safely deployed"],
     disadvantages: [
-      "Only effective on small, contained fires",
-      "Single use — cannot be re-used once deployed",
-      "Not suitable for large or spreading fires",
+      "Not an extinguisher and has no A/B/electrical rating",
+      "Deployment requires instruction and practice; hands and escape route remain at risk",
+      "Withdraw and raise the alarm if the fire is spreading or approach is unsafe",
+      "Leave in place to cool and treat as single-use after deployment",
     ],
+    selectionRule:
+      "Use only a compliant blanket of adequate size, exactly as instructed; never use it to imply broad class suitability.",
   },
 ];
 
-/**
- * Fire drill scenarios — each scenario describes a fire situation and
- * the student must pick the best extinguisher.
- */
 export interface FireScenario {
   readonly id: string;
   readonly description: string;
   readonly fireClass: FireClass;
-  readonly correctExtinguisherId: ExtinguisherId;
+  readonly electricalHazard?: boolean;
+  readonly acceptableExtinguisherIds: readonly ExtinguisherId[];
+  readonly prerequisites: string;
   readonly explanation: string;
 }
 
 export const fireScenarios: readonly FireScenario[] = [
   {
     id: "galley-oil",
-    description:
-      "A pan of cooking oil catches fire on the galley stove. Flames are contained to the pan.",
-    fireClass: "B",
-    correctExtinguisherId: "fire-blanket",
+    description: "A small pan of cooking oil catches fire on the galley stove and remains contained to the pan.",
+    fireClass: "F",
+    acceptableExtinguisherIds: ["wet-chemical", "fire-blanket"],
+    prerequisites: "Raise the alarm, keep an escape route, isolate the heat if safe, do not move the pan and do not use water or foam.",
     explanation:
-      "A fire blanket is ideal for small galley fat/oil fires — place it gently over the pan to smother the flames without splashing burning oil.",
+      "Use a Class F-rated wet-chemical unit as marked, or a compliant fire blanket only when the small pan can be covered safely and completely. If approach is unsafe or fire is spreading, withdraw.",
   },
   {
     id: "engine-diesel",
-    description:
-      "Diesel fuel has ignited in the engine compartment. Smoke is pouring from the engine hatch.",
+    description: "Diesel fuel has ignited inside an engine compartment and smoke is coming from the closed hatch.",
     fireClass: "B",
-    correctExtinguisherId: "co2",
+    acceptableExtinguisherIds: ["foam", "dry-powder", "co2"],
+    prerequisites: "Raise the alarm, stop engine/fuel/ventilation if safe, keep the compartment closed and use an approved fire port or fixed system; do not open the hatch to discharge.",
     explanation:
-      "CO2 is best for enclosed engine spaces — it suffocates the fire without damaging the engine and leaves no residue.",
+      "There is no universal portable-medium answer. Use only equipment rated and approved for the fuel and installation. CO2 needs effective enclosure and asphyxiation controls; powder obscures and does not cool; foam depends on rating, access and fuel compatibility.",
   },
   {
     id: "electrical-panel",
-    description:
-      "Sparks and flames are visible behind the main electrical distribution panel in the nav station.",
-    fireClass: "Electrical",
-    correctExtinguisherId: "co2",
+    description: "Sparks and flames are visible behind an energised electrical distribution panel at the nav station.",
+    fireClass: "A",
+    electricalHazard: true,
+    acceptableExtinguisherIds: ["co2", "dry-powder"],
+    prerequisites: "Raise the alarm and isolate electrical power if safe. Keep clear until isolation is confirmed.",
     explanation:
-      "CO2 does not conduct electricity and leaves no residue, making it the safest choice for electrical panel fires.",
+      "Electrical is a hazard, not a fire class. Before isolation use only a medium and unit marked/approved for energised equipment; CO2 avoids residue but gives no cooling, while rated powder contaminates equipment and impairs visibility. After isolation, treat the burning material's class.",
   },
   {
     id: "bunk-mattress",
-    description:
-      "A bunk mattress has caught fire from an unattended candle. Flames are spreading to nearby fabric.",
+    description: "A bunk mattress is burning in accommodation and flames are spreading to nearby fabric.",
     fireClass: "A",
-    correctExtinguisherId: "dry-powder",
+    acceptableExtinguisherIds: ["foam", "dry-powder"],
+    prerequisites: "Raise the alarm, preserve the escape route and attack only if the fire is still small and the selected unit is Class A rated.",
     explanation:
-      "Dry powder provides rapid knockdown on solid combustible (Class A) fires and works in confined cabin spaces.",
+      "A Class A-rated cooling medium is normally preferable for deep-seated material. Rated powder can knock flames down but its cloud, breathing/visibility effects and lack of cooling make it hazardous in a cabin; expect re-ignition and withdraw if conditions worsen.",
   },
   {
     id: "gas-leak-ignition",
-    description:
-      "A gas leak from the cooker supply has ignited, producing a jet of flame from a cracked fitting.",
+    description: "Leaking cooker LPG is burning as a jet from a cracked fitting.",
     fireClass: "C",
-    correctExtinguisherId: "dry-powder",
+    acceptableExtinguisherIds: ["dry-powder"],
+    prerequisites: "Do not extinguish the flame unless the gas supply can be stopped safely; otherwise unburned gas may accumulate and explode. Raise the alarm and withdraw.",
     explanation:
-      "Dry powder is the only portable extinguisher effective on gas fires (Class C). Turn off the gas supply first if safe to do so.",
+      "After safe fuel isolation, a cylinder specifically marked for Class C may knock down remaining flame. Not every powder cylinder has a C rating, and extinguishing without stopping the leak can make conditions worse.",
   },
   {
     id: "fuel-spill-deck",
-    description:
-      "Petrol has spilled on the cockpit sole while refuelling and ignited from a stray spark.",
+    description: "A small petrol spill on the open cockpit sole ignites during refuelling.",
     fireClass: "B",
-    correctExtinguisherId: "foam",
+    acceptableExtinguisherIds: ["foam", "dry-powder"],
+    prerequisites: "Raise the alarm, stop the fuel source if safe, avoid spreading the spill and keep an upwind escape route.",
     explanation:
-      "Foam seals the fuel surface, cutting off vapour release and preventing re-ignition — ideal for liquid fuel spills on deck.",
+      "Use a unit with the necessary Class B rating and follow its application instructions. Compatible foam may blanket a contained surface but wind or a running/spreading spill can defeat it; rated powder offers rapid knockdown but little cooling and re-ignition remains possible.",
   },
 ];
+
+/** Content may ship only after sign-off by a competent marine fire-safety reviewer. */
+export const FIRE_SAFETY_RELEASE_REVIEW = {
+  required: true,
+  reviewed: false,
+  reviewDate: "2026-08-11",
+  sources: [
+    "RYA fire prevention and firefighting guidance for recreational craft",
+    "Maritime and Coastguard Agency marine fire-safety guidance, including MGN 681 (M)",
+    "UK Government fire safety guidance and BS EN 2 classification conventions",
+    "Manufacturer markings and instructions for the equipment actually carried",
+  ],
+} as const;

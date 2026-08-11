@@ -55,34 +55,47 @@ describe("fireExtinguishers data", () => {
     expect(new Set(ids).size).toBe(ids.length);
   });
 
-  it("should cover all fire classes across all extinguishers", () => {
+  it("should only claim classes actually covered by the listed equipment", () => {
     // given
     const allCoveredClasses = new Set(
       fireExtinguishers.flatMap((e) => e.suitableClasses)
     );
 
-    // then - every fire class should be handled by at least one extinguisher
-    for (const cls of FIRE_CLASSES) {
-      expect(allCoveredClasses.has(cls)).toBe(true);
-    }
+    expect(allCoveredClasses).toEqual(new Set(["A", "B", "C", "F"]));
+    expect(allCoveredClasses.has("D")).toBe(false);
   });
 
   it("should export FIRE_CLASSES with all required classes", () => {
     expect(FIRE_CLASSES).toContain("A");
     expect(FIRE_CLASSES).toContain("B");
     expect(FIRE_CLASSES).toContain("C");
-    expect(FIRE_CLASSES).toContain("Electrical");
+    expect(FIRE_CLASSES).toContain("D");
+    expect(FIRE_CLASSES).toContain("F");
+    expect(FIRE_CLASSES).not.toContain("Electrical");
   });
 
-  // L1: correctExtinguisherId must reference a valid extinguisher ID
-  it("should have valid correctExtinguisherId in every fire scenario", () => {
+  it("should have valid acceptableExtinguisherIds and prerequisites in every fire scenario", () => {
     // given
     const validIds = new Set(fireExtinguishers.map((e) => e.id));
 
     // then - every scenario's correctExtinguisherId matches a real extinguisher
     for (const scenario of fireScenarios) {
-      expect(validIds.has(scenario.correctExtinguisherId)).toBe(true);
+      expect(scenario.acceptableExtinguisherIds.length).toBeGreaterThan(0);
+      expect(scenario.prerequisites).toBeTruthy();
+      for (const id of scenario.acceptableExtinguisherIds) expect(validIds.has(id)).toBe(true);
     }
+  });
+
+  it("classifies cooking oil as F and keeps blankets separate from extinguisher colour codes", () => {
+    expect(fireScenarios.find((s) => s.id === "galley-oil")?.fireClass).toBe("F");
+    const blanket = fireExtinguishers.find((e) => e.id === "fire-blanket");
+    expect(blanket?.colourCode).toMatch(/no extinguisher/i);
+    expect(blanket?.suitableClasses).toEqual(["F"]);
+  });
+
+  it("does not encode one universal medium where defensible alternatives depend on conditions", () => {
+    expect(fireScenarios.find((s) => s.id === "engine-diesel")?.acceptableExtinguisherIds.length).toBeGreaterThan(1);
+    expect(fireScenarios.find((s) => s.id === "bunk-mattress")?.acceptableExtinguisherIds).toContain("foam");
   });
 
   // L1: EXTINGUISHER_IDS matches actual extinguisher IDs
