@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useState, type SetStateAction } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState, type SetStateAction } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -46,6 +46,7 @@ export function PassagePlanBuilder() {
   const [status, setStatus] = useState("");
   const [dirty, setDirty] = useState(false);
   const [saving, setSaving] = useState(false);
+  const mutationRevision = useRef(0);
   const [undo, setUndo] = useState<{ plan: PassagePlan; message: string; focusId: string } | null>(null);
   const cacheKey = useMemo(() => passagePlanCacheKey(user?.id ?? null, anonymousSessionId()), [user?.id]);
   const [planState, setPlanState] = useState<{ key: string; plan: PassagePlan }>(() => ({ key:cacheKey, plan:initialPlan() }));
@@ -71,6 +72,7 @@ export function PassagePlanBuilder() {
     setDirty(false);
     setUndo(null);
     setStatus("");
+    mutationRevision.current = 0;
     const cached = readStored(localStorage, cacheKey, {
       decode: (value) => parsePassagePlanCache(JSON.stringify(value)),
     });
@@ -96,17 +98,18 @@ export function PassagePlanBuilder() {
 
   const etas = useMemo(() => calculateLegEtas(plan.points, plan.departure, plan.speed), [plan.points, plan.departure, plan.speed]);
   const total = totalRouteDistance(plan.points);
+  const markChanged = () => { mutationRevision.current += 1;setDirty(true);setUndo(null); };
   const updatePoint = (id: string, key: "name" | "latitude" | "longitude", value: string) => {
-    setDirty(true);setUndo(null);setPlan(current => ({ ...current, points:current.points.map(point => point.id === id ? { ...point, [key]:value } : point) }));
+    markChanged();setPlan(current => ({ ...current, points:current.points.map(point => point.id === id ? { ...point, [key]:value } : point) }));
   };
   const updateLeg = (id: string, key: keyof PlanLeg, value: string) => {
-    setDirty(true);setUndo(null);setPlan(current => ({ ...current, points:current.points.map(point => point.id === id && point.inboundLeg ? { ...point, inboundLeg:{ ...point.inboundLeg, [key]:key === "course" || key === "distanceNm" ? Number(value) : value } } : point) }));
+    markChanged();setPlan(current => ({ ...current, points:current.points.map(point => point.id === id && point.inboundLeg ? { ...point, inboundLeg:{ ...point.inboundLeg, [key]:key === "course" || key === "distanceNm" ? Number(value) : value } } : point) }));
   };
   const focusWaypoint = (id: string) => window.setTimeout(() => document.getElementById(`${id}-name`)?.focus(), 0);
   const announce = (message: string, next: PassagePlan) => {
     const issues = validatePassagePlan(next).length;
     setStatus(`${message} Route total ${totalRouteDistance(next.points).toFixed(1)} nautical miles. ${issues} validation ${issues === 1 ? "issue" : "issues"}.`);
-    setDirty(true);
+    mutationRevision.current += 1;setDirty(true);
   };
   const removePoint = (id: string) => {
     const index = plan.points.findIndex(point => point.id === id);
@@ -139,19 +142,25 @@ export function PassagePlanBuilder() {
   };
   const undoChange = () => {
     if (!undo) return;
-    setPlan(undo.plan);setStatus(undo.message);focusWaypoint(undo.focusId);setUndo(null);
+    mutationRevision.current += 1;setPlan(undo.plan);setStatus(undo.message);focusWaypoint(undo.focusId);setUndo(null);setDirty(true);
   };
-  const setNumeric = (key: "speed" | "fuelRate" | "reservePercent", value: string) => { setDirty(true);setUndo(null);setPlan(current => ({ ...current, [key]:value === "" ? undefined : Number(value) })); };
+  const setNumeric = (key: "speed" | "fuelRate" | "reservePercent", value: string) => { markChanged();setPlan(current => ({ ...current, [key]:value === "" ? undefined : Number(value) })); };
   const save = async () => {
     if (saving) return;
     const validationErrors = validatePassagePlan(plan);
     setErrors(validationErrors);
     if (validationErrors.length) return;
     writeStored(localStorage, cacheKey, plan);
+    const submittedPlan = plan;
+    const submittedRevision = mutationRevision.current;
     setSaving(true);setStatus("Saving plan completion…");
     try {
-      const saved = await saveProgress(TOPIC_IDS.PASSAGE_PLANNING_BUILDER, true, 100, 15, { plan });
-      if (saved) { setSavedPlan(plan);setDirty(false);setUndo(null);setStatus("Plan saved locally and completion persisted. No unsaved changes remain."); }
+      const saved = await saveProgress(TOPIC_IDS.PASSAGE_PLANNING_BUILDER, true, 100, 15, { plan:submittedPlan });
+      if (saved) {
+        setSavedPlan(submittedPlan);
+        if (mutationRevision.current === submittedRevision) { setDirty(false);setUndo(null);setStatus("Plan saved locally and completion persisted. No unsaved changes remain."); }
+        else { setDirty(true);setStatus("Submitted plan persisted, but newer route changes remain unsaved. Save again when ready."); }
+      }
       else { setDirty(true);setStatus("Plan saved locally, but completion was not persisted. Retry saving when ready."); }
     } catch {
       setDirty(true);setStatus("Plan saved locally, but completion persistence failed. Your edits remain available; retry saving when ready.");
@@ -159,14 +168,14 @@ export function PassagePlanBuilder() {
   };
   const reset = () => {
     if (dirty && !window.confirm("Discard all unsaved route changes and restore the last saved plan?")) return;
-    const next=savedPlan;setPlan(next);setErrors([]);setUndo(null);setDirty(false);setStatus("Unsaved changes discarded; last saved plan restored.");focusWaypoint(next.points[0].id);
+    mutationRevision.current += 1;const next=savedPlan;setPlan(next);setErrors([]);setUndo(null);setDirty(false);setStatus("Unsaved changes discarded; last saved plan restored.");focusWaypoint(next.points[0].id);
   };
 
   return <div className="space-y-5">
     <p className="sr-only" role="status" aria-live="polite">{status}</p>
     <div className="grid sm:grid-cols-2 lg:grid-cols-5 gap-3">
-      <div><Label htmlFor="plan-name">Plan name</Label><Input id="plan-name" value={plan.name} onChange={event => {setDirty(true);setUndo(null);setPlan(current => ({ ...current, name:event.target.value }))}}/></div>
-      <div><Label htmlFor="departure">Departure</Label><Input id="departure" type="datetime-local" value={plan.departure} onChange={event => {setDirty(true);setUndo(null);setPlan(current => ({ ...current, departure:event.target.value }))}}/></div>
+      <div><Label htmlFor="plan-name">Plan name</Label><Input id="plan-name" value={plan.name} onChange={event => {markChanged();setPlan(current => ({ ...current, name:event.target.value }))}}/></div>
+      <div><Label htmlFor="departure">Departure</Label><Input id="departure" type="datetime-local" value={plan.departure} onChange={event => {markChanged();setPlan(current => ({ ...current, departure:event.target.value }))}}/></div>
       <div><Label htmlFor="speed">SOG (knots)</Label><Input id="speed" type="number" min="0.1" max="80" value={plan.speed ?? ""} onChange={event => setNumeric("speed", event.target.value)}/></div>
       <div><Label htmlFor="fuel-rate">Fuel rate (L/h, optional)</Label><Input id="fuel-rate" type="number" min="0.1" max="500" value={plan.fuelRate ?? ""} onChange={event => setNumeric("fuelRate", event.target.value)}/></div>
       <div><Label htmlFor="fuel-reserve">Fuel reserve (%, optional)</Label><Input id="fuel-reserve" type="number" min="0" max="200" value={plan.reservePercent ?? ""} onChange={event => setNumeric("reservePercent", event.target.value)}/></div>

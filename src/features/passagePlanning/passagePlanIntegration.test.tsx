@@ -61,4 +61,12 @@ it("marks a successful save clean and prevents duplicate clicks while pending",a
  fireEvent.click(screen.getByRole("button",{name:"Save & complete plan"}));expect((screen.getByRole("button",{name:"Saving plan…"}) as HTMLButtonElement).disabled).toBe(true);fireEvent.click(screen.getByRole("button",{name:"Saving plan…"}));expect(saveProgress).toHaveBeenCalledTimes(1);
  resolve(true);await waitFor(()=>expect(screen.getByRole("status").textContent).toContain("completion persisted"));
 });
+it("keeps edits made during a successful save dirty and resets to the submitted snapshot",async()=>{
+ let resolve!:(value:boolean)=>void;saveProgress.mockImplementationOnce(()=>new Promise<boolean>(done=>{resolve=done}));vi.stubGlobal("confirm",vi.fn().mockReturnValue(true));render(<PassagePlanBuilder/>);await waitFor(()=>expect(loadProgress).toHaveBeenCalled());
+ fireEvent.change(screen.getByLabelText("Plan name"),{target:{value:"Submitted snapshot"}});fireEvent.click(screen.getByRole("button",{name:"Save & complete plan"}));
+ fireEvent.change(screen.getByLabelText("Plan name"),{target:{value:"Newer unsaved edit"}});expect((screen.getByLabelText("Plan name") as HTMLInputElement).value).toBe("Newer unsaved edit");
+ resolve(true);await waitFor(()=>expect(screen.getByRole("status").textContent).toContain("newer route changes remain unsaved"));
+ fireEvent.click(screen.getByRole("button",{name:"Reset unsaved changes"}));expect(window.confirm).toHaveBeenCalledWith(expect.stringContaining("last saved plan"));
+ await waitFor(()=>expect((screen.getByLabelText("Plan name") as HTMLInputElement).value).toBe("Submitted snapshot"));vi.unstubAllGlobals();
+});
 });
