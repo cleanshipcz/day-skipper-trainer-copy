@@ -161,6 +161,7 @@ const Quiz = () => {
   const sessionWriteChainRef = useRef<Promise<boolean>>(Promise.resolve(true));
   const pendingSessionRef = useRef<{ answers: Array<number | null>; question: number } | null>(null);
   const persistenceScopeRef = useRef(0);
+  const persistenceIdentityRef = useRef("");
   const attemptStartRequestRef = useRef<Promise<QuizWorkflow | null> | null>(null);
   const attemptRecoveryRef = useRef(false);
   const completionRequestRef = useRef(false);
@@ -172,10 +173,19 @@ const Quiz = () => {
     seedGenerationRef.current += 1;
     verifiedScoreAttemptRef.current = null;
     attemptStartRequestRef.current = null;
+  }
+  const persistenceIdentity = `${currentSeedOwner ?? "anonymous"}:${topicKey}:${attemptCycle}:${workflow?.attemptId ?? "unstarted"}`;
+  if (persistenceIdentityRef.current !== persistenceIdentity) {
+    persistenceIdentityRef.current = persistenceIdentity;
     persistenceScopeRef.current += 1;
     pendingSessionRef.current = null;
+    assessmentPersistenceRef.current = null;
     sessionWriteChainRef.current = Promise.resolve(true);
   }
+
+  useEffect(() => {
+    setSessionSaveState(user ? "idle" : "anonymous");
+  }, [persistenceIdentity, user]);
 
   const seedReviews = useCallback(async (owner: string, generation: number) => {
     if (seedOwnerRef.current !== owner || seedGenerationRef.current !== generation) return;
@@ -692,7 +702,7 @@ const Quiz = () => {
                 {weatherLeaves.map((leaf) => <div key={leaf.id} className="rounded-lg border p-3">
                   <h3 className="font-semibold">{leaf.label}</h3>
                   <p className="text-sm text-muted-foreground">{leaf.assessed === 0 ? `Not demonstrated (0 of ${leaf.total} assessed)` : `${leaf.correct} of ${leaf.total} objectives correct`}</p>
-                  {leaf.missed.length > 0 && <Button variant="link" className="h-auto px-0 py-1" onClick={() => navigate(leaf.route)}>Review {leaf.label}</Button>}
+                  {leaf.missed.length > 0 && <Button variant="link" className="h-auto px-0 py-1" onClick={() => navigateFromQuiz(leaf.route)}>Review {leaf.label}</Button>}
                 </div>)}
               </div>
             </section>}
@@ -714,7 +724,7 @@ const Quiz = () => {
             </section>}
 
             <div className="flex flex-col gap-3 sm:flex-row">
-              <Button variant="outline" className="flex-1" onClick={() => navigate(topicKey === "anchorwork"
+              <Button variant="outline" className="flex-1" onClick={() => navigateFromQuiz(topicKey === "anchorwork"
                 ? anchorTheoryRoute(passed ? anchorReturnTopic : anchorQuizRemediationTopic(questions.map(({ id }) => id), submittedAnswers, questions.map(({ correctAnswer }) => correctAnswer)), "quiz")
                 : topicKey === "victualling" && !passed
                   ? victuallingQuizRemediationRoute(questions.map(({ id }) => id), submittedAnswers, questions.map(({ correctAnswer }) => correctAnswer))
@@ -815,8 +825,8 @@ const Quiz = () => {
           <p className="font-semibold">Diagnostic: study both learning modules first</p>
           <p className="mt-1 text-muted-foreground">This 20-objective check combines Steering &amp; Sailing with Lights &amp; Signals. A missed answer links to the theory that teaches it.</p>
           <div className="mt-2 flex flex-wrap gap-2">
-            <Button size="sm" variant="outline" onClick={() => navigate("/rules/colregs")}>Steering &amp; Sailing theory</Button>
-            <Button size="sm" variant="outline" onClick={() => navigate("/rules/lights/theory")}>Lights &amp; Signals theory</Button>
+            <Button size="sm" variant="outline" onClick={() => navigateFromQuiz("/rules/colregs")}>Steering &amp; Sailing theory</Button>
+            <Button size="sm" variant="outline" onClick={() => navigateFromQuiz("/rules/lights/theory")}>Lights &amp; Signals theory</Button>
           </div>
         </div>}
         {user && attemptStartState !== "ready" && <div className="mb-3 space-y-2 rounded-lg border border-destructive/50 bg-destructive/10 p-3">
@@ -914,9 +924,9 @@ const Quiz = () => {
                   {selectedAnswer === question.correctAnswer ? "Correct" : "Incorrect"}
                 </h3>
                 <p className="text-muted-foreground break-words [overflow-wrap:anywhere]">{question.explanation}</p>
-                {topicKey === "colregs" && selectedAnswer !== question.correctAnswer && question.remediationRoute && <Button variant="link" className="h-auto px-0 pt-2" onClick={() => navigate(question.remediationRoute!)}>Review {question.prerequisite ?? "this objective"} theory</Button>}
-                {topicKey === "victualling" && selectedAnswer !== question.correctAnswer && <Button variant="link" className="h-auto px-0 pt-2" onClick={() => navigate(victuallingTheoryRoute(question.id))}>Review this objective in Victualling theory</Button>}
-                {topicKey === "engine" && selectedAnswer !== question.correctAnswer && <Button variant="link" className="h-auto px-0 pt-2" onClick={() => navigate(engineTheoryRoute(question.id))}>Review this objective in Engine theory</Button>}
+                {topicKey === "colregs" && selectedAnswer !== question.correctAnswer && question.remediationRoute && <Button variant="link" className="h-auto px-0 pt-2" onClick={() => navigateFromQuiz(question.remediationRoute!)}>Review {question.prerequisite ?? "this objective"} theory</Button>}
+                {topicKey === "victualling" && selectedAnswer !== question.correctAnswer && <Button variant="link" className="h-auto px-0 pt-2" onClick={() => navigateFromQuiz(victuallingTheoryRoute(question.id))}>Review this objective in Victualling theory</Button>}
+                {topicKey === "engine" && selectedAnswer !== question.correctAnswer && <Button variant="link" className="h-auto px-0 pt-2" onClick={() => navigateFromQuiz(engineTheoryRoute(question.id))}>Review this objective in Engine theory</Button>}
               </div>
             )}
 

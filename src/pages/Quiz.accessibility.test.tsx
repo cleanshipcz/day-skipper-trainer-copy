@@ -1,7 +1,7 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { render, screen, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
-import { MemoryRouter, Route, Routes, useLocation } from "react-router-dom";
+import { MemoryRouter, Route, Routes, useLocation, useNavigate } from "react-router-dom";
 import { buildQuizSessionProgress } from "@/features/quiz/sessionProgress";
 
 const mocks = vi.hoisted(() => ({
@@ -42,15 +42,21 @@ const LocationProbe = () => {
   const location = useLocation();
   return <p>Current path: {location.pathname}</p>;
 };
+const TopicSwitcher = () => {
+  const navigate = useNavigate();
+  return <button onClick={() => navigate("/quiz/ropework")}>Switch quiz topic</button>;
+};
 
-const renderQuiz = (path = "/quiz/test") => render(
+const QuizTree = ({ path = "/quiz/test" }: { path?: string }) => (
   <MemoryRouter initialEntries={[path]}>
+    <TopicSwitcher />
     <Routes>
       <Route path="/quiz/:topicId" element={<Quiz />} />
       <Route path="*" element={<LocationProbe />} />
     </Routes>
-  </MemoryRouter>,
+  </MemoryRouter>
 );
+const renderQuiz = (path = "/quiz/test") => render(<QuizTree path={path} />);
 
 describe("Quiz accessible interaction and reflow", () => {
   beforeEach(() => {
@@ -372,6 +378,57 @@ describe("Quiz accessible interaction and reflow", () => {
     await waitFor(() => expect(screen.queryByText(/latest quiz progress was not saved/i)).toBeNull());
     expect(screen.getByText("Score: 1/2")).toBeTruthy();
     expect(mocks.saveProgress).toHaveBeenCalledTimes(2);
+  });
+
+  it("discards a deferred save result when the signed-in owner changes", async () => {
+    mocks.user = { id: "owner-a" };
+    let rejectOld!: (value: boolean) => void;
+    mocks.saveProgress.mockImplementationOnce(() => new Promise<boolean>((resolve) => { rejectOld = resolve; }));
+    const view = renderQuiz();
+    const user = userEvent.setup();
+
+    await user.click(await screen.findByRole("radio", { name: /correct/i }));
+    await user.click(screen.getByRole("button", { name: "Submit Answer" }));
+    expect(await screen.findByText("Saving quiz progress…")).toBeTruthy();
+
+    mocks.user = { id: "owner-b" };
+    view.rerender(<QuizTree />);
+    expect(await screen.findByText("Quiz progress is ready to save.")).toBeTruthy();
+    rejectOld(false);
+    await waitFor(() => expect(screen.queryByText(/latest quiz progress was not saved/i)).toBeNull());
+  });
+
+  it("discards a deferred save and retry snapshot when the quiz topic changes", async () => {
+    mocks.user = { id: "quiz-user" };
+    let finishOld!: (value: boolean) => void;
+    mocks.saveProgress.mockImplementationOnce(() => new Promise<boolean>((resolve) => { finishOld = resolve; }));
+    const user = userEvent.setup();
+    renderQuiz();
+
+    await user.click(await screen.findByRole("radio", { name: /correct/i }));
+    await user.click(screen.getByRole("button", { name: "Submit Answer" }));
+    await user.click(screen.getByRole("button", { name: "Switch quiz topic" }));
+    expect(await screen.findByText("Ropework Quiz")).toBeTruthy();
+    expect(screen.getByText("Quiz progress is ready to save.")).toBeTruthy();
+    finishOld(false);
+    await waitFor(() => expect(screen.queryByText(/latest quiz progress was not saved/i)).toBeNull());
+    expect(screen.queryByRole("button", { name: "Retry saving progress" })).toBeNull();
+  });
+
+  it("guards diagnostic exits while the latest assessment is still saving", async () => {
+    mocks.user = { id: "quiz-user" };
+    mocks.saveProgress.mockImplementationOnce(() => new Promise<boolean>(() => undefined));
+    const confirm = vi.fn().mockReturnValue(false);
+    vi.stubGlobal("confirm", confirm);
+    const user = userEvent.setup();
+    renderQuiz("/quiz/colregs");
+
+    await user.click(await screen.findByRole("radio", { name: /correct/i }));
+    await user.click(screen.getByRole("button", { name: "Submit Answer" }));
+    await user.click(screen.getByRole("button", { name: "Steering & Sailing theory" }));
+    expect(confirm).toHaveBeenCalledOnce();
+    expect(screen.getByText("Combined Rules Diagnostic")).toBeTruthy();
+    vi.unstubAllGlobals();
   });
 
   it("announces feedback once and focuses each advanced question and completion", async () => {
