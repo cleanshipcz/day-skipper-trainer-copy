@@ -37,6 +37,19 @@ describe("PrepareTheory", () => {
     const html = renderPage();
     for (const text of ["Worked berth-to-berth", "4 h 48 min", "2.3 m", "30% reserve", "Contingencies", "Brief, execute and monitor"]) expect(html).toContain(text);
   });
+  it("teaches risk-based position monitoring instead of a universal clock interval", () => {
+    const html = renderPage();
+    const monitoring = prepareSteps.find((step) => step.title === "Execute and monitor");
+    const content = `${monitoring?.considerations.join(" ")} ${monitoring?.example}`;
+
+    for (const factor of ["speed", "position uncertainty", "fixing method", "hazards", "traffic", "visibility", "tide", "pilotage", "decision point"]) expect(content).toContain(factor);
+    for (const trigger of ["hazards", "gates", "alterations", "handovers", "deteriorate"]) expect(content).toContain(trigger);
+    for (const comparison of ["position", "XTE", "SOG", "ETA", "depth", "conditions", "recorded"]) expect(content).toContain(comparison);
+    expect(content).toContain("frequently or continuously");
+    expect(content).toContain("confined pilotage");
+    expect(content).toContain("lower-risk open water");
+    expect(html).not.toMatch(/fix (?:every|hourly)|hourly (?:fix|position|monitor)/i);
+  });
   it("cites authoritative current sources and update checks", () => {
     const html = renderPage();
     expect(html).toContain("IMO Resolution A.893(21)");
