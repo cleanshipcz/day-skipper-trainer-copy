@@ -101,6 +101,7 @@ const Quiz = () => {
   const [catalogueError, setCatalogueError] = useState(false);
   const [anonymousStorageNotice, setAnonymousStorageNotice] = useState<string | null>(null);
   const [loadGeneration, setLoadGeneration] = useState(0);
+  const [sessionHydrated, setSessionHydrated] = useState(false);
   useEffect(() => {
     let active = true;
     setSourceQuestions(null);
@@ -184,6 +185,8 @@ const Quiz = () => {
   // Initialize answers array when questions change
   useEffect(() => {
     if (!sourceQuestions) return;
+    let active = true;
+    setSessionHydrated(false);
     const initQuiz = async () => {
       setIsComplete(false);
       setCompletionSaveError(false);
@@ -230,19 +233,20 @@ const Quiz = () => {
               ? JSON.parse(savedData.answers_history)
               : savedData.answers_history;
 
-          if (savedData.completed) {
-            const completed = parseCompletedQuizSession(savedRaw, questions);
+          const completed = parseCompletedQuizSession(savedRaw, questions);
+          if (completed && isCurrentCompletedQuizCatalogue(savedRaw, questions)) {
             if (owner && isCurrentCompletedQuizCatalogue(savedRaw, questions)) void seedReviews(owner, generation);
-            if (completed) {
-              setSubmittedAnswers(completed.answers);
-              setCurrentQuestion(completed.currentQuestion);
-              setTentativeAnswer(null);
-              setIsComplete(true);
-            } else {
-              setSubmittedAnswers(createEmptyQuizAnswers(questions.length));
-              setCurrentQuestion(0);
-              setTentativeAnswer(null);
-            }
+            setSubmittedAnswers(completed.answers);
+            setCurrentQuestion(completed.currentQuestion);
+            setTentativeAnswer(null);
+            setIsComplete(true);
+            return;
+          }
+
+          if (savedData.completed) {
+            setSubmittedAnswers(createEmptyQuizAnswers(questions.length));
+            setCurrentQuestion(0);
+            setTentativeAnswer(null);
             return;
           }
 
@@ -272,7 +276,8 @@ const Quiz = () => {
       }
       setSubmittedAnswers(createEmptyQuizAnswers(questions.length));
     };
-    initQuiz();
+    void initQuiz().finally(() => { if (active) setSessionHydrated(true); });
+    return () => { active = false; };
   }, [sourceQuestions, questions, topicKey, user?.id, loadProgress, saveProgress, resetProgress, seedReviews]);
 
   const startAuthenticatedAttempt = useCallback((): Promise<QuizWorkflow | null> => {
@@ -324,7 +329,7 @@ const Quiz = () => {
   }, [questions.length, sourceQuestions, topicKey]);
 
   useEffect(() => {
-    if (!sourceQuestions) return;
+    if (!sourceQuestions || !sessionHydrated || isComplete) return;
     const owner = user?.id;
     const existing = readQuizWorkflow(owner, topicKey, questions.length);
     setWorkflow(existing);
@@ -332,7 +337,7 @@ const Quiz = () => {
     attemptStartRequestRef.current = null;
     attemptRecoveryRef.current = false;
     if (owner && !existing) void startAuthenticatedAttempt();
-  }, [user?.id, topicKey, attemptCycle, sourceQuestions, questions.length, startAuthenticatedAttempt]);
+  }, [user?.id, topicKey, attemptCycle, sourceQuestions, questions.length, startAuthenticatedAttempt, sessionHydrated, isComplete]);
 
   const assessedAnswer = submittedAnswers[currentQuestion] ?? null;
   const showExplanation = assessedAnswer !== null;

@@ -2,6 +2,7 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
 import { render, screen, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { MemoryRouter, Route, Routes, useLocation } from "react-router-dom";
+import { buildQuizSessionProgress } from "@/features/quiz/sessionProgress";
 
 const mocks = vi.hoisted(() => ({
   loadProgress: vi.fn(),
@@ -122,6 +123,31 @@ describe("Quiz accessible interaction and reflow", () => {
     expect(screen.getAllByText("Correct answer:")[0].parentElement?.textContent).toContain("correct");
     await user.click(screen.getByRole("button", { name: /Review Weather Systems & Fronts/ }));
     expect(await screen.findByText("Current path: /weather/systems")).toBeTruthy();
+  });
+
+  it("restores a failed completed attempt for review without starting a replacement attempt", async () => {
+    const user = userEvent.setup();
+    const weatherQuestions = [
+      { ...questions[0], id: "w1", leaf: "weather-systems", learningObjective: "Read pressure systems" },
+      { ...questions[1], id: "w2", leaf: "beaufort-sea-state", learningObjective: "Read sea state" },
+      { ...questions[1], id: "w3", leaf: "marine-forecasts", learningObjective: "Read forecasts" },
+      { ...questions[1], id: "w4", leaf: "fog-visibility", learningObjective: "Act in fog" },
+    ];
+    mocks.user = { id: "learner" };
+    mocks.loadQuizTopic.mockResolvedValue(weatherQuestions);
+    mocks.loadProgress.mockResolvedValue({
+      completed: false,
+      score: 0,
+      answers_history: { ...buildQuizSessionProgress([0, 0, 0, 0], 3, weatherQuestions), completed: true },
+    });
+
+    renderQuiz("/quiz/weather");
+    expect(await screen.findByRole("heading", { name: "Review missed objectives" })).toBeTruthy();
+    expect(screen.getAllByText("Your answer:")).toHaveLength(4);
+    expect(mocks.rpc).not.toHaveBeenCalledWith("start_quiz_attempt", expect.anything());
+
+    await user.click(screen.getByRole("button", { name: "Retry Quiz" }));
+    await waitFor(() => expect(mocks.rpc).toHaveBeenCalledWith("start_quiz_attempt", { p_topic_id: "weather" }));
   });
 
   it("routes a missed sound objective to its exact theory tab and rule", async () => {
