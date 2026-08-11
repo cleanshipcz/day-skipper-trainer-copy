@@ -95,13 +95,14 @@ const Quiz = () => {
   // If topicId is nautical-terms (legacy) or undefined, use the new specific ID
   const topicKey = !topicId || topicId === "nautical-terms" ? "nautical-terms-quiz" : topicId;
   const { user } = useAuth();
-  const { loadProgress, saveProgress, resetProgress } = useProgress();
+  const { loadProgress, saveProgress, saveProgressDetailed, resetProgress } = useProgress();
   const [seed, setSeed] = useState(0);
   const [sourceQuestions, setSourceQuestions] = useState<readonly Question[] | null>(null);
   const [catalogueError, setCatalogueError] = useState(false);
   const [anonymousStorageNotice, setAnonymousStorageNotice] = useState<string | null>(null);
   const [loadGeneration, setLoadGeneration] = useState(0);
   const [sessionHydrated, setSessionHydrated] = useState(false);
+  const [sessionSaveState, setSessionSaveState] = useState<"idle" | "saving" | "saved" | "queued" | "anonymous" | "failed">("idle");
   useEffect(() => {
     let active = true;
     setSourceQuestions(null);
@@ -156,7 +157,10 @@ const Quiz = () => {
   const verifiedScoreAttemptRef = useRef<string | null>(null);
   const seedOwnerRef = useRef(user?.id ?? null);
   const seedGenerationRef = useRef(0);
-  const assessmentPersistenceRef = useRef<Promise<void> | null>(null);
+  const assessmentPersistenceRef = useRef<Promise<boolean> | null>(null);
+  const sessionWriteChainRef = useRef<Promise<boolean>>(Promise.resolve(true));
+  const pendingSessionRef = useRef<{ answers: Array<number | null>; question: number } | null>(null);
+  const persistenceScopeRef = useRef(0);
   const attemptStartRequestRef = useRef<Promise<QuizWorkflow | null> | null>(null);
   const attemptRecoveryRef = useRef(false);
   const completionRequestRef = useRef(false);
@@ -168,6 +172,9 @@ const Quiz = () => {
     seedGenerationRef.current += 1;
     verifiedScoreAttemptRef.current = null;
     attemptStartRequestRef.current = null;
+    persistenceScopeRef.current += 1;
+    pendingSessionRef.current = null;
+    sessionWriteChainRef.current = Promise.resolve(true);
   }
 
   const seedReviews = useCallback(async (owner: string, generation: number) => {
@@ -366,21 +373,50 @@ const Quiz = () => {
     feedbackRef.current?.focus();
   }, [showExplanation]);
 
-  const persistSession = async (nextAnswers: Array<number | null>, nextQuestion: number) => {
-    const progress = buildQuizSessionProgress(nextAnswers, nextQuestion, questions);
+  useEffect(() => {
+    const warn = (event: BeforeUnloadEvent) => {
+      if (sessionSaveState !== "saving" && sessionSaveState !== "failed") return;
+      event.preventDefault();
+      event.returnValue = "";
+    };
+    window.addEventListener("beforeunload", warn);
+    return () => window.removeEventListener("beforeunload", warn);
+  }, [sessionSaveState]);
+
+  const persistSession = (nextAnswers: Array<number | null>, nextQuestion: number): Promise<boolean> => {
+    const snapshot = { answers: [...nextAnswers], question: nextQuestion };
+    pendingSessionRef.current = snapshot;
+    const scope = persistenceScopeRef.current;
+    setSessionSaveState("saving");
+    const write = async () => {
+      if (scope !== persistenceScopeRef.current) return false;
+      const progress = buildQuizSessionProgress(snapshot.answers, snapshot.question, questions);
     if (!user) {
       const result = saveAnonymousQuizSession(globalThis.sessionStorage, topicKey, progress);
       setAnonymousStorageNotice(result.ok
         ? "Anonymous progress is kept in this browser session for up to 30 minutes."
         : "This browser blocked practice resume storage. You can continue, but progress will be lost on reload.");
-      return;
+        if (scope === persistenceScopeRef.current) {
+          setSessionSaveState(result.ok ? "anonymous" : "failed");
+          if (pendingSessionRef.current === snapshot && result.ok) pendingSessionRef.current = null;
+        }
+        return result.ok;
     }
-    await persistQuizSessionProgress({
+      const result = await persistQuizSessionProgress({
       isAuthenticated: true,
       topicKey,
-      saveProgress,
+        saveProgress: saveProgressDetailed ?? saveProgress,
       progress,
     });
+      if (scope !== persistenceScopeRef.current) return false;
+      const durable = result === "saved" || result === "queued";
+      setSessionSaveState(result);
+      if (pendingSessionRef.current === snapshot && durable) pendingSessionRef.current = null;
+      return durable;
+    };
+    const queued = sessionWriteChainRef.current.catch(() => false).then(write);
+    sessionWriteChainRef.current = queued;
+    return queued;
   };
 
   if (!sourceQuestions && !catalogueError) {
@@ -442,13 +478,18 @@ const Quiz = () => {
   };
 
   const handleNext = async () => {
-    await assessmentPersistenceRef.current;
+    const assessmentPersisted = await assessmentPersistenceRef.current;
+    if (assessmentPersisted === false || (pendingSessionRef.current && sessionSaveState === "failed")) return;
     focusQuestionAfterAdvanceRef.current = currentQuestion < questions.length - 1;
     const newQuestion = currentQuestion < questions.length - 1 ? currentQuestion + 1 : currentQuestion;
     setCurrentQuestion(newQuestion);
     setTentativeAnswer(null);
 
-    await persistSession(submittedAnswers, newQuestion);
+    const persisted = await persistSession(submittedAnswers, newQuestion);
+    if (!persisted) {
+      setCurrentQuestion(currentQuestion);
+      return;
+    }
 
     if (currentQuestion >= questions.length - 1) {
       await handleComplete();
@@ -462,7 +503,8 @@ const Quiz = () => {
       setCurrentQuestion(newQuestion);
       setTentativeAnswer(null);
 
-      await persistSession(submittedAnswers, newQuestion);
+      const persisted = await persistSession(submittedAnswers, newQuestion);
+      if (!persisted) setCurrentQuestion(currentQuestion);
     }
   };
 
@@ -582,6 +624,17 @@ const Quiz = () => {
     setCompletionSaveError(false);
     suppressNextProgressLoadRef.current = true;
     setAttemptCycle((value) => value + 1);
+  };
+
+  const retrySessionSave = async () => {
+    const pending = pendingSessionRef.current;
+    if (pending) await persistSession(pending.answers, pending.question);
+  };
+
+  const navigateFromQuiz = (destination: string) => {
+    if ((sessionSaveState === "saving" || sessionSaveState === "failed")
+      && !window.confirm("Your latest quiz progress may not be saved. Leave anyway?")) return;
+    navigate(destination);
   };
 
   if (isComplete) {
@@ -717,7 +770,7 @@ const Quiz = () => {
             <div className="flex min-w-0 flex-1 items-start gap-2 sm:gap-3">
               <Button variant="ghost" size="icon" aria-label={quizParentIsHome
                 ? `Go to Home from ${meta.title}`
-                : `Back to ${quizParent.label} from ${meta.title}`} className="shrink-0" onClick={() => navigate(quizParent.route)}>
+                : `Back to ${quizParent.label} from ${meta.title}`} className="shrink-0" onClick={() => navigateFromQuiz(quizParent.route)}>
                 <ArrowLeft className="w-5 h-5" aria-hidden="true" />
               </Button>
               <div className="min-w-0">
@@ -749,6 +802,15 @@ const Quiz = () => {
       </header>
 
       <main className="container mx-auto max-w-3xl px-3 py-5 sm:px-4 sm:py-8">
+        <div className="mb-3 flex flex-wrap items-center gap-2 text-sm" role={sessionSaveState === "failed" ? "alert" : undefined} aria-live="polite" aria-atomic="true">
+          <span>{sessionSaveState === "saving" ? "Saving quiz progress…"
+            : sessionSaveState === "saved" ? "Quiz progress saved."
+              : sessionSaveState === "queued" ? "Quiz progress is saved on this device and queued to sync."
+                : sessionSaveState === "anonymous" ? "Practice progress is stored only for this browser session. Sign in to restore it across devices."
+                  : sessionSaveState === "failed" ? "Your latest quiz progress was not saved. Retry before leaving or reloading."
+                    : user ? "Quiz progress is ready to save." : "Anonymous practice is not saved to an account."}</span>
+          {sessionSaveState === "failed" && pendingSessionRef.current && <Button size="sm" variant="outline" onClick={() => void retrySessionSave()}>Retry saving progress</Button>}
+        </div>
         {topicKey === "colregs" && <div className="mb-4 rounded-lg border bg-muted/50 p-4 text-sm">
           <p className="font-semibold">Diagnostic: study both learning modules first</p>
           <p className="mt-1 text-muted-foreground">This 20-objective check combines Steering &amp; Sailing with Lights &amp; Signals. A missed answer links to the theory that teaches it.</p>

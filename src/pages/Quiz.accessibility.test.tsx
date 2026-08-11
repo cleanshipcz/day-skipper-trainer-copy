@@ -355,6 +355,25 @@ describe("Quiz accessible interaction and reflow", () => {
     expect(secondSavedQuestion).not.toBe(firstSavedQuestion);
   });
 
+  it("keeps a rejected assessed answer available for retry without committing it twice", async () => {
+    mocks.user = { id: "quiz-user" };
+    mocks.saveProgress.mockResolvedValueOnce(false).mockResolvedValue(true);
+    const user = userEvent.setup();
+    renderQuiz();
+
+    await user.click(await screen.findByRole("radio", { name: /correct/i }));
+    await user.click(screen.getByRole("button", { name: "Submit Answer" }));
+    expect(await screen.findByText(/latest quiz progress was not saved/i)).toBeTruthy();
+    expect(screen.getByText("Score: 1/2")).toBeTruthy();
+
+    await user.click(screen.getByRole("button", { name: "Next Question" }));
+    expect(screen.getByText(/Question 1 of 2/)).toBeTruthy();
+    await user.click(screen.getByRole("button", { name: "Retry saving progress" }));
+    await waitFor(() => expect(screen.queryByText(/latest quiz progress was not saved/i)).toBeNull());
+    expect(screen.getByText("Score: 1/2")).toBeTruthy();
+    expect(mocks.saveProgress).toHaveBeenCalledTimes(2);
+  });
+
   it("announces feedback once and focuses each advanced question and completion", async () => {
     const user = userEvent.setup();
     renderQuiz("/quiz/ropework");
