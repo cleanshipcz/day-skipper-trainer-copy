@@ -1,3 +1,19 @@
+do $$
+declare v_definition text;
+begin
+  select pg_get_functiondef('public.save_topic_progress(text,boolean,integer,integer,jsonb)'::regprocedure) into v_definition;
+  if v_definition not like '%Passage plans require save_passage_plan_progress%' then
+    v_definition := replace(v_definition,
+      'begin' || chr(10) || '  if v_user_id is null then',
+      'begin' || chr(10) || '  if p_topic_id = ''passage-planning-builder'' then raise exception ''Passage plans require save_passage_plan_progress'' using errcode=''42501''; end if;' || chr(10) || '  if v_user_id is null then');
+    if v_definition not like '%Passage plans require save_passage_plan_progress%' then raise exception 'Unable to harden generic passage-plan persistence'; end if;
+    execute v_definition;
+  end if;
+end;
+$$;
+
+drop function if exists public.save_passage_plan_progress(boolean,integer,jsonb);
+
 create or replace function public.save_passage_plan_progress(
   p_completed boolean,
   p_score integer,
@@ -65,16 +81,27 @@ begin
       where length(btrim(coalesce(v_incoming -> 'plan' -> 'provenance' ->> required.key,'')))=0)
     or exists(select 1 from jsonb_array_elements(v_incoming -> 'plan' -> 'points') point
       where jsonb_typeof(point)<>'object' or length(btrim(coalesce(point->>'id','')))=0
+        or length(point->>'id')>100 or length(point->>'name')>200
         or length(btrim(coalesce(point->>'name','')))=0 or length(btrim(coalesce(point->>'latitude','')))=0
-        or length(btrim(coalesce(point->>'longitude','')))=0)
+        or length(btrim(coalesce(point->>'longitude','')))=0
+        or coalesce(point->>'latitude','') !~ '^[0-9]{1,2}°[0-5][0-9](\.[0-9]{1,3})?''[NS]$'
+        or coalesce(point->>'longitude','') !~ '^[0-9]{1,3}°[0-5][0-9](\.[0-9]{1,3})?''[EW]$'
+        or split_part(point->>'latitude','°',1)::numeric>90 or split_part(point->>'longitude','°',1)::numeric>180)
+    or (select count(*)<>count(distinct point->>'id') from jsonb_array_elements(v_incoming -> 'plan' -> 'points') point)
+    or v_incoming -> 'plan' ->> 'coordinateFormat'<>'degrees-decimal-minutes'
+    or v_incoming -> 'plan' ->> 'datum'<>'WGS84'
+    or length(btrim(coalesce(v_incoming -> 'plan' ->> 'coordinatePrecision','')))=0
     or exists(select 1 from jsonb_array_elements(v_incoming -> 'plan' -> 'points') with ordinality point(value,position)
       where (position=1 and value->'inboundLeg' is distinct from 'null'::jsonb)
         or (position>1 and (jsonb_typeof(value->'inboundLeg')<>'object'
           or jsonb_typeof(value->'inboundLeg'->'course')<>'number'
-          or (value->'inboundLeg'->>'course')::numeric<0 or (value->'inboundLeg'->>'course')::numeric>360
+          or (value->'inboundLeg'->>'course')::numeric<0 or (value->'inboundLeg'->>'course')::numeric>=360
           or jsonb_typeof(value->'inboundLeg'->'distanceNm')<>'number'
-          or (value->'inboundLeg'->>'distanceNm')::numeric<=0))
+          or (value->'inboundLeg'->>'distanceNm')::numeric<=0 or (value->'inboundLeg'->>'distanceNm')::numeric>10000))
     or coalesce(v_incoming -> 'plan' -> 'provenance' ->> 'weather','') !~* 'issue.*valid'
+    or length(coalesce(v_incoming -> 'plan' -> 'provenance' ->> 'tide',''))<8
+    or length(coalesce(v_incoming -> 'plan' -> 'provenance' ->> 'chart',''))<8
+    or length(coalesce(v_incoming -> 'plan' -> 'provenance' ->> 'publications',''))<8
     or (v_incoming -> 'plan' -> 'provenance' ->> 'preparedAt')::timestamptz > now()
     or (v_incoming -> 'plan' -> 'provenance' ->> 'preparedAt')::timestamptz < now()-interval '30 days'
     or (v_incoming -> 'plan' -> 'provenance' ->> 'revisedAt')::timestamptz > now()
