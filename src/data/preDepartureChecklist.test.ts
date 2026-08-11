@@ -22,10 +22,21 @@ describe("pre-departure safety gate catalogue",()=>{
   it("places lawful radio boundaries and applicability authority on conditional equipment",()=>{
     const radio=preDepartureChecklist.find(item=>item.id==="vhf-dsc")!;
     expect(`${radio.label} ${radio.why}`).toMatch(/lawful VHF\/DSC.*never send a DSC distress alert or false distress/is);
+    expect(radio.why).toMatch(/genuine emergency.*use available distress communications.*rather than withholding/is);
     expect(radio.conditional?.authority).toMatch(/licence.*qualification.*manufacturer/is);
     const conditional=preDepartureChecklist.filter(item=>item.conditional);
     expect(conditional.length).toBeGreaterThanOrEqual(5);
     expect(conditional.every(item=>Boolean(item.conditional?.when&&item.conditional.authority))).toBe(true);
+  });
+
+  it("keeps universal emergency and provisions checks mandatory and gates the final decision on every earlier item",()=>{
+    expect(preDepartureChecklist.find(item=>item.id==="emergency-readiness")?.conditional).toBeUndefined();
+    expect(preDepartureChecklist.find(item=>item.id==="emergency-readiness")?.label).toMatch(/fire.*MOB.*flooding\/bilge.*first-aid/i);
+    expect(preDepartureChecklist.find(item=>item.id==="conditional-survival")?.conditional).toBeTruthy();
+    expect(preDepartureChecklist.find(item=>item.id==="provisions")?.label).toMatch(/potable water.*food.*crew.*passage.*contingency or delay/i);
+    const final=preDepartureChecklist.at(-1)!;
+    expect(final.id).toBe("final-decision");
+    expect(final.dependsOn).toEqual(preDepartureChecklist.slice(0,-1).map(item=>item.id));
   });
 
   it("cross-references dedicated tools for detailed work",()=>{

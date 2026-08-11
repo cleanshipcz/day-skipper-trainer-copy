@@ -17,6 +17,13 @@ export default function PreDepartureChecklist() {
   const resolved = new Set([...checked,...notApplicable]),
     percent = Math.round((resolved.size / preDepartureChecklist.length) * 100),
     itemName = (id:string) => preDepartureChecklist.find(item=>item.id===id)?.label ?? id;
+  const invalidateDependents=(changedId:string)=>{
+    const invalid=new Set<string>(),pending=[changedId];
+    while(pending.length){const prerequisite=pending.pop()!;for(const item of preDepartureChecklist)if(item.dependsOn?.includes(prerequisite)&&!invalid.has(item.id)){invalid.add(item.id);pending.push(item.id)}}
+    if(!invalid.size)return;
+    const removeInvalid=(current:Set<string>)=>new Set([...current].filter(id=>!invalid.has(id)));
+    setChecked(removeInvalid);setNotApplicable(removeInvalid);
+  };
   return (
     <main className="container max-w-4xl mx-auto p-4 py-8 space-y-6">
       <Button variant="ghost" onClick={() => n(params.get("from") === "victualling" ? "/victualling" : "/passage-planning")}>
@@ -41,14 +48,15 @@ export default function PreDepartureChecklist() {
                     id={i.id}
                     checked={checked.has(i.id)}
                     disabled={blocked||notApplicable.has(i.id)}
-                    onCheckedChange={(v) =>
+                    onCheckedChange={(v) => {
+                      invalidateDependents(i.id);
                       setChecked((s) => {
                         const x = new Set(s);
                         if (v) x.add(i.id);
                         else x.delete(i.id);
                         return x;
-                      })
-                    }
+                      });
+                    }}
                   />
                   <div>
                     <label htmlFor={i.id} className="font-medium">
@@ -56,7 +64,7 @@ export default function PreDepartureChecklist() {
                     </label>
                     <p className="text-sm text-muted-foreground">{i.why}</p>
                     {blocked&&<p className="text-sm text-amber-700 dark:text-amber-300"><strong>Complete first:</strong> {unmet.map(itemName).join("; ")}</p>}
-                    {i.conditional&&<div className="mt-2 rounded border p-2 text-sm"><p><strong>Conditional:</strong> {i.conditional.when}</p><p><strong>Applicability authority:</strong> {i.conditional.authority}</p><Button type="button" size="sm" variant="outline" className="mt-2" disabled={blocked} aria-pressed={notApplicable.has(i.id)} onClick={()=>{setNotApplicable(current=>{const next=new Set(current);if(next.has(i.id))next.delete(i.id);else next.add(i.id);return next});setChecked(current=>{const next=new Set(current);next.delete(i.id);return next})}}>{notApplicable.has(i.id)?"Undo not-applicable decision":"Record not applicable after checking authority"}</Button></div>}
+                    {i.conditional&&<div className="mt-2 rounded border p-2 text-sm"><p><strong>Conditional:</strong> {i.conditional.when}</p><p><strong>Applicability authority:</strong> {i.conditional.authority}</p><Button type="button" size="sm" variant="outline" className="mt-2" disabled={blocked} aria-pressed={notApplicable.has(i.id)} onClick={()=>{invalidateDependents(i.id);setNotApplicable(current=>{const next=new Set(current);if(next.has(i.id))next.delete(i.id);else next.add(i.id);return next});setChecked(current=>{const next=new Set(current);next.delete(i.id);return next})}}>{notApplicable.has(i.id)?"Undo not-applicable decision":"Record not applicable after checking authority"}</Button></div>}
                   </div>
                 </div>
               )})}

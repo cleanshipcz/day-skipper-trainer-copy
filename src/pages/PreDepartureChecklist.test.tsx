@@ -22,4 +22,20 @@ describe("PreDepartureChecklist",()=>{
     expect(conditional.getAttribute("aria-pressed")).toBe("true");
     expect(screen.getByText(/1 recorded not applicable/)).toBeTruthy();
   });
+
+  it("relocks and clears the final decision when any earlier answer changes",()=>{
+    render(<MemoryRouter><PreDepartureChecklist/></MemoryRouter>);
+    const final=screen.getByRole("checkbox",{name:/Skipper records the final/}) as HTMLButtonElement;
+    for(let pass=0;pass<40&&final.disabled;pass++){
+      const next=screen.getAllByRole("checkbox").find(candidate=>candidate!==final&&!(candidate as HTMLButtonElement).disabled&&candidate.getAttribute("data-state")!=="checked");
+      expect(next,`unresolved enabled prerequisite on pass ${pass}`).toBeTruthy();
+      fireEvent.click(next!);
+    }
+    expect(final.disabled).toBe(false);
+    fireEvent.click(final);expect(final.getAttribute("data-state")).toBe("checked");
+    fireEvent.click(screen.getByRole("checkbox",{name:/Review the current berth-to-berth plan/}));
+    expect(final.disabled).toBe(true);
+    expect(final.getAttribute("data-state")).toBe("unchecked");
+    expect((screen.getByRole("button",{name:"Record checklist completion"}) as HTMLButtonElement).disabled).toBe(true);
+  });
 });
