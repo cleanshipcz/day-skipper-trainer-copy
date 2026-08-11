@@ -1,7 +1,9 @@
 export interface PrepareStep {
   letter: string;
   title: string;
-  phase: "Appraisal" | "Detailed planning" | "Execution" | "Monitoring";
+  phases: readonly ("Appraisal" | "Detailed planning" | "Execution" | "Monitoring")[];
+  /** Human-readable label for single or combined stages. */
+  phase: string;
   description: string;
   considerations: readonly string[];
   example: string;
@@ -10,7 +12,7 @@ export interface PrepareStep {
 /** PREPARE is a cockpit memory aid; the four IMO planning stages remain the framework. */
 export const prepareSteps: readonly PrepareStep[] = [
   {
-    letter: "P", title: "Passage appraisal", phase: "Appraisal",
+    letter: "P", title: "Passage appraisal", phases: ["Appraisal"], phase: "Appraisal",
     description: "Define the berth-to-berth objective, gather current information, and decide whether vessel, skipper and crew can safely make the passage.",
     considerations: [
       "People: competence, watchkeeping, fatigue, seasickness, accessibility and personal limits.",
@@ -21,7 +23,7 @@ export const prepareSteps: readonly PrepareStep[] = [
     example: "Reject a nominally shorter exposed route when the crew and forecast favour the sheltered alternative.",
   },
   {
-    letter: "R", title: "Regulations and responsibilities", phase: "Appraisal",
+    letter: "R", title: "Regulations and responsibilities", phases: ["Appraisal"], phase: "Appraisal",
     description: "Identify the law, directions and reporting rules that apply; do not treat a mnemonic or training page as legal advice.",
     considerations: [
       "COLREGs, local harbour byelaws/directions, traffic separation schemes, restricted areas and reporting requirements.",
@@ -32,7 +34,7 @@ export const prepareSteps: readonly PrepareStep[] = [
     example: "Check current harbour directions and Notices to Mariners, then record which requirements affect the plan.",
   },
   {
-    letter: "E", title: "Equipment and information", phase: "Appraisal",
+    letter: "E", title: "Equipment and information", phases: ["Appraisal"], phase: "Appraisal",
     description: "Confirm that navigation information, safety equipment, communications and consumables are suitable, serviceable and accessible.",
     considerations: [
       "Largest-scale suitable official charts or an appropriate updated electronic system, plus an independent fallback and known datum/settings.",
@@ -43,7 +45,7 @@ export const prepareSteps: readonly PrepareStep[] = [
     example: "Update the chart, test fixed and handheld VHF, and calculate usable fuel rather than trusting the gauge alone.",
   },
   {
-    letter: "P", title: "Detailed passage plan", phase: "Detailed planning",
+    letter: "P", title: "Detailed passage plan", phases: ["Detailed planning"], phase: "Detailed planning",
     description: "Convert the appraisal into a berth-to-berth plan detailed enough to execute and monitor, including pilotage at both ends.",
     considerations: [
       "Plot safe legs, courses, distances, clearing bearings, no-go areas, wheel-over points and position-fixing methods.",
@@ -54,7 +56,7 @@ export const prepareSteps: readonly PrepareStep[] = [
     example: "Prepare a cockpit plan card with leg data, clearing limits, fix frequency, tide window and berth approach.",
   },
   {
-    letter: "A", title: "Alternatives and contingencies", phase: "Detailed planning",
+    letter: "A", title: "Alternatives and contingencies", phases: ["Detailed planning"], phase: "Detailed planning",
     description: "Plan realistic responses before workload rises or conditions deteriorate.",
     considerations: [
       "Ports and anchorages of refuge: access limits, tide, weather, facilities and approach hazards.",
@@ -65,8 +67,8 @@ export const prepareSteps: readonly PrepareStep[] = [
     example: "Set a latest turn-back time and a sheltered diversion before committing past the final safe decision point.",
   },
   {
-    letter: "R", title: "Revise and brief", phase: "Execution",
-    description: "Immediately before departure, update the plan with observed conditions and brief everyone; delay or cancel when limits are exceeded.",
+    letter: "R", title: "Revise and brief", phases: ["Detailed planning", "Execution"], phase: "Detailed planning + Execution",
+    description: "Finalize detailed planning immediately before departure, update it with observed conditions, and brief everyone as the passage transitions into execution; delay or cancel when limits are exceeded.",
     considerations: [
       "Recheck forecast, warnings, tides, visibility, berth/harbour status, defects, fuel and crew fitness.",
       "Brief route, hazards, roles, watches, lifejackets/tethers, communications, emergency actions, abort triggers and alternatives.",
@@ -75,7 +77,7 @@ export const prepareSteps: readonly PrepareStep[] = [
     example: "Move departure or choose the sheltered route when the latest wind forecast exceeds the agreed limit.",
   },
   {
-    letter: "E", title: "Execute and monitor", phase: "Monitoring",
+    letter: "E", title: "Execute and monitor", phases: ["Execution", "Monitoring"], phase: "Execution + Monitoring",
     description: "Execute the agreed plan while continuously checking position, progress, conditions and assumptions; change the plan deliberately when required.",
     considerations: [
       "Fix position by suitable independent methods at planned intervals and before hazards; monitor cross-track error, depth and clearing limits.",

@@ -14,6 +14,14 @@ describe("PrepareTheory", () => {
     expect(html).toContain("not an authoritative framework");
     for (const stage of ["appraisal", "detailed planning", "execution", "monitoring"]) expect(html).toContain(stage);
   });
+  it("represents transition and combined operational phases", () => {
+    const revise = prepareSteps.find((step) => step.title === "Revise and brief");
+    const execute = prepareSteps.find((step) => step.title === "Execute and monitor");
+    expect(revise?.phases).toEqual(["Detailed planning", "Execution"]);
+    expect(revise?.description).toContain("transitions into execution");
+    expect(execute?.phases).toEqual(["Execution", "Monitoring"]);
+    expect(execute?.phase).toBe("Execution + Monitoring");
+  });
   it("distinguishes law, official guidance and good practice", () => {
     const content = prepareSteps.flatMap((step) => step.considerations).join(" ");
     expect(content).toContain("UK legal baseline");
