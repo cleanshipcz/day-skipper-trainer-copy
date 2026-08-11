@@ -1,4 +1,4 @@
-import { parseWaypointCoordinate, routeGeometryIssues, type PlanWaypoint } from "./calculations";
+import { parseWaypointCoordinate, type PlanWaypoint } from "./calculations";
 
 export const PASSAGE_PLAN_CACHE_VERSION = 3;
 
@@ -99,18 +99,22 @@ export function parsePassagePlanCache(raw: string | null): PassagePlan | null {
   }
 }
 
-export function validatePassagePlan(plan: PassagePlan): string[] {
+export function validatePassagePlan(plan: PassagePlan, nowMs = Date.now()): string[] {
   const errors: string[] = [];
   if (!plan.name.trim()) errors.push("Plan name is required.");
   if (!plan.departure || Number.isNaN(Date.parse(plan.departure))) errors.push("Choose a valid departure time.");
+  else { const departure=Date.parse(plan.departure),now=nowMs;if(departure<now-24*3_600_000||departure>now+366*24*3_600_000)errors.push("Departure must be no more than 24 hours ago and no more than one year ahead."); }
   if (!Number.isFinite(plan.speed) || plan.speed <= 0 || plan.speed > 80) errors.push("SOG must be greater than 0 and no more than 80 knots.");
   if(plan.coordinateFormat!=="degrees-decimal-minutes"||plan.datum!=="WGS84"||!plan.coordinatePrecision.trim())errors.push("Coordinate format, WGS84 datum and stated precision are required.");
   const safetyFields=[["departure berth",plan.safety?.departureBerth],["destination berth",plan.safety?.destinationBerth],["operating limits",plan.safety?.limits],["abort decision",plan.safety?.abortDecision],["safe alternatives",plan.safety?.alternatives],["manual verification boundary",plan.safety?.manualVerification]] as const;
   safetyFields.forEach(([label,value])=>{if(typeof value!=="string"||!value.trim())errors.push(`Safety: ${label} is required.`)});
-  const sourceFields=[["weather",plan.provenance?.weather],["tide",plan.provenance?.tide],["chart",plan.provenance?.chart],["publications",plan.provenance?.publications]] as const;
-  sourceFields.forEach(([label,value])=>{if(typeof value!=="string"||!value.trim())errors.push(`Provenance: current ${label} source is required.`)});
+  if(!/issue\s*[:#]?\s*\S+.*valid(?:ity)?\s*[:#]?\s*\S+/i.test(plan.provenance?.weather??""))errors.push("Provenance: weather must record forecast issue and validity.");
+  if(!/(?:table|atlas|diamond|almanac).*?(?:edition|year)\s*[:#]?\s*\S+/i.test(plan.provenance?.tide??""))errors.push("Provenance: tide must identify the table/atlas and edition or year.");
+  if(!/(?:chart)\s*(?:no\.?|number|#)\s*\d+.*edition\s*[:#]?\s*\S+.*correction/i.test(plan.provenance?.chart??""))errors.push("Provenance: chart must record chart number, edition and correction status.");
+  if(!/(?:almanac|sailing directions|notices).*?(?:edition|year)\s*[:#]?\s*\S+/i.test(plan.provenance?.publications??""))errors.push("Provenance: publications must identify title and edition or year.");
   if(!plan.provenance?.preparedAt||Number.isNaN(Date.parse(plan.provenance.preparedAt)))errors.push("Provenance: valid prepared time is required.");
   if(!plan.provenance?.revisedAt||Number.isNaN(Date.parse(plan.provenance.revisedAt)))errors.push("Provenance: valid revised time is required.");
+  if(plan.provenance?.preparedAt&&plan.provenance?.revisedAt){const prepared=Date.parse(plan.provenance.preparedAt),revised=Date.parse(plan.provenance.revisedAt),now=nowMs;if(Number.isFinite(prepared)&&Number.isFinite(revised)&&(prepared>revised||revised>now+5*60_000||prepared<now-30*24*3_600_000))errors.push("Provenance times must be within the last 30 days, not in the future, and revised at or after prepared.")}
   if (plan.points.length < 2) errors.push("Add a departure and at least one destination waypoint.");
   if (new Set(plan.points.map(point => point.id)).size !== plan.points.length) errors.push("Waypoint identifiers must be unique. Reload or reset this plan before editing.");
   plan.points.forEach((point, index) => {
@@ -126,7 +130,6 @@ export function validatePassagePlan(plan: PassagePlan): string[] {
   });
   if (plan.fuelRate !== undefined && (!Number.isFinite(plan.fuelRate) || plan.fuelRate <= 0 || plan.fuelRate > 500)) errors.push("Fuel rate must be greater than 0 and no more than 500 litres/hour.");
   if (plan.reservePercent !== undefined && (!Number.isFinite(plan.reservePercent) || plan.reservePercent < 0 || plan.reservePercent > 200)) errors.push("Fuel reserve must be between 0% and 200%.");
-  errors.push(...routeGeometryIssues(plan.points));
   return errors;
 }
 
