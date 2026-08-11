@@ -8,13 +8,16 @@ import { calculateLegEtas, isValidLatitude, isValidLongitude, parseWaypointCoord
 import {
   PASSAGE_PLAN_CACHE_VERSION,
   calculatePassagePlanSummary,
-  decodePassagePlanCache,
+  decodePassagePlanRecord,
   insertWaypoint,
+  makePassagePlanRecord,
   passagePlanCacheKey,
+  reconcilePassagePlanRecords,
   removeWaypoint,
   reorderWaypoint,
   validatePassagePlan,
   type PassagePlan,
+  type PassagePlanRecord,
 } from "@/features/passagePlanning/passagePlan";
 import { useProgress } from "@/hooks/useProgress";
 import { TOPIC_IDS } from "@/constants/topicRegistry";
@@ -43,21 +46,35 @@ const anonymousSessionId = () => {
 
 export function PassagePlanBuilder() {
   const { user } = useAuth();
-  const { loadProgress, saveProgress } = useProgress();
+  const userId = user?.id ?? null;
+  const progress = useProgress();
+  const { loadProgress, saveProgress, loadProgressDetailed, saveProgressDetailed } = progress;
   const [errors, setErrors] = useState<string[]>([]);
   const [status, setStatus] = useState("");
   const [dirty, setDirty] = useState(false);
   const [saving, setSaving] = useState(false);
+  const [syncState,setSyncState]=useState<"loading"|"local"|"saving"|"queued"|"synced"|"failed"|"conflict"|"completed">("loading");
+  const [conflict,setConflict]=useState<{local:PassagePlanRecord;remote:PassagePlanRecord}|null>(null);
+  const [anonymousCandidate,setAnonymousCandidate]=useState<PassagePlanRecord|null>(null);
+  const recordRef=useRef<PassagePlanRecord|null>(null);
+  const serverHeadRef=useRef<string|null>(null);
+  const boundaryRef=useRef("");
+  const saveChainRef=useRef<Promise<void>>(Promise.resolve());
+  const [hydrationAttempt,setHydrationAttempt]=useState(0);
   const mutationRevision = useRef(0);
   const [manualRevision,setManualRevision]=useState<number|null>(null);
   const [freshnessRevision,setFreshnessRevision]=useState<number|null>(null);
   const [undo, setUndo] = useState<{ plan: PassagePlan; message: string; focusId: string } | null>(null);
-  const cacheKey = useMemo(() => passagePlanCacheKey(user?.id ?? null, anonymousSessionId()), [user?.id]);
+  const cacheKey = useMemo(() => passagePlanCacheKey(userId, anonymousSessionId()), [userId]);
+  const ownerId=userId ?? `anonymous:${anonymousSessionId()}`;
+  boundaryRef.current=`${cacheKey}|${ownerId}`;
   const [planState, setPlanState] = useState<{ key: string; plan: PassagePlan }>(() => ({ key:cacheKey, plan:initialPlan() }));
   const [savedPlan, setSavedPlan] = useState<PassagePlan>(() => initialPlan());
   // Never render state owned by a different auth/cache boundary, even for the
   // single render before effects run.
   const plan = planState.key === cacheKey ? planState.plan : initialPlan();
+  const planRef = useRef(plan);
+  planRef.current = plan;
   const setPlan = useCallback((next: SetStateAction<PassagePlan>) => {
     setPlanState(previous => {
       const current = previous.key === cacheKey ? previous.plan : initialPlan();
@@ -67,6 +84,7 @@ export function PassagePlanBuilder() {
 
   useEffect(() => {
     let active = true;
+    const boundary=`${cacheKey}|${ownerId}`;
     // Blank user-derived state synchronously at the auth/cache boundary. A
     // previous account's plan must not remain visible while hydration waits.
     const fresh = initialPlan();
@@ -74,26 +92,39 @@ export function PassagePlanBuilder() {
     setSavedPlan(fresh);
     setErrors([]);
     setDirty(false);
+    setSaving(false);
     setUndo(null);
-    setStatus("");
+    setStatus("Loading saved plan…");setSyncState("loading");setConflict(null);setAnonymousCandidate(null);recordRef.current=null;serverHeadRef.current=null;
     setManualRevision(null);
     setFreshnessRevision(null);
     mutationRevision.current = 0;
-    let localFailure="";
-    const cached = readStored(localStorage, cacheKey, { decode: (value) => { const result=decodePassagePlanCache(JSON.stringify(value));if(!result.ok)localFailure=result.message;return result.ok?result.plan:null } });
-    if (cached) {
-      setPlan(cached);setSavedPlan(cached);const validation=validatePassagePlan(cached);if(validation.length)setErrors(["Saved plan was recovered but needs correction; its safe fields have been preserved.",...validation]);
-    } else if (user) {
-      void loadProgress("passage-planning-builder").then(row => {
-        const history = row?.answers_history;
-        const decoded = history && typeof history === "object" && !Array.isArray(history) && "plan" in history ? decodePassagePlanCache(JSON.stringify(history.plan)) : null;
-        if (active) { const loaded=decoded?.ok?decoded.plan:initialPlan();setPlan(loaded);setSavedPlan(loaded);const remoteValidation=decoded?.ok?validatePassagePlan(loaded):[];if(localFailure)setErrors([`${localFailure} No local values were used.${decoded?.ok?" The remote plan was loaded.":" No remote plan was available; the training example is shown and must be verified."}`,...(remoteValidation.length?["The remote plan was recovered but needs correction; its safe fields have been preserved.",...remoteValidation]:[])]);else if(decoded&&!decoded.ok)setErrors([`${decoded.message} The training example is shown instead; no saved-plan values were silently used.`]);else if(remoteValidation.length)setErrors(["Saved plan was recovered but needs correction; its safe fields have been preserved.",...remoteValidation]) }
-      });
-    } else {
-      try { if(localStorage.getItem(cacheKey)!==null)setErrors(["The saved plan could not be recovered safely. The training example is shown instead; verify every value before use."]); } catch { setErrors(["Saved-plan storage is unavailable. The training example is shown instead; verify every value before use."]); }
-    }
+    let localFailure="";let local:PassagePlanRecord|null=null;
+    try { const raw=localStorage.getItem(cacheKey);const decoded=decodePassagePlanRecord(raw,ownerId);if(decoded.ok)local=decoded.record;else if(raw!==null)localFailure=decoded.message; } catch { localFailure="Saved-plan storage is unavailable."; }
+    const recordState=(record:PassagePlanRecord):typeof syncState=>record.completedRevision===record.revision?(record.completionStatus==="confirmed"?"completed":record.completionStatus==="queued"?"queued":"local"):"local";
+    const applyRecord=(record:PassagePlanRecord,state:typeof syncState,remoteSource=false)=>{recordRef.current=record;setPlan(record.plan);setSavedPlan(record.plan);setSyncState(state);setDirty(false);setStatus(state==="completed"?"Confirmed completed plan loaded.":state==="queued"?"Queued completion loaded; it is not yet confirmed synced.":state==="synced"?"Plan synced.":"Local draft loaded.");const validation=validatePassagePlan(record.plan);if(validation.length)setErrors([remoteSource?"The remote plan was recovered but needs correction; its safe fields have been preserved.":"Saved plan was recovered but needs correction; its safe fields have been preserved.",...validation]);};
+    if(!userId){if(local)applyRecord(local,recordState(local));else {setSyncState("local");setStatus("New anonymous local draft.");if(localFailure)setErrors([`${localFailure} The training example is shown instead; verify every value before use.`]);}}
+    else { if(local)applyRecord(local,recordState(local));const anonymousOwner=`anonymous:${anonymousSessionId()}`;try{const candidate=decodePassagePlanRecord(localStorage.getItem(passagePlanCacheKey(null,anonymousSessionId())),anonymousOwner);if(candidate.ok)setAnonymousCandidate(candidate.record);}catch{/* storage warning is handled above */}const hydration=loadProgressDetailed?loadProgressDetailed("passage-planning-builder").then(result=>({row:result.record,loadStatus:result.status})):loadProgress("passage-planning-builder").then(row=>({row,loadStatus:row?"remote":"missing"}));void hydration.then(({row,loadStatus})=>{
+      if(!active||boundaryRef.current!==boundary)return;if(loadStatus==="failed"){setSyncState("failed");setStatus(local?"Local draft loaded; remote sync is unavailable. Retry remote loading after reconnecting.":"Remote plan could not be loaded. Retry after reconnecting; no remote values were used.");return;}const history=row?.answers_history;const raw=history&&typeof history==="object"&&!Array.isArray(history)?JSON.stringify((history as Record<string,unknown>).passagePlanRecord ?? (history as Record<string,unknown>).plan ?? null):null;const remoteDecoded=decodePassagePlanRecord(raw,ownerId);const remote=remoteDecoded.ok?remoteDecoded.record:null;
+      if(remote&&!remoteDecoded.migrated&&remote.revision>0)serverHeadRef.current=remote.updatedAt;
+      if(mutationRevision.current>0){if(remote){const base=recordRef.current;const promotedBase={...(base??remote),revision:Math.max(base?.revision??0,remote.revision)};const edited=makePassagePlanRecord(planRef.current,ownerId,promotedBase);const write=writeStored(localStorage,cacheKey,edited);if(write.ok)recordRef.current=edited;setConflict({local:edited,remote});setSyncState("conflict");setDirty(true);setStatus(write.ok?"Remote hydration found a concurrent head. Your edited local revision and remote revision are preserved; choose one.":"Remote hydration found a concurrent head, but the edited local revision could not be cached. Keep this page open and resolve the conflict.");}else setStatus("Current edits preserved while remote hydration completed.");return;}
+      const choice=reconcilePassagePlanRecords(recordRef.current,remote);
+      if(choice?.status==="conflict"){setConflict({local:choice.local,remote:choice.remote});setSyncState("conflict");setStatus("Conflicting local and remote drafts need your choice.");applyRecord(choice.local,"conflict");return;}
+      if(choice){const durableState=recordState(choice.record);applyRecord(choice.record,durableState==="local"&&(choice.status==="remote"||choice.status==="same")?"synced":durableState,choice.status==="remote");if(localFailure&&choice.status==="remote")setErrors(previous=>[`${localFailure} No local values were used.`,...previous]);if(choice.status==="remote"&&!remoteDecoded.migrated){const write=writeStored(localStorage,cacheKey,choice.record);if(!write.ok){setDirty(true);setSyncState("failed");setStatus("Remote plan loaded, but it could not be cached locally. Retry saving the draft; navigation may lose it.");}}}
+      else {setSyncState("local");setStatus("No saved plan found; a new local draft is ready.");if(localFailure)setErrors([`${localFailure} No local values were used. No remote plan was available; the training example is shown and must be verified.`]);else if(raw)setErrors([`${remoteDecoded.ok?"":remoteDecoded.message} The training example is shown instead; no saved-plan values were silently used.`]);}
+    }).catch(()=>{if(active&&boundaryRef.current===boundary){setSyncState("failed");setStatus(local?"Local draft loaded, but remote loading failed. Retry remote loading after reconnecting.":"Remote loading failed. Retry after reconnecting; no remote values were used.")}});}
     return () => { active = false; };
-  }, [cacheKey, loadProgress, setPlan, user]);
+  }, [cacheKey, hydrationAttempt, loadProgress, loadProgressDetailed, ownerId, setPlan, userId]);
+
+  const persistDraftRemote=useCallback((record:PassagePlanRecord)=>{
+    if(!userId||!saveProgressDetailed)return Promise.resolve();
+    const boundary=`${cacheKey}|${ownerId}`;
+    setSaving(true);setSyncState("saving");setStatus("Saving draft to remote storage…");
+    const expectedServerHead=serverHeadRef.current;
+    const operation=async()=>{try{const completed=record.completedRevision===record.revision&&record.completionStatus!=="draft";const outcome=await saveProgressDetailed(TOPIC_IDS.PASSAGE_PLANNING_BUILDER,completed,completed?100:0,0,{passagePlanRecord:record,expectedServerHead,plan:record.plan});if(boundaryRef.current!==boundary||recordRef.current?.updatedAt!==record.updatedAt)return;const stillCurrent=JSON.stringify(planRef.current)===JSON.stringify(record.plan);if(!stillCurrent)return;if(outcome==="remote"){serverHeadRef.current=record.updatedAt;setDirty(false);setSyncState(completed?"completed":"synced");setStatus(completed?"Completed plan remains confirmed locally and remotely.":"Draft saved locally and synced remotely.")}else if(outcome==="queued"){serverHeadRef.current=record.updatedAt;setDirty(false);setSyncState("queued");setStatus(completed?"Completed plan remains confirmed locally and is queued for remote sync.":"Draft saved locally and queued for remote sync.")}else{setDirty(true);setSyncState(outcome==="conflict"?"conflict":"failed");setStatus(outcome==="conflict"?"Remote draft changed. Reload it now to compare and resolve both preserved versions.":"Draft saved locally, but remote sync failed. Retry remote saving.")}}catch{if(boundaryRef.current===boundary&&recordRef.current?.updatedAt===record.updatedAt){setDirty(true);setSyncState("failed");setStatus("Draft saved locally, but remote sync threw an error. Retry remote saving.")}}finally{if(boundaryRef.current===boundary)setSaving(false)}};
+    saveChainRef.current=saveChainRef.current.then(operation,operation);return saveChainRef.current;
+  },[cacheKey,ownerId,saveProgressDetailed,userId]);
+
+  useEffect(()=>{if(!dirty||saving||syncState==="loading"||syncState==="conflict")return;const timer=window.setTimeout(()=>{const current=recordRef.current;const record=current&&current.revision>0&&JSON.stringify(current.plan)===JSON.stringify(plan)?current:makePassagePlanRecord(plan,ownerId,current);const write=writeStored(localStorage,cacheKey,record);if(!write.ok){setSyncState("failed");setStatus("Local draft save failed. Free browser storage or enable storage, then retry; navigation may lose these edits.");return;}recordRef.current=record;setSavedPlan(plan);if(userId)void persistDraftRemote(record);else{setDirty(false);setSyncState("local");setStatus("Draft saved in anonymous local storage.")}},400);return()=>window.clearTimeout(timer)},[cacheKey,dirty,ownerId,persistDraftRemote,plan,saving,syncState,userId]);
 
   useEffect(() => {
     const warn = (event: BeforeUnloadEvent) => { if (dirty) { event.preventDefault();event.returnValue=""; } };
@@ -164,22 +195,37 @@ export function PassagePlanBuilder() {
       const target=firstBadCoordinate?`${firstBadCoordinate.id}-${isValidLatitude(firstBadCoordinate.latitude)?"longitude":"latitude"}`:firstSafety?`safety-${firstSafety}`:!plan.name.trim()?"plan-name":!plan.departure?"departure":null;
       window.setTimeout(()=>target?document.getElementById(target)?.focus():document.getElementById("plan-errors")?.focus(),0);return;
     }
-    writeStored(localStorage, cacheKey, plan);
+    const base=recordRef.current;
+    const draft=base&&base.revision>0&&JSON.stringify(base.plan)===JSON.stringify(plan)?base:makePassagePlanRecord(plan,ownerId,base);
+    const localWrite=writeStored(localStorage, cacheKey, draft);
+    if(!localWrite.ok){setDirty(true);setSyncState("failed");setStatus("Completion was not submitted because the draft could not be saved locally. Free browser storage or enable storage, then retry.");return;}
+    recordRef.current=draft;
     const submittedPlan = plan;
     const submittedRevision = mutationRevision.current;
-    setSaving(true);setStatus("Saving plan completion…");
+    const submittedBoundary = `${cacheKey}|${ownerId}`;
+    setSaving(true);setSyncState("saving");setStatus("Saving plan completion…");
     try {
-      const saved = await saveProgress(TOPIC_IDS.PASSAGE_PLANNING_BUILDER, true, 100, 15, { plan:submittedPlan });
+      const completedRecord={...draft,completedRevision:draft.revision,completionStatus:"confirmed" as const};const outcome=saveProgressDetailed?await saveProgressDetailed(TOPIC_IDS.PASSAGE_PLANNING_BUILDER,true,100,15,{passagePlanRecord:completedRecord,expectedServerHead:serverHeadRef.current,plan:submittedPlan}):await saveProgress(TOPIC_IDS.PASSAGE_PLANNING_BUILDER, true, 100, 15, { plan:submittedPlan });
+      if(boundaryRef.current!==submittedBoundary)return;
+      const saved=outcome===true||outcome==="remote"||outcome==="queued"||outcome==="anonymous";
       if (saved) {
+        if(outcome==="remote")serverHeadRef.current=draft.updatedAt;
+        const completed:PassagePlanRecord={...draft,completedRevision:draft.revision,completionStatus:outcome==="queued"?"queued":"confirmed"};const completionWrite=writeStored(localStorage,cacheKey,completed);
+        if(!completionWrite.ok){recordRef.current=completed;setDirty(true);setSyncState("failed");setStatus("Completion reached the sync service, but its completed state could not be saved locally. Retry local save after browser storage is available; the confirmed result is retained on this page.");return;}
+        recordRef.current=completed;
         setSavedPlan(submittedPlan);
-        if (mutationRevision.current === submittedRevision) { setDirty(false);setUndo(null);setStatus("Plan saved locally and completion persisted. No unsaved changes remain."); }
+        if (mutationRevision.current === submittedRevision) { setDirty(false);setUndo(null);setSyncState(outcome==="queued"?"queued":outcome==="anonymous"?"local":"completed");setStatus(outcome==="queued"?"Plan completion queued offline and will sync when online.":outcome==="anonymous"?"Plan completed in local anonymous storage. Sign in and explicitly migrate it to sync.":"Plan saved locally and completion persisted; it is synced and completed. No unsaved changes remain."); }
         else { setDirty(true);setStatus("Submitted plan persisted, but newer route changes remain unsaved. Save again when ready."); }
       }
-      else { setDirty(true);setStatus("Plan saved locally, but completion was not persisted. Retry saving when ready."); }
+      else { setDirty(true);setSyncState(outcome==="conflict"?"conflict":"failed");setStatus(outcome==="conflict"?"Remote plan changed. Resolve the conflict before retrying completion.":"Plan saved locally, but completion was not persisted. Retry saving when ready."); }
     } catch {
-      setDirty(true);setStatus("Plan saved locally, but completion persistence failed. Your edits remain available; retry saving when ready.");
-    } finally { setSaving(false); }
+      if(boundaryRef.current!==submittedBoundary)return;
+      setDirty(true);setSyncState("failed");setStatus("Plan saved locally, but completion persistence failed. Your edits remain available; retry saving when ready.");
+    } finally { if(boundaryRef.current===submittedBoundary)setSaving(false); }
   };
+  const saveDraft=()=>{const current=recordRef.current;const unchanged=Boolean(current&&current.revision>0&&JSON.stringify(current.plan)===JSON.stringify(plan));const record=unchanged?current!:makePassagePlanRecord(plan,ownerId,current);const write=writeStored(localStorage,cacheKey,record);if(!write.ok){setDirty(true);setSyncState("failed");setStatus("Local draft save failed. Free browser storage or enable storage, then retry; navigation may lose these edits.");return;}recordRef.current=record;setSavedPlan(plan);if(userId){setDirty(true);void persistDraftRemote(record);return}setDirty(false);const durableState=record.completedRevision===record.revision?(record.completionStatus==="confirmed"?"completed":record.completionStatus==="queued"?"queued":"local"):"local";setSyncState(durableState);setStatus(unchanged&&record.completedRevision===record.revision?record.completionStatus==="queued"?"Queued completion is saved locally and still awaits confirmed sync.":"Completed plan is already saved; its completion revision was preserved.":"Draft saved locally. It is not marked complete.");};
+  const chooseConflict=(selected:PassagePlanRecord)=>{const heads=conflict?[conflict.local,conflict.remote]:[selected];const resolved={...makePassagePlanRecord(selected.plan,ownerId,{...selected,revision:Math.max(...heads.map(head=>head.revision))}),lineage:Array.from(new Set(heads.flatMap(head=>[...head.lineage,head.updatedAt])))};const write=writeStored(localStorage,cacheKey,resolved);if(!write.ok){setDirty(true);setSyncState("failed");setStatus("Conflict choice could not be saved locally. Nothing was replaced; enable browser storage and retry.");return;}recordRef.current=resolved;setPlan(resolved.plan);setSavedPlan(resolved.plan);setConflict(null);setDirty(true);setSyncState("local");setStatus("Conflict resolved into a joined revision. Save to sync it.");};
+  const migrateAnonymous=()=>{if(!anonymousCandidate||!userId)return;const migrated=makePassagePlanRecord(anonymousCandidate.plan,userId,recordRef.current);const write=writeStored(localStorage,cacheKey,migrated);if(!write.ok){setDirty(true);setSyncState("failed");setStatus("Anonymous draft could not be copied because local storage failed. The anonymous source remains unchanged; enable storage and retry.");return;}recordRef.current=migrated;setPlan(migrated.plan);setSavedPlan(migrated.plan);setAnonymousCandidate(null);setDirty(true);setSyncState("local");setStatus("Anonymous draft copied safely to this account as a new revision. Save or complete it to sync.");};
   const reset = () => {
     if (dirty && !window.confirm("Discard all unsaved route changes and restore the last saved plan?")) return;
     mutationRevision.current += 1;setManualRevision(null);setFreshnessRevision(null);const next=savedPlan;setPlan(next);setErrors([]);setUndo(null);setDirty(false);setStatus("Unsaved changes discarded; last saved plan restored.");focusWaypoint(next.points[0].id);
@@ -187,6 +233,10 @@ export function PassagePlanBuilder() {
 
   return <div className="space-y-5">
     <p className="sr-only" role="status" aria-live="polite">{status}</p>
+    <div className="rounded-md border p-3 text-sm"><strong>Persistence: {syncState.replace("-"," ")}</strong><span> — {status}</span>{syncState==="failed"&&<><Button className="ml-2" size="sm" variant="outline" onClick={saveDraft}>Retry save</Button>{userId&&<Button className="ml-2" size="sm" variant="outline" onClick={()=>setHydrationAttempt(value=>value+1)}>Retry remote load</Button>}</>}</div>
+    {conflict&&<div role="alert" className="rounded-md border border-amber-600 p-3"><strong>Local and remote plans conflict.</strong><p>Choose which draft to keep. The choice creates a newer revision; neither source is silently overwritten.</p><div className="flex gap-2"><Button variant="outline" onClick={()=>chooseConflict(conflict.local)}>Keep local draft</Button><Button variant="outline" onClick={()=>chooseConflict(conflict.remote)}>Use remote draft</Button></div></div>}
+    {syncState==="conflict"&&!conflict&&<div role="alert" className="rounded-md border border-amber-600 p-3"><strong>Remote draft changed.</strong><p>Reload the remote draft to compare both preserved versions and choose a resolution.</p><Button variant="outline" onClick={()=>setHydrationAttempt(value=>value+1)}>Reload remote draft</Button></div>}
+    {anonymousCandidate&&<div className="rounded-md border border-amber-600 p-3"><strong>Anonymous draft available.</strong><p>It remains separate from your account unless you explicitly copy it.</p><Button variant="outline" onClick={migrateAnonymous}>Copy anonymous draft to my account</Button></div>}
     <div className="grid sm:grid-cols-2 lg:grid-cols-5 gap-3">
       <div><Label htmlFor="plan-name">Plan name</Label><Input id="plan-name" value={plan.name} onChange={event => {markChanged();setPlan(current => ({ ...current, name:event.target.value }))}}/></div>
       <div><Label htmlFor="departure">Departure</Label><Input id="departure" type="datetime-local" value={plan.departure} onChange={event => {markChanged();setPlan(current => ({ ...current, departure:event.target.value }))}}/></div>
@@ -210,7 +260,7 @@ export function PassagePlanBuilder() {
         </>}
       </CardContent>
     </Card>)}
-    <div className="print:hidden flex flex-wrap gap-2"><Button variant="outline" onClick={() => addPoint(plan.points.length)}>Add waypoint at end</Button>{undo && <Button variant="outline" onClick={undoChange}>Undo last removal</Button>}<Button disabled={saving} onClick={save}>{saving ? "Saving plan…" : "Save & complete plan"}</Button><Button variant="outline" onClick={reset}>Reset unsaved changes</Button><Button variant="outline" onClick={() => window.print()}>Print plan</Button></div>
+    <div className="print:hidden flex flex-wrap gap-2"><Button variant="outline" onClick={() => addPoint(plan.points.length)}>Add waypoint at end</Button>{undo && <Button variant="outline" onClick={undoChange}>Undo last removal</Button>}<Button variant="outline" disabled={saving||syncState==="loading"} onClick={saveDraft}>Save draft</Button><Button disabled={saving||syncState==="loading"||syncState==="conflict"} onClick={save}>{saving ? "Saving plan…" : "Save & complete plan"}</Button><Button variant="outline" onClick={reset}>Reset unsaved changes</Button><Button variant="outline" onClick={() => window.print()}>Print plan</Button></div>
     <Card><CardContent className="pt-6">{summary.ok?<><b>Total: {summary.totalDistanceNm.toFixed(1)} nm · {summary.calculation.hours.toFixed(1)} hours</b>{plan.fuelRate !== undefined&&<span> · Fuel with {plan.reservePercent ?? 0}% reserve: {summary.calculation.fuelWithReserveLitres.toFixed(1)} L</span>}</>:<b>Totals unavailable until calculation inputs are corrected.</b>}</CardContent></Card>
     {routeGeometryIssues(plan.points).length>0&&<aside className="rounded-md border border-amber-600 p-3"><strong>Geometry advisories (not automatic rejection)</strong><ul className="list-disc pl-5">{routeGeometryIssues(plan.points).map(issue=><li key={issue}>{issue} Routed legs may legitimately detour; manually verify the intended course and track.</li>)}</ul></aside>}
     <div className="overflow-x-auto"><table className="w-full caption-bottom text-sm"><caption className="text-left font-semibold">Ordered route review — schematic values only, not evidence of hazard clearance</caption><thead><tr><th scope="col">Position</th><th scope="col">Waypoint</th><th scope="col">WGS84 coordinate</th><th scope="col">Inbound leg</th><th scope="col">Arrival ETA</th></tr></thead><tbody>{plan.points.map((point,index)=><tr key={point.id}><th scope="row">{index+1}</th><td>{point.name||"Unnamed"}</td><td>{point.latitude} {point.longitude}</td><td>{point.inboundLeg?`${point.inboundLeg.course}° / ${point.inboundLeg.distanceNm} nm`:"Departure"}</td><td>{index?etas[index-1]?new Date(etas[index-1]).toLocaleString():"Invalid":"Departure time"}</td></tr>)}</tbody></table></div>

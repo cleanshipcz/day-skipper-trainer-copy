@@ -17,6 +17,47 @@ export interface PassagePlan {
   provenance: { weather:string; tide:string; chart:string; publications:string; preparedAt:string; revisedAt:string };
 }
 
+export const PASSAGE_PLAN_PERSISTENCE_VERSION = 1;
+export interface PassagePlanRecord {
+  persistenceVersion: typeof PASSAGE_PLAN_PERSISTENCE_VERSION;
+  ownerId: string;
+  revision: number;
+  updatedAt: string;
+  lineage: string[];
+  completedRevision: number | null;
+  completionStatus: "draft" | "queued" | "confirmed";
+  plan: PassagePlan;
+}
+
+export type PassagePlanReconciliation =
+  | { status: "local" | "remote" | "same"; record: PassagePlanRecord }
+  | { status: "conflict"; local: PassagePlanRecord; remote: PassagePlanRecord };
+
+const stablePlan = (plan: PassagePlan) => JSON.stringify(plan);
+const completionRank = { draft:0, queued:1, confirmed:2 } as const;
+
+/** Deterministic on every device: revision wins, then timestamp; equal divergent heads conflict. */
+export function reconcilePassagePlanRecords(local: PassagePlanRecord | null, remote: PassagePlanRecord | null): PassagePlanReconciliation | null {
+  if (!local) return remote ? { status:"remote", record:remote } : null;
+  if (!remote) return { status:"local", record:local };
+  if (local.ownerId !== remote.ownerId) return { status:"conflict", local, remote };
+  if (local.revision !== remote.revision) {
+    const newer=local.revision>remote.revision?local:remote,older=newer===local?remote:local;
+    if(!newer.lineage.includes(older.updatedAt))return {status:"conflict",local,remote};
+    return newer===local?{status:"local",record:local}:{status:"remote",record:remote};
+  }
+  if (stablePlan(local.plan) === stablePlan(remote.plan)) {
+    const record = local.updatedAt >= remote.updatedAt ? local : remote;
+    const completion = completionRank[local.completionStatus] >= completionRank[remote.completionStatus] ? local : remote;
+    return { status:"same", record:{ ...record, completedRevision:completion.completedRevision === record.revision ? record.revision : null, completionStatus:completion.completedRevision === record.revision ? completion.completionStatus : "draft" } };
+  }
+  return { status:"conflict", local, remote };
+}
+
+export function makePassagePlanRecord(plan: PassagePlan, ownerId: string, previous?: PassagePlanRecord | null, now = new Date().toISOString()): PassagePlanRecord {
+  return { persistenceVersion:PASSAGE_PLAN_PERSISTENCE_VERSION, ownerId, revision:(previous?.revision ?? 0)+1, updatedAt:now, lineage:previous?[...previous.lineage,previous.updatedAt]:[], completedRevision:null, completionStatus:"draft", plan };
+}
+
 const emptyInboundLeg = () => ({ course:0, distanceNm:0, notes:"", tidalGate:"", weatherWindow:"" });
 const assertUniqueIds = (points: readonly PlanWaypoint[]) => {
   if (new Set(points.map(point => point.id)).size !== points.length) throw new Error("Waypoint identifiers must be unique before route editing.");
@@ -105,6 +146,24 @@ export function decodePassagePlanCache(raw: string | null): PassagePlanParseResu
     points:source.points.map(point=>({...point,id:sanitizeText(point.id),name:sanitizeText(point.name),latitude:sanitizeText(point.latitude),longitude:sanitizeText(point.longitude),inboundLeg:point.inboundLeg&&{...point.inboundLeg,notes:sanitizeText(point.inboundLeg.notes),tidalGate:sanitizeText(point.inboundLeg.tidalGate),weatherWindow:sanitizeText(point.inboundLeg.weatherWindow)}})),
   };
   return {ok:true,plan,migrated:false};
+}
+
+export type PassagePlanRecordParseResult = { ok:true; record:PassagePlanRecord; migrated:boolean } | { ok:false; message:string };
+export function decodePassagePlanRecord(raw: string | null, expectedOwnerId: string): PassagePlanRecordParseResult {
+  if (!raw) return { ok:false, message:"No saved passage plan was found." };
+  let value:unknown;
+  try { value=JSON.parse(raw); } catch { return { ok:false, message:"The saved passage plan is not valid JSON." }; }
+  const source=value && typeof value==="object" && !Array.isArray(value) ? value as Record<string,unknown> : null;
+  if (source?.persistenceVersion === PASSAGE_PLAN_PERSISTENCE_VERSION) {
+    if (source.ownerId !== expectedOwnerId || !Number.isSafeInteger(source.revision) || (source.revision as number)<0 || typeof source.updatedAt!=="string" || Number.isNaN(Date.parse(source.updatedAt)) || !(source.completedRevision===null || Number.isSafeInteger(source.completedRevision)) || !(source.completionStatus===undefined || source.completionStatus==="draft" || source.completionStatus==="queued" || source.completionStatus==="confirmed")) return {ok:false,message:"The saved passage plan has invalid persistence metadata or belongs to another owner."};
+    const decoded=decodePassagePlanCache(JSON.stringify(source.plan));
+    if(!decoded.ok)return decoded;
+    const lineage=Array.isArray(source.lineage)&&source.lineage.every(item=>typeof item==="string"&&!Number.isNaN(Date.parse(item)))?source.lineage as string[]:[];
+    const completedRevision=source.completedRevision as number|null;return {ok:true,migrated:false,record:{persistenceVersion:PASSAGE_PLAN_PERSISTENCE_VERSION,ownerId:expectedOwnerId,revision:source.revision as number,updatedAt:source.updatedAt,lineage,completedRevision,completionStatus:(source.completionStatus as PassagePlanRecord["completionStatus"]|undefined)??(completedRevision===source.revision?"confirmed":"draft"),plan:decoded.plan}};
+  }
+  const decoded=decodePassagePlanCache(raw);
+  if(!decoded.ok)return decoded;
+  return {ok:true,migrated:true,record:{persistenceVersion:PASSAGE_PLAN_PERSISTENCE_VERSION,ownerId:expectedOwnerId,revision:0,updatedAt:new Date(0).toISOString(),lineage:[],completedRevision:null,completionStatus:"draft",plan:decoded.plan}};
 }
 
 export function parsePassagePlanCache(raw: string | null): PassagePlan | null {

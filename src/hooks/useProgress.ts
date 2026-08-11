@@ -108,6 +108,10 @@ export const useProgress = () => {
           && isVictuallingChecklistConflict(error)
         ) return "conflict" as const;
         if (topicId === ENGINE_CHECKLIST_PROGRESS_ID && isEngineChecklistConflict(error)) return "conflict" as const;
+        if (topicId === "passage-planning-builder") {
+          const candidate=error as {code?:string;message?:string};
+          if(candidate?.code==="40001"&&candidate.message?.includes("Passage plan revision conflict"))return "conflict" as const;
+        }
         if (!isRetryableProgressError(error)) {
           toast.error("Failed to save progress");
           return "failed" as const;

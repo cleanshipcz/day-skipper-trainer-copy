@@ -17,6 +17,18 @@ describe("generated Supabase service contracts", () => {
     >();
   });
 
+  it("covers owner-scoped passage-plan CAS persistence", () => {
+    expectTypeOf<Functions["save_passage_plan_progress"]["Args"]>().toEqualTypeOf<{
+      p_answers_history: Json;
+      p_completed: boolean;
+      p_expected_updated_at: string;
+      p_score: number;
+    }>();
+    expectTypeOf<Functions["save_passage_plan_progress"]["Returns"]>().toEqualTypeOf<
+      { awarded_points: number; completion_awarded: boolean; points_awarded: boolean }[]
+    >();
+  });
+
   it("covers exam RPC arguments", () => {
     expectTypeOf<Functions["submit_exam_result"]["Args"]>().toEqualTypeOf<{
       p_attempt_id: string;
