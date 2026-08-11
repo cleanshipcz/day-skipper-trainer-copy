@@ -60,4 +60,9 @@ describe("FuelCalculator", () => {
     fireEvent.change(screen.getByLabelText("Route distance (nautical miles)"),{target:{value:"2000"}});fireEvent.change(speed,{target:{value:"0.1"}});expect(screen.getByText(/Derived passage duration/).textContent).toContain("1,000 hours");
     fireEvent.change(screen.getByLabelText("Route distance (nautical miles)"),{target:{value:"18"}});fireEvent.change(speed,{target:{value:"6"}});await user.click(screen.getByRole("button",{name:"Calculate / update result"}));expect(screen.getByText(/Passage duration:/)).toBeTruthy();
   });
+  it("keeps native and structured step validity aligned",()=>{
+    render(<FuelCalculator />);const distance=screen.getByLabelText("Route distance (nautical miles)") as HTMLInputElement;const calculate=screen.getByRole("button",{name:"Calculate / update result"});
+    expect(distance.getAttribute("step")).toBe("0.1");fireEvent.change(distance,{target:{value:"18.05"}});expect(distance.getAttribute("aria-invalid")).toBe("true");expect(screen.getByText(/increments of 0.1/)).toBeTruthy();expect(calculate.hasAttribute("disabled")).toBe(true);
+    fireEvent.change(distance,{target:{value:"18.1"}});expect(distance.getAttribute("aria-invalid")).toBe("false");expect(calculate.hasAttribute("disabled")).toBe(false);
+  });
 });

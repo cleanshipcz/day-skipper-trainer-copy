@@ -34,19 +34,22 @@ export const PASSAGE_LIMITS = {
   maximumDurationHours: 1000,
 } as const;
 
-const numericIssue=(field:Exclude<keyof PassageCalculationInput,"departureTime">,value:number,min:number,max:number,label:string):PassageValidationIssue|undefined =>
-  !Number.isFinite(value)||value<min||value>max?{field,message:`${label} must be a finite number from ${min.toLocaleString("en-GB")} to ${max.toLocaleString("en-GB")}.`}:undefined;
+const numericIssue=(field:Exclude<keyof PassageCalculationInput,"departureTime">,value:number,limits:{min:number;max:number;step:number},label:string):PassageValidationIssue|undefined => {
+  if(!Number.isFinite(value)||value<limits.min||value>limits.max)return {field,message:`${label} must be a finite number from ${limits.min.toLocaleString("en-GB")} to ${limits.max.toLocaleString("en-GB")}.`};
+  const steps=(value-limits.min)/limits.step;
+  if(Math.abs(steps-Math.round(steps))>1e-9)return {field,message:`${label} must use increments of ${limits.step} from ${limits.min.toLocaleString("en-GB")} to ${limits.max.toLocaleString("en-GB")}.`};
+};
 
 export function passageValidationIssues(input: PassageCalculationInput): PassageValidationIssue[] {
   const issues:PassageValidationIssue[]=[];
   const add=(issue:PassageValidationIssue|undefined)=>{if(issue)issues.push(issue)};
-  add(numericIssue("distanceNm",input.distanceNm,PASSAGE_LIMITS.distanceNm.min,PASSAGE_LIMITS.distanceNm.max,"Distance (nautical miles)"));
-  add(numericIssue("speedKnots",input.speedKnots,PASSAGE_LIMITS.speedKnots.min,PASSAGE_LIMITS.speedKnots.max,"Speed over ground (knots)"));
-  add(numericIssue("engineHours",input.engineHours,PASSAGE_LIMITS.engineHours.min,PASSAGE_LIMITS.engineHours.max,"Engine-running duration (hours)"));
-  add(numericIssue("fuelLitresPerHour",input.fuelLitresPerHour,PASSAGE_LIMITS.fuelLitresPerHour.min,PASSAGE_LIMITS.fuelLitresPerHour.max,"Fuel rate (litres/hour)"));
-  add(numericIssue("additionalFuelLitres",input.additionalFuelLitres,PASSAGE_LIMITS.additionalFuelLitres.min,PASSAGE_LIMITS.additionalFuelLitres.max,"Additional consumption (litres)"));
-  add(numericIssue("reservePercent",input.reservePercent,PASSAGE_LIMITS.reservePercent.min,PASSAGE_LIMITS.reservePercent.max,"Reserve (percent)"));
-  add(numericIssue("usableFuelLitres",input.usableFuelLitres,PASSAGE_LIMITS.usableFuelLitres.min,PASSAGE_LIMITS.usableFuelLitres.max,"Usable fuel (litres)"));
+  add(numericIssue("distanceNm",input.distanceNm,PASSAGE_LIMITS.distanceNm,"Distance (nautical miles)"));
+  add(numericIssue("speedKnots",input.speedKnots,PASSAGE_LIMITS.speedKnots,"Speed over ground (knots)"));
+  add(numericIssue("engineHours",input.engineHours,PASSAGE_LIMITS.engineHours,"Engine-running duration (hours)"));
+  add(numericIssue("fuelLitresPerHour",input.fuelLitresPerHour,PASSAGE_LIMITS.fuelLitresPerHour,"Fuel rate (litres/hour)"));
+  add(numericIssue("additionalFuelLitres",input.additionalFuelLitres,PASSAGE_LIMITS.additionalFuelLitres,"Additional consumption (litres)"));
+  add(numericIssue("reservePercent",input.reservePercent,PASSAGE_LIMITS.reservePercent,"Reserve (percent)"));
+  add(numericIssue("usableFuelLitres",input.usableFuelLitres,PASSAGE_LIMITS.usableFuelLitres,"Usable fuel (litres)"));
   if (!issues.some(({field})=>field==="distanceNm"||field==="speedKnots")) {
     const duration=input.distanceNm/input.speedKnots;
     if(!Number.isFinite(duration)||duration<=0||duration>PASSAGE_LIMITS.maximumDurationHours)issues.push({field:"duration",message:`Derived passage duration must be finite, positive and no more than ${PASSAGE_LIMITS.maximumDurationHours.toLocaleString("en-GB")} hours. Increase realistic SOG or shorten the route.`});
