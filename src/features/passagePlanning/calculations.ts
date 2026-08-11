@@ -1,5 +1,13 @@
 export interface PassageCalculationInput { distanceNm: number; speedKnots: number; fuelLitresPerHour: number; reservePercent: number; departureTime?: string }
-export interface PassageCalculation { hours: number; fuelLitres: number; fuelWithReserveLitres: number; eta?: string }
+export interface PassageCalculation {
+  hours: number;
+  durationMinutes: number;
+  fuelLitres: number;
+  reserveLitres: number;
+  fuelWithReserveLitres: number;
+  practicalFuelLitres: number;
+  eta?: string;
+}
 
 export function validatePassageInput(input: PassageCalculationInput): string[] {
   const errors: string[] = [];
@@ -16,7 +24,46 @@ export function calculatePassage(input: PassageCalculationInput): PassageCalcula
   if (errors.length) throw new RangeError(errors.join(" "));
   const hours = input.distanceNm / input.speedKnots;
   const fuelLitres = hours * input.fuelLitresPerHour;
-  return { hours, fuelLitres, fuelWithReserveLitres: fuelLitres * (1 + input.reservePercent / 100), eta: input.departureTime ? new Date(Date.parse(input.departureTime) + hours * 3_600_000).toISOString() : undefined };
+  const reserveLitres = fuelLitres * input.reservePercent / 100;
+  const fuelWithReserveLitres = fuelLitres + reserveLitres;
+  return {
+    hours,
+    durationMinutes: Math.round(hours * 60),
+    fuelLitres,
+    reserveLitres,
+    fuelWithReserveLitres,
+    practicalFuelLitres: Math.ceil(fuelWithReserveLitres),
+    eta: input.departureTime ? new Date(Date.parse(input.departureTime) + hours * 3_600_000).toISOString() : undefined,
+  };
+}
+
+export function formatDuration(totalMinutes: number): string {
+  const hours = Math.floor(totalMinutes / 60);
+  const minutes = totalMinutes % 60;
+  return `${hours} h ${minutes} min`;
+}
+
+/** Formats an ISO instant with an explicit IANA zone and numeric UTC offset. */
+export function formatEta(isoInstant: string, locale = "en-GB", timeZone = Intl.DateTimeFormat().resolvedOptions().timeZone): string {
+  return new Intl.DateTimeFormat(locale, {
+    weekday: "long", year: "numeric", month: "long", day: "numeric",
+    hour: "2-digit", minute: "2-digit", second: "2-digit", timeZone, timeZoneName: "shortOffset",
+  }).format(new Date(isoInstant)) + ` (${timeZone})`;
+}
+
+/** Returns every instant represented by a timezone-free wall-clock value (zero for DST gaps, two for overlaps). */
+export function possibleInstants(localDateTime: string, timeZone: string): string[] {
+  const match = /^(\d{4})-(\d{2})-(\d{2})T(\d{2}):(\d{2})$/.exec(localDateTime);
+  if (!match) return [];
+  const wanted = `${match[1]}-${match[2]}-${match[3]} ${match[4]}:${match[5]}`;
+  const centre = Date.UTC(+match[1], +match[2] - 1, +match[3], +match[4], +match[5]);
+  const formatter = new Intl.DateTimeFormat("en-CA", { timeZone, year:"numeric", month:"2-digit", day:"2-digit", hour:"2-digit", minute:"2-digit", hourCycle:"h23" });
+  const found: string[] = [];
+  for (let instant = centre - 14 * 3_600_000; instant <= centre + 14 * 3_600_000; instant += 60_000) {
+    const parts = Object.fromEntries(formatter.formatToParts(instant).map(({type,value}) => [type,value]));
+    if (`${parts.year}-${parts.month}-${parts.day} ${parts.hour}:${parts.minute}` === wanted) found.push(new Date(instant).toISOString());
+  }
+  return found;
 }
 
 export interface PlanWaypoint { id: string; name: string; latitude: string; longitude: string; bearing: number; distanceNm: number; notes: string; tidalGate: string; weatherWindow: string }
