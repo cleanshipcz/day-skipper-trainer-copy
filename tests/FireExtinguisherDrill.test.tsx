@@ -49,7 +49,7 @@ describe("FireExtinguisherDrill", () => {
     const options = screen.getAllByTestId(/^response-option-/);
     await user.click(options[0]);
 
-    const submitButton = screen.getByRole("button", { name: /check/i });
+    const submitButton = screen.getByRole("button", { name: /^check answer$/i });
     await user.click(submitButton);
 
     // then - should show a result (correct or incorrect)
@@ -69,7 +69,7 @@ describe("FireExtinguisherDrill", () => {
     // when - select an option and submit
     const options = screen.getAllByTestId(/^response-option-/);
     await user.click(options[0]);
-    const submitButton = screen.getByRole("button", { name: /check/i });
+    const submitButton = screen.getByRole("button", { name: /^check answer$/i });
     await user.click(submitButton);
 
     // then - should show a "next" button to advance

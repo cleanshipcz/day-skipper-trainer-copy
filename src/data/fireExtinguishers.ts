@@ -286,7 +286,7 @@ export const fireResponseScenarios: readonly FireResponseScenario[] = [
     description: "Offshore, a detector alarms and smoke is visible at the closed engine-space boundary. The vessel has an approved fixed system and labelled remote shutdowns.",
     question: "What is the correct closed-space response sequence?",
     options: [
-      { id: "closed-discharge", label: "Alarm and muster, call early, stop engine/generator, fuel and ventilation remotely, confirm everyone is out, keep the space sealed, discharge the approved fixed system as instructed, monitor and do not reopen" },
+      { id: "closed-discharge", label: "Alarm and muster, confirm everyone is out, call early, stop engine/generator, fuel and ventilation remotely, keep the space sealed, discharge the approved fixed system as instructed, monitor and do not reopen" },
       { id: "open-check", label: "Open the hatch to confirm the seat of fire, then discharge a portable extinguisher" },
       { id: "discharge-first", label: "Release the fixed system immediately, then check whether anyone remains inside and stop ventilation" },
     ],
