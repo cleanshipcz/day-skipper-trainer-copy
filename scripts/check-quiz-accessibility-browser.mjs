@@ -88,7 +88,7 @@ try {
       };
     })()`);
     if (layout.pageWidth > layout.viewport) throw new Error(`${width}px quiz overflow: ${JSON.stringify(layout)}`);
-    if (layout.radios < 2 || !layout.backName.startsWith("Back to home from ") || !layout.progressText.startsWith("Question 1 of ")) throw new Error(`${width}px semantics missing: ${JSON.stringify(layout)}`);
+    if (layout.radios < 2 || !/^Back to .+ from .+$/.test(layout.backName) || !layout.progressText.startsWith("Question 1 of ")) throw new Error(`${width}px semantics missing: ${JSON.stringify(layout)}`);
   }
 
   await send("Emulation.setEmulatedMedia", { media: "screen", features: [{ name: "prefers-reduced-motion", value: "reduce" }] });

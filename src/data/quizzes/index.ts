@@ -39,6 +39,24 @@ const definitions: Record<QuizTopicId, { meta: TopicMeta; importer: QuizImporter
 const cache = new Map<QuizTopicId, Promise<readonly Question[]>>();
 
 const normalizedOption = (value: string) => value.normalize("NFKC").trim().replace(/\s+/g, " ").toLocaleLowerCase("en");
+const normalizedAssessmentText = (value: string) => value.normalize("NFKC").toLocaleLowerCase("en")
+  .replace(/[^\p{L}\p{N}]+/gu, " ").trim().replace(/\s+/g, " ");
+const escapesPattern = (value: string) => value.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+const revealsCorrectOption = (text: string, correctOption: string) => {
+  const normalizedCorrect = normalizedAssessmentText(correctOption);
+  // Explicit answer-key language is reliable leakage. Merely mentioning a
+  // panel, vessel, or other short/common option in observational data is not.
+  if (normalizedCorrect.length < 3) return false;
+  const option = escapesPattern(normalizedCorrect);
+  const normalizedText = normalizedAssessmentText(text);
+  return new RegExp(`(?:correct|right|keyed) (?:answer )?(?:is )?${option}(?: |$)`).test(normalizedText)
+    || new RegExp(`(?:answer|solution) (?:is )?${option}(?: |$)`).test(normalizedText)
+    || new RegExp(`(?:^| )${option} (?:is )?(?:the )?(?:correct|right|keyed) answer(?: |$)`).test(normalizedText)
+    || new RegExp(`(?:^| )${option} is the (?:answer|solution)(?: |$)`).test(normalizedText)
+    || new RegExp(`(?:^| )${option} is (?:correct(?: |$)|right(?! (?:of|above|below|beside|to))(?: |$))`).test(normalizedText)
+    || new RegExp(`(?:^| )(?:choose|select|pick) ${option}(?: |$)`).test(normalizedText)
+    || new RegExp(`(?:^| )${option} should be (?:selected|chosen|picked)(?: |$)`).test(normalizedText);
+};
 const localQuizImage = /^\/images\/(?:[A-Za-z0-9_-]+\/)*[A-Za-z0-9_-]+\.(?:png|jpe?g|webp|svg)$/i;
 
 const questionError = (topicId: string, index: number, candidate: unknown, detail: string) => {
@@ -91,6 +109,28 @@ export const validateQuizBank = (topicId: string, candidate: unknown): readonly 
     }
     if (question.image !== undefined && (typeof question.image !== "string" || !localQuizImage.test(question.image))) {
       throw questionError(topicId, index, value, "image must be a canonical local asset path under /images/.");
+    }
+    if (question.image !== undefined) {
+      const hasMeaningfulAlt = typeof question.imageAlt === "string" && question.imageAlt.trim().length >= 20;
+      const scenario = question.scenario;
+      const hasStructuredEquivalent = Boolean(
+        scenario && typeof scenario === "object" && !Array.isArray(scenario)
+        && typeof (scenario as Record<string, unknown>).accessibleName === "string"
+        && ((scenario as Record<string, unknown>).accessibleName as string).trim().length >= 5
+        && typeof (scenario as Record<string, unknown>).description === "string"
+        && ((scenario as Record<string, unknown>).description as string).trim().length >= 10
+        && Array.isArray((scenario as Record<string, unknown>).facts)
+        && ((scenario as Record<string, unknown>).facts as unknown[]).length > 0
+      );
+      if (!hasMeaningfulAlt && !hasStructuredEquivalent) {
+        throw questionError(topicId, index, value, "visual questions require a meaningful imageAlt or structured scenario equivalent.");
+      }
+      const correctOption = question.options[question.correctAnswer as number] as string;
+      const structuredText = hasStructuredEquivalent ? JSON.stringify(scenario) : "";
+      if ((hasMeaningfulAlt && revealsCorrectOption(question.imageAlt as string, correctOption))
+        || (hasStructuredEquivalent && revealsCorrectOption(structuredText, correctOption))) {
+        throw questionError(topicId, index, value, "visual equivalent must not reveal the correct option.");
+      }
     }
   }
   return candidate as readonly Question[];
