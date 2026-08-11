@@ -7,8 +7,9 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { calculateLegEtas, isValidLatitude, isValidLongitude, parseWaypointCoordinate, routeGeometryIssues, totalRouteDistance, type PlanLeg, type PlanWaypoint } from "@/features/passagePlanning/calculations";
 import {
   PASSAGE_PLAN_CACHE_VERSION,
+  calculatePassagePlanSummary,
+  decodePassagePlanCache,
   insertWaypoint,
-  parsePassagePlanCache,
   passagePlanCacheKey,
   removeWaypoint,
   reorderWaypoint,
@@ -78,19 +79,18 @@ export function PassagePlanBuilder() {
     setManualRevision(null);
     setFreshnessRevision(null);
     mutationRevision.current = 0;
-    const cached = readStored(localStorage, cacheKey, {
-      decode: (value) => parsePassagePlanCache(JSON.stringify(value)),
-    });
+    let localFailure="";
+    const cached = readStored(localStorage, cacheKey, { decode: (value) => { const result=decodePassagePlanCache(JSON.stringify(value));if(!result.ok)localFailure=result.message;return result.ok?result.plan:null } });
     if (cached) {
-      setPlan(cached);setSavedPlan(cached);
+      setPlan(cached);setSavedPlan(cached);const validation=validatePassagePlan(cached);if(validation.length)setErrors(["Saved plan was recovered but needs correction; its safe fields have been preserved.",...validation]);
     } else if (user) {
       void loadProgress("passage-planning-builder").then(row => {
         const history = row?.answers_history;
-        const persisted = history && typeof history === "object" && !Array.isArray(history) && "plan" in history
-          ? parsePassagePlanCache(JSON.stringify(history.plan))
-          : null;
-        if (active) { const loaded=persisted ?? initialPlan();setPlan(loaded);setSavedPlan(loaded); }
+        const decoded = history && typeof history === "object" && !Array.isArray(history) && "plan" in history ? decodePassagePlanCache(JSON.stringify(history.plan)) : null;
+        if (active) { const loaded=decoded?.ok?decoded.plan:initialPlan();setPlan(loaded);setSavedPlan(loaded);const remoteValidation=decoded?.ok?validatePassagePlan(loaded):[];if(localFailure)setErrors([`${localFailure} No local values were used.${decoded?.ok?" The remote plan was loaded.":" No remote plan was available; the training example is shown and must be verified."}`,...(remoteValidation.length?["The remote plan was recovered but needs correction; its safe fields have been preserved.",...remoteValidation]:[])]);else if(decoded&&!decoded.ok)setErrors([`${decoded.message} The training example is shown instead; no saved-plan values were silently used.`]);else if(remoteValidation.length)setErrors(["Saved plan was recovered but needs correction; its safe fields have been preserved.",...remoteValidation]) }
       });
+    } else {
+      try { if(localStorage.getItem(cacheKey)!==null)setErrors(["The saved plan could not be recovered safely. The training example is shown instead; verify every value before use."]); } catch { setErrors(["Saved-plan storage is unavailable. The training example is shown instead; verify every value before use."]); }
     }
     return () => { active = false; };
   }, [cacheKey, loadProgress, setPlan, user]);
@@ -102,7 +102,7 @@ export function PassagePlanBuilder() {
   }, [dirty]);
 
   const etas = useMemo(() => calculateLegEtas(plan.points, plan.departure, plan.speed), [plan.points, plan.departure, plan.speed]);
-  const total = totalRouteDistance(plan.points);
+  const summary = useMemo(()=>calculatePassagePlanSummary(plan),[plan]);
   const markChanged = () => { mutationRevision.current += 1;setManualRevision(null);setFreshnessRevision(null);setDirty(true);setUndo(null); };
   const updatePoint = (id: string, key: "name" | "latitude" | "longitude", value: string) => {
     markChanged();setPlan(current => ({ ...current, points:current.points.map(point => point.id === id ? { ...point, [key]:value } : point) }));
@@ -192,7 +192,7 @@ export function PassagePlanBuilder() {
       <div><Label htmlFor="departure">Departure</Label><Input id="departure" type="datetime-local" value={plan.departure} onChange={event => {markChanged();setPlan(current => ({ ...current, departure:event.target.value }))}}/></div>
       <div><Label htmlFor="speed">SOG (knots)</Label><Input id="speed" type="number" min="0.1" max="80" value={plan.speed ?? ""} onChange={event => setNumeric("speed", event.target.value)}/></div>
       <div><Label htmlFor="fuel-rate">Fuel rate (L/h, optional)</Label><Input id="fuel-rate" type="number" min="0.1" max="500" value={plan.fuelRate ?? ""} onChange={event => setNumeric("fuelRate", event.target.value)}/></div>
-      <div><Label htmlFor="fuel-reserve">Fuel reserve (%, optional)</Label><Input id="fuel-reserve" type="number" min="0" max="200" value={plan.reservePercent ?? ""} onChange={event => setNumeric("reservePercent", event.target.value)}/></div>
+      <div><Label htmlFor="fuel-reserve">Fuel reserve (%, optional; blank means 0%)</Label><Input id="fuel-reserve" type="number" min="0" max="200" step="0.1" value={plan.reservePercent ?? ""} onChange={event => setNumeric("reservePercent", event.target.value)}/></div>
     </div>
     {errors.length > 0 && <div id="plan-errors" tabIndex={-1} role="alert" className="rounded-md border border-destructive p-4 text-destructive"><p className="font-semibold">Fix the following before saving:</p><ul className="list-disc pl-5">{errors.map(error => <li key={error}>{error}</li>)}</ul></div>}
     <p className="text-sm text-muted-foreground">Waypoints are ordered from departure to destination. Each arrival waypoint contains the course, distance, gate, weather and notes for the leg from the waypoint immediately above it.</p>
@@ -211,7 +211,7 @@ export function PassagePlanBuilder() {
       </CardContent>
     </Card>)}
     <div className="print:hidden flex flex-wrap gap-2"><Button variant="outline" onClick={() => addPoint(plan.points.length)}>Add waypoint at end</Button>{undo && <Button variant="outline" onClick={undoChange}>Undo last removal</Button>}<Button disabled={saving} onClick={save}>{saving ? "Saving plan…" : "Save & complete plan"}</Button><Button variant="outline" onClick={reset}>Reset unsaved changes</Button><Button variant="outline" onClick={() => window.print()}>Print plan</Button></div>
-    <Card><CardContent className="pt-6"><b>Total: {total.toFixed(1)} nm · {plan.speed > 0 ? (total / plan.speed).toFixed(1) : "—"} hours</b>{plan.fuelRate !== undefined && plan.speed > 0 && <span> · Fuel with {plan.reservePercent ?? 0}% reserve: {(total / plan.speed * plan.fuelRate * (1 + (plan.reservePercent ?? 0) / 100)).toFixed(1)} L</span>}</CardContent></Card>
+    <Card><CardContent className="pt-6">{summary.ok?<><b>Total: {summary.totalDistanceNm.toFixed(1)} nm · {summary.calculation.hours.toFixed(1)} hours</b>{plan.fuelRate !== undefined&&<span> · Fuel with {plan.reservePercent ?? 0}% reserve: {summary.calculation.fuelWithReserveLitres.toFixed(1)} L</span>}</>:<b>Totals unavailable until calculation inputs are corrected.</b>}</CardContent></Card>
     {routeGeometryIssues(plan.points).length>0&&<aside className="rounded-md border border-amber-600 p-3"><strong>Geometry advisories (not automatic rejection)</strong><ul className="list-disc pl-5">{routeGeometryIssues(plan.points).map(issue=><li key={issue}>{issue} Routed legs may legitimately detour; manually verify the intended course and track.</li>)}</ul></aside>}
     <div className="overflow-x-auto"><table className="w-full caption-bottom text-sm"><caption className="text-left font-semibold">Ordered route review — schematic values only, not evidence of hazard clearance</caption><thead><tr><th scope="col">Position</th><th scope="col">Waypoint</th><th scope="col">WGS84 coordinate</th><th scope="col">Inbound leg</th><th scope="col">Arrival ETA</th></tr></thead><tbody>{plan.points.map((point,index)=><tr key={point.id}><th scope="row">{index+1}</th><td>{point.name||"Unnamed"}</td><td>{point.latitude} {point.longitude}</td><td>{point.inboundLeg?`${point.inboundLeg.course}° / ${point.inboundLeg.distanceNm} nm`:"Departure"}</td><td>{index?etas[index-1]?new Date(etas[index-1]).toLocaleString():"Invalid":"Departure time"}</td></tr>)}</tbody></table></div>
   </div>;
