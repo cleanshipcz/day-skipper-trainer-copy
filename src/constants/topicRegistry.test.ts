@@ -412,29 +412,29 @@ describe("quiz parent destinations", () => {
   });
 
   it("maps every registered quiz ID to its explicit owning parent route", () => {
-    const expectedRoutes: Record<string, string> = {
-      "nautical-terms-quiz": "/nautical-terms",
-      victualling: "/victualling",
-      engine: "/engine",
-      rig: "/rig",
-      ropework: "/ropework",
-      anchorwork: "/anchorwork",
-      safety: "/safety",
-      "safety-mob-quiz": "/safety/mob",
-      "safety-fire-quiz": "/safety/fire",
-      "safety-life-raft-quiz": "/safety/life-raft",
-      "safety-flares-quiz": "/safety/flares",
-      colregs: "/rules-of-the-road",
-      "lights-signals": "/rules/lights",
-      pilotage: "/pilotage",
-      weather: "/weather",
-      "passage-planning": "/passage-planning",
+    const expectedDestinations: Record<string, { route: string; label: string }> = {
+      "nautical-terms-quiz": { route: "/nautical-terms", label: "Nautical Terms & Boat Parts" },
+      victualling: { route: "/victualling", label: "Victualling (Provisioning)" },
+      engine: { route: "/engine", label: "Engine Checks & Maintenance" },
+      rig: { route: "/rig", label: "Rig Checks & Preparation" },
+      ropework: { route: "/ropework", label: "Ropework & Knots" },
+      anchorwork: { route: "/anchorwork", label: "Anchorwork" },
+      safety: { route: "/safety", label: "Safety Procedures" },
+      "safety-mob-quiz": { route: "/safety/mob", label: "Man Overboard" },
+      "safety-fire-quiz": { route: "/safety/fire", label: "Fire Safety" },
+      "safety-life-raft-quiz": { route: "/safety/life-raft", label: "Life Raft & Abandon Ship" },
+      "safety-flares-quiz": { route: "/safety/flares", label: "Flares & Pyrotechnics" },
+      colregs: { route: "/rules-of-the-road", label: "Rules of the Road" },
+      "lights-signals": { route: "/rules/lights", label: "Lights & Signals Theory" },
+      pilotage: { route: "/pilotage", label: "Pilotage" },
+      weather: { route: "/weather", label: "Meteorology" },
+      "passage-planning": { route: "/passage-planning", label: "Passage Planning" },
     };
     const registeredQuizIds = new Set(topicRegistry.flatMap(({ quizRoute }) => quizRoute ? [quizRoute.replace("/quiz/", "")] : []));
 
-    expect(new Set(Object.keys(expectedRoutes))).toEqual(registeredQuizIds);
-    for (const [quizTopicId, expectedRoute] of Object.entries(expectedRoutes)) {
-      expect(resolveQuizParentDestination(quizTopicId).route).toBe(expectedRoute);
+    expect(new Set(Object.keys(expectedDestinations))).toEqual(registeredQuizIds);
+    for (const [quizTopicId, expectedDestination] of Object.entries(expectedDestinations)) {
+      expect(resolveQuizParentDestination(quizTopicId)).toEqual(expectedDestination);
     }
   });
 
