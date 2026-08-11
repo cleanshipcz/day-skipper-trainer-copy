@@ -26,7 +26,10 @@ describe("PassagePlanArtifact",()=>{
     expect(within(table).getByRole("columnheader",{name:/Course/})).toBeTruthy();
     expect(artifact.textContent).toContain("true, magnetic, or compass");
     expect(artifact.textContent).toContain("Not recorded in this plan format");
+    expect(within(artifact).getByText("Departure position (WGS84)").nextElementSibling?.textContent).toBe("50°00.0'N 001°00.0'W");
+    expect(within(artifact).getByText("Planned SOG").nextElementSibling?.textContent).toBe("5 kn");
     expect(artifact.className).toContain("is-approved");
+    expect(artifact.querySelector(".artifact-print-blocked")).toBeNull();
   });
 
   it("watermarks invalid drafts and exposes all validation issues in navigation order",()=>{
@@ -38,6 +41,8 @@ describe("PassagePlanArtifact",()=>{
     expect(artifact.textContent).toContain("Plan name is required");
     expect(artifact.textContent).toContain("Add a departure and at least one destination waypoint");
     expect(artifact.className).toContain("is-watermarked");
+    expect(within(artifact).getByRole("heading",{name:/PRINT BLOCKED/})).toBeTruthy();
+    expect(artifact.querySelector(".artifact-print-content")).toBeTruthy();
   });
 
   it("marks a valid edited revision stale and handles omitted fuel fields without invented totals",()=>{
@@ -45,5 +50,22 @@ describe("PassagePlanArtifact",()=>{
     render(<PassagePlanArtifact plan={edited} record={record} dirty={true} conflict={false}/>);
     expect(screen.getByText(/Status: STALE \/ EDITED DRAFT/).textContent).toContain("STALE / EDITED DRAFT");
     expect(screen.getByText(/Route total:/).textContent).not.toContain(" L ");
+  });
+
+  it.each([
+    ["queued", {...record,completionStatus:"queued" as const}],
+    ["draft", {...record,completedRevision:null,completionStatus:"draft" as const}],
+  ])("provides print-blocking markup for a valid %s revision",(_label,candidate)=>{
+    render(<PassagePlanArtifact plan={plan} record={candidate} dirty={false} conflict={false}/>);
+    const artifact=screen.getByTestId("passage-plan-artifact");
+    expect(artifact.className).toContain("is-watermarked");
+    expect(within(artifact).getByRole("heading",{name:/PRINT BLOCKED/})).toBeTruthy();
+  });
+
+  it("blocks printing for a conflicted revision even when the plan itself is valid",()=>{
+    render(<PassagePlanArtifact plan={plan} record={record} dirty={false} conflict/>);
+    expect(screen.getByText(/Status: CONFLICTED DRAFT/)).toBeTruthy();
+    expect(screen.getByTestId("passage-plan-artifact").className).toContain("is-watermarked");
+    expect(screen.getByRole("heading",{name:/PRINT BLOCKED/})).toBeTruthy();
   });
 });

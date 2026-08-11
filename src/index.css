@@ -184,6 +184,7 @@ All colors MUST be HSL.
 .artifact-signatures { margin-top: 1rem; border-top: 2px solid currentColor; padding-top: .75rem; break-inside: avoid; }
 .artifact-signatures > div { margin-top: 1rem; }
 .artifact-disclaimer { margin-top: .75rem; font-size: .75rem; }
+.artifact-print-blocked { display: none; }
 .artifact-watermark { position: absolute; inset: 22% auto auto 10%; z-index: 0; transform: rotate(-25deg); border: .12em solid currentColor; color: rgb(120 0 0 / .13); font-size: clamp(4rem, 14vw, 10rem); font-weight: 900; letter-spacing: .08em; pointer-events: none; }
 .passage-plan-artifact > :not(.artifact-watermark) { position: relative; z-index: 1; }
 
@@ -202,6 +203,11 @@ All colors MUST be HSL.
   .passage-plan-artifact tr, .artifact-signatures { break-inside: avoid; page-break-inside: avoid; }
   .artifact-block h3 { break-after: avoid; page-break-after: avoid; }
   .artifact-watermark { position: fixed; top: 35%; left: 12%; color: #bbb; border-color: #bbb; opacity: .42; font-size: 70pt; }
+  .passage-plan-artifact.is-watermarked .artifact-print-content,
+  .passage-plan-artifact.is-watermarked .artifact-header,
+  .passage-plan-artifact.is-watermarked .artifact-watermark { display: none !important; }
+  .passage-plan-artifact.is-watermarked .artifact-print-blocked { display: block; border: 5px double #000; padding: 15mm; margin-top: 35mm; text-align: center; font-size: 16pt; break-inside: avoid; }
+  .passage-plan-artifact.is-watermarked .artifact-print-blocked h2 { font-size: 24pt; margin-bottom: 8mm; }
 }
 
 @media print and (max-width: 180mm) {

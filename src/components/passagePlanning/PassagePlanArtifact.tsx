@@ -47,6 +47,11 @@ export function PassagePlanArtifact({ plan, record, dirty, conflict }: PassagePl
       <p className="artifact-status"><strong>Status: {stateText[state]}</strong></p>
     </header>
     {!approved && <div className="artifact-watermark" aria-hidden="true">{state === "invalid" ? "INVALID" : state === "conflict" ? "CONFLICT" : "DRAFT"}</div>}
+    {!approved && <section className="artifact-print-blocked" aria-labelledby="artifact-print-blocked-title">
+      <h2 id="artifact-print-blocked-title">PRINT BLOCKED — passage plan not approved</h2>
+      <p>{stateText[state]}. Return to the on-screen builder, correct or reconcile the plan, and confirm the current revision before printing.</p>
+    </section>}
+    <div className="artifact-print-content">
     <p className="artifact-screen-note">This accessible preview is the print artifact. Choose portrait or landscape, A4 or Letter, and scaling in the browser print dialog.</p>
 
     <dl className="artifact-metadata">
@@ -55,8 +60,10 @@ export function PassagePlanArtifact({ plan, record, dirty, conflict }: PassagePl
       <div><dt>Prepared</dt><dd>{displayTime(plan.provenance.preparedAt)}</dd></div>
       <div><dt>Revised</dt><dd>{displayTime(plan.provenance.revisedAt)}</dd></div>
       <div><dt>Departure</dt><dd>{departure?.name || "Not recorded"}</dd></div>
+      <div><dt>Departure position (WGS84)</dt><dd>{departure ? `${departure.latitude || "Not recorded"} ${departure.longitude || "Not recorded"}` : "Not recorded"}</dd></div>
       <div><dt>Destination</dt><dd>{destination && destination !== departure ? destination.name || "Not recorded" : "Not recorded"}</dd></div>
       <div><dt>Planned departure</dt><dd>{displayTime(plan.departure)}</dd></div>
+      <div><dt>Planned SOG</dt><dd>{Number.isFinite(plan.speed) ? `${plan.speed} kn` : "Not recorded"}</dd></div>
       <div><dt>Vessel</dt><dd>Not recorded in this plan format</dd></div>
       <div><dt>Author</dt><dd>Not recorded in this plan format</dd></div>
     </dl>
@@ -91,5 +98,6 @@ export function PassagePlanArtifact({ plan, record, dirty, conflict }: PassagePl
       <div><span>Skipper approval (name/signature): ____________________</span><span>Date/time: ____________________</span></div>
       <p className="artifact-disclaimer">A signature records human review; it does not replace current charts, publications, forecasts, notices, or an immediate pre-departure check.</p>
     </footer>
+    </div>
   </section>;
 }
