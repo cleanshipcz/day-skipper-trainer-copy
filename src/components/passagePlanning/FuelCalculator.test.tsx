@@ -1,4 +1,4 @@
-import { render, screen } from "@testing-library/react";
+import { fireEvent, render, screen } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { describe, expect, it, vi } from "vitest";
 import { FuelCalculator } from "./FuelCalculator";
@@ -45,8 +45,8 @@ describe("FuelCalculator", () => {
     expect(screen.getAllByRole("alert").map(node=>node.textContent).join(" ")).toMatch(/positive reserve.*vessel-specific.*why the reserve/i);
   });
   it("persists the selected resolved instant for a repeated local departure time",async()=>{
-    const user=userEvent.setup(); render(<FuelCalculator />);
-    const departure=screen.getByLabelText(/Departure date and time/); await user.type(departure,"2026-10-25T02:30");
+    const user=userEvent.setup(); render(<FuelCalculator timeZone="Europe/London" />);
+    const departure=screen.getByLabelText(/Departure date and time/); fireEvent.change(departure,{target:{value:"2026-10-25T01:30"}});
     const occurrence=screen.getByLabelText("This time occurs twice; choose the intended offset");
     await user.selectOptions(occurrence,"2026-10-25T01:30:00.000Z");
     await user.click(screen.getByRole("button",{name:"Calculate / update result"}));

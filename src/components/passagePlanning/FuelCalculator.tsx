@@ -9,10 +9,10 @@ const scenarios=[
 type Values={distanceNm:number;speedKnots:number;engineHours:number;fuelLitresPerHour:number;additionalFuelLitres:number;reservePercent:number;usableFuelLitres:number;evidence:string;reserveBasis:string;departureTime:string};
 const initial:Values={...scenarios[0]};
 
-export function FuelCalculator(){
+export function FuelCalculator({timeZone=Intl.DateTimeFormat().resolvedOptions().timeZone}:{timeZone?:string}={}){
  const [values,setValues]=useState<Values>(initial); const [result,setResult]=useState<PassageCalculation|null>(null); const [submitted,setSubmitted]=useState(values); const [departureInstant,setDepartureInstant]=useState(""); const {saveProgress}=useProgress();
  const errors=[...validatePassageInput(values),...(!values.evidence.trim()?["Record the vessel-specific speed and fuel-rate evidence."]:[]),...(!values.reserveBasis.trim()?["Record why the reserve suits this passage."]:[])];
- const timeZone=Intl.DateTimeFormat().resolvedOptions().timeZone; const instants=values.departureTime?possibleInstants(values.departureTime,timeZone):[];
+ const instants=values.departureTime?possibleInstants(values.departureTime,timeZone):[];
  const update=(next:Values)=>{setValues(next);setResult(null);setDepartureInstant("");};
  const field=(key:keyof Values,label:string,type="number")=><div><Label htmlFor={key}>{label}</Label><Input id={key} type={type} min="0" value={values[key]} onChange={e=>update({...values,[key]:type==="number"?Number(e.target.value):e.target.value})}/></div>;
  const calculate=()=>{if(errors.length||values.departureTime&&(instants.length!==1&&!departureInstant))return; const input={...values,departureTime:departureInstant||instants[0]};setSubmitted({...values,departureTime:input.departureTime||""});setResult(calculatePassage(input));};
