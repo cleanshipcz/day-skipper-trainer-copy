@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useState, type SetStateAction } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState, type SetStateAction } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -7,6 +7,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { calculateLegEtas, totalRouteDistance, type PlanLeg, type PlanWaypoint } from "@/features/passagePlanning/calculations";
 import {
   PASSAGE_PLAN_CACHE_VERSION,
+  insertWaypoint,
   parsePassagePlanCache,
   passagePlanCacheKey,
   removeWaypoint,
@@ -42,8 +43,14 @@ export function PassagePlanBuilder() {
   const { user } = useAuth();
   const { loadProgress, saveProgress } = useProgress();
   const [errors, setErrors] = useState<string[]>([]);
+  const [status, setStatus] = useState("");
+  const [dirty, setDirty] = useState(false);
+  const [saving, setSaving] = useState(false);
+  const mutationRevision = useRef(0);
+  const [undo, setUndo] = useState<{ plan: PassagePlan; message: string; focusId: string } | null>(null);
   const cacheKey = useMemo(() => passagePlanCacheKey(user?.id ?? null, anonymousSessionId()), [user?.id]);
   const [planState, setPlanState] = useState<{ key: string; plan: PassagePlan }>(() => ({ key:cacheKey, plan:initialPlan() }));
+  const [savedPlan, setSavedPlan] = useState<PassagePlan>(() => initialPlan());
   // Never render state owned by a different auth/cache boundary, even for the
   // single render before effects run.
   const plan = planState.key === cacheKey ? planState.plan : initialPlan();
@@ -58,50 +65,117 @@ export function PassagePlanBuilder() {
     let active = true;
     // Blank user-derived state synchronously at the auth/cache boundary. A
     // previous account's plan must not remain visible while hydration waits.
-    setPlan(initialPlan());
+    const fresh = initialPlan();
+    setPlan(fresh);
+    setSavedPlan(fresh);
     setErrors([]);
+    setDirty(false);
+    setUndo(null);
+    setStatus("");
+    mutationRevision.current = 0;
     const cached = readStored(localStorage, cacheKey, {
       decode: (value) => parsePassagePlanCache(JSON.stringify(value)),
     });
     if (cached) {
-      setPlan(cached);
+      setPlan(cached);setSavedPlan(cached);
     } else if (user) {
       void loadProgress("passage-planning-builder").then(row => {
         const history = row?.answers_history;
         const persisted = history && typeof history === "object" && !Array.isArray(history) && "plan" in history
           ? parsePassagePlanCache(JSON.stringify(history.plan))
           : null;
-        if (active) setPlan(persisted ?? initialPlan());
+        if (active) { const loaded=persisted ?? initialPlan();setPlan(loaded);setSavedPlan(loaded); }
       });
     }
     return () => { active = false; };
   }, [cacheKey, loadProgress, setPlan, user]);
 
+  useEffect(() => {
+    const warn = (event: BeforeUnloadEvent) => { if (dirty) { event.preventDefault();event.returnValue=""; } };
+    window.addEventListener("beforeunload", warn);
+    return () => window.removeEventListener("beforeunload", warn);
+  }, [dirty]);
+
   const etas = useMemo(() => calculateLegEtas(plan.points, plan.departure, plan.speed), [plan.points, plan.departure, plan.speed]);
   const total = totalRouteDistance(plan.points);
-  const updatePoint = (id: string, key: "name" | "latitude" | "longitude", value: string) =>
-    setPlan(current => ({ ...current, points:current.points.map(point => point.id === id ? { ...point, [key]:value } : point) }));
-  const updateLeg = (id: string, key: keyof PlanLeg, value: string) =>
-    setPlan(current => ({ ...current, points:current.points.map(point => point.id === id && point.inboundLeg ? { ...point, inboundLeg:{ ...point.inboundLeg, [key]:key === "course" || key === "distanceNm" ? Number(value) : value } } : point) }));
-  const removePoint = (id: string) => setPlan(current => ({ ...current, points:removeWaypoint(current.points, id) }));
-  const movePoint = (index: number, offset: -1 | 1) => setPlan(current => {
+  const markChanged = () => { mutationRevision.current += 1;setDirty(true);setUndo(null); };
+  const updatePoint = (id: string, key: "name" | "latitude" | "longitude", value: string) => {
+    markChanged();setPlan(current => ({ ...current, points:current.points.map(point => point.id === id ? { ...point, [key]:value } : point) }));
+  };
+  const updateLeg = (id: string, key: keyof PlanLeg, value: string) => {
+    markChanged();setPlan(current => ({ ...current, points:current.points.map(point => point.id === id && point.inboundLeg ? { ...point, inboundLeg:{ ...point.inboundLeg, [key]:key === "course" || key === "distanceNm" ? Number(value) : value } } : point) }));
+  };
+  const focusWaypoint = (id: string) => window.setTimeout(() => document.getElementById(`${id}-name`)?.focus(), 0);
+  const announce = (message: string, next: PassagePlan) => {
+    const issues = validatePassagePlan(next).length;
+    setStatus(`${message} Route total ${totalRouteDistance(next.points).toFixed(1)} nautical miles. ${issues} validation ${issues === 1 ? "issue" : "issues"}.`);
+    mutationRevision.current += 1;setDirty(true);
+  };
+  const removePoint = (id: string) => {
+    const index = plan.points.findIndex(point => point.id === id);
+    const point = plan.points[index];
+    if (!point) return;
+    const affected = index < plan.points.length - 1 ? ` The inbound leg to ${plan.points[index + 1].name || "the following waypoint"} will be cleared.` : "";
+    if (!window.confirm(`Remove ${point.name || `waypoint ${index + 1}`}?${affected}`)) return;
+    const previous = plan;
+    const points = removeWaypoint(plan.points, id);
+    const next = { ...plan, points };
+    setUndo({ plan:previous, message:`Restored ${point.name || `waypoint ${index + 1}`}.`, focusId:id });
+    setPlan(next);
+    const focus = points[Math.min(index, points.length - 1)]?.id;
+    if (focus) focusWaypoint(focus);
+    announce(`Removed ${point.name || "unnamed waypoint"} from position ${index + 1}.${affected}`, next);
+  };
+  const movePoint = (index: number, offset: -1 | 1) => {
     const target = index + offset;
-    if (target < 0 || target >= current.points.length) return current;
-    return { ...current, points:reorderWaypoint(current.points, index, target) };
-  });
-  const setNumeric = (key: "speed" | "fuelRate" | "reservePercent", value: string) => setPlan(current => ({ ...current, [key]:value === "" ? undefined : Number(value) }));
+    if (target < 0 || target >= plan.points.length) return;
+    const next = { ...plan, points:reorderWaypoint(plan.points, index, target) };
+    const moved = next.points[target];
+    setUndo(null);setPlan(next);focusWaypoint(moved.id);
+    announce(`Moved ${moved.name || "unnamed waypoint"} to position ${target + 1}. Changed inbound legs were cleared.`, next);
+  };
+  const addPoint = (index: number) => {
+    const point = blank(plan.points.length === 0);
+    const next = { ...plan, points:insertWaypoint(plan.points, point, index) };
+    setPlan(next);setUndo(null);focusWaypoint(point.id);
+    announce(`Added waypoint at position ${index + 1}.`, next);
+  };
+  const undoChange = () => {
+    if (!undo) return;
+    mutationRevision.current += 1;setPlan(undo.plan);setStatus(undo.message);focusWaypoint(undo.focusId);setUndo(null);setDirty(true);
+  };
+  const setNumeric = (key: "speed" | "fuelRate" | "reservePercent", value: string) => { markChanged();setPlan(current => ({ ...current, [key]:value === "" ? undefined : Number(value) })); };
   const save = async () => {
+    if (saving) return;
     const validationErrors = validatePassagePlan(plan);
     setErrors(validationErrors);
     if (validationErrors.length) return;
     writeStored(localStorage, cacheKey, plan);
-    await saveProgress(TOPIC_IDS.PASSAGE_PLANNING_BUILDER, true, 100, 15, { plan });
+    const submittedPlan = plan;
+    const submittedRevision = mutationRevision.current;
+    setSaving(true);setStatus("Saving plan completion…");
+    try {
+      const saved = await saveProgress(TOPIC_IDS.PASSAGE_PLANNING_BUILDER, true, 100, 15, { plan:submittedPlan });
+      if (saved) {
+        setSavedPlan(submittedPlan);
+        if (mutationRevision.current === submittedRevision) { setDirty(false);setUndo(null);setStatus("Plan saved locally and completion persisted. No unsaved changes remain."); }
+        else { setDirty(true);setStatus("Submitted plan persisted, but newer route changes remain unsaved. Save again when ready."); }
+      }
+      else { setDirty(true);setStatus("Plan saved locally, but completion was not persisted. Retry saving when ready."); }
+    } catch {
+      setDirty(true);setStatus("Plan saved locally, but completion persistence failed. Your edits remain available; retry saving when ready.");
+    } finally { setSaving(false); }
+  };
+  const reset = () => {
+    if (dirty && !window.confirm("Discard all unsaved route changes and restore the last saved plan?")) return;
+    mutationRevision.current += 1;const next=savedPlan;setPlan(next);setErrors([]);setUndo(null);setDirty(false);setStatus("Unsaved changes discarded; last saved plan restored.");focusWaypoint(next.points[0].id);
   };
 
   return <div className="space-y-5">
+    <p className="sr-only" role="status" aria-live="polite">{status}</p>
     <div className="grid sm:grid-cols-2 lg:grid-cols-5 gap-3">
-      <div><Label htmlFor="plan-name">Plan name</Label><Input id="plan-name" value={plan.name} onChange={event => setPlan(current => ({ ...current, name:event.target.value }))}/></div>
-      <div><Label htmlFor="departure">Departure</Label><Input id="departure" type="datetime-local" value={plan.departure} onChange={event => setPlan(current => ({ ...current, departure:event.target.value }))}/></div>
+      <div><Label htmlFor="plan-name">Plan name</Label><Input id="plan-name" value={plan.name} onChange={event => {markChanged();setPlan(current => ({ ...current, name:event.target.value }))}}/></div>
+      <div><Label htmlFor="departure">Departure</Label><Input id="departure" type="datetime-local" value={plan.departure} onChange={event => {markChanged();setPlan(current => ({ ...current, departure:event.target.value }))}}/></div>
       <div><Label htmlFor="speed">SOG (knots)</Label><Input id="speed" type="number" min="0.1" max="80" value={plan.speed ?? ""} onChange={event => setNumeric("speed", event.target.value)}/></div>
       <div><Label htmlFor="fuel-rate">Fuel rate (L/h, optional)</Label><Input id="fuel-rate" type="number" min="0.1" max="500" value={plan.fuelRate ?? ""} onChange={event => setNumeric("fuelRate", event.target.value)}/></div>
       <div><Label htmlFor="fuel-reserve">Fuel reserve (%, optional)</Label><Input id="fuel-reserve" type="number" min="0" max="200" value={plan.reservePercent ?? ""} onChange={event => setNumeric("reservePercent", event.target.value)}/></div>
@@ -109,7 +183,7 @@ export function PassagePlanBuilder() {
     {errors.length > 0 && <div role="alert" className="rounded-md border border-destructive p-4 text-destructive"><p className="font-semibold">Fix the following before saving:</p><ul className="list-disc pl-5">{errors.map(error => <li key={error}>{error}</li>)}</ul></div>}
     <p className="text-sm text-muted-foreground">Waypoints are ordered from departure to destination. Each arrival waypoint contains the course, distance, gate, weather and notes for the leg from the waypoint immediately above it.</p>
     {plan.points.map((point, index) => <Card key={point.id} className="break-inside-avoid">
-      <CardHeader className="flex-row items-center justify-between gap-2"><CardTitle>{index === 0 ? "Departure" : `Leg ${index}: ${plan.points[index - 1].name || "previous waypoint"} → ${point.name || "arrival waypoint"}`}</CardTitle><div className="flex gap-1"><Button aria-label={`Move waypoint ${index + 1} up`} variant="outline" size="sm" disabled={index === 0} onClick={() => movePoint(index, -1)}>↑</Button><Button aria-label={`Move waypoint ${index + 1} down`} variant="outline" size="sm" disabled={index === plan.points.length - 1} onClick={() => movePoint(index, 1)}>↓</Button><Button aria-label={`Remove waypoint ${index + 1}`} variant="destructive" size="sm" onClick={() => removePoint(point.id)}>Remove</Button></div></CardHeader>
+      <CardHeader className="flex-row items-center justify-between gap-2"><CardTitle>{index === 0 ? "Departure" : `Leg ${index}: ${plan.points[index - 1].name || "previous waypoint"} → ${point.name || "arrival waypoint"}`}</CardTitle><div className="flex flex-wrap gap-1"><Button aria-label={`Move ${point.name || `waypoint ${index + 1}`} up`} variant="outline" size="sm" disabled={index === 0} onClick={() => movePoint(index, -1)}>↑</Button><Button aria-label={`Move ${point.name || `waypoint ${index + 1}`} down`} variant="outline" size="sm" disabled={index === plan.points.length - 1} onClick={() => movePoint(index, 1)}>↓</Button><Button aria-label={`Insert waypoint after ${point.name || `waypoint ${index + 1}`}`} variant="outline" size="sm" onClick={() => addPoint(index + 1)}>Insert after</Button><Button aria-label={`Remove ${point.name || `waypoint ${index + 1}`}`} variant="destructive" size="sm" onClick={() => removePoint(point.id)}>Remove</Button></div></CardHeader>
       <CardContent className="grid sm:grid-cols-2 lg:grid-cols-3 gap-3">
         {(["name","latitude","longitude"] as const).map(key => <div key={key}><Label htmlFor={`${point.id}-${key}`}>{({ name:index === 0 ? "Departure waypoint" : index === plan.points.length - 1 ? "Destination waypoint" : "Arrival waypoint", latitude:"Latitude", longitude:"Longitude" } as const)[key]}</Label><Input id={`${point.id}-${key}`} value={point[key]} onChange={event => updatePoint(point.id, key, event.target.value)}/></div>)}
         {point.inboundLeg && <>
@@ -119,7 +193,7 @@ export function PassagePlanBuilder() {
         </>}
       </CardContent>
     </Card>)}
-    <div className="print:hidden flex flex-wrap gap-2"><Button variant="outline" onClick={() => setPlan(current => ({ ...current, points:[...current.points, blank(current.points.length === 0)] }))}>Add waypoint</Button><Button onClick={save}>Save & complete plan</Button><Button variant="outline" onClick={() => window.print()}>Print plan</Button></div>
+    <div className="print:hidden flex flex-wrap gap-2"><Button variant="outline" onClick={() => addPoint(plan.points.length)}>Add waypoint at end</Button>{undo && <Button variant="outline" onClick={undoChange}>Undo last removal</Button>}<Button disabled={saving} onClick={save}>{saving ? "Saving plan…" : "Save & complete plan"}</Button><Button variant="outline" onClick={reset}>Reset unsaved changes</Button><Button variant="outline" onClick={() => window.print()}>Print plan</Button></div>
     <Card><CardContent className="pt-6"><b>Total: {total.toFixed(1)} nm · {plan.speed > 0 ? (total / plan.speed).toFixed(1) : "—"} hours</b>{plan.fuelRate !== undefined && plan.speed > 0 && <span> · Fuel with {plan.reservePercent ?? 0}% reserve: {(total / plan.speed * plan.fuelRate * (1 + (plan.reservePercent ?? 0) / 100)).toFixed(1)} L</span>}</CardContent></Card>
   </div>;
 }

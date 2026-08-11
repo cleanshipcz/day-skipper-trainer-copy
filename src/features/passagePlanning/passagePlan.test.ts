@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { PASSAGE_PLAN_CACHE_VERSION, normalizeWaypointOrder, parsePassagePlanCache, passagePlanCacheKey, removeWaypoint, reorderWaypoint, validatePassagePlan, type PassagePlan } from "./passagePlan";
+import { PASSAGE_PLAN_CACHE_VERSION, insertWaypoint, normalizeWaypointOrder, parsePassagePlanCache, passagePlanCacheKey, removeWaypoint, reorderWaypoint, validatePassagePlan, type PassagePlan } from "./passagePlan";
 const valid: PassagePlan = { version: PASSAGE_PLAN_CACHE_VERSION, name:"Test", departure:"2026-07-30T09:00", speed:5, fuelRate:2, reservePercent:20, points:[
  {id:"1",name:"A",latitude:"",longitude:"",inboundLeg:null},
  {id:"2",name:"B",latitude:"",longitude:"",inboundLeg:{course:20,distanceNm:3,notes:"",tidalGate:"",weatherWindow:""}},
@@ -36,6 +36,21 @@ describe("passage plan validation and cache",()=>{
    expect(result[0].inboundLeg).toBeNull();
    expect(result[1].inboundLeg).toEqual({course:0,distanceNm:0,notes:"",tidalGate:"",weatherWindow:""});
    expect(result[2].inboundLeg).toEqual({course:0,distanceNm:0,notes:"",tidalGate:"",weatherWindow:""});
+ });
+ it("inserts safely at first, middle and last positions and rejects duplicate stable ids",()=>{
+   const make=(id:string)=>({id,name:id,latitude:"",longitude:"",inboundLeg:{course:12,distanceNm:2,notes:"new",tidalGate:"gate",weatherWindow:"weather"}});
+   const first=insertWaypoint(valid.points,make("first"),0);expect(first.map(point=>point.id)).toEqual(["first","1","2"]);expect(first[0].inboundLeg).toBeNull();expect(first[1].inboundLeg?.distanceNm).toBe(0);
+   const middle=insertWaypoint(valid.points,make("middle"),1);expect(middle.map(point=>point.id)).toEqual(["1","middle","2"]);expect(middle[2].inboundLeg?.distanceNm).toBe(0);
+   const last=insertWaypoint(valid.points,make("last"),99);expect(last.map(point=>point.id)).toEqual(["1","2","last"]);expect(last[1].inboundLeg).toEqual(valid.points[1].inboundLeg);
+   expect(()=>insertWaypoint(valid.points,make("2"),1)).toThrow("Duplicate waypoint id");
+ });
+ it("rejects cached plans with duplicate IDs",()=>expect(parsePassagePlanCache(JSON.stringify({...valid,points:[valid.points[0],{...valid.points[1],id:"1"}]}))).toBeNull());
+ it("keeps IDs unique through a rapid sequence of insert, move and remove operations",()=>{
+   const newPoint={id:"rapid",name:"Rapid",latitude:"",longitude:"",inboundLeg:{course:0,distanceNm:0,notes:"",tidalGate:"",weatherWindow:""}};
+   const inserted=insertWaypoint(valid.points,newPoint,1);
+   const moved=reorderWaypoint(inserted,1,2);
+   const removed=removeWaypoint(moved,"1");
+   expect(removed.map(point=>point.id)).toEqual(["2","rapid"]);expect(new Set(removed.map(point=>point.id)).size).toBe(removed.length);
  });
  it("round trips versioned valid cache",()=>expect(parsePassagePlanCache(JSON.stringify(valid))).toEqual(valid));
  it.each(["{", "null", "[]", '{"version":2}', '{"version":1,"name":"x","departure":"2026-01-01T00:00","speed":5,"points":[]}'])("ignores malformed, incomplete, or v1 cache %s",(raw)=>expect(parsePassagePlanCache(raw)).toBeNull());
