@@ -30,5 +30,6 @@
   "20260811153000_revisioned_passage_plan_progress.sql": "7ffe81f455611f210fd5b82d1da9ae56cd920851ffb39c2cc776b030eed3fb89",
   "20260811170000_readiness_record_progress.sql": "fca82657f8e8975150b75cbb1502afcfad49d1d6b0d17bf818bb7c6952553c70",
   "20260811190000_versioned_readiness_retention.sql": "fae57689e83bd1100386bbd79ea6b1bd3bc84a24a6c24810848f4cf61bd19e05",
-  "20260811210000_expand_passage_planning_quiz_attempts.sql": "ef3cc5d0e4cc2a1723db5086dad1cf3e754cabb2de4788ed9c9c613bea7d6462"
+  "20260811210000_expand_passage_planning_quiz_attempts.sql": "ef3cc5d0e4cc2a1723db5086dad1cf3e754cabb2de4788ed9c9c613bea7d6462",
+  "20260811223000_retire_legacy_mob_reviews.sql": "3ed06dd07d5d1a2b38a082bd8e500ca4b59e14ebe69e27a55c5579f271d86a88"
 }

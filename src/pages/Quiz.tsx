@@ -528,6 +528,9 @@ const Quiz = () => {
     const calculatedCompletion = topicKey === "safety-mob-quiz"
       ? mobQuizCompletionOutcome(submittedAnswers, questions)
       : quizCompletionOutcome(correctAnswers, questions.length);
+    const missedMobCriticalOutcomes = "missedCriticalIds" in calculatedCompletion
+      ? calculatedCompletion.missedCriticalIds
+      : [];
     const completion = {
       session: buildQuizSessionProgress([...submittedAnswers], currentQuestion, questions),
       correctAnswers,
@@ -577,6 +580,8 @@ const Quiz = () => {
         toast.success(
           passed
             ? "Quiz passed and saved."
+            : topicKey === "safety-mob-quiz" && missedMobCriticalOutcomes.length > 0
+              ? "Quiz saved. Review the missed critical MOB safety outcomes before this check can pass."
             : "Quiz saved. Score 70% or more to pass."
         );
         removeStored(localStorage, quizAttemptKey(owner, topicKey));

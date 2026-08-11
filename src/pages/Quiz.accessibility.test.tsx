@@ -10,12 +10,14 @@ const mocks = vi.hoisted(() => ({
   resetProgress: vi.fn(),
   loadQuizTopic: vi.fn(),
   rpc: vi.fn(),
+  toastSuccess: vi.fn(),
   user: null as { id: string } | null,
 }));
 
 vi.mock("@/contexts/AuthHooks", () => ({ useAuth: () => ({ user: mocks.user }) }));
 vi.mock("@/hooks/useProgress", () => ({ useProgress: () => mocks }));
 vi.mock("@/integrations/supabase/client", () => ({ supabase: { rpc: mocks.rpc } }));
+vi.mock("sonner", () => ({ toast: { success: mocks.toastSuccess, error: vi.fn() } }));
 vi.mock("@/data/quizzes", () => ({
   isQuizTopicId: (topic: string) => ["test", "anchorwork", "engine", "nautical-terms-quiz", "ropework", "lights-signals", "colregs", "weather", "safety-mob-quiz"].includes(topic),
   topicMeta: {
@@ -67,6 +69,7 @@ describe("Quiz accessible interaction and reflow", () => {
     mocks.resetProgress.mockReset().mockResolvedValue(true);
     mocks.loadQuizTopic.mockReset().mockResolvedValue(questions);
     mocks.rpc.mockReset().mockResolvedValue({ data: null, error: null });
+    mocks.toastSuccess.mockReset();
     mocks.user = null;
   });
 
@@ -228,6 +231,8 @@ describe("Quiz accessible interaction and reflow", () => {
     expect(await screen.findByText("75%")).toBeTruthy();
     expect(screen.getByText("Further MOB review needed")).toBeTruthy();
     expect(screen.queryByText("Applied recovery check passed")).toBeNull();
+    expect(mocks.toastSuccess).toHaveBeenCalledWith("Quiz saved. Review the missed critical MOB safety outcomes before this check can pass.");
+    expect(mocks.toastSuccess).not.toHaveBeenCalledWith("Quiz saved. Score 70% or more to pass.");
     await waitFor(() => expect(mocks.saveProgress).toHaveBeenCalledWith(
       expect.stringContaining("safety-mob-quiz"),
       false,
