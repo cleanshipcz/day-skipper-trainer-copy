@@ -80,11 +80,12 @@ export const prepareSteps: readonly PrepareStep[] = [
     letter: "E", title: "Execute and monitor", phases: ["Execution", "Monitoring"], phase: "Execution + Monitoring",
     description: "Execute the agreed plan while continuously checking position, progress, conditions and assumptions; change the plan deliberately when required.",
     considerations: [
-      "Fix position by suitable independent methods at planned intervals and before hazards; monitor cross-track error, depth and clearing limits.",
-      "Compare actual course, speed, ETA, weather, tide, traffic, fuel and crew state with the plan and log significant observations.",
+      "Set a risk-based monitoring frequency from vessel speed, position uncertainty, the fixing method available, proximity to hazards, traffic, visibility, tide, pilotage phase, and the time or distance remaining to the next decision point; there is no universal fixed interval.",
+      "Monitor frequently or continuously wherever the risk demands, with explicit checks before hazards, tidal or other gates, course alterations and handovers, and whenever visibility, weather, traffic, equipment or other conditions deteriorate.",
+      "At each check compare position, cross-track error (XTE), speed over ground (SOG), ETA, depth and observed conditions with the plan; act on deviations before margins are lost and record the observation, decision and action.",
       "Act at trigger points: slow, hold, turn back, divert or seek assistance before margins disappear.",
       "A plan is not a track to follow blindly: the skipper retains responsibility and communicates changes to the crew.",
     ],
-    example: "At each fix compare actual and planned progress; a late ETA that misses the tidal gate triggers the pre-briefed diversion.",
+    example: "In confined pilotage, use continuous track, depth and clearing-limit monitoring backed by frequent independent fixes, including checks before each alteration and hazard. In lower-risk open water, well clear of hazards in good visibility with a reliable fix, checks may be farther apart, but shorten the interval as uncertainty grows or a gate or decision point approaches. In either case, an unsafe XTE, unexpected depth or late ETA triggers the pre-briefed action and is recorded.",
   },
 ];
