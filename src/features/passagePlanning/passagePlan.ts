@@ -1,4 +1,4 @@
-import { calculatePassage, parseWaypointCoordinate, passageValidationIssues, totalRouteDistance, type PassageCalculation, type PlanWaypoint } from "./calculations";
+import { calculatePassageValues, parseWaypointCoordinate, totalRouteDistance, type PassageCalculation, type PlanWaypoint } from "./calculations";
 
 export const PASSAGE_PLAN_CACHE_VERSION = 3;
 
@@ -116,10 +116,12 @@ export type PassagePlanCalculationResult = {ok:true;totalDistanceNm:number;calcu
 /** Uses the shared calculator model and never throws on user/persisted input. */
 export function calculatePassagePlanSummary(plan:PassagePlan):PassagePlanCalculationResult {
   const totalDistanceNm=totalRouteDistance(plan.points);
-  const input={distanceNm:totalDistanceNm,speedKnots:plan.speed,engineHours:totalDistanceNm/plan.speed,fuelLitresPerHour:plan.fuelRate??1,additionalFuelLitres:0,reservePercent:plan.reservePercent??0.1,usableFuelLitres:100000,departureTime:plan.departure};
-  const issues=passageValidationIssues(input).map(issue=>issue.message);
+  const duration=totalDistanceNm/plan.speed;
+  const input={distanceNm:totalDistanceNm,speedKnots:plan.speed,engineHours:duration,fuelLitresPerHour:plan.fuelRate??1,additionalFuelLitres:0,reservePercent:plan.reservePercent??0,usableFuelLitres:100000,departureTime:plan.departure};
+  const issues=validatePassagePlan(plan).filter(issue=>/SOG|distance|duration|ETA|Fuel rate|Fuel reserve|total fuel/i.test(issue));
   if(issues.length)return {ok:false,issues};
-  try{return {ok:true,totalDistanceNm,calculation:calculatePassage(input)}}catch(error){return {ok:false,issues:[error instanceof Error?error.message:"Passage calculation failed."]}}
+  const calculation=calculatePassageValues(input);
+  return Number.isFinite(calculation.hours)&&Number.isFinite(calculation.fuelWithReserveLitres)?{ok:true,totalDistanceNm,calculation}:{ok:false,issues:["Derived passage totals must be finite."]};
 }
 
 export function validatePassagePlan(plan: PassagePlan, nowMs = Date.now()): string[] {
@@ -152,7 +154,7 @@ export function validatePassagePlan(plan: PassagePlan, nowMs = Date.now()): stri
     }
   });
   if (plan.fuelRate !== undefined && (!Number.isFinite(plan.fuelRate) || plan.fuelRate <= 0 || plan.fuelRate > 500)) errors.push("Fuel rate must be greater than 0 and no more than 500 litres/hour.");
-  if (plan.reservePercent !== undefined && (!Number.isFinite(plan.reservePercent) || plan.reservePercent < 0.1 || plan.reservePercent > 200)) errors.push("Fuel reserve must be between 0.1% and 200%.");
+  if (plan.reservePercent !== undefined && (!Number.isFinite(plan.reservePercent) || plan.reservePercent < 0 || plan.reservePercent > 200)) errors.push("Fuel reserve must be between 0% and 200%.");
   const total=totalRouteDistance(plan.points), duration=total/plan.speed, eta=Date.parse(plan.departure)+duration*3_600_000;
   if(plan.points.length>=2&&(!Number.isFinite(total)||total<=0||!Number.isFinite(duration)||duration<=0||duration>1000))errors.push("Derived route duration must be finite, positive and no more than 1,000 hours.");
   else if(plan.points.length>=2&&(!Number.isFinite(eta)||Number.isNaN(new Date(eta).getTime())))errors.push("Departure plus route duration must produce a representable ETA.");

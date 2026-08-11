@@ -74,9 +74,8 @@ export function validatePassageInput(input: PassageCalculationInput): string[] {
   return passageValidationIssues(input).map(({message})=>message);
 }
 
-export function calculatePassage(input: PassageCalculationInput): PassageCalculation {
-  const errors = validatePassageInput(input);
-  if (errors.length) throw new RangeError(errors.join(" "));
+/** Shared arithmetic model for callers that have already applied their own input contract. */
+export function calculatePassageValues(input: PassageCalculationInput): PassageCalculation {
   const hours = input.distanceNm / input.speedKnots;
   const fuelLitres = input.engineHours * input.fuelLitresPerHour;
   const subtotalFuelLitres = fuelLitres + input.additionalFuelLitres;
@@ -95,6 +94,12 @@ export function calculatePassage(input: PassageCalculationInput): PassageCalcula
     hasEnoughUsableFuel: input.usableFuelLitres >= practicalFuelLitres,
     eta: input.departureTime ? new Date(Date.parse(input.departureTime) + hours * 3_600_000).toISOString() : undefined,
   };
+}
+
+export function calculatePassage(input: PassageCalculationInput): PassageCalculation {
+  const errors = validatePassageInput(input);
+  if (errors.length) throw new RangeError(errors.join(" "));
+  return calculatePassageValues(input);
 }
 
 export function formatDuration(totalMinutes: number): string {

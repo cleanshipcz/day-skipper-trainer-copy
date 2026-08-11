@@ -79,16 +79,15 @@ export function PassagePlanBuilder() {
     setManualRevision(null);
     setFreshnessRevision(null);
     mutationRevision.current = 0;
-    const cached = readStored(localStorage, cacheKey, {
-      decode: (value) => { const result=decodePassagePlanCache(JSON.stringify(value));return result.ok?result.plan:null },
-    });
+    let localFailure="";
+    const cached = readStored(localStorage, cacheKey, { decode: (value) => { const result=decodePassagePlanCache(JSON.stringify(value));if(!result.ok)localFailure=result.message;return result.ok?result.plan:null } });
     if (cached) {
       setPlan(cached);setSavedPlan(cached);const validation=validatePassagePlan(cached);if(validation.length)setErrors(["Saved plan was recovered but needs correction; its safe fields have been preserved.",...validation]);
     } else if (user) {
       void loadProgress("passage-planning-builder").then(row => {
         const history = row?.answers_history;
         const decoded = history && typeof history === "object" && !Array.isArray(history) && "plan" in history ? decodePassagePlanCache(JSON.stringify(history.plan)) : null;
-        if (active) { const loaded=decoded?.ok?decoded.plan:initialPlan();setPlan(loaded);setSavedPlan(loaded);if(decoded&&!decoded.ok)setErrors([`${decoded.message} The training example is shown instead; no saved-plan values were silently used.`]);else if(decoded?.ok){const validation=validatePassagePlan(loaded);if(validation.length)setErrors(["Saved plan was recovered but needs correction; its safe fields have been preserved.",...validation])} }
+        if (active) { const loaded=decoded?.ok?decoded.plan:initialPlan();setPlan(loaded);setSavedPlan(loaded);if(localFailure)setErrors([`${localFailure} No local values were used.${decoded?.ok?" The remote plan was loaded.":" No remote plan was available; the training example is shown and must be verified."}`]);else if(decoded&&!decoded.ok)setErrors([`${decoded.message} The training example is shown instead; no saved-plan values were silently used.`]);else if(decoded?.ok){const validation=validatePassagePlan(loaded);if(validation.length)setErrors(["Saved plan was recovered but needs correction; its safe fields have been preserved.",...validation])} }
       });
     } else {
       try { if(localStorage.getItem(cacheKey)!==null)setErrors(["The saved plan could not be recovered safely. The training example is shown instead; verify every value before use."]); } catch { setErrors(["Saved-plan storage is unavailable. The training example is shown instead; verify every value before use."]); }
@@ -193,7 +192,7 @@ export function PassagePlanBuilder() {
       <div><Label htmlFor="departure">Departure</Label><Input id="departure" type="datetime-local" value={plan.departure} onChange={event => {markChanged();setPlan(current => ({ ...current, departure:event.target.value }))}}/></div>
       <div><Label htmlFor="speed">SOG (knots)</Label><Input id="speed" type="number" min="0.1" max="80" value={plan.speed ?? ""} onChange={event => setNumeric("speed", event.target.value)}/></div>
       <div><Label htmlFor="fuel-rate">Fuel rate (L/h, optional)</Label><Input id="fuel-rate" type="number" min="0.1" max="500" value={plan.fuelRate ?? ""} onChange={event => setNumeric("fuelRate", event.target.value)}/></div>
-      <div><Label htmlFor="fuel-reserve">Fuel reserve (%, optional)</Label><Input id="fuel-reserve" type="number" min="0.1" max="200" step="0.1" value={plan.reservePercent ?? ""} onChange={event => setNumeric("reservePercent", event.target.value)}/></div>
+      <div><Label htmlFor="fuel-reserve">Fuel reserve (%, optional; blank means 0%)</Label><Input id="fuel-reserve" type="number" min="0" max="200" step="0.1" value={plan.reservePercent ?? ""} onChange={event => setNumeric("reservePercent", event.target.value)}/></div>
     </div>
     {errors.length > 0 && <div id="plan-errors" tabIndex={-1} role="alert" className="rounded-md border border-destructive p-4 text-destructive"><p className="font-semibold">Fix the following before saving:</p><ul className="list-disc pl-5">{errors.map(error => <li key={error}>{error}</li>)}</ul></div>}
     <p className="text-sm text-muted-foreground">Waypoints are ordered from departure to destination. Each arrival waypoint contains the course, distance, gate, weather and notes for the leg from the waypoint immediately above it.</p>
