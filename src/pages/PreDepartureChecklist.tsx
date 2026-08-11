@@ -97,13 +97,13 @@ export default function PreDepartureChecklist() {
     const now = new Date();
     const readinessRecord = { ...session, catalogueFingerprint: catalogue.fingerprint, context, entries, updatedAt: now.toISOString(), expiresAt: new Date(now.getTime() + READINESS_RETENTION_DAYS * 86_400_000).toISOString(), completedAt: completed ? session.completedAt ?? now.toISOString() : undefined };
     const result = await saveProgressDetailed(TOPIC_IDS.PASSAGE_PLANNING_CHECKLIST, completed, completed ? 100 : 0, completed ? 10 : 0, { readinessRecord });
-    if (revision.current !== currentRevision) return result;
+    if (revision.current !== currentRevision) return { result, applied: false } as const;
     if (result === "remote" || result === "queued") {
       setCompletionConfirmed(completed);
       setSession(readinessRecord);
     }
     setSaveState(result === "failed" || result === "conflict" ? "failed" : result === "anonymous" ? "anonymous" : result === "queued" ? "offline" : "saved");
-    return result;
+    return { result, applied: true } as const;
   }, [catalogue.fingerprint, context, entries, saveProgressDetailed, session]);
 
   const startNewSession = (message = "Start a new readiness session? Existing saved decisions and completion evidence will be replaced.") => {
@@ -232,7 +232,7 @@ export default function PreDepartureChecklist() {
 
       <Card ref={summaryRef} tabIndex={-1} role="region" aria-labelledby="readiness-summary-heading" className={`${completionReady ? "border-success" : summary.outcome === "blocked" ? "border-destructive" : "border-accent"} focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2`}><CardHeader><CardTitle id="readiness-summary-heading">Final go / no-go summary</CardTitle></CardHeader><CardContent className="space-y-2"><p><strong>{completionReady ? "Checklist record complete" : summary.outcome === "blocked" ? "No-go — blocked items remain" : summary.complete ? "Incomplete — vessel, voyage and conditions context required" : "Incomplete — required items remain"}</strong></p><p>Satisfactory: {summary.satisfactory}. Not applicable with reason: {summary.notApplicable}. Blocked/defect/unknown: {summary.blocked}. Not checked or invalid N/A: {summary.notChecked}.</p><p className="text-sm text-muted-foreground">A complete practice record still does not certify the vessel or authorise departure. The skipper must make and continually reassess the real go/no-go decision.</p></CardContent></Card>
       <Card><CardHeader><CardTitle>Supporting lessons and tools</CardTitle></CardHeader><CardContent><p className="mb-3 text-sm text-muted-foreground">Use these for detailed calculation, inspection or drill.</p><ul className="space-y-2">{checklistSupportingRoutes.map((item) => <li key={item.route}><Link className="font-medium text-primary underline underline-offset-4" to={item.route}>{item.label}</Link><span className="text-muted-foreground"> — {item.scope}</span></li>)}</ul></CardContent></Card>
-      <Button className="min-h-11 w-full whitespace-normal sm:w-auto motion-reduce:transition-none" aria-describedby={!contextComplete ? "readiness-context-requirement" : undefined} disabled={!completionReady || loadState !== "ready" || saveState === "saving"} onClick={() => { const currentRevision = revision.current; void persistRecord(true, currentRevision).then((result) => { if (result === "remote" || result === "queued") summaryRef.current?.focus(); }); }}>Record training checklist completion</Button>
+      <Button className="min-h-[44px] w-full whitespace-normal sm:w-auto motion-reduce:transition-none" aria-describedby={!contextComplete ? "readiness-context-requirement" : undefined} disabled={!completionReady || loadState !== "ready" || saveState === "saving"} onClick={() => { const currentRevision = revision.current; void persistRecord(true, currentRevision).then(({ result, applied }) => { if (applied && (result === "remote" || result === "queued")) summaryRef.current?.focus(); }); }}>Record training checklist completion</Button>
     </main>
   );
 }

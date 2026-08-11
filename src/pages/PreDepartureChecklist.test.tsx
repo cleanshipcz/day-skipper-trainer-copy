@@ -181,6 +181,25 @@ describe("PreDepartureChecklist", () => {
     expect(saveProgressDetailed.mock.calls.at(-1)?.[1]).toBe(false);
   });
 
+  it("does not steal focus when a completion response becomes stale after an edit", async () => {
+    await renderChecklist();
+    completeContext();
+    for (let pass = 0; pass < preDepartureChecklist.length + 2; pass++) {
+      const next = screen.getAllByRole("group").map((group) => within(group).queryByRole("button", { name: "Satisfactory" })).find((button) => button && !(button as HTMLButtonElement).disabled && button.getAttribute("aria-pressed") !== "true");
+      if (!next) break;
+      fireEvent.click(next);
+    }
+    let resolveSave!: (result: "remote") => void;
+    saveProgressDetailed.mockImplementationOnce(() => new Promise((resolve) => { resolveSave = resolve; }));
+    fireEvent.click(screen.getByRole("button", { name: "Record training checklist completion" }));
+    const notes = within(itemGroup(/Review the current berth-to-berth plan/)).getByRole("textbox", { name: /notes/ });
+    notes.focus();
+    fireEvent.change(notes, { target: { value: "Changed while completion was saving" } });
+    await act(async () => { resolveSave("remote"); await Promise.resolve(); });
+    expect(document.activeElement).toBe(notes);
+    expect(document.activeElement).not.toBe(screen.getByRole("region", { name: "Final go / no-go summary" }));
+  });
+
   it("blocks completion with accessible guidance until all context is non-blank", async () => {
     await renderChecklist();
     const button = screen.getByRole("button", { name: "Record training checklist completion" });
