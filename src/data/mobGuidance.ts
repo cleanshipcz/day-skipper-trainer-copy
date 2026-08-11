@@ -38,14 +38,28 @@ export interface MobTheoryReleaseReview {
   readonly sourceEvidence: readonly string[];
 }
 
-export const isMobTheoryReleaseApproved = (review: MobTheoryReleaseReview) =>
-  Boolean(review.seamanshipReviewer?.trim()) &&
-  Boolean(review.seamanshipQualification?.trim()) &&
-  Boolean(review.medicalReviewer?.trim()) &&
-  Boolean(review.medicalQualification?.trim()) &&
-  /^\d{4}-\d{2}-\d{2}$/.test(review.approvalDate ?? "") &&
-  review.sourceEvidence.length >= 3 &&
-  review.sourceEvidence.every((source) => source.trim().length > 0);
+const normalizeReviewValue = (value: string) => value.trim().replace(/\s+/g, " ").toLocaleLowerCase("en-GB");
+
+const isCalendarDate = (value: string | null) => {
+  if (!value || !/^\d{4}-\d{2}-\d{2}$/.test(value)) return false;
+  const [year, month, day] = value.split("-").map(Number);
+  const date = new Date(Date.UTC(year, month - 1, day));
+  return date.getUTCFullYear() === year && date.getUTCMonth() === month - 1 && date.getUTCDate() === day;
+};
+
+export const isMobTheoryReleaseApproved = (review: MobTheoryReleaseReview) => {
+  const seamanshipReviewer = normalizeReviewValue(review.seamanshipReviewer ?? "");
+  const medicalReviewer = normalizeReviewValue(review.medicalReviewer ?? "");
+  const evidence = review.sourceEvidence.map(normalizeReviewValue).filter(Boolean);
+  return Boolean(seamanshipReviewer) &&
+    Boolean(review.seamanshipQualification?.trim()) &&
+    Boolean(medicalReviewer) &&
+    seamanshipReviewer !== medicalReviewer &&
+    Boolean(review.medicalQualification?.trim()) &&
+    isCalendarDate(review.approvalDate) &&
+    evidence.length >= 3 &&
+    new Set(evidence).size === evidence.length;
+};
 
 export const MOB_THEORY_RELEASE_REVIEW: MobTheoryReleaseReview = {
   seamanshipReviewer: null,
