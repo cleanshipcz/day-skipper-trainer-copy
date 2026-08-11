@@ -45,6 +45,7 @@ export function PassagePlanBuilder() {
   const [errors, setErrors] = useState<string[]>([]);
   const [status, setStatus] = useState("");
   const [dirty, setDirty] = useState(false);
+  const [saving, setSaving] = useState(false);
   const [undo, setUndo] = useState<{ plan: PassagePlan; message: string; focusId: string } | null>(null);
   const cacheKey = useMemo(() => passagePlanCacheKey(user?.id ?? null, anonymousSessionId()), [user?.id]);
   const [planState, setPlanState] = useState<{ key: string; plan: PassagePlan }>(() => ({ key:cacheKey, plan:initialPlan() }));
@@ -96,10 +97,10 @@ export function PassagePlanBuilder() {
   const etas = useMemo(() => calculateLegEtas(plan.points, plan.departure, plan.speed), [plan.points, plan.departure, plan.speed]);
   const total = totalRouteDistance(plan.points);
   const updatePoint = (id: string, key: "name" | "latitude" | "longitude", value: string) => {
-    setDirty(true);setPlan(current => ({ ...current, points:current.points.map(point => point.id === id ? { ...point, [key]:value } : point) }));
+    setDirty(true);setUndo(null);setPlan(current => ({ ...current, points:current.points.map(point => point.id === id ? { ...point, [key]:value } : point) }));
   };
   const updateLeg = (id: string, key: keyof PlanLeg, value: string) => {
-    setDirty(true);setPlan(current => ({ ...current, points:current.points.map(point => point.id === id && point.inboundLeg ? { ...point, inboundLeg:{ ...point.inboundLeg, [key]:key === "course" || key === "distanceNm" ? Number(value) : value } } : point) }));
+    setDirty(true);setUndo(null);setPlan(current => ({ ...current, points:current.points.map(point => point.id === id && point.inboundLeg ? { ...point, inboundLeg:{ ...point.inboundLeg, [key]:key === "course" || key === "distanceNm" ? Number(value) : value } } : point) }));
   };
   const focusWaypoint = (id: string) => window.setTimeout(() => document.getElementById(`${id}-name`)?.focus(), 0);
   const announce = (message: string, next: PassagePlan) => {
@@ -127,7 +128,7 @@ export function PassagePlanBuilder() {
     if (target < 0 || target >= plan.points.length) return;
     const next = { ...plan, points:reorderWaypoint(plan.points, index, target) };
     const moved = next.points[target];
-    setPlan(next);focusWaypoint(moved.id);
+    setUndo(null);setPlan(next);focusWaypoint(moved.id);
     announce(`Moved ${moved.name || "unnamed waypoint"} to position ${target + 1}. Changed inbound legs were cleared.`, next);
   };
   const addPoint = (index: number) => {
@@ -140,25 +141,32 @@ export function PassagePlanBuilder() {
     if (!undo) return;
     setPlan(undo.plan);setStatus(undo.message);focusWaypoint(undo.focusId);setUndo(null);
   };
-  const setNumeric = (key: "speed" | "fuelRate" | "reservePercent", value: string) => { setDirty(true);setPlan(current => ({ ...current, [key]:value === "" ? undefined : Number(value) })); };
+  const setNumeric = (key: "speed" | "fuelRate" | "reservePercent", value: string) => { setDirty(true);setUndo(null);setPlan(current => ({ ...current, [key]:value === "" ? undefined : Number(value) })); };
   const save = async () => {
+    if (saving) return;
     const validationErrors = validatePassagePlan(plan);
     setErrors(validationErrors);
     if (validationErrors.length) return;
     writeStored(localStorage, cacheKey, plan);
-    await saveProgress(TOPIC_IDS.PASSAGE_PLANNING_BUILDER, true, 100, 15, { plan });
-    setSavedPlan(plan);setDirty(false);setUndo(null);setStatus("Plan saved. No unsaved changes remain.");
+    setSaving(true);setStatus("Saving plan completion…");
+    try {
+      const saved = await saveProgress(TOPIC_IDS.PASSAGE_PLANNING_BUILDER, true, 100, 15, { plan });
+      if (saved) { setSavedPlan(plan);setDirty(false);setUndo(null);setStatus("Plan saved locally and completion persisted. No unsaved changes remain."); }
+      else { setDirty(true);setStatus("Plan saved locally, but completion was not persisted. Retry saving when ready."); }
+    } catch {
+      setDirty(true);setStatus("Plan saved locally, but completion persistence failed. Your edits remain available; retry saving when ready.");
+    } finally { setSaving(false); }
   };
   const reset = () => {
-    if (dirty && !window.confirm("Discard all unsaved route changes and restore the example plan?")) return;
+    if (dirty && !window.confirm("Discard all unsaved route changes and restore the last saved plan?")) return;
     const next=savedPlan;setPlan(next);setErrors([]);setUndo(null);setDirty(false);setStatus("Unsaved changes discarded; last saved plan restored.");focusWaypoint(next.points[0].id);
   };
 
   return <div className="space-y-5">
     <p className="sr-only" role="status" aria-live="polite">{status}</p>
     <div className="grid sm:grid-cols-2 lg:grid-cols-5 gap-3">
-      <div><Label htmlFor="plan-name">Plan name</Label><Input id="plan-name" value={plan.name} onChange={event => {setDirty(true);setPlan(current => ({ ...current, name:event.target.value }))}}/></div>
-      <div><Label htmlFor="departure">Departure</Label><Input id="departure" type="datetime-local" value={plan.departure} onChange={event => {setDirty(true);setPlan(current => ({ ...current, departure:event.target.value }))}}/></div>
+      <div><Label htmlFor="plan-name">Plan name</Label><Input id="plan-name" value={plan.name} onChange={event => {setDirty(true);setUndo(null);setPlan(current => ({ ...current, name:event.target.value }))}}/></div>
+      <div><Label htmlFor="departure">Departure</Label><Input id="departure" type="datetime-local" value={plan.departure} onChange={event => {setDirty(true);setUndo(null);setPlan(current => ({ ...current, departure:event.target.value }))}}/></div>
       <div><Label htmlFor="speed">SOG (knots)</Label><Input id="speed" type="number" min="0.1" max="80" value={plan.speed ?? ""} onChange={event => setNumeric("speed", event.target.value)}/></div>
       <div><Label htmlFor="fuel-rate">Fuel rate (L/h, optional)</Label><Input id="fuel-rate" type="number" min="0.1" max="500" value={plan.fuelRate ?? ""} onChange={event => setNumeric("fuelRate", event.target.value)}/></div>
       <div><Label htmlFor="fuel-reserve">Fuel reserve (%, optional)</Label><Input id="fuel-reserve" type="number" min="0" max="200" value={plan.reservePercent ?? ""} onChange={event => setNumeric("reservePercent", event.target.value)}/></div>
@@ -176,7 +184,7 @@ export function PassagePlanBuilder() {
         </>}
       </CardContent>
     </Card>)}
-    <div className="print:hidden flex flex-wrap gap-2"><Button variant="outline" onClick={() => addPoint(plan.points.length)}>Add waypoint at end</Button>{undo && <Button variant="outline" onClick={undoChange}>Undo last removal</Button>}<Button onClick={save}>Save & complete plan</Button><Button variant="outline" onClick={reset}>Reset unsaved changes</Button><Button variant="outline" onClick={() => window.print()}>Print plan</Button></div>
+    <div className="print:hidden flex flex-wrap gap-2"><Button variant="outline" onClick={() => addPoint(plan.points.length)}>Add waypoint at end</Button>{undo && <Button variant="outline" onClick={undoChange}>Undo last removal</Button>}<Button disabled={saving} onClick={save}>{saving ? "Saving plan…" : "Save & complete plan"}</Button><Button variant="outline" onClick={reset}>Reset unsaved changes</Button><Button variant="outline" onClick={() => window.print()}>Print plan</Button></div>
     <Card><CardContent className="pt-6"><b>Total: {total.toFixed(1)} nm · {plan.speed > 0 ? (total / plan.speed).toFixed(1) : "—"} hours</b>{plan.fuelRate !== undefined && plan.speed > 0 && <span> · Fuel with {plan.reservePercent ?? 0}% reserve: {(total / plan.speed * plan.fuelRate * (1 + (plan.reservePercent ?? 0) / 100)).toFixed(1)} L</span>}</CardContent></Card>
   </div>;
 }
