@@ -65,7 +65,7 @@ describe("PreDepartureChecklist", () => {
     const item = itemGroup(/Review the current berth-to-berth plan/);
     expect(item.getAttribute("aria-describedby")).toContain("passage-plan-rationale");
     expect(document.getElementById("passage-plan-state")?.textContent).toMatch(/Current state:.*Not checked/);
-    expect(within(item).getByRole("button", { name: "Satisfactory" }).className).toContain("min-h-11");
+    expect(within(item).getByRole("button", { name: "Satisfactory" }).className).toContain("min-h-[44px]");
   });
 
   it("supports a single keyboard activation and announces only the changed item", async () => {
@@ -164,7 +164,12 @@ describe("PreDepartureChecklist", () => {
     expect(saveProgressDetailed).not.toHaveBeenCalled();
     fireEvent.click(screen.getByRole("button", { name: "Record training checklist completion" }));
     await waitFor(() => expect(saveProgressDetailed).toHaveBeenLastCalledWith(expect.any(String), true, 100, 10, expect.any(Object)));
-    await waitFor(() => expect(document.activeElement).toBe(screen.getByRole("region", { name: "Final go / no-go summary" })));
+    const completionSummary = screen.getByRole("region", { name: "Final go / no-go summary" });
+    await waitFor(() => expect(document.activeElement).toBe(completionSummary));
+    const completionButton = screen.getByRole("button", { name: "Record training checklist completion" });
+    completionButton.focus();
+    fireEvent.click(completionButton);
+    await waitFor(() => expect(document.activeElement).toBe(completionSummary));
     const completionCalls = saveProgressDetailed.mock.calls.length;
     const first = itemGroup(/Review the current berth-to-berth plan/);
     fireEvent.change(within(first).getByRole("textbox", { name: /notes/ }), { target: { value: "Post-completion evidence note" } });
