@@ -17,6 +17,7 @@ vi.mock("sonner", () => ({
 describe("FireExtinguisherDrill", () => {
   beforeEach(() => {
     vi.clearAllMocks();
+    localStorage.clear();
   });
 
   it("renders a fire scenario with decision-sequence options", () => {
@@ -101,6 +102,27 @@ describe("FireExtinguisherDrill", () => {
     expect(screen.getByTestId("drill-score").textContent).toMatch(/\/ 1/);
     expect(vi.mocked(toast.success).mock.calls.length + vi.mocked(toast.error).mock.calls.length).toBe(1);
     expect(screen.getByTestId("drill-result").getAttribute("role")).toBe("status");
+  });
+
+  it.each([
+    ["forged counters", { version: 2, scenarioIds: fireResponseScenarios.map((scenario) => scenario.id), answers: [], currentIndex: fireResponseScenarios.length, answered: false, selectedOptionId: null, correctCount: 99, totalAnswered: 99 }],
+    ["duplicate scenario ids", { version: 2, scenarioIds: fireResponseScenarios.map(() => fireResponseScenarios[0].id), answers: [], currentIndex: 0, answered: false, selectedOptionId: null }],
+    ["tampered answer ledger", { version: 2, scenarioIds: fireResponseScenarios.map((scenario) => scenario.id), answers: [{ scenarioId: fireResponseScenarios[0].id, optionId: "not-an-option" }], currentIndex: 0, answered: true, selectedOptionId: "not-an-option" }],
+  ])("fails closed for %s in persisted drill state", (_label, persisted) => {
+    localStorage.setItem("fire-test", JSON.stringify(persisted));
+    const onComplete = vi.fn();
+    render(<TestRouter><FireExtinguisherDrill storageKey="fire-test" onComplete={onComplete} /></TestRouter>);
+    expect(screen.getByTestId("drill-score").textContent).toMatch(/0 \/ 0/);
+    expect(screen.getByText(/Question 1 of/i)).toBeDefined();
+    expect(onComplete).not.toHaveBeenCalled();
+  });
+
+  it("reports local persistence failure and offers an accessible retry", async () => {
+    const setItem = vi.spyOn(window.localStorage, "setItem").mockImplementation(() => { throw new DOMException("quota", "QuotaExceededError"); });
+    render(<TestRouter><FireExtinguisherDrill storageKey="blocked" onComplete={vi.fn()} /></TestRouter>);
+    expect((await screen.findByRole("alert")).textContent).toMatch(/could not be saved/i);
+    expect(screen.getByRole("button", { name: /retry local save/i })).toBeDefined();
+    setItem.mockRestore();
   });
 
   it("should render a reset button to restart the drill", () => {

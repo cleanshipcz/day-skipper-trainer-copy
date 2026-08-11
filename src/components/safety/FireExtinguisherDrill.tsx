@@ -19,6 +19,7 @@ export interface DrillResult {
   readonly correctCount: number;
   readonly totalAnswered: number;
   readonly incorrectScenarioIds: readonly string[];
+  readonly browserPersisted: boolean;
 }
 
 export const FIRE_DRILL_PASS_PERCENT = 80;
@@ -50,6 +51,7 @@ interface DrillState {
   readonly correctCount: number;
   readonly totalAnswered: number;
   readonly incorrectScenarioIds: readonly string[];
+  readonly answers: readonly { scenarioId: string; optionId: string }[];
 }
 
 const initialState = (scenarios: readonly FireResponseScenario[]): DrillState => ({
@@ -60,18 +62,30 @@ const initialState = (scenarios: readonly FireResponseScenario[]): DrillState =>
   correctCount: 0,
   totalAnswered: 0,
   incorrectScenarioIds: [],
+  answers: [],
 });
 
 const restoreState = (storageKey?: string): DrillState => {
   if (!storageKey) return initialState(fireResponseScenarios);
   try {
-    const saved = JSON.parse(localStorage.getItem(storageKey) ?? "null") as Partial<DrillState> & { scenarioIds?: unknown };
+    const saved = JSON.parse(localStorage.getItem(storageKey) ?? "null") as Partial<DrillState> & { version?: unknown; scenarioIds?: unknown; answers?: unknown };
+    if (saved.version !== 2) return initialState(fireResponseScenarios);
     const ids = Array.isArray(saved.scenarioIds) ? saved.scenarioIds.filter((id): id is string => typeof id === "string") : [];
     const scenarios = ids.map((id) => fireResponseScenarios.find((scenario) => scenario.id === id)).filter((scenario): scenario is FireResponseScenario => Boolean(scenario));
-    if (scenarios.length !== fireResponseScenarios.length || typeof saved.currentIndex !== "number") return initialState(fireResponseScenarios);
-    const totalAnswered = Math.min(scenarios.length, Math.max(0, Number(saved.totalAnswered) || 0));
-    const incorrectScenarioIds = Array.isArray(saved.incorrectScenarioIds) ? saved.incorrectScenarioIds.filter((id): id is string => typeof id === "string" && scenarios.some((scenario) => scenario.id === id)) : [];
-    return { scenarios, currentIndex: Math.min(scenarios.length, Math.max(0, saved.currentIndex)), selectedOptionId: typeof saved.selectedOptionId === "string" ? saved.selectedOptionId : null, answered: saved.answered === true, correctCount: Math.min(totalAnswered, Math.max(0, Number(saved.correctCount) || 0)), totalAnswered, incorrectScenarioIds };
+    const canonicalIds = new Set(fireResponseScenarios.map((scenario) => scenario.id));
+    if (scenarios.length !== fireResponseScenarios.length || new Set(ids).size !== ids.length || ids.some((id) => !canonicalIds.has(id)) || !Array.isArray(saved.answers)) return initialState(fireResponseScenarios);
+    const answers = saved.answers.filter((answer): answer is { scenarioId: string; optionId: string } => Boolean(answer) && typeof answer === "object" && typeof (answer as { scenarioId?: unknown }).scenarioId === "string" && typeof (answer as { optionId?: unknown }).optionId === "string");
+    if (answers.length !== saved.answers.length || answers.length > scenarios.length || new Set(answers.map((answer) => answer.scenarioId)).size !== answers.length) return initialState(fireResponseScenarios);
+    if (answers.some((answer, index) => answer.scenarioId !== scenarios[index]?.id || !scenarios[index]?.options.some((option) => option.id === answer.optionId))) return initialState(fireResponseScenarios);
+    const answered = saved.answered === true;
+    const expectedIndex = answered ? answers.length - 1 : answers.length;
+    if (answers.length === 0 && answered || expectedIndex < 0 || saved.currentIndex !== expectedIndex) return initialState(fireResponseScenarios);
+    const selectedOptionId = typeof saved.selectedOptionId === "string" ? saved.selectedOptionId : null;
+    const selectedIsValid = expectedIndex < scenarios.length && selectedOptionId !== null && scenarios[expectedIndex].options.some((option) => option.id === selectedOptionId);
+    if (answered ? selectedOptionId !== answers.at(-1)?.optionId : selectedOptionId !== null && !selectedIsValid) return initialState(fireResponseScenarios);
+    const correctCount = answers.filter((answer, index) => scenarios[index].correctOptionId === answer.optionId).length;
+    const incorrectScenarioIds = answers.filter((answer, index) => scenarios[index].correctOptionId !== answer.optionId).map((answer) => answer.scenarioId);
+    return { scenarios, currentIndex: expectedIndex, selectedOptionId, answered, correctCount, totalAnswered: answers.length, incorrectScenarioIds, answers };
   } catch { return initialState(fireResponseScenarios); }
 };
 
@@ -83,6 +97,8 @@ export const FireExtinguisherDrill = ({ onComplete, storageKey }: FireExtinguish
   const completedRef = useRef(false);
   const submittedScenarioRef = useRef<string | null>(null);
   const feedbackRef = useRef<HTMLDivElement>(null);
+  const browserPersistedRef = useRef(!storageKey);
+  const [storageFailed, setStorageFailed] = useState(false);
 
   const currentScenario = state.scenarios[state.currentIndex] as
     | FireResponseScenario
@@ -96,7 +112,11 @@ export const FireExtinguisherDrill = ({ onComplete, storageKey }: FireExtinguish
 
   useEffect(() => {
     if (!storageKey) return;
-    try { localStorage.setItem(storageKey, JSON.stringify({ ...state, scenarios: undefined, scenarioIds: state.scenarios.map((scenario) => scenario.id) })); } catch { /* Parent save status reports durable failures. */ }
+    try {
+      localStorage.setItem(storageKey, JSON.stringify({ version: 2, scenarioIds: state.scenarios.map((scenario) => scenario.id), answers: state.answers, currentIndex: state.currentIndex, selectedOptionId: state.selectedOptionId, answered: state.answered }));
+      browserPersistedRef.current = true;
+      setStorageFailed(false);
+    } catch { browserPersistedRef.current = false; setStorageFailed(true); }
   }, [state, storageKey]);
 
   // H1: Fire onComplete callback when drill finishes (once only)
@@ -107,6 +127,7 @@ export const FireExtinguisherDrill = ({ onComplete, storageKey }: FireExtinguish
         correctCount: state.correctCount,
         totalAnswered: state.totalAnswered,
         incorrectScenarioIds: state.incorrectScenarioIds,
+        browserPersisted: browserPersistedRef.current,
       });
     }
   }, [isComplete, onComplete, state.correctCount, state.incorrectScenarioIds, state.totalAnswered]);
@@ -143,6 +164,7 @@ export const FireExtinguisherDrill = ({ onComplete, storageKey }: FireExtinguish
         correctCount: prev.correctCount + (correct ? 1 : 0),
         totalAnswered: Math.min(prev.scenarios.length, prev.totalAnswered + 1),
         incorrectScenarioIds: correct ? prev.incorrectScenarioIds : [...new Set([...prev.incorrectScenarioIds, scenario.id])],
+        answers: [...prev.answers, { scenarioId: scenario.id, optionId: prev.selectedOptionId }],
       };
     });
   }, []);
@@ -166,6 +188,15 @@ export const FireExtinguisherDrill = ({ onComplete, storageKey }: FireExtinguish
     setState(initialState(fireResponseScenarios));
   }, [storageKey]);
 
+  const retryStorage = useCallback(() => {
+    if (!storageKey) return;
+    try {
+      localStorage.setItem(storageKey, JSON.stringify({ version: 2, scenarioIds: state.scenarios.map((scenario) => scenario.id), answers: state.answers, currentIndex: state.currentIndex, selectedOptionId: state.selectedOptionId, answered: state.answered }));
+      browserPersistedRef.current = true;
+      setStorageFailed(false);
+    } catch { browserPersistedRef.current = false; setStorageFailed(true); }
+  }, [state, storageKey]);
+
   if (isComplete) {
     const scorePercent = state.totalAnswered === 0 ? 0 : Math.round((state.correctCount / state.totalAnswered) * 100);
     const passed = state.totalAnswered === state.scenarios.length && scorePercent >= FIRE_DRILL_PASS_PERCENT;
@@ -178,6 +209,7 @@ export const FireExtinguisherDrill = ({ onComplete, storageKey }: FireExtinguish
           </CardDescription>
         </CardHeader>
         <CardContent className="space-y-4">
+          {storageFailed && <div role="alert" className="flex flex-wrap items-center gap-2 text-sm text-destructive">Progress is not saved on this device. <Button type="button" size="sm" variant="outline" onClick={retryStorage}>Retry local save</Button></div>}
           <div data-testid="drill-score" className="text-center text-2xl font-bold">
             {state.correctCount} / {state.totalAnswered}
           </div>
@@ -198,6 +230,7 @@ export const FireExtinguisherDrill = ({ onComplete, storageKey }: FireExtinguish
 
   return (
     <div className="space-y-6">
+      {storageFailed && <div role="alert" className="flex flex-wrap items-center gap-2 text-sm text-destructive">Progress could not be saved on this device. <Button type="button" size="sm" variant="outline" onClick={retryStorage}>Retry local save</Button></div>}
       <div className="flex min-w-0 flex-wrap items-center justify-between gap-2">
         <div data-testid="drill-score" className="text-sm text-muted-foreground">
           Score: {state.correctCount} / {state.totalAnswered} &middot; Question{" "}

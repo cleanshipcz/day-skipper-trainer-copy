@@ -1,5 +1,5 @@
 import { useNavigate } from "react-router-dom";
-import { useState, useCallback, useMemo, useRef } from "react";
+import { useState, useCallback, useMemo, useRef, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import {
   Card,
@@ -48,23 +48,37 @@ const FireSafetyTheory = ({ releaseReview = FIRE_SAFETY_RELEASE_REVIEW }: FireSa
   const theoryGate = useTheoryCompletionGate({ topicId: TOPIC_IDS.SAFETY_FIRE, requiredSectionIds: theorySectionIds, catalogueRevision: "fire-safety-v2", pointsOnComplete: 10, acceptLegacyCompleted: true });
   const [activeTab, setActiveTab] = useState("fire-triangle");
   const [drillSaveState, setDrillSaveState] = useState<"idle" | "saving" | "saved" | "queued" | "local" | "failed" | "retry">("idle");
-  const drillSaveRef = useRef<Promise<void> | null>(null);
+  const drillSaveRef = useRef<{ generation: number; promise: Promise<void> } | null>(null);
+  const drillOwnerRef = useRef(ownerId);
+  const drillGenerationRef = useRef(0);
   const releaseApproved = isFireSafetyReleaseApproved(releaseReview);
+
+  useEffect(() => {
+    if (drillOwnerRef.current === ownerId) return;
+    drillOwnerRef.current = ownerId;
+    drillGenerationRef.current += 1;
+    drillSaveRef.current = null;
+    setDrillSaveState("idle");
+  }, [ownerId]);
 
   const handleMarkComplete = useCallback(() => void theoryGate.markCompleted(), [theoryGate]);
 
   const handleDrillComplete = useCallback(
     (result: DrillResult) => {
-      if (drillSaveRef.current) return;
+      const generation = drillGenerationRef.current;
+      if (drillSaveRef.current?.generation === generation) return;
       const total = Math.min(fireResponseScenarios.length, result.totalAnswered);
       const correct = Math.min(total, result.correctCount);
       const score = total === 0 ? 0 : Math.round((correct / total) * 100);
       const passed = total === fireResponseScenarios.length && score >= FIRE_DRILL_PASS_PERCENT;
       setDrillSaveState("saving");
       const operation = saveProgressDetailed(TOPIC_IDS.SAFETY_FIRE_DRILL, passed, score, passed ? 10 : 0, { catalogueRevision: "fire-drill-v2", correctCount: correct, totalAnswered: total, incorrectScenarioIds: result.incorrectScenarioIds, passed })
-        .then((outcome) => setDrillSaveState(outcome === "remote" ? "saved" : outcome === "queued" ? "queued" : outcome === "anonymous" ? "local" : "failed"))
-        .finally(() => { drillSaveRef.current = null; });
-      drillSaveRef.current = operation;
+        .then((outcome) => {
+          if (drillGenerationRef.current !== generation) return;
+          setDrillSaveState(outcome === "remote" ? "saved" : outcome === "queued" ? "queued" : outcome === "anonymous" && result.browserPersisted ? "local" : "failed");
+        })
+        .finally(() => { if (drillSaveRef.current?.generation === generation) drillSaveRef.current = null; });
+      drillSaveRef.current = { generation, promise: operation };
     },
     [saveProgressDetailed]
   );

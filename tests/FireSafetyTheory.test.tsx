@@ -19,12 +19,12 @@ const approvedReview: FireSafetyReleaseReview = {
 const mockOnComplete = vi.fn();
 vi.mock("@/components/safety/FireExtinguisherDrill", () => ({
   FIRE_DRILL_PASS_PERCENT: 80,
-  FireExtinguisherDrill: ({ onComplete }: { onComplete?: (result: { correctCount: number; totalAnswered: number; incorrectScenarioIds: string[] }) => void }) => {
+  FireExtinguisherDrill: ({ onComplete }: { onComplete?: (result: { correctCount: number; totalAnswered: number; incorrectScenarioIds: string[]; browserPersisted: boolean }) => void }) => {
     // Store the callback so tests can invoke it
     mockOnComplete.mockImplementation((result) => onComplete?.(result));
     return (
       <div data-testid="fire-extinguisher-drill">
-        <button data-testid="simulate-drill-complete" onClick={() => onComplete?.({ correctCount: 5, totalAnswered: 6, incorrectScenarioIds: [] })}>
+        <button data-testid="simulate-drill-complete" onClick={() => onComplete?.({ correctCount: 5, totalAnswered: 6, incorrectScenarioIds: [], browserPersisted: true })}>
           Complete Drill
         </button>
       </div>
@@ -34,13 +34,14 @@ vi.mock("@/components/safety/FireExtinguisherDrill", () => ({
 
 const mockSaveProgress = vi.fn();
 const mockLoadProgressDetailed = vi.fn();
+const progressOwner = vi.hoisted(() => ({ id: null as string | null }));
 
 vi.mock("@/hooks/useProgress", () => ({
   useProgress: () => ({
     saveProgress: mockSaveProgress,
     saveProgressDetailed: mockSaveProgress,
     loadProgressDetailed: mockLoadProgressDetailed,
-    ownerId: null,
+    ownerId: progressOwner.id,
   }),
 }));
 
@@ -48,6 +49,7 @@ describe("FireSafetyTheory Page", () => {
   beforeEach(() => {
     vi.clearAllMocks();
     localStorage.clear();
+    progressOwner.id = null;
     mockLoadProgressDetailed.mockResolvedValue({ status: "anonymous", record: null });
     mockSaveProgress.mockResolvedValue("anonymous");
   });
@@ -246,6 +248,28 @@ describe("FireSafetyTheory Page", () => {
       10,
       expect.objectContaining({ passed: true, totalAnswered: fireResponseScenarios.length }),
     );
+  });
+
+  it("scopes in-flight drill saves to the current auth owner", async () => {
+    const user = userEvent.setup();
+    progressOwner.id = "owner-a";
+    let resolveA!: (value: "remote" | "failed") => void;
+    let resolveB!: (value: "remote" | "failed") => void;
+    mockSaveProgress
+      .mockReturnValueOnce(new Promise((resolve) => { resolveA = resolve; }))
+      .mockReturnValueOnce(new Promise((resolve) => { resolveB = resolve; }));
+    const view = render(<TestRouter><FireSafetyTheory releaseReview={approvedReview} /></TestRouter>);
+    await user.click(screen.getByRole("tab", { name: /drill/i }));
+    await user.click(screen.getByTestId("simulate-drill-complete"));
+    progressOwner.id = "owner-b";
+    view.rerender(<TestRouter><FireSafetyTheory releaseReview={approvedReview} /></TestRouter>);
+    await user.click(await screen.findByTestId("simulate-drill-complete"));
+    resolveB("remote");
+    expect(await screen.findByText(/drill evidence saved to your account/i)).toBeDefined();
+    resolveA("failed");
+    await Promise.resolve();
+    expect(screen.getByText(/drill evidence saved to your account/i)).toBeDefined();
+    expect(mockSaveProgress).toHaveBeenCalledTimes(2);
   });
 
   // M4: Quiz link navigation button
