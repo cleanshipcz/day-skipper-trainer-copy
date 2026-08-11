@@ -15,6 +15,7 @@ declare
   v_existing jsonb;
   v_existing_completed boolean := false;
   v_completion_awarded boolean := false;
+  v_points_awarded boolean := false;
 begin
   if v_user_id is null then raise exception 'Authentication required' using errcode='42501'; end if;
   if p_score is null or p_score < 0 or p_score > 100 then raise exception 'Score must be between 0 and 100' using errcode='22023'; end if;
@@ -53,11 +54,22 @@ begin
     last_accessed=excluded.last_accessed,
     answers_history=excluded.answers_history;
 
-  return query select false,v_completion_awarded,0;
+  if v_completion_awarded then
+    insert into public.progress_awards(user_id,topic_id,points)
+    values(v_user_id,v_topic_id,15)
+    on conflict(user_id,topic_id) do nothing
+    returning true into v_points_awarded;
+    if coalesce(v_points_awarded,false) then
+      update public.profiles set points=coalesce(points,0)+15 where user_id=v_user_id;
+    end if;
+  end if;
+
+  return query select coalesce(v_points_awarded,false),v_completion_awarded,
+    case when coalesce(v_points_awarded,false) then 15 else 0 end;
 end;
 $$;
 
 revoke all on function public.save_passage_plan_progress(boolean,integer,jsonb) from public,anon;
 grant execute on function public.save_passage_plan_progress(boolean,integer,jsonb) to authenticated;
 comment on function public.save_passage_plan_progress(boolean,integer,jsonb)
-is 'CAS persistence for owner-bound revisioned passage plans; material drafts deliberately stale prior completion.';
+is 'CAS persistence for owner-bound revisioned passage plans; material drafts stale prior completion and first completion awards 15 server-owned points idempotently.';
