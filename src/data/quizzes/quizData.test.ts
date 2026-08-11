@@ -183,6 +183,42 @@ describe("Ropework taught-to-assessed coverage", () => {
 });
 
 describe("MOB safety guidance", () => {
+  it("maps every required applied recovery outcome to valid questions", async () => {
+    const { default: questions, MOB_LEARNING_OUTCOMES } = await import("./safetyMob");
+    const ids = new Set(questions.map(({ id }) => id));
+
+    expect(Object.keys(MOB_LEARNING_OUTCOMES).sort()).toEqual([
+      "aftercare",
+      "alarm-mark-spotter",
+      "crew-roles",
+      "distress",
+      "equipment-methods",
+      "incapacitated-cold-handling",
+      "integrated-recovery",
+      "prevention-drills",
+      "propeller-safety",
+      "return-approach",
+      "vessel-control",
+    ]);
+    for (const [outcome, assessedBy] of Object.entries(MOB_LEARNING_OUTCOMES)) {
+      expect(assessedBy.length, `${outcome} is not assessed`).toBeGreaterThan(0);
+      assessedBy.forEach((id) => expect(ids.has(id), `${outcome} references missing ${id}`).toBe(true));
+    }
+    expect(new Set(Object.values(MOB_LEARNING_OUTCOMES).flat()).size).toBe(questions.length);
+  });
+
+  it("publishes a prerequisite, objective and lesson remediation path for every MOB scenario", async () => {
+    const { default: questions } = await import("./safetyMob");
+
+    for (const question of questions) {
+      expect(question.learningObjective).toBeTruthy();
+      expect(question.prerequisite).toMatch(/review.*lesson.*practise.*vessel/i);
+      expect(question.remediationRoute).toBe("/safety/mob");
+      expect(question.explanation).toMatch(/review/i);
+    }
+    expect(questions.filter(({ question }) => /which|what/i.test(question))).toHaveLength(12);
+  });
+
   it("preserves context-dependent recovery, distress and casualty-handling safeguards", async () => {
     const { default: questions } = await import("./safetyMob");
     const byId = new Map(questions.map((question) => [question.id, question]));
@@ -197,27 +233,36 @@ describe("MOB safety guidance", () => {
         return [question.question, ...question.options, question.explanation];
       }).join(" ");
 
-    expect(correctOption("mob2")).toMatch(/vessel, rig, wind and sea state/i);
-    expect(byId.get("mob2")?.explanation).toMatch(/abort early/i);
-    expect(byId.get("mob2")?.explanation).toMatch(/neutral or stop the engine/i);
-    expect(copyFor("mob2")).not.toMatch(/casualty (?:is|on your) (?:the )?leeward side/i);
+    expect(correctOption("mob4")).toMatch(/vessel, rig, wind, sea state, traffic and sea room/i);
+    expect(byId.get("mob4")?.explanation).toMatch(/no named return or approach is universal/i);
+    expect(byId.get("mob4")?.explanation).toMatch(/abort early/i);
+    expect(copyFor("mob4")).not.toMatch(/casualty (?:is|on your) (?:the )?leeward side/i);
 
-    expect(correctOption("mob4")).toBe("Returning to a casualty in open water/fog");
-    expect(byId.get("mob4")?.explanation).toMatch(/not a universal small-craft response/i);
-    expect(byId.get("mob4")?.explanation).toMatch(/vessel handling, sea room, traffic and conditions/i);
-    expect(byId.get("mob4")?.explanation).not.toMatch(/brings the vessel back exactly/i);
-    expect(correctOption("mob9")).toMatch(/vessel- and condition-dependent/i);
-    expect(byId.get("mob9")?.explanation).toMatch(/not an exact guarantee for every craft/i);
-    expect(byId.get("mob9")?.explanation).toMatch(/sea room, traffic and conditions/i);
+    expect(correctOption("mob5")).toMatch(/neutral or stop the engine/i);
+    expect(byId.get("mob5")?.explanation).toMatch(/fatal injury/i);
 
-    expect(correctOption("mob5")).toMatch(/horizontally or near-horizontally/i);
-    expect(copyFor("mob5")).not.toMatch(/reflow syndrome|cold blood.*rush/i);
+    expect(correctOption("mob8")).toMatch(/horizontal or near-horizontal/i);
+    expect(copyFor("mob8")).not.toMatch(/reflow syndrome|cold blood.*rush/i);
 
-    expect(correctOption("mob8")).toMatch(/DSC distress alert.*Channel 16/i);
-    expect(byId.get("mob8")?.explanation).toMatch(/Channel 70.*digital-only/i);
+    expect(correctOption("mob3")).toMatch(/DSC distress alert.*Channel 16/i);
+    expect(byId.get("mob3")?.explanation).toMatch(/Channel 70 is digital-only/i);
 
-    expect(correctOption("mob12")).toMatch(/assistance required.*other useful information/i);
-    expect(byId.get("mob12")?.explanation).toMatch(/MMSI is not universally available/i);
+    expect(correctOption("mob12")).toMatch(/abort early under control/i);
+    expect(byId.get("mob12")?.explanation).toMatch(/additional casualties/i);
+  });
+
+  it("reconciles parent and result copy with the 12-item applied check", async () => {
+    const { readFile } = await import("node:fs/promises");
+    const [parent, quiz, registry] = await Promise.all([
+      readFile(`${process.cwd()}/src/pages/ManOverboardTheory.tsx`, "utf8"),
+      readFile(`${process.cwd()}/src/pages/Quiz.tsx`, "utf8"),
+      readFile(`${process.cwd()}/src/data/quizzes/index.ts`, "utf8"),
+    ]);
+
+    expect(parent).toMatch(/complete recovery plan across 12 scenarios/i);
+    expect(parent).not.toMatch(/5 questions on Man Overboard/i);
+    expect(registry).toMatch(/Man Overboard Applied Recovery Check/);
+    expect(quiz).toMatch(/records quiz completion, not operational mastery/i);
   });
 
   it("keeps the supporting lesson's MAYDAY opening and sailing return context safe", async () => {

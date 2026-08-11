@@ -642,6 +642,7 @@ const Quiz = () => {
     const missedQuestions = questions.filter((question, index) => completedAnswers[index] !== question.correctAnswer);
     const weatherLeaves = topicKey === "weather" ? buildWeatherLeafResults(questions, completedAnswers) : [];
     const weatherMessage = weatherResultMessage(percentage);
+    const isMobQuiz = topicKey === "safety-mob-quiz";
 
     return (
       <div className="min-h-screen bg-gradient-to-br from-background via-ocean-light/10 to-background flex items-center justify-center p-3 sm:p-4">
@@ -668,6 +669,17 @@ const Quiz = () => {
               <div className={`p-4 border-2 rounded-lg text-center ${passed ? "bg-success/10 border-success" : "bg-accent/10 border-accent"}`} role="status" aria-live="polite">
                 <p className={`font-semibold ${passed ? "text-success" : "text-accent"}`}>{weatherMessage.heading}</p>
                 <p className="text-sm text-muted-foreground mt-1">{weatherMessage.detail}</p>
+              </div>
+            ) : isMobQuiz ? (
+              <div className={`p-4 border-2 rounded-lg text-center ${passed ? "bg-success/10 border-success" : "bg-accent/10 border-accent"}`} role="status" aria-live="polite">
+                <p className={`font-semibold ${passed ? "text-success" : "text-accent"}`}>
+                  {passed ? "Applied recovery check passed" : "Further MOB review needed"}
+                </p>
+                <p className="text-sm text-muted-foreground mt-1">
+                  {passed
+                    ? "This 12-scenario result records quiz completion, not operational mastery. Rehearse the recovery plan aboard your vessel and correct every missed objective."
+                    : "Review every missed objective in the Man Overboard lesson, then retry and rehearse the vessel-specific recovery plan."}
+                </p>
               </div>
             ) : passed ? (
               <div className="p-4 bg-success/10 border-2 border-success rounded-lg text-center">

@@ -245,7 +245,10 @@ const ManOverboardTheory = () => {
 
             <div className="mt-8 p-6 bg-muted/50 rounded-xl text-center border">
               <h3 className="text-lg font-bold mb-2">Ready for the Theory Test?</h3>
-              <p className="text-muted-foreground mb-4">Challenge yourself with 5 questions on Man Overboard theory.</p>
+              <p className="text-muted-foreground mb-4">
+                Apply the complete recovery plan across 12 scenarios. Review this lesson and practise your vessel's own
+                recovery plan first; missed objectives link back here for remediation.
+              </p>
               <Button onClick={() => navigate("/quiz/safety-mob-quiz")} className="min-w-[200px]">
                 Take the MOB Quiz
               </Button>

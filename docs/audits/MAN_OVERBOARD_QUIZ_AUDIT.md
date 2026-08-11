@@ -11,7 +11,24 @@
 - MCA, [MGN 570 Amendment No. 1 (F)](https://www.gov.uk/government/publications/mgn-570-amendment-no-1-f-fishing-vessels-emergency-drills/mgn-570-amendment-no-1-f-fishing-vessels-emergency-drills): vessel-dependent MOB drills, DSC/Channel 16 alerting and conditional use of a Williamson turn. Accessed 11 August 2026.
 - IMO, *IAMSAR Manual*, amendments in [MSC.1/Circ.1594](https://wwwcdn.imo.org/localresources/en/OurWork/Safety/Documents/Documents%20relevant%20to%20SAR/MSC.1-CIRC.1594%20Amendments%20to%20IAMSAR%20Manual.pdf): purpose, characteristics and standard helm sequence of the Williamson turn. Accessed 11 August 2026.
 
-## Question-by-question findings
+## 2026-08-11 applied-outcome revision
+
+The stable `mob1`–`mob12` identifiers are retained for progress compatibility, but the former recall-heavy content is replaced. `MOB_LEARNING_OUTCOMES` is the machine-tested traceability source for alarm/mark/spotter, vessel control, distress, return/approach, propeller safety, equipment/methods, incapacitated/cold handling, aftercare, prevention/drills, crew roles, and an integrated recovery decision. Every item now declares its objective, prerequisite and `/safety/mob` remediation route.
+
+The parent lesson now advertises all 12 scenarios. A 70% result remains the application's existing pass threshold, but MOB result copy explicitly calls it quiz completion rather than operational mastery and directs the learner to correct misses and rehearse aboard the actual vessel.
+
+### Release gate: qualified review required
+
+This change is not a substitute for practical instruction or vessel-specific drills. Before release, a suitably qualified maritime safety/first-aid SME must review and sign off:
+
+- manoeuvring and approach advice across representative sailing/powered craft and conditions;
+- recovery equipment, securing, lifting and propeller controls;
+- cold-water casualty handling, first aid and escalation wording;
+- scenario keys and distractor corrections against the cited current guidance.
+
+Record the reviewer's name/qualification, date, findings and disposition in the PR or release record. Until that evidence exists, the content is **pending SME release approval**.
+
+## Superseded question-by-question findings (pre-revision bank)
 
 | ID | Review result |
 | --- | --- |
