@@ -1,6 +1,6 @@
-import type { PlanWaypoint } from "./calculations";
+import { parseWaypointCoordinate, type PlanWaypoint } from "./calculations";
 
-export const PASSAGE_PLAN_CACHE_VERSION = 2;
+export const PASSAGE_PLAN_CACHE_VERSION = 3;
 
 export interface PassagePlan {
   version: typeof PASSAGE_PLAN_CACHE_VERSION;
@@ -10,6 +10,11 @@ export interface PassagePlan {
   fuelRate?: number;
   reservePercent?: number;
   points: PlanWaypoint[];
+  coordinateFormat: "degrees-decimal-minutes";
+  datum: "WGS84";
+  coordinatePrecision: string;
+  safety: { departureBerth:string; destinationBerth:string; limits:string; abortDecision:string; alternatives:string; manualVerification:string };
+  provenance: { weather:string; tide:string; chart:string; publications:string; preparedAt:string; revisedAt:string };
 }
 
 const emptyInboundLeg = () => ({ course:0, distanceNm:0, notes:"", tidalGate:"", weatherWindow:"" });
@@ -80,6 +85,8 @@ export function parsePassagePlanCache(raw: string | null): PassagePlan | null {
       typeof plan.name !== "string" ||
       typeof plan.departure !== "string" ||
       typeof plan.speed !== "number" ||
+      plan.coordinateFormat !== "degrees-decimal-minutes" || plan.datum !== "WGS84" || typeof plan.coordinatePrecision !== "string" ||
+      !plan.safety || typeof plan.safety !== "object" || !plan.provenance || typeof plan.provenance !== "object" ||
       !Array.isArray(plan.points) ||
       !plan.points.every(isWaypoint) ||
       (plan.fuelRate !== undefined && typeof plan.fuelRate !== "number") ||
@@ -92,16 +99,28 @@ export function parsePassagePlanCache(raw: string | null): PassagePlan | null {
   }
 }
 
-export function validatePassagePlan(plan: PassagePlan): string[] {
+export function validatePassagePlan(plan: PassagePlan, nowMs = Date.now()): string[] {
   const errors: string[] = [];
   if (!plan.name.trim()) errors.push("Plan name is required.");
   if (!plan.departure || Number.isNaN(Date.parse(plan.departure))) errors.push("Choose a valid departure time.");
+  else { const departure=Date.parse(plan.departure),now=nowMs;if(departure<now-24*3_600_000||departure>now+366*24*3_600_000)errors.push("Departure must be no more than 24 hours ago and no more than one year ahead."); }
   if (!Number.isFinite(plan.speed) || plan.speed <= 0 || plan.speed > 80) errors.push("SOG must be greater than 0 and no more than 80 knots.");
+  if(plan.coordinateFormat!=="degrees-decimal-minutes"||plan.datum!=="WGS84"||!plan.coordinatePrecision.trim())errors.push("Coordinate format, WGS84 datum and stated precision are required.");
+  const safetyFields=[["departure berth",plan.safety?.departureBerth],["destination berth",plan.safety?.destinationBerth],["operating limits",plan.safety?.limits],["abort decision",plan.safety?.abortDecision],["safe alternatives",plan.safety?.alternatives]] as const;
+  safetyFields.forEach(([label,value])=>{if(typeof value!=="string"||!value.trim())errors.push(`Safety: ${label} is required.`)});
+  if(!/issue\s*[:#]?\s*\S+.*valid(?:ity)?\s*[:#]?\s*\S+/i.test(plan.provenance?.weather??""))errors.push("Provenance: weather must record forecast issue and validity.");
+  if(!/(?:table|atlas|diamond|almanac).*?(?:edition|year)\s*[:#]?\s*\S+/i.test(plan.provenance?.tide??""))errors.push("Provenance: tide must identify the table/atlas and edition or year.");
+  if(!/(?:chart)\s*(?:no\.?|number|#)\s*\d+.*edition\s*[:#]?\s*\S+.*correction/i.test(plan.provenance?.chart??""))errors.push("Provenance: chart must record chart number, edition and correction status.");
+  if(!/(?:almanac|sailing directions|notices).*?(?:edition|year)\s*[:#]?\s*\S+/i.test(plan.provenance?.publications??""))errors.push("Provenance: publications must identify title and edition or year.");
+  if(!plan.provenance?.preparedAt||Number.isNaN(Date.parse(plan.provenance.preparedAt)))errors.push("Provenance: valid prepared time is required.");
+  if(!plan.provenance?.revisedAt||Number.isNaN(Date.parse(plan.provenance.revisedAt)))errors.push("Provenance: valid revised time is required.");
+  if(plan.provenance?.preparedAt&&plan.provenance?.revisedAt){const prepared=Date.parse(plan.provenance.preparedAt),revised=Date.parse(plan.provenance.revisedAt),now=nowMs;if(Number.isFinite(prepared)&&Number.isFinite(revised)&&(prepared>revised||revised>now+5*60_000||prepared<now-30*24*3_600_000))errors.push("Provenance times must be within the last 30 days, not in the future, and revised at or after prepared.")}
   if (plan.points.length < 2) errors.push("Add a departure and at least one destination waypoint.");
   if (new Set(plan.points.map(point => point.id)).size !== plan.points.length) errors.push("Waypoint identifiers must be unique. Reload or reset this plan before editing.");
   plan.points.forEach((point, index) => {
     const label = index === 0 ? "Departure" : `Leg ${index}`;
     if (!point.name.trim()) errors.push(`${label}: waypoint name is required.`);
+    if(!parseWaypointCoordinate(point.latitude,point.longitude))errors.push(`${label}: coordinates must be valid WGS84 degrees and decimal minutes (latitude DD°MM.mmm'N/S, longitude DDD°MM.mmm'E/W).`);
     if (index === 0 && point.inboundLeg !== null) errors.push("Departure must not have an inbound leg.");
     if (index > 0 && point.inboundLeg === null) errors.push(`${label}: inbound leg is required.`);
     if (index > 0 && point.inboundLeg) {
