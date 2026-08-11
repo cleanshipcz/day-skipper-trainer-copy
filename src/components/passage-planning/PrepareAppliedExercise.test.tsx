@@ -84,6 +84,7 @@ describe("PrepareAppliedExercise", () => {
     await user.click(save); await user.click(save);
     expect(complete).toHaveBeenCalledOnce();
     expect(screen.getByRole("button", { name: "Visibility deteriorates near the decision point" }).hasAttribute("disabled")).toBe(true);
+    for (const decision of ["go", "delay", "divert", "abort"]) expect(screen.getByRole("button", { name: decision }).hasAttribute("disabled")).toBe(true);
     resolve("remote");
     await waitFor(() => expect(screen.getByRole("button", { name: "Completion saved" })).toBeTruthy());
   });
@@ -98,12 +99,14 @@ describe("PrepareAppliedExercise", () => {
     await user.click(screen.getByRole("button", { name: "Save evidence-based completion" }));
     expect(await screen.findByRole("button", { name: buttonName })).toBeTruthy();
     expect(screen.getByRole("status").textContent).toMatch(feedback);
+    await user.click(screen.getByRole("button", { name: buttonName }));
+    expect(complete).toHaveBeenCalledTimes(2);
   });
 
   it("turns thrown saves into recoverable failure and ignores stale owner results", async () => {
     localStorage.setItem("prepare-applied-exercise:user:a", JSON.stringify({ catalogueRevision: PREPARE_EXERCISE_REVISION, scenarioId: "bar-arrival", responses: prepareScenarios[0].answers, decision: "delay" }));
     const user = userEvent.setup();
-    const thrown = vi.fn().mockRejectedValue(new Error("ambiguous"));
+    const thrown = vi.fn().mockImplementation(() => { throw new Error("synchronous ambiguity"); });
     const first = render(<PrepareAppliedExercise ownerScope="user:a" onComplete={thrown}/>);
     await user.click(screen.getByRole("button", { name: "Save evidence-based completion" }));
     expect(await screen.findByRole("button", { name: "Retry saving completion" })).toBeTruthy(); first.unmount();
@@ -114,5 +117,13 @@ describe("PrepareAppliedExercise", () => {
     await user.click(screen.getByRole("button", { name: "Save evidence-based completion" }));
     view.rerender(<PrepareAppliedExercise ownerScope="user:b" onComplete={delayed}/>); resolve("remote");
     await waitFor(() => expect(screen.queryByRole("button", { name: "Completion saved" })).toBeNull());
+    view.unmount();
+
+    let resolveAfterUnmount!: (value: "remote") => void;
+    const pendingUnmount = vi.fn().mockReturnValue(new Promise<"remote">((done) => { resolveAfterUnmount = done; }));
+    const unmounted = render(<PrepareAppliedExercise ownerScope="user:a" onComplete={pendingUnmount}/>);
+    await user.click(screen.getByRole("button", { name: "Save evidence-based completion" }));
+    unmounted.unmount(); resolveAfterUnmount("remote");
+    await waitFor(() => expect(pendingUnmount).toHaveBeenCalledOnce());
   });
 });

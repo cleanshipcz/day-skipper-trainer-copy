@@ -1,4 +1,4 @@
-import { render, screen, waitFor } from "@testing-library/react";
+import { act, fireEvent, render, screen, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { MemoryRouter } from "react-router-dom";
 import { beforeEach, describe, expect, it, vi } from "vitest";
@@ -32,7 +32,7 @@ describe("PrepareTheory progress lifecycle", () => {
   });
 
   it("shows an accessible load failure and retries", async () => {
-    mocks.load.mockResolvedValueOnce({ status: "failed", record: null }).mockResolvedValueOnce({ status: "missing", record: null });
+    mocks.load.mockRejectedValueOnce(new Error("load rejected")).mockResolvedValueOnce({ status: "missing", record: null });
     const user = userEvent.setup(); renderPage();
     await waitFor(() => expect(screen.getByRole("alert")).toBeTruthy());
     await user.click(screen.getByRole("button", { name: "Retry loading progress" }));
@@ -46,5 +46,36 @@ describe("PrepareTheory progress lifecycle", () => {
     await waitFor(() => expect(screen.getByText("ready")).toBeTruthy());
     await user.click(screen.getByRole("button", { name: "Complete mock" }));
     expect(mocks.save).toHaveBeenCalledWith(TOPIC_IDS.PASSAGE_PLANNING_PREPARE, true, 100, 0, expect.objectContaining({ completionState: "completed", scenarioId: "scenario" }));
+  });
+
+  it("times out after 10 seconds and permits a successful retry", async () => {
+    vi.useFakeTimers();
+    try {
+      mocks.load.mockReturnValueOnce(new Promise(() => {})).mockResolvedValueOnce({ status: "missing", record: null });
+      renderPage();
+      await act(async () => { await vi.advanceTimersByTimeAsync(10_000); });
+      expect(screen.getByRole("alert")).toBeTruthy();
+      fireEvent.click(screen.getByRole("button", { name: "Retry loading progress" }));
+      await act(async () => { await Promise.resolve(); });
+      expect(screen.getByText("ready")).toBeTruthy();
+    } finally { vi.useRealTimers(); }
+  });
+
+  it("suppresses stale loads after identity changes and unmount", async () => {
+    const resolvers: Array<(value: unknown) => void> = [];
+    mocks.load.mockImplementation(() => new Promise((resolve) => { resolvers.push(resolve); }));
+    const view = renderPage();
+    mocks.user = { id: "owner-b" }; view.rerender(<MemoryRouter><PrepareTheory /></MemoryRouter>);
+    expect(resolvers).toHaveLength(2);
+    resolvers[0]({ status: "remote", record: { completed: true } });
+    await act(async () => { await Promise.resolve(); });
+    expect(screen.getByText("progress loading")).toBeTruthy();
+    resolvers[1]({ status: "missing", record: null });
+    await waitFor(() => expect(screen.getByText("ready")).toBeTruthy());
+    view.unmount();
+    mocks.user = { id: "owner-c" }; const unmounted = renderPage();
+    expect(resolvers).toHaveLength(3); unmounted.unmount();
+    resolvers[2]({ status: "remote", record: { completed: true } });
+    await act(async () => { await Promise.resolve(); });
   });
 });
