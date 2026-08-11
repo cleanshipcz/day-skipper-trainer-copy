@@ -56,6 +56,15 @@ export const saveProgressRecord = async ({
   const lightsPayload = answersHistory as { catalogueRevision?: unknown; completionState?: unknown; visitedSectionIds?: unknown } | undefined;
   const lightsEvidenceIds = ["part-c-recognition", "part-d-recognition", "distress-recognition"];
   const lightsEvidenceCount = Array.isArray(lightsPayload?.visitedSectionIds) ? new Set(lightsPayload.visitedSectionIds).size : 0;
+  const passagePayload = answersHistory as { passagePlanRecord?: { ownerId?: unknown; revision?: unknown; updatedAt?: unknown; lineage?: unknown; plan?: unknown } } | undefined;
+  const passageRecord = passagePayload?.passagePlanRecord;
+  if (topicId === "passage-planning-builder" && (
+    !passageRecord || passageRecord.ownerId !== userId
+    || !Number.isSafeInteger(passageRecord.revision) || (passageRecord.revision as number) < 0
+    || typeof passageRecord.updatedAt !== "string" || Number.isNaN(Date.parse(passageRecord.updatedAt))
+    || !Array.isArray(passageRecord.lineage) || passageRecord.lineage.some(value => typeof value !== "string")
+    || !passageRecord.plan || typeof passageRecord.plan !== "object"
+  )) throw new Error("Passage plan progress requires a valid owner-bound revisioned snapshot");
   if (topicId === "lights-theory" && (
     lightsPayload?.catalogueRevision !== "colregs-parts-c-d-annex-iv-v1"
     || !Array.isArray(lightsPayload.visitedSectionIds)
@@ -91,6 +100,12 @@ export const saveProgressRecord = async ({
         p_completed: completed,
         p_score: score,
         p_answers_history: lightsPayload as Record<string, unknown>,
+      })
+    : topicId === "passage-planning-builder"
+      ? await supabaseClient.rpc("save_passage_plan_progress", {
+        p_completed: completed,
+        p_score: score,
+        p_answers_history: answersHistory as Record<string, unknown>,
       })
       : await supabaseClient.rpc("save_topic_progress", {
       p_topic_id: topicId,
