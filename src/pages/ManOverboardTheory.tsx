@@ -4,25 +4,20 @@ import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/com
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { ArrowLeft, LifeBuoy, Megaphone, Ship, Anchor, AlertTriangle, Gamepad2 } from "lucide-react";
 import { MOBSortingGame } from "@/components/safety/MOBSortingGame";
-import { useProgress } from "@/hooks/useProgress";
-import { useEffect } from "react";
-import { TOPIC_IDS } from "@/constants/topicRegistry";
-import { MOB_MAYDAY_VOICE_OPENING, MOB_SAIL_RETURN_GUIDANCE } from "@/data/mobGuidance";
+import { MOB_MAYDAY_VOICE_OPENING, MOB_RECOVERY_CONSTRAINTS, MOB_SAIL_RETURN_GUIDANCE, MOB_THEORY_OUTCOMES, MOB_THEORY_RELEASE_REVIEW, MOB_THEORY_SOURCES, isMobTheoryReleaseApproved, type MobTheoryReleaseReview } from "@/data/mobGuidance";
 
-const ManOverboardTheory = () => {
+interface ManOverboardTheoryProps { readonly releaseReview?: MobTheoryReleaseReview }
+
+const ManOverboardTheory = ({ releaseReview = MOB_THEORY_RELEASE_REVIEW }: ManOverboardTheoryProps) => {
   const navigate = useNavigate();
-  const { saveProgress } = useProgress();
-
-  useEffect(() => {
-    saveProgress(TOPIC_IDS.SAFETY_MOB, true, 100, 10);
-  }, [saveProgress]);
+  if (!isMobTheoryReleaseApproved(releaseReview)) return <main className="container mx-auto max-w-2xl px-4 py-8"><Card className="border-amber-500" data-testid="mob-theory-release-gate"><CardHeader><CardTitle>MOB guidance awaiting qualified review</CardTitle><CardDescription>The lesson, drill and assessment hand-off remain withheld until qualified seamanship and medical reviewers record identities, qualifications, approval date and source evidence.</CardDescription></CardHeader><CardContent><Button onClick={() => navigate("/safety")}>Back to Safety Menu</Button></CardContent></Card></main>;
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-background via-ocean-light/10 to-background pb-20">
       <header className="border-b border-border bg-card/50 backdrop-blur-sm sticky top-0 z-40">
         <div className="container mx-auto px-4 py-4">
           <div className="flex items-center gap-3">
-            <Button variant="ghost" size="icon" onClick={() => navigate("/safety")}>
+            <Button variant="ghost" size="icon" aria-label="Back to Safety Menu" onClick={() => navigate("/safety")}>
               <ArrowLeft className="w-5 h-5" />
             </Button>
             <div>
@@ -35,7 +30,7 @@ const ManOverboardTheory = () => {
 
       <main className="container mx-auto px-4 py-8 max-w-4xl">
         <Tabs defaultValue="actions" className="space-y-6">
-          <TabsList className="grid w-full grid-cols-2 lg:grid-cols-4 h-auto">
+          <TabsList className="grid w-full grid-cols-2 lg:grid-cols-5 h-auto">
             <TabsTrigger value="actions" className="py-2">
               <Megaphone className="w-4 h-4 mr-2" />
               Immediate Actions
@@ -66,7 +61,9 @@ const ManOverboardTheory = () => {
                 When someone falls overboard, the first few seconds are critical. Do not jump in after them. Follow the
                 standard drill ensuring nothing is missed.
               </p>
+              <p><strong>Control and delegate concurrently:</strong> the helm controls speed/course and prevents a second casualty while available crew shout the alarm, throw flotation/visible markers, press the electronic MOB mark, point continuously, send distress communications and prepare the practised recovery point. Combine roles only when crew numbers require it; never casually abandon helm or lookout.</p>
             </div>
+            <Card><CardHeader><CardTitle>Prevention, short-handed and tethered casualties</CardTitle></CardHeader><CardContent className="space-y-2 text-sm"><p>Prevent the fall: brief movement, lifejackets/harnesses, clipping arrangements, jackstays and night/heavy-weather controls for the actual vessel. Inspect accessible recovery equipment and rehearse with a safe training object in varied roles and conditions.</p><p>A single-handed sailor may have nobody able to turn back: remaining attached, reliable boarding arrangements, personal alerting and conservative movement controls are central. For a tethered casualty, slow and stop the vessel safely, prevent dragging and propeller exposure, and use a practised retrieval method—do not assume the tether itself enables recovery.</p></CardContent></Card>
 
             <div className="grid gap-4 md:grid-cols-2">
               <Card className="border-l-4 border-l-red-500">
@@ -146,12 +143,15 @@ const ManOverboardTheory = () => {
                   <p className="mt-2 font-bold bg-yellow-100 dark:bg-yellow-900/30 p-1 inline-block">MAN OVERBOARD</p>
                   <p>REQUIRE IMMEDIATE ASSISTANCE</p>
                   <p>PERSONS ON BOARD [number]; [other useful information]</p>
+                  <p>DESCRIPTION OF CASUALTY / CLOTHING / FLOTATION [if known]</p>
+                  <p>VESSEL DESCRIPTION AND INTENTIONS [recovery action / assistance rendezvous]</p>
                   <p className="mt-2">OVER</p>
                 </div>
                 <p className="text-muted-foreground font-sans">
                   *If suitable DSC equipment is fitted, send the DSC distress alert as instructed by its manufacturer,
                   then follow with this voice message on Channel 16. Without DSC, call directly on Channel 16.*
                 </p>
+                <p className="text-muted-foreground font-sans">Delegate the radio if possible so helm and lookout continue. If recovery is doubtful, contact is lost, crew capacity is inadequate or the casualty cannot be lifted, escalate immediately and continue updating the coastguard/rescue coordinator; do not wait for a failed attempt.</p>
               </CardContent>
             </Card>
           </TabsContent>
@@ -166,6 +166,7 @@ const ManOverboardTheory = () => {
                 plan the recovery point and an abort route, approach slowly, and aim to stop alongside.
               </p>
             </div>
+            <figure className="rounded-lg border p-4" aria-labelledby="mob-return-title mob-return-caption"><h3 id="mob-return-title" className="font-semibold">Return-and-approach decision loop</h3><svg viewBox="0 0 720 150" role="img" aria-label="Decision flow from maintain contact, through select a practised vessel-dependent return, prepare recovery and propeller exclusion, approach under control, then either secure and lift or abort, reset and call for help." className="mt-3 w-full"><title>MOB return and approach decision loop</title><desc>No fixed distance or universal manoeuvre is shown. Each stage is constrained by vessel, weather, crew, contact and sea room.</desc><path d="M20 75H690" stroke="currentColor" strokeWidth="3"/><g fill="Canvas" stroke="currentColor" strokeWidth="2">{[70,220,370,520,670].map((x)=><circle key={x} cx={x} cy="75" r="38"/>)}</g><g textAnchor="middle" className="fill-current text-[13px]"><text x="70" y="70">CONTACT</text><text x="70" y="87">+ CONTROL</text><text x="220" y="70">SELECT</text><text x="220" y="87">RETURN</text><text x="370" y="70">PREPARE</text><text x="370" y="87">+ BRIEF</text><text x="520" y="70">APPROACH</text><text x="520" y="87">/ ABORT</text><text x="670" y="70">SECURE</text><text x="670" y="87">+ RECOVER</text></g></svg><figcaption id="mob-return-caption" className="mt-2 text-sm text-muted-foreground">A decision aid, not a track plot: vessel, rig, propulsion, wind, sea, traffic, visibility, contact, crew capability and sea room determine every transition.</figcaption></figure>
 
             <div className="grid gap-6">
               <Card>
@@ -226,8 +227,7 @@ const ManOverboardTheory = () => {
                 </CardHeader>
                 <CardContent>
                   <p>
-                    Tack the boat but <strong>leave the jib sheet cleated</strong> (back the jib). Turn the wheel hard
-                    to windward. The boat will stall and drift slowly.
+                    Heaving-to may stabilise some yachts and buy organising time, but the method and result vary with rig, hull, sail plan and conditions. Use only a practised vessel-specific procedure; it is not a universal return or recovery position.
                   </p>
                 </CardContent>
               </Card>
@@ -278,7 +278,7 @@ const ManOverboardTheory = () => {
                   <CardTitle className="text-lg">Halyard Hoist</CardTitle>
                 </CardHeader>
                 <CardContent>
-                  <p className="text-sm">Attach a spinnaker or main halyard to their harness. Winch them up.</p>
+                  <p className="text-sm">Use only a rated lifting point, sling or harness attachment approved for recovery, with compatible blocks, halyard/hoist and safe working loads. A lifejacket lifting becket is usable only when its instructions explicitly permit it. Never lift by the neck, arms or an unverified clip.</p>
                 </CardContent>
               </Card>
               <Card>
@@ -287,8 +287,7 @@ const ManOverboardTheory = () => {
                 </CardHeader>
                 <CardContent>
                   <p className="text-sm">
-                    Use a triangular sail (storm jib) or specialized mat attached to the rail. Roll them up the side
-                    using a halyard.
+                    Use a purpose-made or practised compatible system secured to rated strong points. Control crushing, snagging and falls; keep recovery crew secured and do not overload rails or fittings.
                   </p>
                 </CardContent>
               </Card>
@@ -306,12 +305,15 @@ const ManOverboardTheory = () => {
                   If hypothermia is possible, recover and handle the casualty gently in a horizontal or near-horizontal
                   position where practicable. Vertical recovery can increase cardiac-arrest risk. Once alongside, keep
                   the engine in neutral or stop it as vessel control and conditions allow; never expose the casualty to
-                  a turning propeller. Follow current first-aid and rescue guidance.
+                  a turning propeller. For an unresponsive casualty, support the airway during securing and near-horizontal recovery where practicable; once aboard assess response, airway and breathing, start indicated resuscitation using current training, prevent further heat loss, monitor continuously and coordinate professional medical/rescue care. Do not force walking, rub limbs, give alcohol or assume recovery aboard ends the emergency.
                 </p>
               </CardContent>
             </Card>
+            <Card><CardHeader><CardTitle>If recovery is beyond the crew</CardTitle></CardHeader><CardContent className="text-sm">Keep the casualty secured and airway supported if achievable without creating another casualty. Maintain distress traffic, position and vessel control; request lifeboat, helicopter or nearby-vessel assistance early and follow rescue coordination instructions. If an approach becomes unstable, abort under control, retain lookout/mark, reset equipment and roles, then return—never send an unplanned swimmer.</CardContent></Card>
           </TabsContent>
         </Tabs>
+
+        <section className="mt-8 space-y-4 rounded-lg border p-4" aria-labelledby="mob-handoff"><h2 id="mob-handoff" className="text-xl font-bold">Reviewed outcomes and constraints</h2><p>These stable outcome identifiers are the theory/assessment contract for the separate drill redesign; they describe decisions, not proof of competence.</p><ul className="list-disc pl-5">{MOB_THEORY_OUTCOMES.map((outcome)=><li key={outcome}><code>{outcome}</code></li>)}</ul><h3 className="font-semibold">Non-negotiable constraints</h3><ul className="list-disc pl-5">{MOB_RECOVERY_CONSTRAINTS.map((constraint)=><li key={constraint}>{constraint}</li>)}</ul><h3 className="font-semibold">Sources and review basis</h3><ul className="list-disc pl-5">{MOB_THEORY_SOURCES.map((source)=><li key={source}>{source}</li>)}</ul></section>
 
         <div className="flex justify-center pt-12 pb-8">
           <Button size="lg" className="w-full md:w-auto" onClick={() => navigate("/safety")}>
