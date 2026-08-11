@@ -3,7 +3,8 @@ import userEvent from "@testing-library/user-event";
 import { describe, expect, it, vi } from "vitest";
 import { FuelCalculator } from "./FuelCalculator";
 
-vi.mock("@/hooks/useProgress", () => ({ useProgress: () => ({ saveProgress: vi.fn() }) }));
+const saveProgress=vi.fn();
+vi.mock("@/hooks/useProgress", () => ({ useProgress: () => ({ saveProgress }) }));
 
 describe("FuelCalculator", () => {
   it("calculates deliberately, explains the equation, and invalidates stale results accessibly", async () => {
@@ -42,5 +43,14 @@ describe("FuelCalculator", () => {
     const reserve=screen.getByLabelText("Passage-specific reserve (%)");await user.clear(reserve);await user.type(reserve,"0");
     expect(screen.getByRole("button",{name:"Calculate / update result"}).hasAttribute("disabled")).toBe(true);
     expect(screen.getAllByRole("alert").map(node=>node.textContent).join(" ")).toMatch(/positive reserve.*vessel-specific.*why the reserve/i);
+  });
+  it("persists the selected resolved instant for a repeated local departure time",async()=>{
+    const user=userEvent.setup(); render(<FuelCalculator />);
+    const departure=screen.getByLabelText(/Departure date and time/); await user.type(departure,"2026-10-25T02:30");
+    const occurrence=screen.getByLabelText("This time occurs twice; choose the intended offset");
+    await user.selectOptions(occurrence,"2026-10-25T01:30:00.000Z");
+    await user.click(screen.getByRole("button",{name:"Calculate / update result"}));
+    await user.click(screen.getByRole("button",{name:"Complete calculation"}));
+    expect(saveProgress).toHaveBeenLastCalledWith(expect.any(String),true,100,10,expect.objectContaining({input:expect.objectContaining({departureTime:"2026-10-25T01:30:00.000Z"})}));
   });
 });
