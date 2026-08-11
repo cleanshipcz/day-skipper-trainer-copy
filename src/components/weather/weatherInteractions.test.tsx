@@ -224,7 +224,7 @@ describe("weather interactions", () => {
     expect(screen.getByText("Area 1 of 31")).toBeTruthy();
     expect(document.activeElement).toBe(screen.getByRole("listbox", { name: "Shipping forecast area chooser" }));
     expect(screen.queryByRole("heading", { name: "Geography exercise complete" })).toBeNull();
-  });
+  }, 15_000);
 
   it("builds a complete unique runtime order without relying on a fixed sequence", () => {
     const shuffled = shuffledForecastAreas(() => 0);

@@ -7,7 +7,7 @@ const sql = readFileSync("supabase/migrations/20260730110000_engagement.sql", "u
 const hardened = readFileSync("supabase/migrations/20260730111000_harden_engagement_evidence.sql", "utf8");
 const issued = readFileSync("supabase/migrations/20260730112000_issued_quiz_attempts.sql", "utf8");
 const currentAttemptCatalogue = readFileSync(
-  "supabase/migrations/20260810223000_expand_weather_quiz_attempts.sql",
+  "supabase/migrations/20260811210000_expand_passage_planning_quiz_attempts.sql",
   "utf8",
 );
 

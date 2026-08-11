@@ -36,7 +36,7 @@ const EXPECTED_QUESTION_COUNTS: Record<string, number> = {
   safety: 24,
   pilotage: 20,
   weather: 21,
-  "passage-planning": 20,
+  "passage-planning": 30,
 };
 
 describe("Quiz data files", () => {

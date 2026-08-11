@@ -16,7 +16,7 @@ import {
   quizCompletionOutcome,
 } from "@/features/quiz/scoring";
 import { canonicalQuizProgressKey, resolveQuizProgressForLoad, type QuizProgressRow } from "@/features/quiz/progressKeys";
-import { createSeededRng, shuffleWithRng } from "@/features/quiz/randomization";
+import { buildQuizSession } from "@/features/quiz/buildQuizSession";
 import {
   buildQuizSessionProgress,
   clearAllAnonymousQuizSessions,
@@ -113,22 +113,7 @@ const Quiz = () => {
     );
     return () => { active = false; };
   }, [topicKey, loadGeneration]);
-  const questions = useMemo(() => {
-    const source = sourceQuestions ?? [];
-    const rng = createSeededRng(seed + 1);
-
-    return shuffleWithRng([...source], rng)
-      .map((q) => {
-        const optionObjs = q.options.map((opt, idx) => ({ opt, idx }));
-        const shuffledOptions = shuffleWithRng(optionObjs, rng);
-        const correctIndex = shuffledOptions.findIndex((o) => o.idx === q.correctAnswer);
-        return {
-          ...q,
-          options: shuffledOptions.map((o) => o.opt),
-          correctAnswer: correctIndex,
-        };
-      });
-  }, [sourceQuestions, seed]);
+  const questions = useMemo(() => buildQuizSession(sourceQuestions ?? [], seed), [sourceQuestions, seed]);
   const meta = isQuizTopicId(topicKey) ? topicMeta[topicKey] : {
     title: "Topic Quiz",
     subtitle: "Answer the questions to test yourself",
