@@ -1,5 +1,6 @@
 import { act, fireEvent, render, screen, waitFor, within } from "@testing-library/react";
 import { MemoryRouter } from "react-router-dom";
+import userEvent from "@testing-library/user-event";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { preDepartureChecklist } from "@/data/preDepartureChecklist";
 import { validateReadinessCatalogue } from "@/features/readiness/readinessRecord";
@@ -56,14 +57,41 @@ describe("PreDepartureChecklist", () => {
     expect(within(itemGroup(/Ventilate as the installation requires/)).getByRole("button", { name: "Not applicable" })).toBeTruthy();
   });
 
+  it("names progress, phases, item state controls and their descriptions", async () => {
+    await renderChecklist();
+    const progress = screen.getByRole("progressbar", { name: "Pre-departure checklist progress" });
+    expect(progress.getAttribute("aria-describedby")).toBe("readiness-progress-text");
+    expect(screen.getByRole("region", { name: "1. Planning and current information" })).toBeTruthy();
+    const item = itemGroup(/Review the current berth-to-berth plan/);
+    expect(item.getAttribute("aria-describedby")).toContain("passage-plan-rationale");
+    expect(document.getElementById("passage-plan-state")?.textContent).toMatch(/Current state:.*Not checked/);
+    expect(within(item).getByRole("button", { name: "Satisfactory" }).className).toContain("min-h-[44px]");
+  });
+
+  it("supports a single keyboard activation and announces only the changed item", async () => {
+    await renderChecklist();
+    const user = userEvent.setup();
+    const button = within(itemGroup(/Review the current berth-to-berth plan/)).getByRole("button", { name: "Satisfactory" });
+    button.focus();
+    await user.keyboard("{Enter}");
+    expect(button.getAttribute("aria-pressed")).toBe("true");
+    const live = document.querySelector(".sr-only[role='status']");
+    expect(live?.textContent).toMatch(/Review the current berth-to-berth plan.*Satisfactory\./);
+    expect(live?.getAttribute("aria-live")).toBe("polite");
+  });
+
   it("requires an authority reason for N/A and supports correcting the record", async () => {
     await renderChecklist();
     const group = itemGroup(/Confirm official charts\/publications/);
     fireEvent.click(within(group).getByRole("button", { name: "Satisfactory" }));
     const conditional = itemGroup(/Ventilate as the installation requires/);
     fireEvent.click(within(conditional).getByRole("button", { name: "Not applicable" }));
+    const reason = within(conditional).getByRole("textbox", { name: /not-applicable reason/ });
+    expect(reason.getAttribute("aria-invalid")).toBe("true");
+    expect(document.getElementById(reason.getAttribute("aria-describedby")!)?.textContent).toMatch(/authority-based reason/i);
     expect(screen.getByText(/0 not applicable, 0 blocked, 29 incomplete/)).toBeTruthy();
-    fireEvent.change(within(conditional).getByRole("textbox", { name: /not-applicable reason/ }), { target: { value: "No powered equipment fitted; COLREG and vessel requirements checked" } });
+    fireEvent.change(reason, { target: { value: "No powered equipment fitted; COLREG and vessel requirements checked" } });
+    expect(reason.getAttribute("aria-invalid")).toBe("false");
     expect(screen.getByText(/1 not applicable/)).toBeTruthy();
     fireEvent.click(within(conditional).getByRole("button", { name: "Satisfactory" }));
     expect(within(conditional).queryByRole("textbox", { name: /not-applicable reason/ })).toBeNull();
@@ -136,6 +164,12 @@ describe("PreDepartureChecklist", () => {
     expect(saveProgressDetailed).not.toHaveBeenCalled();
     fireEvent.click(screen.getByRole("button", { name: "Record training checklist completion" }));
     await waitFor(() => expect(saveProgressDetailed).toHaveBeenLastCalledWith(expect.any(String), true, 100, 10, expect.any(Object)));
+    const completionSummary = screen.getByRole("region", { name: "Final go / no-go summary" });
+    await waitFor(() => expect(document.activeElement).toBe(completionSummary));
+    const completionButton = screen.getByRole("button", { name: "Record training checklist completion" });
+    completionButton.focus();
+    fireEvent.click(completionButton);
+    await waitFor(() => expect(document.activeElement).toBe(completionSummary));
     const completionCalls = saveProgressDetailed.mock.calls.length;
     const first = itemGroup(/Review the current berth-to-berth plan/);
     fireEvent.change(within(first).getByRole("textbox", { name: /notes/ }), { target: { value: "Post-completion evidence note" } });
@@ -145,6 +179,25 @@ describe("PreDepartureChecklist", () => {
     fireEvent.click(within(first).getByRole("button", { name: "Defect" }));
     await waitFor(() => expect(saveProgressDetailed.mock.calls.length).toBeGreaterThan(completedEditCalls));
     expect(saveProgressDetailed.mock.calls.at(-1)?.[1]).toBe(false);
+  });
+
+  it("does not steal focus when a completion response becomes stale after an edit", async () => {
+    await renderChecklist();
+    completeContext();
+    for (let pass = 0; pass < preDepartureChecklist.length + 2; pass++) {
+      const next = screen.getAllByRole("group").map((group) => within(group).queryByRole("button", { name: "Satisfactory" })).find((button) => button && !(button as HTMLButtonElement).disabled && button.getAttribute("aria-pressed") !== "true");
+      if (!next) break;
+      fireEvent.click(next);
+    }
+    let resolveSave!: (result: "remote") => void;
+    saveProgressDetailed.mockImplementationOnce(() => new Promise((resolve) => { resolveSave = resolve; }));
+    fireEvent.click(screen.getByRole("button", { name: "Record training checklist completion" }));
+    const notes = within(itemGroup(/Review the current berth-to-berth plan/)).getByRole("textbox", { name: /notes/ });
+    notes.focus();
+    fireEvent.change(notes, { target: { value: "Changed while completion was saving" } });
+    await act(async () => { resolveSave("remote"); await Promise.resolve(); });
+    expect(document.activeElement).toBe(notes);
+    expect(document.activeElement).not.toBe(screen.getByRole("region", { name: "Final go / no-go summary" }));
   });
 
   it("blocks completion with accessible guidance until all context is non-blank", async () => {
