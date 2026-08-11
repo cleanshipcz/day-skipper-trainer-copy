@@ -15,6 +15,31 @@ begin
   return cleaned_count > 0;
 end; $$;
 
+-- Deployment schedulers call this as service_role. It is deliberately not
+-- executable by learners and sweeps every owner independently of page visits.
+create function public.expire_all_readiness_record_progress()
+returns integer language plpgsql security definer set search_path = '' as $$
+declare cleaned_count integer := 0;
+begin
+  update public.user_progress set completed=false, score=0, answers_history = null, last_accessed=now()
+   where topic_id='passage-planning-checklist'
+     and answers_history->'readinessRecord'->>'expiresAt' is not null
+     and (answers_history->'readinessRecord'->>'expiresAt')::timestamptz <= now();
+  get diagnostics cleaned_count = row_count;
+  return cleaned_count;
+end; $$;
+
+create function public.quarantine_readiness_record_progress()
+returns boolean language plpgsql security definer set search_path = '' as $$
+declare owner uuid := auth.uid(); cleaned_count integer := 0;
+begin
+  if owner is null then raise exception 'Authentication required' using errcode='42501'; end if;
+  update public.user_progress set completed=false, score=0, answers_history=null, last_accessed=now()
+   where user_id=owner and topic_id='passage-planning-checklist';
+  get diagnostics cleaned_count = row_count;
+  return cleaned_count > 0;
+end; $$;
+
 create function public.save_readiness_record_progress_v2(p_completed boolean,p_answers_history jsonb)
 returns table(points_awarded boolean,completion_awarded boolean,awarded_points integer)
 language plpgsql security definer set search_path = '' as $$
@@ -41,6 +66,13 @@ begin
   perform (v_record->>'updatedAt')::timestamptz;
   perform (v_record->>'expiresAt')::timestamptz;
   if v_record ? 'completedAt' then perform (v_record->>'completedAt')::timestamptz; end if;
+  if (v_record->>'createdAt')::timestamptz > (v_record->>'updatedAt')::timestamptz
+     or (v_record->>'updatedAt')::timestamptz > now() + interval '5 minutes'
+     or (v_record->>'expiresAt')::timestamptz <= now()
+     or (v_record ? 'completedAt' and ((v_record->>'completedAt')::timestamptz < (v_record->>'createdAt')::timestamptz
+       or (v_record->>'completedAt')::timestamptz > (v_record->>'updatedAt')::timestamptz)) then
+    raise exception 'Invalid readiness timestamp ordering' using errcode='22023';
+  end if;
   perform public.expire_readiness_record_progress();
   v_legacy := jsonb_set(jsonb_set(p_answers_history,'{readinessRecord,version}','1'::jsonb),'{readinessRecord,expiresAt}','null'::jsonb) #- '{readinessRecord,expiresAt}';
   return query select * from public.save_readiness_record_progress(p_completed,v_legacy);
@@ -52,6 +84,13 @@ end; $$;
 revoke all on function public.expire_readiness_record_progress() from public;
 revoke all on function public.expire_readiness_record_progress() from anon;
 grant execute on function public.expire_readiness_record_progress() to authenticated;
+revoke all on function public.expire_all_readiness_record_progress() from public;
+revoke all on function public.expire_all_readiness_record_progress() from anon;
+revoke all on function public.expire_all_readiness_record_progress() from authenticated;
+grant execute on function public.expire_all_readiness_record_progress() to service_role;
+revoke all on function public.quarantine_readiness_record_progress() from public;
+revoke all on function public.quarantine_readiness_record_progress() from anon;
+grant execute on function public.quarantine_readiness_record_progress() to authenticated;
 revoke all on function public.save_readiness_record_progress_v2(boolean,jsonb) from public;
 revoke all on function public.save_readiness_record_progress_v2(boolean,jsonb) from anon;
 grant execute on function public.save_readiness_record_progress_v2(boolean,jsonb) to authenticated;

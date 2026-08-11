@@ -171,5 +171,19 @@ export const useProgress = () => {
     [user]
   );
 
-  return { ownerId: user?.id ?? null, loadProgress, loadProgressDetailed, saveProgress, saveProgressDetailed, resetProgress };
+  const quarantineReadinessRecord = useCallback(async () => {
+    if (!user || ownerRef.current !== user.id) return false;
+    try {
+      const supabase = await loadProgressClient();
+      if (ownerRef.current !== user.id) return false;
+      const { error } = await supabase.rpc("quarantine_readiness_record_progress");
+      if (error) throw error;
+      return ownerRef.current === user.id;
+    } catch (error) {
+      console.error("Error quarantining invalid readiness record:", error);
+      return false;
+    }
+  }, [user]);
+
+  return { ownerId: user?.id ?? null, loadProgress, loadProgressDetailed, saveProgress, saveProgressDetailed, resetProgress, quarantineReadinessRecord };
 };

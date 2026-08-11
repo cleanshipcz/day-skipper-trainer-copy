@@ -16,5 +16,14 @@ describe("readiness record persistence migration", () => {
     expect(sql).toContain("answers_history = null");
     expect(sql).toContain("now() + interval '30 days'");
     expect(sql).toContain("grant execute on function public.expire_readiness_record_progress() to authenticated");
+    expect(sql).toContain("create function public.expire_all_readiness_record_progress()");
+    expect(sql).toContain("grant execute on function public.expire_all_readiness_record_progress() to service_role");
+    expect(sql).toContain("create function public.quarantine_readiness_record_progress()");
+  });
+
+  it("validates timestamp ordering and server-authors the retention deadline", () => {
+    expect(sql).toContain("createdAt')::timestamptz > (v_record->>'updatedAt");
+    expect(sql).toContain("updatedAt')::timestamptz > now() + interval '5 minutes'");
+    expect(sql).toContain("completedAt')::timestamptz < (v_record->>'createdAt");
   });
 });

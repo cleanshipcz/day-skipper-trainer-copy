@@ -29,7 +29,7 @@ const confirmAction = (message: string) => typeof window.confirm !== "function" 
 export default function PreDepartureChecklist() {
   const navigate = useNavigate();
   const [params] = useSearchParams();
-  const { loadProgressDetailed, saveProgressDetailed } = useProgress();
+  const { loadProgressDetailed, saveProgressDetailed, quarantineReadinessRecord } = useProgress();
   const [entries, setEntries] = useState<ReadinessEntries>({});
   const [context, setContext] = useState({ vessel: "", voyage: "", conditions: "" });
   const [session, setSession] = useState(() => createReadinessSession());
@@ -52,7 +52,7 @@ export default function PreDepartureChecklist() {
     let active = true;
     hydrated.current = false;
     setLoadState("loading");
-    void loadProgressDetailed(TOPIC_IDS.PASSAGE_PLANNING_CHECKLIST).then((result) => {
+    void loadProgressDetailed(TOPIC_IDS.PASSAGE_PLANNING_CHECKLIST).then(async (result) => {
       if (!active) return;
       if (result.status === "failed") {
         setLoadState("failed");
@@ -69,7 +69,10 @@ export default function PreDepartureChecklist() {
         setCompletionConfirmed(Boolean(result.status === "remote" && result.record.completed && payload.completedAt && summarizeReadiness(preDepartureChecklist, payload.entries).complete));
         setLoadDiagnostic("");
       } else {
-        if (parsed && parsed.status !== "valid") setLoadDiagnostic(parsed.diagnostic);
+        if (parsed && parsed.status !== "valid") {
+          if (!(await quarantineReadinessRecord()) || !active) { setLoadState("failed"); return; }
+          setLoadDiagnostic(`${parsed.diagnostic} Durable completion and saved evidence were revoked.`);
+        }
         setCompletionConfirmed(false);
       }
       hydrated.current = true;
@@ -79,7 +82,7 @@ export default function PreDepartureChecklist() {
       if (active) setLoadState("failed");
     });
     return () => { active = false; };
-  }, [catalogue.valid, loadAttempt, loadProgressDetailed]);
+  }, [catalogue.valid, loadAttempt, loadProgressDetailed, quarantineReadinessRecord]);
 
   const persistRecord = useCallback(async (completed: boolean, currentRevision: number) => {
     setSaveState("saving");

@@ -6,7 +6,8 @@ import { validateReadinessCatalogue } from "@/features/readiness/readinessRecord
 
 const loadProgressDetailed = vi.fn().mockResolvedValue({ status: "missing", record: null });
 const saveProgressDetailed = vi.fn().mockResolvedValue("remote");
-vi.mock("@/hooks/useProgress", () => ({ useProgress: () => ({ loadProgressDetailed, saveProgressDetailed }) }));
+const quarantineReadinessRecord = vi.fn().mockResolvedValue(true);
+vi.mock("@/hooks/useProgress", () => ({ useProgress: () => ({ loadProgressDetailed, saveProgressDetailed, quarantineReadinessRecord }) }));
 import PreDepartureChecklist from "./PreDepartureChecklist";
 
 const renderChecklist = async () => {
@@ -25,6 +26,7 @@ describe("PreDepartureChecklist", () => {
   beforeEach(() => {
     loadProgressDetailed.mockReset().mockResolvedValue({ status: "missing", record: null });
     saveProgressDetailed.mockReset().mockResolvedValue("remote");
+    quarantineReadinessRecord.mockReset().mockResolvedValue(true);
   });
   it("separates training practice from certification and renders ordered phases", async () => {
     await renderChecklist();
@@ -172,5 +174,20 @@ describe("PreDepartureChecklist", () => {
     fireEvent.click(screen.getByRole("button", { name: "Retry saved record" }));
     await screen.findByText("Readiness record ready.");
     expect(loadProgressDetailed).toHaveBeenCalledTimes(2);
+  });
+
+  it("revokes durable completion before reporting an invalid saved session ready", async () => {
+    loadProgressDetailed.mockResolvedValueOnce({ status: "remote", record: { completed: true, answers_history: { readinessRecord: { version: 1 } } } });
+    await renderChecklist();
+    expect(quarantineReadinessRecord).toHaveBeenCalledOnce();
+    expect(screen.getByRole("alert").textContent).toMatch(/revoked/i);
+  });
+
+  it("blocks when invalid-session quarantine fails", async () => {
+    loadProgressDetailed.mockResolvedValueOnce({ status: "remote", record: { completed: true, answers_history: { readinessRecord: { version: 1 } } } });
+    quarantineReadinessRecord.mockResolvedValueOnce(false);
+    render(<MemoryRouter><PreDepartureChecklist /></MemoryRouter>);
+    expect((await screen.findByRole("alert")).textContent).toMatch(/could not be loaded/i);
+    expect(screen.queryByText("Readiness record ready.")).toBeNull();
   });
 });
