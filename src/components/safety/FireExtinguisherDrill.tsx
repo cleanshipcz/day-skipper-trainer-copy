@@ -28,6 +28,7 @@ interface FireExtinguisherDrillProps {
   /** Called once when the student finishes all scenarios. */
   readonly onComplete: (result: DrillResult) => void;
   readonly storageKey?: string;
+  readonly onPersistenceRecovered?: (result: DrillResult) => void;
 }
 
 /**
@@ -52,6 +53,7 @@ interface DrillState {
   readonly totalAnswered: number;
   readonly incorrectScenarioIds: readonly string[];
   readonly answers: readonly { scenarioId: string; optionId: string }[];
+  readonly restoredCompletion: boolean;
 }
 
 const initialState = (scenarios: readonly FireResponseScenario[]): DrillState => ({
@@ -63,6 +65,7 @@ const initialState = (scenarios: readonly FireResponseScenario[]): DrillState =>
   totalAnswered: 0,
   incorrectScenarioIds: [],
   answers: [],
+  restoredCompletion: false,
 });
 
 const restoreState = (storageKey?: string): DrillState => {
@@ -85,11 +88,11 @@ const restoreState = (storageKey?: string): DrillState => {
     if (answered ? selectedOptionId !== answers.at(-1)?.optionId : selectedOptionId !== null && !selectedIsValid) return initialState(fireResponseScenarios);
     const correctCount = answers.filter((answer, index) => scenarios[index].correctOptionId === answer.optionId).length;
     const incorrectScenarioIds = answers.filter((answer, index) => scenarios[index].correctOptionId !== answer.optionId).map((answer) => answer.scenarioId);
-    return { scenarios, currentIndex: expectedIndex, selectedOptionId, answered, correctCount, totalAnswered: answers.length, incorrectScenarioIds, answers };
+    return { scenarios, currentIndex: expectedIndex, selectedOptionId, answered, correctCount, totalAnswered: answers.length, incorrectScenarioIds, answers, restoredCompletion: !answered && expectedIndex === scenarios.length };
   } catch { return initialState(fireResponseScenarios); }
 };
 
-export const FireExtinguisherDrill = ({ onComplete, storageKey }: FireExtinguisherDrillProps) => {
+export const FireExtinguisherDrill = ({ onComplete, storageKey, onPersistenceRecovered }: FireExtinguisherDrillProps) => {
   const [state, setState] = useState<DrillState>(() =>
     restoreState(storageKey)
   );
@@ -99,6 +102,7 @@ export const FireExtinguisherDrill = ({ onComplete, storageKey }: FireExtinguish
   const feedbackRef = useRef<HTMLDivElement>(null);
   const browserPersistedRef = useRef(!storageKey);
   const [storageFailed, setStorageFailed] = useState(false);
+  const completedResultRef = useRef<DrillResult | null>(null);
 
   const currentScenario = state.scenarios[state.currentIndex] as
     | FireResponseScenario
@@ -121,16 +125,18 @@ export const FireExtinguisherDrill = ({ onComplete, storageKey }: FireExtinguish
 
   // H1: Fire onComplete callback when drill finishes (once only)
   useEffect(() => {
-    if (isComplete && !completedRef.current) {
+    if (isComplete && !state.restoredCompletion && !completedRef.current) {
       completedRef.current = true;
-      onComplete({
+      const result = {
         correctCount: state.correctCount,
         totalAnswered: state.totalAnswered,
         incorrectScenarioIds: state.incorrectScenarioIds,
         browserPersisted: browserPersistedRef.current,
-      });
+      } satisfies DrillResult;
+      completedResultRef.current = result;
+      onComplete(result);
     }
-  }, [isComplete, onComplete, state.correctCount, state.incorrectScenarioIds, state.totalAnswered]);
+  }, [isComplete, onComplete, state.correctCount, state.incorrectScenarioIds, state.restoredCompletion, state.totalAnswered]);
 
   const handleSelect = useCallback((optionId: string) => {
     setState((prev) =>
@@ -183,6 +189,7 @@ export const FireExtinguisherDrill = ({ onComplete, storageKey }: FireExtinguish
 
   const handleReset = useCallback(() => {
     completedRef.current = false;
+    completedResultRef.current = null;
     submittedScenarioRef.current = null;
     if (storageKey) localStorage.removeItem(storageKey);
     setState(initialState(fireResponseScenarios));
@@ -194,8 +201,13 @@ export const FireExtinguisherDrill = ({ onComplete, storageKey }: FireExtinguish
       localStorage.setItem(storageKey, JSON.stringify({ version: 2, scenarioIds: state.scenarios.map((scenario) => scenario.id), answers: state.answers, currentIndex: state.currentIndex, selectedOptionId: state.selectedOptionId, answered: state.answered }));
       browserPersistedRef.current = true;
       setStorageFailed(false);
+      if (completedResultRef.current) {
+        const recovered = { ...completedResultRef.current, browserPersisted: true };
+        completedResultRef.current = recovered;
+        onPersistenceRecovered?.(recovered);
+      }
     } catch { browserPersistedRef.current = false; setStorageFailed(true); }
-  }, [state, storageKey]);
+  }, [onPersistenceRecovered, state, storageKey]);
 
   if (isComplete) {
     const scorePercent = state.totalAnswered === 0 ? 0 : Math.round((state.correctCount / state.totalAnswered) * 100);
@@ -214,7 +226,7 @@ export const FireExtinguisherDrill = ({ onComplete, storageKey }: FireExtinguish
             {state.correctCount} / {state.totalAnswered}
           </div>
           <p role="status" aria-live="polite" className="text-sm">
-            {passed ? "Pass evidence recorded. This drill supports practice; it does not certify firefighting competence." : `Retry required: score at least ${FIRE_DRILL_PASS_PERCENT}% after answering every scenario.`}
+            {state.restoredCompletion ? "Restored practice evidence is shown for review only. It cannot establish a trusted pass or award points; restart to complete a verified in-session attempt." : passed ? "Pass evidence recorded. This drill supports practice; it does not certify firefighting competence." : `Retry required: score at least ${FIRE_DRILL_PASS_PERCENT}% after answering every scenario.`}
           </p>
           {!passed && state.incorrectScenarioIds.length > 0 && <div className="text-sm"><p className="font-medium">Review these decisions before retrying:</p><ul className="list-disc pl-5">{state.incorrectScenarioIds.map((id) => <li key={id}>{state.scenarios.find((scenario) => scenario.id === id)?.description}</li>)}</ul></div>}
           <Button onClick={handleReset} className="w-full">

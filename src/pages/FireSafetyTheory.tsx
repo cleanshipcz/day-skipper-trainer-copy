@@ -53,20 +53,22 @@ const FireSafetyTheory = ({ releaseReview = FIRE_SAFETY_RELEASE_REVIEW }: FireSa
   const drillGenerationRef = useRef(0);
   const releaseApproved = isFireSafetyReleaseApproved(releaseReview);
 
-  useEffect(() => {
-    if (drillOwnerRef.current === ownerId) return;
+  if (drillOwnerRef.current !== ownerId) {
     drillOwnerRef.current = ownerId;
     drillGenerationRef.current += 1;
     drillSaveRef.current = null;
-    setDrillSaveState("idle");
-  }, [ownerId]);
+  }
+  useEffect(() => { setDrillSaveState("idle"); }, [ownerId]);
 
   const handleMarkComplete = useCallback(() => void theoryGate.markCompleted(), [theoryGate]);
 
   const handleDrillComplete = useCallback(
-    (result: DrillResult) => {
+    (result: DrillResult, retry = false) => {
       const generation = drillGenerationRef.current;
-      if (drillSaveRef.current?.generation === generation) return;
+      if (drillSaveRef.current?.generation === generation) {
+        if (retry) void drillSaveRef.current.promise.finally(() => { if (drillGenerationRef.current === generation) handleDrillComplete(result, true); });
+        return;
+      }
       const total = Math.min(fireResponseScenarios.length, result.totalAnswered);
       const correct = Math.min(total, result.correctCount);
       const score = total === 0 ? 0 : Math.round((correct / total) * 100);
@@ -543,7 +545,7 @@ const FireSafetyTheory = ({ releaseReview = FIRE_SAFETY_RELEASE_REVIEW }: FireSa
               </p>
             </div>
 
-            <FireExtinguisherDrill key={ownerId ?? "anonymous"} storageKey={`fire-drill:${ownerId ?? "anonymous"}:v2`} onComplete={handleDrillComplete} />
+            <FireExtinguisherDrill key={ownerId ?? "anonymous"} storageKey={`fire-drill:${ownerId ?? "anonymous"}:v2`} onComplete={handleDrillComplete} onPersistenceRecovered={(result) => handleDrillComplete(result, true)} />
             <p role={drillSaveState === "failed" ? "alert" : "status"} aria-live="polite" aria-atomic="true" className="break-words text-sm text-muted-foreground">
               {drillSaveState === "saving" ? "Saving drill evidence…" : drillSaveState === "saved" ? "Drill evidence saved to your account." : drillSaveState === "queued" ? "Drill evidence is durably queued offline and will sync when you reconnect." : drillSaveState === "local" ? "Drill evidence is saved on this device. Sign in to sync it to an account." : drillSaveState === "failed" ? "Drill evidence could not be saved. Restart the drill and retry when ready." : `Pass requires at least ${FIRE_DRILL_PASS_PERCENT}% after all ${fireResponseScenarios.length} scenarios. A retry records evidence but does not award completion points.`}
             </p>

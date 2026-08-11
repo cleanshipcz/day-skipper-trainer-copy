@@ -19,7 +19,7 @@ const approvedReview: FireSafetyReleaseReview = {
 const mockOnComplete = vi.fn();
 vi.mock("@/components/safety/FireExtinguisherDrill", () => ({
   FIRE_DRILL_PASS_PERCENT: 80,
-  FireExtinguisherDrill: ({ onComplete }: { onComplete?: (result: { correctCount: number; totalAnswered: number; incorrectScenarioIds: string[]; browserPersisted: boolean }) => void }) => {
+  FireExtinguisherDrill: ({ onComplete, onPersistenceRecovered }: { onComplete?: (result: { correctCount: number; totalAnswered: number; incorrectScenarioIds: string[]; browserPersisted: boolean }) => void; onPersistenceRecovered?: (result: { correctCount: number; totalAnswered: number; incorrectScenarioIds: string[]; browserPersisted: boolean }) => void }) => {
     // Store the callback so tests can invoke it
     mockOnComplete.mockImplementation((result) => onComplete?.(result));
     return (
@@ -27,6 +27,8 @@ vi.mock("@/components/safety/FireExtinguisherDrill", () => ({
         <button data-testid="simulate-drill-complete" onClick={() => onComplete?.({ correctCount: 5, totalAnswered: 6, incorrectScenarioIds: [], browserPersisted: true })}>
           Complete Drill
         </button>
+        <button data-testid="simulate-drill-complete-unpersisted" onClick={() => onComplete?.({ correctCount: 5, totalAnswered: 6, incorrectScenarioIds: [], browserPersisted: false })}>Complete without local storage</button>
+        <button data-testid="simulate-local-recovery" onClick={() => onPersistenceRecovered?.({ correctCount: 5, totalAnswered: 6, incorrectScenarioIds: [], browserPersisted: true })}>Recover local save</button>
       </div>
     );
   },
@@ -270,6 +272,19 @@ describe("FireSafetyTheory Page", () => {
     await Promise.resolve();
     expect(screen.getByText(/drill evidence saved to your account/i)).toBeDefined();
     expect(mockSaveProgress).toHaveBeenCalledTimes(2);
+  });
+
+  it("clears an anonymous storage failure after a successful local retry without replaying UI completion", async () => {
+    const user = userEvent.setup();
+    mockSaveProgress.mockResolvedValue("anonymous");
+    render(<TestRouter><FireSafetyTheory releaseReview={approvedReview} /></TestRouter>);
+    await user.click(screen.getByRole("tab", { name: /drill/i }));
+    await user.click(screen.getByTestId("simulate-drill-complete-unpersisted"));
+    await screen.findByText(/drill evidence could not be saved/i);
+    mockSaveProgress.mockClear();
+    await user.click(screen.getByTestId("simulate-local-recovery"));
+    expect(await screen.findByText(/drill evidence is saved on this device/i)).toBeDefined();
+    expect(mockSaveProgress).toHaveBeenCalledTimes(1);
   });
 
   // M4: Quiz link navigation button

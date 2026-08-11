@@ -117,12 +117,42 @@ describe("FireExtinguisherDrill", () => {
     expect(onComplete).not.toHaveBeenCalled();
   });
 
+  it("does not treat a valid-shape all-correct restored ledger as a trusted completion", () => {
+    const scenarioIds = fireResponseScenarios.map((scenario) => scenario.id);
+    localStorage.setItem("forged-complete", JSON.stringify({ version: 2, scenarioIds, answers: fireResponseScenarios.map((scenario) => ({ scenarioId: scenario.id, optionId: scenario.correctOptionId })), currentIndex: scenarioIds.length, answered: false, selectedOptionId: null }));
+    const onComplete = vi.fn();
+    render(<TestRouter><FireExtinguisherDrill storageKey="forged-complete" onComplete={onComplete} /></TestRouter>);
+    expect(screen.getByText(/restored practice evidence/i)).toBeDefined();
+    expect(screen.getByText(/cannot establish a trusted pass or award points/i)).toBeDefined();
+    expect(onComplete).not.toHaveBeenCalled();
+  });
+
   it("reports local persistence failure and offers an accessible retry", async () => {
     const setItem = vi.spyOn(window.localStorage, "setItem").mockImplementation(() => { throw new DOMException("quota", "QuotaExceededError"); });
     render(<TestRouter><FireExtinguisherDrill storageKey="blocked" onComplete={vi.fn()} /></TestRouter>);
     expect((await screen.findByRole("alert")).textContent).toMatch(/could not be saved/i);
     expect(screen.getByRole("button", { name: /retry local save/i })).toBeDefined();
     setItem.mockRestore();
+  });
+
+  it("reports a successful local retry to the parent without replaying completion itself", async () => {
+    const user = userEvent.setup();
+    const setItem = vi.spyOn(window.localStorage, "setItem").mockImplementation(() => { throw new DOMException("quota", "QuotaExceededError"); });
+    const onComplete = vi.fn();
+    const onPersistenceRecovered = vi.fn();
+    render(<TestRouter><FireExtinguisherDrill storageKey="recover" onComplete={onComplete} onPersistenceRecovered={onPersistenceRecovered} /></TestRouter>);
+    for (let i = 0; i < fireResponseScenarios.length; i++) {
+      await user.click(screen.getAllByRole("radio")[0]);
+      await user.click(screen.getByRole("button", { name: /^check answer$/i }));
+      await user.click(screen.getByRole("button", { name: /next scenario/i }));
+    }
+    expect(onComplete).toHaveBeenCalledTimes(1);
+    expect(onComplete.mock.calls[0][0].browserPersisted).toBe(false);
+    setItem.mockRestore();
+    await user.click(screen.getByRole("button", { name: /retry local save/i }));
+    expect(onPersistenceRecovered).toHaveBeenCalledTimes(1);
+    expect(onPersistenceRecovered.mock.calls[0][0].browserPersisted).toBe(true);
+    expect(onComplete).toHaveBeenCalledTimes(1);
   });
 
   it("should render a reset button to restart the drill", () => {
