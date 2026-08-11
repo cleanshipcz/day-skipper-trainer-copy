@@ -9,6 +9,56 @@ export interface PrepareStep {
   example: string;
 }
 
+export interface PrepareSupportingRoute {
+  label: string;
+  route: string;
+  explanation: string;
+}
+
+/** Curated learning and planning tools for each PREPARE action. */
+export const prepareSupportingRoutes: Readonly<Record<string, readonly PrepareSupportingRoute[]>> = {
+  "Passage appraisal": [
+    { label: "Marine Forecasts", route: "/weather/forecasts", explanation: "Acquire and interpret forecast products covering the route and passage window." },
+    { label: "Tides", route: "/navigation/tides", explanation: "Appraise tidal heights, streams, gates and wind-against-tide risk." },
+    { label: "Navigation", route: "/navigation", explanation: "Review chart, compass and position-fixing knowledge needed for the route." },
+    { label: "Pilotage", route: "/pilotage", explanation: "Appraise departure, arrival and confined-water sections berth to berth." },
+    { label: "Personal Safety", route: "/safety/personal", explanation: "Match crew capability, clothing and personal equipment to the conditions." },
+  ],
+  "Regulations and responsibilities": [
+    { label: "COLREGs", route: "/rules/colregs", explanation: "Refresh the steering and sailing rules that constrain execution of the route." },
+    { label: "Lights and Signals", route: "/rules/lights", explanation: "Recognise vessels, obligations and signals expected during the passage." },
+    { label: "Pilotage", route: "/pilotage", explanation: "Connect local directions, buoyage and harbour procedures to each pilotage section." },
+  ],
+  "Equipment and information": [
+    { label: "Engine", route: "/engine", explanation: "Check propulsion, fuel, cooling, alarms, spares and operating limits." },
+    { label: "Rig", route: "/rig", explanation: "Check standing and running rigging, sails and deck equipment." },
+    { label: "Safety Equipment", route: "/safety", explanation: "Review accessible, serviceable personal and emergency equipment." },
+    { label: "Victualling", route: "/victualling", explanation: "Plan water, food, stowage and reserves for the crew and contingencies." },
+  ],
+  "Detailed passage plan": [
+    { label: "Passage Calculator", route: "/passage-planning/calculator", explanation: "Calculate duration, ETA, fuel requirement and reserve from explicit assumptions." },
+    { label: "Tidal Heights Calculator", route: "/navigation/tides/heights-calc", explanation: "Calculate tidal height for a specified place and time, then apply vessel margins." },
+    { label: "Tidal Vector Tool", route: "/navigation/tides/vector-tool", explanation: "Practise course-to-steer and speed-made-good vectors for a planned leg." },
+    { label: "Pilotage Plan", route: "/pilotage/plan", explanation: "Turn departure or arrival details into a usable cockpit pilotage plan." },
+    { label: "Plan Builder", route: "/passage-planning/builder", explanation: "Apply the appraisal to waypoints, legs, gates, limits and contingencies." },
+  ],
+  "Alternatives and contingencies": [
+    { label: "Plan Builder", route: "/passage-planning/builder", explanation: "Record alternatives, decision points and weather or tidal windows." },
+    { label: "Safety", route: "/safety", explanation: "Prepare realistic responses for person overboard, fire and other emergencies." },
+    { label: "Engine", route: "/engine", explanation: "Plan safe actions for propulsion, fuel, cooling or electrical failure." },
+  ],
+  "Revise and brief": [
+    { label: "Marine Forecasts", route: "/weather/forecasts", explanation: "Recheck the latest valid forecast and warnings against agreed limits." },
+    { label: "Pre-departure Checklist", route: "/passage-planning/checklist", explanation: "Run final vessel, crew, weather, navigation and briefing checks." },
+    { label: "Plan Builder", route: "/passage-planning/builder", explanation: "Revise the applied plan when an input, limit or departure decision changes." },
+  ],
+  "Execute and monitor": [
+    { label: "Position Fixing", route: "/navigation/position", explanation: "Choose independent fixes and monitoring frequency appropriate to the risk." },
+    { label: "Pilotage", route: "/pilotage", explanation: "Apply clearing limits, transits and buoyage in confined navigation." },
+    { label: "COLREGs", route: "/rules/colregs", explanation: "Keep collision avoidance active while monitoring and adjusting the plan." },
+  ],
+};
+
 /** PREPARE is a cockpit memory aid; the four IMO planning stages remain the framework. */
 export const prepareSteps: readonly PrepareStep[] = [
   {
