@@ -15,6 +15,35 @@ export interface PrepareSupportingRoute {
   explanation: string;
 }
 
+export const PREPARE_EXERCISE_REVISION = "prepare-applied-v1";
+
+export type PrepareDecision = "go" | "delay" | "divert" | "abort";
+export interface PrepareScenario {
+  id: string; title: string; situation: string; visualSummary: string;
+  stepPrompts: readonly string[]; answers: readonly string[];
+  decision: PrepareDecision; decisionReason: string;
+}
+
+/** Fictional training situations: figures must never be used for navigation. */
+export const prepareScenarios: readonly PrepareScenario[] = [
+  {
+    id: "bar-arrival", title: "Sheltered harbour with a tidal bar",
+    situation: "A 9 m yacht plans a 24 NM daylight passage. The arrival bar window closes at 16:20. The latest forecast is F6 against the ebb, above the crew's agreed F5 limit; a sheltered harbour is available before the headland.",
+    visualSummary: "Route flow: departure berth → open-water leg → headland decision point → tidal bar. A sheltered diversion branches before the headland. Hazard labels, not colour, identify the bar and wind-against-tide area.",
+    stepPrompts: ["Passage appraisal", "Regulations and responsibilities", "Equipment and information", "Detailed passage plan", "Alternatives and contingencies", "Revise and brief", "Execute and monitor"],
+    answers: ["Check crew limits, forecast, tide and berth-to-berth feasibility", "Check current harbour directions, charts and Notices to Mariners", "Confirm updated navigation data, VHF, steering, fuel and safety equipment", "Plot safe legs, tidal window, clearing limits and decision points", "Name the sheltered diversion and triggers before the headland", "Brief the changed forecast and compare it with the agreed F5 limit", "Monitor position, depth, ETA and conditions at risk-based intervals"],
+    decision: "delay", decisionReason: "Delay. The latest forecast exceeds the agreed limit before departure; waiting preserves the bar and crew safety margins. Reappraise from current information before any later departure."
+  },
+  {
+    id: "visibility-loss", title: "Visibility deteriorates near the decision point",
+    situation: "During a coastal passage visibility falls below the plan's 2 NM limit before the headland. The destination approach is exposed, while the pre-planned all-weather refuge remains safely accessible from the vessel's current position.",
+    visualSummary: "Decision flow: present safe water → headland commitment point → exposed destination. The all-weather refuge branches before commitment. Text identifies reduced visibility and each route outcome.",
+    stepPrompts: ["Passage appraisal", "Regulations and responsibilities", "Equipment and information", "Detailed passage plan", "Alternatives and contingencies", "Revise and brief", "Execute and monitor"],
+    answers: ["Reassess crew, visibility, traffic, tide and destination exposure", "Apply restricted-visibility duties and current local directions", "Ready radar/AIS where fitted, sound signals, lights, VHF and independent fixing", "Compare position and ETA with limits and the headland decision point", "Confirm the refuge remains viable and set the diversion track", "Brief crew, record the change and allocate lookout/navigation roles", "Increase monitoring, navigate at safe speed and verify the diversion"],
+    decision: "divert", decisionReason: "Divert to the pre-planned refuge before the headland. Visibility is below the recorded limit and the refuge remains viable; continuing would knowingly discard the plan's safety margin."
+  }
+];
+
 /** Curated learning and planning tools for each PREPARE action. */
 export const prepareSupportingRoutes: Readonly<Record<string, readonly PrepareSupportingRoute[]>> = {
   "Passage appraisal": [
