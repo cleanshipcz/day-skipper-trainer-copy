@@ -57,7 +57,7 @@ describe("FuelCalculator", () => {
     const user=userEvent.setup();render(<FuelCalculator />);const speed=screen.getByLabelText("Conservative passage SOG (knots)") as HTMLInputElement;
     await user.clear(speed);await user.tab();expect(speed.getAttribute("min")).toBe("0.1");expect(speed.getAttribute("max")).toBe("80");expect(speed.getAttribute("step")).toBe("0.1");expect(speed.getAttribute("aria-invalid")).toBe("true");
     fireEvent.change(speed,{target:{value:"1e999"}});expect(screen.getByRole("button",{name:"Calculate / update result"}).hasAttribute("disabled")).toBe(true);
-    fireEvent.change(screen.getByLabelText("Route distance (nautical miles)"),{target:{value:"2000"}});fireEvent.change(speed,{target:{value:"0.1"}});expect(screen.getByText(/Derived passage duration/).textContent).toContain("1,000 hours");
+    fireEvent.change(screen.getByLabelText("Route distance (nautical miles)"),{target:{value:"2000"}});fireEvent.change(speed,{target:{value:"0.1"}});expect(screen.queryByText(/Derived passage duration/)).toBeNull();fireEvent.blur(speed);expect(screen.getByText(/Derived passage duration/).textContent).toContain("1,000 hours");
     fireEvent.change(screen.getByLabelText("Route distance (nautical miles)"),{target:{value:"18"}});fireEvent.change(speed,{target:{value:"6"}});await user.click(screen.getByRole("button",{name:"Calculate / update result"}));expect(screen.getByText(/Passage duration:/)).toBeTruthy();
   });
   it("keeps native and structured step validity aligned",()=>{
@@ -68,5 +68,8 @@ describe("FuelCalculator", () => {
   it("describes fields, announces presets and results concisely, and exposes touch-sized wrapping controls",async()=>{
     const user=userEvent.setup();render(<FuelCalculator />);const distance=screen.getByLabelText("Route distance (nautical miles)");expect(distance.getAttribute("inputmode")).toBe("decimal");expect(distance.getAttribute("aria-describedby")).toContain("distanceNm-hint");expect(screen.getByText("Allowed 0.1 to 2000, in 0.1 increments.")).toBeTruthy();
     const sail=screen.getByRole("button",{name:"Channel crossing — sail/auxiliary"});expect(sail.className).toContain("min-h-11");await user.keyboard("{Tab}");sail.focus();await user.keyboard("{Enter}");expect(sail.getAttribute("aria-pressed")).toBe("true");expect(screen.getByRole("status").textContent).toMatch(/applied.*Changed:/);await user.click(screen.getByRole("button",{name:"Calculate / update result"}));expect(screen.getByRole("status").textContent).toMatch(/Passage 12 h 0 min; practical fuel 26 litres; usable fuel sufficient/);expect(screen.getByText("Calculated plan").closest("div[aria-live]")).toBeNull();
+  });
+  it("keeps derived errors silent during partial typing then announces once politely on blur",()=>{
+    render(<FuelCalculator />);const distance=screen.getByLabelText("Route distance (nautical miles)");const speed=screen.getByLabelText("Conservative passage SOG (knots)");fireEvent.change(distance,{target:{value:"2000"}});fireEvent.change(speed,{target:{value:"0.1"}});expect(screen.queryByText(/Derived passage duration/)).toBeNull();fireEvent.blur(speed);const message=screen.getByText(/Derived passage duration/);const region=message.closest('[aria-live="polite"]');expect(region?.getAttribute("aria-atomic")).toBe("true");expect(region?.querySelectorAll("p")).toHaveLength(1);
   });
 });
