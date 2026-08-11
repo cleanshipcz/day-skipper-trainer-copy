@@ -1,11 +1,23 @@
-export interface PassageCalculationInput { distanceNm: number; speedKnots: number; fuelLitresPerHour: number; reservePercent: number; departureTime?: string }
+export interface PassageCalculationInput {
+  distanceNm: number;
+  speedKnots: number;
+  engineHours: number;
+  fuelLitresPerHour: number;
+  additionalFuelLitres: number;
+  reservePercent: number;
+  usableFuelLitres: number;
+  departureTime?: string;
+}
 export interface PassageCalculation {
   hours: number;
   durationMinutes: number;
   fuelLitres: number;
+  subtotalFuelLitres: number;
   reserveLitres: number;
   fuelWithReserveLitres: number;
   practicalFuelLitres: number;
+  usableFuelMarginLitres: number;
+  hasEnoughUsableFuel: boolean;
   eta?: string;
 }
 
@@ -14,7 +26,10 @@ export function validatePassageInput(input: PassageCalculationInput): string[] {
   if (!Number.isFinite(input.distanceNm) || input.distanceNm <= 0 || input.distanceNm > 2000) errors.push("Distance must be between 0 and 2,000 nautical miles.");
   if (!Number.isFinite(input.speedKnots) || input.speedKnots <= 0 || input.speedKnots > 80) errors.push("Speed must be between 0 and 80 knots.");
   if (!Number.isFinite(input.fuelLitresPerHour) || input.fuelLitresPerHour <= 0 || input.fuelLitresPerHour > 500) errors.push("Fuel rate must be between 0 and 500 litres/hour.");
-  if (!Number.isFinite(input.reservePercent) || input.reservePercent < 0 || input.reservePercent > 200) errors.push("Reserve must be between 0% and 200%.");
+  if (!Number.isFinite(input.engineHours) || input.engineHours < 0 || input.engineHours > 1000) errors.push("Engine-running time must be between 0 and 1,000 hours.");
+  if (!Number.isFinite(input.additionalFuelLitres) || input.additionalFuelLitres < 0 || input.additionalFuelLitres > 100000) errors.push("Additional consumption must be between 0 and 100,000 litres.");
+  if (!Number.isFinite(input.reservePercent) || input.reservePercent <= 0 || input.reservePercent > 200) errors.push("Enter a positive reserve up to 200%, chosen for this vessel and passage.");
+  if (!Number.isFinite(input.usableFuelLitres) || input.usableFuelLitres <= 0 || input.usableFuelLitres > 100000) errors.push("Usable fuel must be between 0 and 100,000 litres.");
   if (input.departureTime && Number.isNaN(Date.parse(input.departureTime))) errors.push("Departure time is invalid.");
   return errors;
 }
@@ -23,16 +38,21 @@ export function calculatePassage(input: PassageCalculationInput): PassageCalcula
   const errors = validatePassageInput(input);
   if (errors.length) throw new RangeError(errors.join(" "));
   const hours = input.distanceNm / input.speedKnots;
-  const fuelLitres = hours * input.fuelLitresPerHour;
-  const reserveLitres = fuelLitres * input.reservePercent / 100;
-  const fuelWithReserveLitres = fuelLitres + reserveLitres;
+  const fuelLitres = input.engineHours * input.fuelLitresPerHour;
+  const subtotalFuelLitres = fuelLitres + input.additionalFuelLitres;
+  const reserveLitres = subtotalFuelLitres * input.reservePercent / 100;
+  const fuelWithReserveLitres = subtotalFuelLitres + reserveLitres;
+  const practicalFuelLitres = Math.ceil(fuelWithReserveLitres);
   return {
     hours,
     durationMinutes: Math.round(hours * 60),
     fuelLitres,
+    subtotalFuelLitres,
     reserveLitres,
     fuelWithReserveLitres,
-    practicalFuelLitres: Math.ceil(fuelWithReserveLitres),
+    practicalFuelLitres,
+    usableFuelMarginLitres: input.usableFuelLitres - practicalFuelLitres,
+    hasEnoughUsableFuel: input.usableFuelLitres >= practicalFuelLitres,
     eta: input.departureTime ? new Date(Date.parse(input.departureTime) + hours * 3_600_000).toISOString() : undefined,
   };
 }
