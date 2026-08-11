@@ -234,8 +234,10 @@ const Quiz = () => {
               : savedData.answers_history;
 
           const completed = parseCompletedQuizSession(savedRaw, questions);
+          if (savedData.completed && owner && isCurrentCompletedQuizCatalogue(savedRaw, questions)) {
+            void seedReviews(owner, generation);
+          }
           if (completed && isCurrentCompletedQuizCatalogue(savedRaw, questions)) {
-            if (owner && isCurrentCompletedQuizCatalogue(savedRaw, questions)) void seedReviews(owner, generation);
             setSubmittedAnswers(completed.answers);
             setCurrentQuestion(completed.currentQuestion);
             setTentativeAnswer(null);
@@ -374,6 +376,10 @@ const Quiz = () => {
 
   if (!sourceQuestions && !catalogueError) {
     return <main className="min-h-screen grid place-items-center p-4" aria-live="polite">Loading quiz…</main>;
+  }
+
+  if (user && !sessionHydrated) {
+    return <main className="min-h-screen grid place-items-center p-4" aria-live="polite">Loading saved quiz progress…</main>;
   }
 
   if (catalogueError || !questions.length) {
