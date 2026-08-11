@@ -17,8 +17,10 @@ describe("PrepareAppliedExercise", () => {
     for (const answer of prepareScenarios[0].answers) await user.click(screen.getByRole("button", { name: answer }));
     expect(screen.getByText("7 of 8")).toBeTruthy();
     await user.click(screen.getByRole("button", { name: "go" }));
-    expect(screen.getByRole("status").textContent).toContain("Delay");
+    expect(screen.getByRole("status").textContent).not.toMatch(/delay|divert|abort/i);
+    expect(screen.queryByRole("button", { name: "delay" })).toBeNull();
     expect(screen.getByRole("button", { name: "Save evidence-based completion" }).hasAttribute("disabled")).toBe(true);
+    await user.click(screen.getByRole("button", { name: "Reassess the final decision" }));
     await user.click(screen.getByRole("button", { name: "delay" }));
     await user.click(screen.getByRole("button", { name: "Save evidence-based completion" }));
     expect(complete).toHaveBeenCalledTimes(1);
