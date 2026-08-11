@@ -74,4 +74,11 @@ it("links malformed coordinates to an error and focuses the first invalid field 
  render(<PassagePlanBuilder/>);await waitFor(()=>expect(loadProgress).toHaveBeenCalled());const latitude=screen.getAllByLabelText("WGS84 latitude (DD°MM.mmm'N/S)")[0] as HTMLInputElement;fireEvent.change(latitude,{target:{value:"91°00.0'N"}});fireEvent.click(screen.getByRole("button",{name:"Save & complete plan"}));
  await waitFor(()=>expect(document.activeElement).toBe(latitude));expect(latitude.value).toBe("91°00.0'N");expect(latitude.getAttribute("aria-invalid")).toBe("true");expect(screen.getByRole("alert").textContent).toContain("valid WGS84 degrees and decimal minutes");
 });
+it("focuses longitude, not latitude, when only longitude is malformed",async()=>{
+ render(<PassagePlanBuilder/>);await waitFor(()=>expect(loadProgress).toHaveBeenCalled());const latitude=screen.getAllByLabelText("WGS84 latitude (DD°MM.mmm'N/S)")[0] as HTMLInputElement,longitude=screen.getAllByLabelText("WGS84 longitude (DDD°MM.mmm'E/W)")[0] as HTMLInputElement;fireEvent.change(longitude,{target:{value:"181°00.0'W"}});fireEvent.click(screen.getByRole("button",{name:"Save & complete plan"}));await waitFor(()=>expect(document.activeElement).toBe(longitude));expect(latitude.getAttribute("aria-invalid")).toBeNull();expect(longitude.getAttribute("aria-invalid")).toBe("true");expect(longitude.value).toBe("181°00.0'W");
+});
+it("clears route and freshness acknowledgements at an account boundary",async()=>{
+ const view=render(<PassagePlanBuilder/>);await waitFor(()=>expect(loadProgress).toHaveBeenCalled());completeEvidence();expect((screen.getByLabelText(/I independently checked this current route/) as HTMLInputElement).checked).toBe(true);expect((screen.getByLabelText(/Source freshness policy/) as HTMLInputElement).checked).toBe(true);
+ currentUser={id:"user-b"};view.rerender(<PassagePlanBuilder/>);await waitFor(()=>expect(loadProgress).toHaveBeenCalledTimes(2));expect((screen.getByLabelText(/I independently checked this current route/) as HTMLInputElement).checked).toBe(false);expect((screen.getByLabelText(/Source freshness policy/) as HTMLInputElement).checked).toBe(false);
+});
 });

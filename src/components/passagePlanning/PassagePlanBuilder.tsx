@@ -75,6 +75,8 @@ export function PassagePlanBuilder() {
     setDirty(false);
     setUndo(null);
     setStatus("");
+    setManualRevision(null);
+    setFreshnessRevision(null);
     mutationRevision.current = 0;
     const cached = readStored(localStorage, cacheKey, {
       decode: (value) => parsePassagePlanCache(JSON.stringify(value)),
@@ -158,8 +160,8 @@ export function PassagePlanBuilder() {
     setErrors(validationErrors);
     if (validationErrors.length) {
       const firstBadCoordinate=plan.points.find(point=>!parseWaypointCoordinate(point.latitude,point.longitude));
-      const firstSafety=(["departureBerth","destinationBerth","limits","abortDecision","alternatives","manualVerification"] as const).find(key=>!plan.safety[key].trim());
-      const target=firstBadCoordinate?`${firstBadCoordinate.id}-latitude`:firstSafety?`safety-${firstSafety}`:!plan.name.trim()?"plan-name":!plan.departure?"departure":null;
+      const firstSafety=(["departureBerth","destinationBerth","limits","abortDecision","alternatives"] as const).find(key=>!plan.safety[key].trim());
+      const target=firstBadCoordinate?`${firstBadCoordinate.id}-${isValidLatitude(firstBadCoordinate.latitude)?"longitude":"latitude"}`:firstSafety?`safety-${firstSafety}`:!plan.name.trim()?"plan-name":!plan.departure?"departure":null;
       window.setTimeout(()=>target?document.getElementById(target)?.focus():document.getElementById("plan-errors")?.focus(),0);return;
     }
     writeStored(localStorage, cacheKey, plan);
@@ -180,7 +182,7 @@ export function PassagePlanBuilder() {
   };
   const reset = () => {
     if (dirty && !window.confirm("Discard all unsaved route changes and restore the last saved plan?")) return;
-    mutationRevision.current += 1;const next=savedPlan;setPlan(next);setErrors([]);setUndo(null);setDirty(false);setStatus("Unsaved changes discarded; last saved plan restored.");focusWaypoint(next.points[0].id);
+    mutationRevision.current += 1;setManualRevision(null);setFreshnessRevision(null);const next=savedPlan;setPlan(next);setErrors([]);setUndo(null);setDirty(false);setStatus("Unsaved changes discarded; last saved plan restored.");focusWaypoint(next.points[0].id);
   };
 
   return <div className="space-y-5">
@@ -194,7 +196,7 @@ export function PassagePlanBuilder() {
     </div>
     {errors.length > 0 && <div id="plan-errors" tabIndex={-1} role="alert" className="rounded-md border border-destructive p-4 text-destructive"><p className="font-semibold">Fix the following before saving:</p><ul className="list-disc pl-5">{errors.map(error => <li key={error}>{error}</li>)}</ul></div>}
     <p className="text-sm text-muted-foreground">Waypoints are ordered from departure to destination. Each arrival waypoint contains the course, distance, gate, weather and notes for the leg from the waypoint immediately above it.</p>
-    <fieldset className="grid gap-3 rounded-md border p-4 sm:grid-cols-2"><legend className="font-semibold">Berth-to-berth safety and PREPARE decisions</legend>{(["departureBerth","destinationBerth","limits","abortDecision","alternatives"] as const).map(key=><div key={key}><Label htmlFor={`safety-${key}`}>{({departureBerth:"Departure berth and exit",destinationBerth:"Destination approach and berth",limits:"Explicit operating limits and gates",abortDecision:"Go/delay/divert/abort triggers",alternatives:"Safe alternatives"} as const)[key]}</Label><Textarea id={`safety-${key}`} value={plan.safety[key]} onChange={event=>setSafety(key,event.target.value)}/></div>)}<label className="flex items-start gap-2"><input type="checkbox" checked={manualRevision===mutationRevision.current} onChange={event=>{if(event.target.checked){setManualRevision(mutationRevision.current);setPlan(current=>({...current,safety:{...current.safety,manualVerification:"Independently verified against the current plotted route"}}))}else{setManualRevision(null);setPlan(current=>({...current,safety:{...current.safety,manualVerification:""}}))}}}/><span>I independently checked this current route on the stated chart/publications; this builder does not prove hazard clearance.</span></label></fieldset>
+    <fieldset className="grid gap-3 rounded-md border p-4 sm:grid-cols-2"><legend className="font-semibold">Berth-to-berth safety and PREPARE decisions</legend>{(["departureBerth","destinationBerth","limits","abortDecision","alternatives"] as const).map(key=><div key={key}><Label htmlFor={`safety-${key}`}>{({departureBerth:"Departure berth and exit",destinationBerth:"Destination approach and berth",limits:"Explicit operating limits and gates",abortDecision:"Go/delay/divert/abort triggers",alternatives:"Safe alternatives"} as const)[key]}</Label><Textarea id={`safety-${key}`} value={plan.safety[key]} onChange={event=>setSafety(key,event.target.value)}/></div>)}<label className="flex items-start gap-2"><input type="checkbox" checked={manualRevision===mutationRevision.current} onChange={event=>setManualRevision(event.target.checked?mutationRevision.current:null)}/><span>I independently checked this current route on the stated chart/publications; this builder does not prove hazard clearance.</span></label></fieldset>
     <fieldset className="grid gap-3 rounded-md border p-4 sm:grid-cols-2"><legend className="font-semibold">Current source provenance</legend>{(["weather","tide","chart","publications"] as const).map(key=><div key={key}><Label htmlFor={`source-${key}`}>{`Current ${key} source, edition/issue and validity`}</Label><Input id={`source-${key}`} value={plan.provenance[key]} onChange={event=>setProvenance(key,event.target.value)}/></div>)}{(["preparedAt","revisedAt"] as const).map(key=><div key={key}><Label htmlFor={`source-${key}`}>{key==="preparedAt"?"Prepared at":"Revised at"}</Label><Input id={`source-${key}`} type="datetime-local" value={plan.provenance[key]} onChange={event=>setProvenance(key,event.target.value)}/></div>)}</fieldset>
     <label className="flex items-start gap-2 rounded-md border border-amber-600 p-3 text-sm"><input type="checkbox" checked={freshnessRevision===mutationRevision.current} onChange={event=>setFreshnessRevision(event.target.checked?mutationRevision.current:null)}/><span><strong>Source freshness policy:</strong> I checked issue/validity and correction status now. Prepared/revised times must be within 30 days, not future, and ordered; departure must be within 24 hours past to one year ahead. Recheck sources immediately before departure.</span></label>
     {plan.points.map((point, index) => <Card key={point.id} className="break-inside-avoid">

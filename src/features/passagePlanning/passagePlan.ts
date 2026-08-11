@@ -106,7 +106,7 @@ export function validatePassagePlan(plan: PassagePlan, nowMs = Date.now()): stri
   else { const departure=Date.parse(plan.departure),now=nowMs;if(departure<now-24*3_600_000||departure>now+366*24*3_600_000)errors.push("Departure must be no more than 24 hours ago and no more than one year ahead."); }
   if (!Number.isFinite(plan.speed) || plan.speed <= 0 || plan.speed > 80) errors.push("SOG must be greater than 0 and no more than 80 knots.");
   if(plan.coordinateFormat!=="degrees-decimal-minutes"||plan.datum!=="WGS84"||!plan.coordinatePrecision.trim())errors.push("Coordinate format, WGS84 datum and stated precision are required.");
-  const safetyFields=[["departure berth",plan.safety?.departureBerth],["destination berth",plan.safety?.destinationBerth],["operating limits",plan.safety?.limits],["abort decision",plan.safety?.abortDecision],["safe alternatives",plan.safety?.alternatives],["manual verification boundary",plan.safety?.manualVerification]] as const;
+  const safetyFields=[["departure berth",plan.safety?.departureBerth],["destination berth",plan.safety?.destinationBerth],["operating limits",plan.safety?.limits],["abort decision",plan.safety?.abortDecision],["safe alternatives",plan.safety?.alternatives]] as const;
   safetyFields.forEach(([label,value])=>{if(typeof value!=="string"||!value.trim())errors.push(`Safety: ${label} is required.`)});
   if(!/issue\s*[:#]?\s*\S+.*valid(?:ity)?\s*[:#]?\s*\S+/i.test(plan.provenance?.weather??""))errors.push("Provenance: weather must record forecast issue and validity.");
   if(!/(?:table|atlas|diamond|almanac).*?(?:edition|year)\s*[:#]?\s*\S+/i.test(plan.provenance?.tide??""))errors.push("Provenance: tide must identify the table/atlas and edition or year.");
