@@ -107,6 +107,28 @@ describe("PreDepartureChecklist", () => {
     expect(screen.getByText(/0% resolved/)).toBeTruthy();
   });
 
+  it("requires explicit completion, autosaves completed evidence consistently, and revokes it after a blocker", async () => {
+    await renderChecklist();
+    for (let pass = 0; pass < preDepartureChecklist.length + 2; pass++) {
+      const next = screen.getAllByRole("group").map((group) => within(group).queryByRole("button", { name: "Satisfactory" })).find((button) => button && !(button as HTMLButtonElement).disabled && button.getAttribute("aria-pressed") !== "true");
+      if (!next) break;
+      fireEvent.click(next);
+    }
+    await new Promise((resolve) => setTimeout(resolve, 350));
+    expect(saveProgressDetailed).not.toHaveBeenCalled();
+    fireEvent.click(screen.getByRole("button", { name: "Record training checklist completion" }));
+    await waitFor(() => expect(saveProgressDetailed).toHaveBeenLastCalledWith(expect.any(String), true, 100, 10, expect.any(Object)));
+    const completionCalls = saveProgressDetailed.mock.calls.length;
+    const first = itemGroup(/Review the current berth-to-berth plan/);
+    fireEvent.change(within(first).getByRole("textbox", { name: /notes/ }), { target: { value: "Post-completion evidence note" } });
+    await waitFor(() => expect(saveProgressDetailed.mock.calls.length).toBeGreaterThan(completionCalls));
+    expect(saveProgressDetailed.mock.calls.at(-1)?.[1]).toBe(true);
+    const completedEditCalls = saveProgressDetailed.mock.calls.length;
+    fireEvent.click(within(first).getByRole("button", { name: "Defect" }));
+    await waitFor(() => expect(saveProgressDetailed.mock.calls.length).toBeGreaterThan(completedEditCalls));
+    expect(saveProgressDetailed.mock.calls.at(-1)?.[1]).toBe(false);
+  });
+
   it("hydrates validated saved evidence with correction history and autosaves edits", async () => {
     loadProgressDetailed.mockResolvedValueOnce({ status: "remote", record: { answers_history: { readinessRecord: {
       version: 1, updatedAt: "2026-08-11T16:00:00.000Z", context: { vessel: "Aster", voyage: "Cowes", conditions: "F4" }, entries: {

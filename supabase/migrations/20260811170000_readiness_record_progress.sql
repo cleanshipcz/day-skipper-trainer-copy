@@ -17,30 +17,64 @@ declare
   resolved_count integer;
   was_completed boolean := false;
   awarded boolean := false;
+  item record;
+  history_item record;
 begin
   if owner is null then raise exception 'Authentication required' using errcode = '42501'; end if;
-  if jsonb_typeof(p_answers_history) <> 'object' or jsonb_typeof(v_record) <> 'object'
-     or v_record->>'version' <> '1' or jsonb_typeof(v_record->'context') <> 'object'
-     or jsonb_typeof(v_record->'entries') <> 'object' or jsonb_typeof(v_record->'updatedAt') <> 'string'
-     or jsonb_typeof(v_record->'context'->'vessel') <> 'string'
-     or jsonb_typeof(v_record->'context'->'voyage') <> 'string'
-     or jsonb_typeof(v_record->'context'->'conditions') <> 'string'
+  if p_completed is null
+     or jsonb_typeof(p_answers_history) is distinct from 'object'
+     or not (p_answers_history ? 'readinessRecord')
+     or jsonb_typeof(v_record) is distinct from 'object'
+     or not (v_record ?& array['version','context','entries','updatedAt'])
+     or v_record->>'version' is distinct from '1'
+     or jsonb_typeof(v_record->'context') is distinct from 'object'
+     or not ((v_record->'context') ?& array['vessel','voyage','conditions'])
+     or jsonb_typeof(v_record->'entries') is distinct from 'object'
+     or jsonb_typeof(v_record->'updatedAt') is distinct from 'string'
+     or jsonb_typeof(v_record->'context'->'vessel') is distinct from 'string'
+     or jsonb_typeof(v_record->'context'->'voyage') is distinct from 'string'
+     or jsonb_typeof(v_record->'context'->'conditions') is distinct from 'string'
      or pg_column_size(p_answers_history) > 65536 then
     raise exception 'Invalid readiness record' using errcode = '22023';
   end if;
+  -- Cast after the type guard so malformed timestamps fail rather than being
+  -- accepted as opaque strings.
+  perform (v_record->>'updatedAt')::timestamptz;
   entries := v_record->'entries';
-  if exists (select 1 from jsonb_each(entries) item where not (item.key = any(allowed_ids)))
-     or exists (
-       select 1 from jsonb_each(entries) item
-       where jsonb_typeof(item.value) <> 'object'
-          or item.value->>'status' not in ('not_checked','satisfactory','not_applicable','defect','blocked','unknown')
-          or jsonb_typeof(item.value->'reason') <> 'string'
-          or jsonb_typeof(item.value->'notes') <> 'string'
-          or jsonb_typeof(item.value->'evidence') <> 'string'
-          or jsonb_typeof(item.value->'responsiblePerson') <> 'string'
-          or (item.value ? 'history' and jsonb_typeof(item.value->'history') <> 'array')
-          or (item.value->>'status' = 'not_applicable' and (not (item.key = any(na_ids)) or btrim(item.value->>'reason') = ''))
-     ) then raise exception 'Invalid readiness entry' using errcode = '22023'; end if;
+  for item in select * from jsonb_each(entries) loop
+    if not (item.key = any(allowed_ids))
+       or jsonb_typeof(item.value) is distinct from 'object'
+       or not (item.value ?& array['status','reason','notes','evidence','responsiblePerson','history'])
+       or jsonb_typeof(item.value->'status') is distinct from 'string'
+       or item.value->>'status' not in ('not_checked','satisfactory','not_applicable','defect','blocked','unknown')
+       or jsonb_typeof(item.value->'reason') is distinct from 'string'
+       or jsonb_typeof(item.value->'notes') is distinct from 'string'
+       or jsonb_typeof(item.value->'evidence') is distinct from 'string'
+       or jsonb_typeof(item.value->'responsiblePerson') is distinct from 'string'
+       or jsonb_typeof(item.value->'history') is distinct from 'array'
+       or (item.value->>'status' = 'not_applicable' and (not (item.key = any(na_ids)) or btrim(item.value->>'reason') = ''))
+       or (item.value->>'status' <> 'not_checked' and jsonb_typeof(item.value->'recordedAt') is distinct from 'string')
+       or (item.value->>'status' = 'not_checked' and item.value ? 'recordedAt') then
+      raise exception 'Invalid readiness entry' using errcode = '22023';
+    end if;
+    if item.value->>'status' <> 'not_checked' then perform (item.value->>'recordedAt')::timestamptz; end if;
+    for history_item in select * from jsonb_array_elements(item.value->'history') loop
+      if jsonb_typeof(history_item.value) is distinct from 'object'
+         or not (history_item.value ?& array['status','reason','notes','evidence','responsiblePerson','supersededAt'])
+         or jsonb_typeof(history_item.value->'status') is distinct from 'string'
+         or history_item.value->>'status' not in ('satisfactory','not_applicable','defect','blocked','unknown')
+         or jsonb_typeof(history_item.value->'reason') is distinct from 'string'
+         or jsonb_typeof(history_item.value->'notes') is distinct from 'string'
+         or jsonb_typeof(history_item.value->'evidence') is distinct from 'string'
+         or jsonb_typeof(history_item.value->'responsiblePerson') is distinct from 'string'
+         or jsonb_typeof(history_item.value->'recordedAt') is distinct from 'string'
+         or jsonb_typeof(history_item.value->'supersededAt') is distinct from 'string' then
+        raise exception 'Invalid readiness history' using errcode = '22023';
+      end if;
+      perform (history_item.value->>'recordedAt')::timestamptz;
+      perform (history_item.value->>'supersededAt')::timestamptz;
+    end loop;
+  end loop;
   select count(*) into resolved_count from unnest(allowed_ids) id
    where entries->id->>'status' = 'satisfactory'
       or (id = any(na_ids) and entries->id->>'status' = 'not_applicable' and btrim(entries->id->>'reason') <> '');

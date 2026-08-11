@@ -89,18 +89,18 @@ export interface ReadinessRecordPayload {
 
 const isString = (value: unknown): value is string => typeof value === "string";
 const isStatus = (value: unknown): value is ReadinessStatus => isString(value) && value in readinessStatusLabels;
+const isTimestamp = (value: unknown): value is string => isString(value) && !Number.isNaN(Date.parse(value));
 const parseHistory = (value: unknown): ReadinessHistoryEntry[] => Array.isArray(value) ? value.filter((candidate): candidate is ReadinessHistoryEntry => {
   if (!candidate || typeof candidate !== "object") return false;
   const item = candidate as Partial<ReadinessHistoryEntry>;
-  return isStatus(item.status) && isString(item.reason) && isString(item.notes) && isString(item.evidence)
-    && isString(item.responsiblePerson) && isString(item.supersededAt)
-    && (item.recordedAt === undefined || isString(item.recordedAt));
+  return isStatus(item.status) && item.status !== "not_checked" && isString(item.reason) && isString(item.notes) && isString(item.evidence)
+    && isString(item.responsiblePerson) && isTimestamp(item.supersededAt) && isTimestamp(item.recordedAt);
 }) : [];
 
 export const parseReadinessPayload = (value: unknown, items: readonly ChecklistItem[]): ReadinessRecordPayload | null => {
   if (!value || typeof value !== "object") return null;
   const candidate = value as Partial<ReadinessRecordPayload>;
-  if (candidate.version !== 1 || !candidate.context || typeof candidate.context !== "object" || !candidate.entries || typeof candidate.entries !== "object" || !isString(candidate.updatedAt)) return null;
+  if (candidate.version !== 1 || !candidate.context || typeof candidate.context !== "object" || !candidate.entries || typeof candidate.entries !== "object" || !isTimestamp(candidate.updatedAt)) return null;
   const context = candidate.context as ReadinessRecordPayload["context"];
   if (![context.vessel, context.voyage, context.conditions].every(isString)) return null;
   const byId = new Map(items.map((item) => [item.id, item]));
@@ -109,7 +109,7 @@ export const parseReadinessPayload = (value: unknown, items: readonly ChecklistI
     const item = byId.get(id);
     if (!item || !raw || typeof raw !== "object") continue;
     const entry = raw as Partial<ReadinessEntry>;
-    if (!isStatus(entry.status) || !isString(entry.reason) || !isString(entry.notes) || !isString(entry.evidence) || !isString(entry.responsiblePerson) || (entry.recordedAt !== undefined && !isString(entry.recordedAt))) continue;
+    if (!isStatus(entry.status) || !isString(entry.reason) || !isString(entry.notes) || !isString(entry.evidence) || !isString(entry.responsiblePerson) || (entry.status !== "not_checked" && !isTimestamp(entry.recordedAt)) || (entry.status === "not_checked" && entry.recordedAt !== undefined)) continue;
     if (!canSelectStatus(item, entry.status)) continue;
     entries[id] = { status: entry.status, reason: entry.reason, notes: entry.notes, evidence: entry.evidence, responsiblePerson: entry.responsiblePerson, recordedAt: entry.recordedAt, history: parseHistory(entry.history) };
   }

@@ -30,6 +30,7 @@ export default function PreDepartureChecklist() {
   const [loadState, setLoadState] = useState<"loading" | "ready" | "failed">("loading");
   const [saveState, setSaveState] = useState<"idle" | "saving" | "saved" | "failed" | "anonymous">("idle");
   const [loadAttempt, setLoadAttempt] = useState(0);
+  const [completionConfirmed, setCompletionConfirmed] = useState(false);
   const revision = useRef(0);
   const hydrated = useRef(false);
   const summary = summarizeReadiness(preDepartureChecklist, entries);
@@ -53,6 +54,9 @@ export default function PreDepartureChecklist() {
       if (payload) {
         setContext(payload.context);
         setEntries(payload.entries);
+        setCompletionConfirmed(Boolean(result.status === "remote" && result.record.completed && summarizeReadiness(preDepartureChecklist, payload.entries).complete));
+      } else {
+        setCompletionConfirmed(false);
       }
       hydrated.current = true;
       setLoadState("ready");
@@ -68,6 +72,7 @@ export default function PreDepartureChecklist() {
     const readinessRecord = { version: 1 as const, context, entries, updatedAt: new Date().toISOString() };
     const result = await saveProgressDetailed(TOPIC_IDS.PASSAGE_PLANNING_CHECKLIST, completed, completed ? 100 : 0, completed ? 10 : 0, { readinessRecord });
     if (revision.current !== currentRevision) return result;
+    if (result === "remote" || result === "queued") setCompletionConfirmed(completed);
     setSaveState(result === "failed" || result === "conflict" ? "failed" : result === "anonymous" ? "anonymous" : "saved");
     return result;
   }, [context, entries, saveProgressDetailed]);
@@ -113,16 +118,19 @@ export default function PreDepartureChecklist() {
   const setContextField = (field: "vessel" | "voyage" | "conditions", value: string) => {
     markChanged();
     setContext((current) => ({ ...current, [field]: value }));
+    setCompletionConfirmed(false);
     const changedAt = new Date().toISOString();
     setEntries((current) => Object.fromEntries(Object.entries(current).map(([id, entry]) => [id, transitionEntry(entry, "not_checked", changedAt)])));
   };
 
   useEffect(() => {
     if (!hydrated.current || loadState !== "ready" || revision.current === 0 || saveState !== "idle") return;
+    if (summary.complete && !completionConfirmed) return;
     const currentRevision = revision.current;
-    const timeout = window.setTimeout(() => { void persistRecord(false, currentRevision); }, 300);
+    const completed = summary.complete && completionConfirmed;
+    const timeout = window.setTimeout(() => { void persistRecord(completed, currentRevision); }, 300);
     return () => window.clearTimeout(timeout);
-  }, [context, entries, loadState, persistRecord, saveState]);
+  }, [completionConfirmed, context, entries, loadState, persistRecord, saveState, summary.complete]);
 
   return (
     <main className="container mx-auto max-w-4xl space-y-6 p-4 py-8">
