@@ -21,6 +21,7 @@ export type PrepareDecision = "go" | "delay" | "divert" | "abort";
 export interface PrepareScenario {
   id: string; title: string; situation: string; visualSummary: string;
   stepPrompts: readonly string[]; answers: readonly string[];
+  alternatives: readonly string[]; remediation: readonly string[];
   decision: PrepareDecision; decisionReason: string;
 }
 
@@ -32,6 +33,8 @@ export const prepareScenarios: readonly PrepareScenario[] = [
     visualSummary: "Route flow: departure berth → open-water leg → headland decision point → tidal bar. A sheltered diversion branches before the headland. Hazard labels, not colour, identify the bar and wind-against-tide area.",
     stepPrompts: ["Passage appraisal", "Regulations and responsibilities", "Equipment and information", "Detailed passage plan", "Alternatives and contingencies", "Revise and brief", "Execute and monitor"],
     answers: ["Check crew limits, forecast, tide and berth-to-berth feasibility", "Check current harbour directions, charts and Notices to Mariners", "Confirm updated navigation data, VHF, steering, fuel and safety equipment", "Plot safe legs, tidal window, clearing limits and decision points", "Name the sheltered diversion and triggers before the headland", "Brief the changed forecast and compare it with the agreed F5 limit", "Monitor position, depth, ETA and conditions at risk-based intervals"],
+    alternatives: ["Use the forecast printed yesterday because departure is close", "Rely on the chartplotter route and marina booking confirmation", "Treat a full fuel gauge as the complete equipment appraisal", "Plot the shortest track and decide margins at the bar", "Keep the diversion informal so the crew can adapt later", "Depart before the wind builds and brief once in open water", "Check position hourly regardless of hazards or uncertainty"],
+    remediation: ["Reappraise from current inputs and the recorded crew and vessel limits.", "Separate current legal/local requirements from convenience or bookings.", "Verify serviceability, currency and usable quantities rather than one indicator.", "A usable plan needs explicit safe-water limits and decision points before execution.", "A contingency must have a named route and trigger before workload rises.", "A material limit exceedance must be resolved and briefed before departure.", "Monitoring frequency follows risk, uncertainty, hazards and decision points."],
     decision: "delay", decisionReason: "Delay. The latest forecast exceeds the agreed limit before departure; waiting preserves the bar and crew safety margins. Reappraise from current information before any later departure."
   },
   {
@@ -40,6 +43,8 @@ export const prepareScenarios: readonly PrepareScenario[] = [
     visualSummary: "Decision flow: present safe water → headland commitment point → exposed destination. The all-weather refuge branches before commitment. Text identifies reduced visibility and each route outcome.",
     stepPrompts: ["Passage appraisal", "Regulations and responsibilities", "Equipment and information", "Detailed passage plan", "Alternatives and contingencies", "Revise and brief", "Execute and monitor"],
     answers: ["Reassess crew, visibility, traffic, tide and destination exposure", "Apply restricted-visibility duties and current local directions", "Ready radar/AIS where fitted, sound signals, lights, VHF and independent fixing", "Compare position and ETA with limits and the headland decision point", "Confirm the refuge remains viable and set the diversion track", "Brief crew, record the change and allocate lookout/navigation roles", "Increase monitoring, navigate at safe speed and verify the diversion"],
+    alternatives: ["Keep the departure appraisal because the passage is already under way", "Treat the encounter as ordinary clear-visibility navigation until another vessel appears", "Use AIS alone so the crew can focus on the destination approach", "Continue to the headland and compare limits after commitment", "Assume the refuge is available because it was checked before departure", "Change course quietly to avoid distracting the lookout", "Maintain the original fix interval because frequent changes create confusion"],
+    remediation: ["Appraisal continues when a core assumption changes during execution.", "Reduced visibility changes applicable duties before a contact is sighted.", "No single aid replaces lookout, sound signals and independent position evidence.", "Apply recorded limits while a safe decision remains available.", "Revalidate the alternative from current position, conditions and access constraints.", "Material changes need an explicit record, briefing and workable role allocation.", "Deteriorating visibility calls for safe speed and increased, verified monitoring."],
     decision: "divert", decisionReason: "Divert to the pre-planned refuge before the headland. Visibility is below the recorded limit and the refuge remains viable; continuing would knowingly discard the plan's safety margin."
   }
 ];
