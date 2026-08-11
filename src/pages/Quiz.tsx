@@ -148,6 +148,8 @@ const Quiz = () => {
   const [attemptCycle, setAttemptCycle] = useState(0);
   const questionHeadingRef = useRef<HTMLHeadingElement>(null);
   const completionHeadingRef = useRef<HTMLHeadingElement>(null);
+  const feedbackRef = useRef<HTMLDivElement>(null);
+  const focusFeedbackAfterSubmitRef = useRef(false);
   const focusQuestionAfterAdvanceRef = useRef(false);
   const suppressNextProgressLoadRef = useRef(false);
   const verifiedScoreAttemptRef = useRef<string | null>(null);
@@ -357,6 +359,12 @@ const Quiz = () => {
     questionHeadingRef.current?.focus();
   }, [currentQuestion, isComplete]);
 
+  useEffect(() => {
+    if (!showExplanation || !focusFeedbackAfterSubmitRef.current) return;
+    focusFeedbackAfterSubmitRef.current = false;
+    feedbackRef.current?.focus();
+  }, [showExplanation]);
+
   const persistSession = async (nextAnswers: Array<number | null>, nextQuestion: number) => {
     const progress = buildQuizSessionProgress(nextAnswers, nextQuestion, questions);
     if (!user) {
@@ -420,6 +428,7 @@ const Quiz = () => {
     if (tentativeAnswer === null || assessedAnswer !== null || assessmentPersistenceRef.current) return;
     const nextAnswers = [...submittedAnswers];
     nextAnswers[currentQuestion] = tentativeAnswer;
+    focusFeedbackAfterSubmitRef.current = true;
     setSubmittedAnswers(nextAnswers);
     setTentativeAnswer(null);
     const persistence = persistSession(nextAnswers, currentQuestion);
@@ -594,7 +603,7 @@ const Quiz = () => {
                 passed ? "bg-success/20" : "bg-accent/20"
               }`}
             >
-              <Trophy className={`w-10 h-10 ${passed ? "text-success" : "text-accent"}`} />
+              <Trophy className={`w-10 h-10 ${passed ? "text-success" : "text-accent"}`} aria-hidden="true" />
             </div>
             <CardTitle ref={completionHeadingRef} tabIndex={-1} className="text-3xl break-words [overflow-wrap:anywhere] focus:outline-none">Quiz Complete!</CardTitle>
           </CardHeader>
@@ -765,7 +774,7 @@ const Quiz = () => {
               <div className="mb-4 flex justify-center">
                 <img
                   src={question.image}
-                  alt={question.imageAlt ?? "Quiz scenario diagram"}
+                  alt={question.imageAlt ?? ""}
                   className="max-h-64 rounded-lg object-contain border border-border"
                 />
               </div>
@@ -787,7 +796,7 @@ const Quiz = () => {
           <CardContent className="space-y-4">
             <fieldset className="min-w-0">
               <legend className="sr-only">Choose one answer</legend>
-              <div className="grid gap-3" role="radiogroup" aria-label={`Answers for question ${currentQuestion + 1}`}>
+              <div className="grid gap-3">
               {question.options.map((option, index) => {
                 const isSelected = selectedAnswer === index;
                 const isCorrect = index === question.correctAnswer;
@@ -813,6 +822,7 @@ const Quiz = () => {
                       value={index}
                       checked={isSelected}
                       disabled={showExplanation}
+                      aria-describedby={showCorrect || showIncorrect ? `answer-state-${question.id}-${index}` : undefined}
                       onChange={() => handleAnswerSelect(index)}
                       className="sr-only"
                     />
@@ -821,6 +831,9 @@ const Quiz = () => {
                       {showCorrect && <CheckCircle2 className="w-5 h-5 shrink-0 text-success" aria-hidden="true" />}
                       {showIncorrect && <XCircle className="w-5 h-5 shrink-0 text-destructive" aria-hidden="true" />}
                     </div>
+                    {(showCorrect || showIncorrect) && <span id={`answer-state-${question.id}-${index}`} className="sr-only">
+                      {showCorrect ? "Correct answer" : "Selected answer, incorrect"}
+                    </span>}
                   </label>
                 );
               })}
@@ -828,7 +841,7 @@ const Quiz = () => {
             </fieldset>
 
             {showExplanation && (
-              <div role="status" aria-live="polite" aria-atomic="true" className="mt-6 p-4 bg-muted rounded-lg border-2 border-border animate-in fade-in slide-in-from-bottom-4 duration-500 motion-reduce:!animate-none motion-reduce:!transition-none">
+              <div ref={feedbackRef} tabIndex={-1} role="status" aria-live="polite" aria-atomic="true" className="mt-6 p-4 bg-muted rounded-lg border-2 border-border animate-in fade-in slide-in-from-bottom-4 duration-500 motion-reduce:!animate-none motion-reduce:!transition-none focus:outline-none">
                 <h3 className="font-semibold mb-2 flex items-center gap-2">
                   {selectedAnswer === question.correctAnswer
                     ? <CheckCircle2 className="w-5 h-5 text-success" aria-hidden="true" />

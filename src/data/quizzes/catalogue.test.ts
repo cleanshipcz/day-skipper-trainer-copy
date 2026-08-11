@@ -39,7 +39,7 @@ describe("asynchronous quiz catalogue", () => {
       "/images/colregs/example.png", "/images/photo.jpg", "/images/photo.jpeg",
       "/images/diagrams/day_shape.webp", "/images/icons/vessel.svg",
     ]) {
-      const bank = [{ ...validQuestion, image }];
+      const bank = [{ ...validQuestion, image, imageAlt: "A useful description of the assessment visual." }];
       expect(validateQuizBank("test-topic", bank)).toBe(bank);
     }
   });
@@ -56,6 +56,7 @@ describe("asynchronous quiz catalogue", () => {
     ["an in-bounds answer", { ...validQuestion, correctAnswer: 2 }, /test-topic.*topic-1.*integer index/i],
     ["a non-blank explanation", { ...validQuestion, explanation: " " }, /test-topic.*topic-1.*explanation.*non-blank/i],
     ["a supported image path", { ...validQuestion, image: "https://example.test/image.png" }, /test-topic.*topic-1.*under \/images/i],
+    ["an accessible visual equivalent", { ...validQuestion, image: "/images/example.png" }, /visual questions require a meaningful imageAlt or structured scenario equivalent/i],
   ])("rejects a question without %s", (_label, invalid, message) => {
     const bank = Array.isArray(invalid) ? invalid : [invalid];
     expect(() => validateQuizBank("test-topic", bank)).toThrow(message as RegExp);
@@ -70,7 +71,7 @@ describe("asynchronous quiz catalogue", () => {
     "/images/example.png#remote",
     "/assets/example.png",
   ])("rejects non-canonical media path %s", (image) => {
-    expect(() => validateQuizBank("media-topic", [{ ...validQuestion, image }]))
+    expect(() => validateQuizBank("media-topic", [{ ...validQuestion, image, imageAlt: "A useful description of the assessment visual." }]))
       .toThrow(/media-topic.*topic-1.*canonical local asset path/i);
   });
 

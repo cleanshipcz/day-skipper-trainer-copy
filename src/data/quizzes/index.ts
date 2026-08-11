@@ -92,6 +92,22 @@ export const validateQuizBank = (topicId: string, candidate: unknown): readonly 
     if (question.image !== undefined && (typeof question.image !== "string" || !localQuizImage.test(question.image))) {
       throw questionError(topicId, index, value, "image must be a canonical local asset path under /images/.");
     }
+    if (question.image !== undefined) {
+      const hasMeaningfulAlt = typeof question.imageAlt === "string" && question.imageAlt.trim().length >= 20;
+      const scenario = question.scenario;
+      const hasStructuredEquivalent = Boolean(
+        scenario && typeof scenario === "object" && !Array.isArray(scenario)
+        && typeof (scenario as Record<string, unknown>).accessibleName === "string"
+        && ((scenario as Record<string, unknown>).accessibleName as string).trim().length >= 5
+        && typeof (scenario as Record<string, unknown>).description === "string"
+        && ((scenario as Record<string, unknown>).description as string).trim().length >= 10
+        && Array.isArray((scenario as Record<string, unknown>).facts)
+        && ((scenario as Record<string, unknown>).facts as unknown[]).length > 0
+      );
+      if (!hasMeaningfulAlt && !hasStructuredEquivalent) {
+        throw questionError(topicId, index, value, "visual questions require a meaningful imageAlt or structured scenario equivalent.");
+      }
+    }
   }
   return candidate as readonly Question[];
 };

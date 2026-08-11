@@ -336,8 +336,14 @@ describe("Quiz accessible interaction and reflow", () => {
     const firstPrefix = firstHeading.textContent?.startsWith("First") ? "First" : "Second";
     await user.click(screen.getByRole("radio", { name: new RegExp(`${firstPrefix} correct`, "i") }));
     await user.click(screen.getByRole("button", { name: "Submit Answer" }));
+    const feedback = screen.getByRole("status");
     expect(screen.getAllByRole("status")).toHaveLength(1);
-    expect(screen.getByRole("status").textContent).toContain("Correct");
+    expect(feedback.textContent).toContain("Correct");
+    await waitFor(() => expect(document.activeElement).toBe(feedback));
+    const selected = screen.getByRole("radio", { name: new RegExp(`${firstPrefix} correct`, "i") });
+    expect(selected.getAttribute("aria-describedby")).toBeTruthy();
+    expect(selected.disabled).toBe(true);
+    expect(document.getElementById(selected.getAttribute("aria-describedby")!)?.textContent).toContain("Correct answer");
 
     await user.click(screen.getByRole("button", { name: "Next Question" }));
     const secondHeading = await screen.findByRole("heading", { level: 3, name: firstPrefix === "First" ? "Second question?" : /First deliberately/ });
