@@ -419,18 +419,13 @@ export type Database = {
         Args: { p_source_id: string; p_source_type: string; p_user_id: string }
         Returns: Json
       }
-      expire_all_readiness_record_progress: {
-        Args: Record<PropertyKey, never>
-        Returns: number
-      }
-      expire_readiness_record_progress: {
-        Args: Record<PropertyKey, never>
-        Returns: boolean
-      }
+      expire_all_readiness_record_progress: { Args: never; Returns: number }
+      expire_readiness_record_progress: { Args: never; Returns: boolean }
       increment_user_points: {
         Args: { p_increment: number; p_user_id: string }
         Returns: undefined
       }
+      quarantine_readiness_record_progress: { Args: never; Returns: boolean }
       record_active_question_review_internal: {
         Args: {
           p_quality: number
@@ -464,10 +459,6 @@ export type Database = {
           current_streak: number
           unlocked_badge_ids: string[]
         }[]
-      }
-      quarantine_readiness_record_progress: {
-        Args: Record<PropertyKey, never>
-        Returns: boolean
       }
       record_question_review: {
         Args: {
