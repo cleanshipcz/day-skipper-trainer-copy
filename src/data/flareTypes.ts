@@ -71,11 +71,17 @@ export interface FlareQualifiedReviewEvidence {
   sourceIds: readonly string[];
 }
 export const flareQualifiedReview: FlareQualifiedReviewEvidence = { reviewerName: null, qualification: null, reviewedOn: null, reviewedCommit: null, approvedContentVersion: null, status: "pending", sourceIds: [] };
-export const isFlareQualifiedReviewComplete = (review: FlareQualifiedReviewEvidence, contentVersion: string) =>
-  review.status === "approved" && Boolean(review.reviewerName?.trim()) && Boolean(review.qualification?.trim()) &&
-  Boolean(review.reviewedCommit?.trim()) && review.approvedContentVersion === contentVersion &&
-  Boolean(review.reviewedOn && !Number.isNaN(Date.parse(review.reviewedOn))) && review.sourceIds.length === flareSources.length &&
-  review.sourceIds.every(id => flareSources.some(source => source.id === id));
+export const isFlareQualifiedReviewComplete = (review: FlareQualifiedReviewEvidence, contentVersion: string) => {
+  const expectedSources = new Set(flareSources.map(source => source.id));
+  const suppliedSources = new Set(review.sourceIds);
+  const dateOnly = review.reviewedOn?.match(/^\d{4}-\d{2}-\d{2}$/)?.[0] ?? null;
+  const reviewStartUtc = dateOnly ? Date.parse(`${dateOnly}T00:00:00.000Z`) : Number.NaN;
+  const canonicalDate = Number.isFinite(reviewStartUtc) ? new Date(reviewStartUtc).toISOString().slice(0, 10) : null;
+  return review.status === "approved" && Boolean(review.reviewerName?.trim()) && Boolean(review.qualification?.trim()) &&
+    Boolean(review.reviewedCommit?.trim()) && review.approvedContentVersion === contentVersion &&
+    canonicalDate === dateOnly && reviewStartUtc <= Date.now() && suppliedSources.size === expectedSources.size &&
+    review.sourceIds.length === suppliedSources.size && [...expectedSources].every(id => suppliedSources.has(id));
+};
 /** Derived only from complete evidence; there is no independent release switch. */
 export const isFlareContentReleased = isFlareQualifiedReviewComplete(flareQualifiedReview, flareReview.contentVersion);
 

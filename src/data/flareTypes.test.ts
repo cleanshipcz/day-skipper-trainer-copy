@@ -248,5 +248,10 @@ describe("flare qualified-review release contract", () => {
     expect(isFlareQualifiedReviewComplete({ ...complete, status: "pending" }, flareReview.contentVersion)).toBe(false);
     expect(isFlareQualifiedReviewComplete({ ...complete, approvedContentVersion: "stale" }, flareReview.contentVersion)).toBe(false);
     expect(isFlareQualifiedReviewComplete({ ...complete, sourceIds: complete.sourceIds.slice(1) }, flareReview.contentVersion)).toBe(false);
+    const duplicateSubstitution = [...complete.sourceIds.slice(0, -1), complete.sourceIds[0]];
+    expect(duplicateSubstitution).toHaveLength(complete.sourceIds.length);
+    expect(isFlareQualifiedReviewComplete({ ...complete, sourceIds: duplicateSubstitution }, flareReview.contentVersion)).toBe(false);
+    expect(isFlareQualifiedReviewComplete({ ...complete, reviewedOn: "2999-01-01" }, flareReview.contentVersion)).toBe(false);
+    expect(isFlareQualifiedReviewComplete({ ...complete, reviewedOn: "2026-99-99" }, flareReview.contentVersion)).toBe(false);
   });
 });
