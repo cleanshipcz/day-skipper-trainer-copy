@@ -19,6 +19,9 @@ describe("PersonalSafetyTheory lifejacket guidance", () => {
     );
 
     expect(screen.getByText(/Level 50 buoyancy aids from Level 100, 150, and 275/i)).toBeTruthy();
+    expect(
+      screen.getByText(/properly fitted, fasten the crotch strap where one is provided/i),
+    ).toBeTruthy();
 
     const inclusiveLabel = "Buoyancy aids & lifejackets";
     await user.click(screen.getByRole("tab", { name: inclusiveLabel }));

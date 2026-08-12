@@ -145,8 +145,8 @@ const PersonalSafetyTheory = () => {
               <CardContent className="pt-6">
                 <p className="text-sm font-medium">
                   <strong>Key principle:</strong> Wear the right buoyancy aid or lifejacket
-                  for the conditions, ensure it is properly fitted with a
-                  crotch strap fastened, clip on with a harness and tether
+                  for the conditions, ensure it is properly fitted, fasten the
+                  crotch strap where one is provided, and clip on with a harness and tether
                   before conditions deteriorate, and always attach the kill
                   cord when at the helm.
                 </p>
