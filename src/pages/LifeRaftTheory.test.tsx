@@ -25,9 +25,15 @@ describe("LifeRaftTheory durable completion", () => {
   });
 
   it("fails closed without qualified review evidence", () => {
+    const getItem = vi.spyOn(Storage.prototype, "getItem");
+    const setItem = vi.spyOn(Storage.prototype, "setItem");
     render(<TestRouter><LifeRaftTheory /></TestRouter>);
     expect(screen.getByTestId("life-raft-release-gate")).toBeTruthy();
     expect(screen.queryByRole("button", { name: "Complete lesson" })).toBeNull();
+    expect(mocks.useGate).not.toHaveBeenCalled();
+    expect(getItem).not.toHaveBeenCalled();
+    expect(setItem).not.toHaveBeenCalled();
+    getItem.mockRestore(); setItem.mockRestore();
   });
 
   it("requires revisioned guidance and validated drill evidence", async () => {

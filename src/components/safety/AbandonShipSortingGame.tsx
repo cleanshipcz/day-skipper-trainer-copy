@@ -5,21 +5,25 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import type { ProcedureStep } from "@/data/lifeRaftProcedures";
-import { ABANDON_SHIP_EVIDENCE_KEY, ABANDON_SHIP_SCENARIOS, findDependencyViolations, getDrillStep, hasAllScenarioEvidence, parseDrillEvidence, type Dependency, type DrillEvidence, type DrillScenario } from "@/data/abandonShipDrill";
+import { ABANDON_SHIP_SCENARIOS, abandonShipEvidenceKey, findDependencyViolations, getDrillStep, hasAllScenarioEvidence, parseDrillEvidence, type Dependency, type DrillEvidence, type DrillScenario } from "@/data/abandonShipDrill";
 const initialOrder = (scenario: DrillScenario) => [...scenario.steps].reverse();
 
 interface AbandonShipSortingGameProps {
   readonly onReviewTheory?: () => void;
   /** Reports validated, de-duplicated browser evidence to the lesson shell. */
   readonly onEvidenceChange?: (evidence: DrillEvidence) => void;
+  readonly evidenceOwnerId?: string | null;
+  readonly evidenceRevision?: string;
 }
-export const AbandonShipSortingGame = ({ onReviewTheory, onEvidenceChange }: AbandonShipSortingGameProps) => {
+export const AbandonShipSortingGame = ({ onReviewTheory, onEvidenceChange, evidenceOwnerId = null, evidenceRevision = "life-raft-qualified-guidance-drill-v3" }: AbandonShipSortingGameProps) => {
+  const evidenceKey = abandonShipEvidenceKey(evidenceOwnerId, evidenceRevision);
+  const evidenceScopeRef = useRef(evidenceKey);
   const [scenarioIndex, setScenarioIndex] = useState(0);
   const scenario = ABANDON_SHIP_SCENARIOS[scenarioIndex];
   const [steps, setSteps] = useState<ProcedureStep[]>(() => initialOrder(scenario));
   const [violations, setViolations] = useState<readonly Dependency[] | null>(null);
   const [evidence, setEvidence] = useState<DrillEvidence>(() => {
-    try { return parseDrillEvidence(localStorage.getItem(ABANDON_SHIP_EVIDENCE_KEY)); }
+    try { return parseDrillEvidence(localStorage.getItem(evidenceKey)); }
     catch { return parseDrillEvidence(null); }
   });
   const mastered = evidence.masteredScenarioIds;
@@ -30,9 +34,18 @@ export const AbandonShipSortingGame = ({ onReviewTheory, onEvidenceChange }: Aba
   const dependencySummary = useMemo(() => scenario.dependencies.map(({ before, after }) => `${getDrillStep(scenario, before).text} before ${getDrillStep(scenario, after).text}`), [scenario]);
 
   useEffect(() => {
-    try { localStorage.setItem(ABANDON_SHIP_EVIDENCE_KEY, JSON.stringify({ version: 2, masteredScenarioIds: mastered, completedAt: evidence.completedAt })); } catch { /* visible evidence remains explicitly browser-local */ }
+    if (evidenceScopeRef.current !== evidenceKey) {
+      evidenceScopeRef.current = evidenceKey;
+      let restored = parseDrillEvidence(null);
+      try { restored = parseDrillEvidence(localStorage.getItem(evidenceKey)); } catch { /* start empty when storage is unavailable */ }
+      setEvidence(restored);
+      setScenarioIndex(0); setSteps(initialOrder(ABANDON_SHIP_SCENARIOS[0])); setViolations(null);
+      setAnnouncement("Learner changed. Drill evidence reloaded for the current learner.");
+      return;
+    }
+    try { localStorage.setItem(evidenceKey, JSON.stringify({ version: 2, masteredScenarioIds: mastered, completedAt: evidence.completedAt })); } catch { /* visible evidence remains explicitly browser-local */ }
     onEvidenceChange?.(evidence);
-  }, [evidence, mastered, onEvidenceChange]);
+  }, [evidence, evidenceKey, mastered, onEvidenceChange]);
 
   const selectScenario = (index: number) => {
     const next = ABANDON_SHIP_SCENARIOS[index];

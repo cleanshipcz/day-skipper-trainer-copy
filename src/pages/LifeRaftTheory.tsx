@@ -41,34 +41,35 @@ import {
 import { hasAllScenarioEvidence, type DrillEvidence } from "@/data/abandonShipDrill";
 
 interface LifeRaftTheoryProps { readonly releaseReview?: LifeRaftReleaseReview }
-const LifeRaftTheory = ({ releaseReview = LIFE_RAFT_RELEASE_REVIEW }: LifeRaftTheoryProps) => {
+const LIFE_RAFT_EVIDENCE_REVISION = "life-raft-qualified-guidance-drill-v3";
+
+const ApprovedLifeRaftTheory = () => {
   const navigate = useNavigate();
   const [activeTab, setActiveTab] = useState("when-to-abandon");
   const evidenceIds = useMemo(() => ["when-to-abandon", "raft-types", "solas-pack", "deployment", "drill-mastery"], []);
   const completion = useTheoryCompletionGate({
     topicId: TOPIC_IDS.SAFETY_LIFE_RAFT,
     requiredSectionIds: evidenceIds,
-    catalogueRevision: "life-raft-qualified-guidance-drill-v3",
+    catalogueRevision: LIFE_RAFT_EVIDENCE_REVISION,
     pointsOnComplete: 10,
   });
+  const { markCompleted, markSectionVisited } = completion;
   const selectTab = useCallback((value: string) => {
-    if (activeTab !== "drill") void completion.markSectionVisited(activeTab);
+    if (activeTab !== "drill") void markSectionVisited(activeTab);
     setActiveTab(value);
-    if (value !== "drill") void completion.markSectionVisited(value);
-  }, [activeTab, completion.markSectionVisited]);
+    if (value !== "drill") void markSectionVisited(value);
+  }, [activeTab, markSectionVisited]);
   const recordDrillEvidence = useCallback((evidence: DrillEvidence) => {
     if (hasAllScenarioEvidence(evidence.masteredScenarioIds) && evidence.completedAt) {
-      void completion.markSectionVisited("drill-mastery");
+      void markSectionVisited("drill-mastery");
     }
-  }, [completion.markSectionVisited]);
+  }, [markSectionVisited]);
   const reviewDeploymentTheory = useCallback(() => {
     setActiveTab("deployment");
     requestAnimationFrame(() => document.getElementById("life-raft-deployment-heading")?.focus());
   }, []);
 
-  const handleMarkComplete = useCallback(() => { void completion.markCompleted(); }, [completion.markCompleted]);
-
-  if (!isLifeRaftReleaseApproved(releaseReview)) return <main className="container mx-auto max-w-2xl px-4 py-8"><Card className="border-amber-500" data-testid="life-raft-release-gate"><CardHeader><CardTitle>Life raft guidance awaiting qualified review</CardTitle><CardDescription>The lesson, drill, completion and assessment hand-off remain withheld until a qualified survival-craft reviewer records identity, qualification, approval date and all source evidence.</CardDescription></CardHeader><CardContent className="space-y-4"><ul className="list-disc pl-5 text-sm">{LIFE_RAFT_REVIEW_BASIS.map((source) => <li key={source}>{source}</li>)}</ul><Button onClick={() => navigate("/safety")}>Back to Safety Menu</Button></CardContent></Card></main>;
+  const handleMarkComplete = useCallback(() => { void markCompleted(); }, [markCompleted]);
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-background via-ocean-light/10 to-background pb-20">
@@ -288,7 +289,7 @@ const LifeRaftTheory = ({ releaseReview = LIFE_RAFT_RELEASE_REVIEW }: LifeRaftTh
               </p>
             </div>
 
-            <AbandonShipSortingGame onReviewTheory={reviewDeploymentTheory} onEvidenceChange={recordDrillEvidence} />
+            <AbandonShipSortingGame onReviewTheory={reviewDeploymentTheory} onEvidenceChange={recordDrillEvidence} evidenceOwnerId={completion.ownerId} evidenceRevision={LIFE_RAFT_EVIDENCE_REVISION} />
 
             <div className="mt-8 p-6 bg-muted/50 rounded-xl text-center border">
               <h3 className="text-lg font-bold mb-2">
@@ -347,6 +348,12 @@ const LifeRaftTheory = ({ releaseReview = LIFE_RAFT_RELEASE_REVIEW }: LifeRaftTh
       </main>
     </div>
   );
+};
+
+const LifeRaftTheory = ({ releaseReview = LIFE_RAFT_RELEASE_REVIEW }: LifeRaftTheoryProps) => {
+  const navigate = useNavigate();
+  if (!isLifeRaftReleaseApproved(releaseReview)) return <main className="container mx-auto max-w-2xl px-4 py-8"><Card className="border-amber-500" data-testid="life-raft-release-gate"><CardHeader><CardTitle>Life raft guidance awaiting qualified review</CardTitle><CardDescription>The lesson, drill, completion and assessment hand-off remain withheld until a qualified survival-craft reviewer records identity, qualification, approval date and all source evidence.</CardDescription></CardHeader><CardContent className="space-y-4"><ul className="list-disc pl-5 text-sm">{LIFE_RAFT_REVIEW_BASIS.map((source) => <li key={source}>{source}</li>)}</ul><Button onClick={() => navigate("/safety")}>Back to Safety Menu</Button></CardContent></Card></main>;
+  return <ApprovedLifeRaftTheory />;
 };
 
 export default LifeRaftTheory;

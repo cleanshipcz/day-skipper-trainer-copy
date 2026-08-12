@@ -4,7 +4,7 @@ import userEvent from "@testing-library/user-event";
 import {
   AbandonShipSortingGame,
 } from "../src/components/safety/AbandonShipSortingGame";
-import { ABANDON_SHIP_EVIDENCE_KEY, ABANDON_SHIP_SCENARIOS, findDependencyViolations, hasAllScenarioEvidence, parseDrillEvidence } from "../src/data/abandonShipDrill";
+import { ABANDON_SHIP_SCENARIOS, abandonShipEvidenceKey, findDependencyViolations, hasAllScenarioEvidence, parseDrillEvidence } from "../src/data/abandonShipDrill";
 
 vi.mock("sonner", () => ({ toast: { success: vi.fn(), error: vi.fn() } }));
 
@@ -84,7 +84,7 @@ describe("AbandonShipSortingGame", () => {
   });
 
   it("restores only versioned, known browser-local context evidence", () => {
-    localStorage.setItem(ABANDON_SHIP_EVIDENCE_KEY, JSON.stringify({ version: 2, masteredScenarioIds: ["fast-fire", "forged-unknown"], completedAt: "forged" }));
+    localStorage.setItem(abandonShipEvidenceKey(null, "life-raft-qualified-guidance-drill-v3"), JSON.stringify({ version: 2, masteredScenarioIds: ["fast-fire", "forged-unknown"], completedAt: "forged" }));
     render(<AbandonShipSortingGame />);
     expect(screen.getByTestId("drill-progress").textContent).toContain("1 of 4 complete");
     expect(screen.getByRole("tab", { name: /fast-moving fire — complete/i })).toBeDefined();
@@ -93,12 +93,37 @@ describe("AbandonShipSortingGame", () => {
   it("preserves a valid completedAt across remount instead of regenerating it", () => {
     const completedAt = "2026-08-12T03:00:00.000Z";
     const masteredScenarioIds = ABANDON_SHIP_SCENARIOS.map((scenario) => scenario.id);
-    localStorage.setItem(ABANDON_SHIP_EVIDENCE_KEY, JSON.stringify({ version: 2, masteredScenarioIds, completedAt }));
+    const key = abandonShipEvidenceKey(null, "life-raft-qualified-guidance-drill-v3");
+    localStorage.setItem(key, JSON.stringify({ version: 2, masteredScenarioIds, completedAt }));
     const view = render(<AbandonShipSortingGame />);
     view.unmount();
     render(<AbandonShipSortingGame />);
-    expect(JSON.parse(localStorage.getItem(ABANDON_SHIP_EVIDENCE_KEY)!).completedAt).toBe(completedAt);
+    expect(JSON.parse(localStorage.getItem(key)!).completedAt).toBe(completedAt);
     expect(screen.getByTestId("drill-progress").textContent).toContain("All contexts completed");
+  });
+
+  it("never promotes anonymous or another account's evidence during an in-place owner switch", async () => {
+    const completedAt = "2026-08-12T03:00:00.000Z";
+    const masteredScenarioIds = ABANDON_SHIP_SCENARIOS.map(({ id }) => id);
+    const anonymousKey = abandonShipEvidenceKey(null, "life-raft-qualified-guidance-drill-v3");
+    const accountAKey = abandonShipEvidenceKey("account-a", "life-raft-qualified-guidance-drill-v3");
+    const accountBKey = abandonShipEvidenceKey("account-b", "life-raft-qualified-guidance-drill-v3");
+    localStorage.setItem(anonymousKey, JSON.stringify({ version: 2, masteredScenarioIds, completedAt }));
+    localStorage.setItem(accountAKey, JSON.stringify({ version: 2, masteredScenarioIds: ["fast-fire"], completedAt: null }));
+    const onEvidenceChange = vi.fn();
+    const view = render(<AbandonShipSortingGame evidenceOwnerId="account-a" onEvidenceChange={onEvidenceChange} />);
+    expect(screen.getByTestId("drill-progress").textContent).toContain("1 of 4 complete");
+    onEvidenceChange.mockClear();
+    view.rerender(<AbandonShipSortingGame evidenceOwnerId="account-b" onEvidenceChange={onEvidenceChange} />);
+    expect(await screen.findByText(/0 of 4 complete/)).toBeDefined();
+    expect(localStorage.getItem(accountBKey)).not.toContain("fast-fire");
+    expect(onEvidenceChange.mock.calls.some(([evidence]) => hasAllScenarioEvidence(evidence.masteredScenarioIds))).toBe(false);
+  });
+
+  it("does not migrate the unscoped legacy key because its learner ownership is unknowable", () => {
+    localStorage.setItem("life-raft-context-drill-v2", JSON.stringify({ version: 2, masteredScenarioIds: ABANDON_SHIP_SCENARIOS.map(({ id }) => id), completedAt: "2026-08-12T03:00:00.000Z" }));
+    render(<AbandonShipSortingGame evidenceOwnerId="account-a" />);
+    expect(screen.getByTestId("drill-progress").textContent).toContain("0 of 4 complete");
   });
 
   it("fails soft when browser storage blocks reads", () => {

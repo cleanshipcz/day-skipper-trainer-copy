@@ -34,6 +34,8 @@ export const ABANDON_SHIP_SCENARIOS: readonly DrillScenario[] = [
 ];
 
 export const ABANDON_SHIP_EVIDENCE_KEY = "life-raft-context-drill-v2";
+export const abandonShipEvidenceKey = (ownerId: string | null, catalogueRevision: string) =>
+  `${ABANDON_SHIP_EVIDENCE_KEY}:${ownerId ?? "anonymous"}:${catalogueRevision}`;
 export type DrillEvidence = { readonly masteredScenarioIds: readonly string[]; readonly completedAt: string | null };
 const isIsoInstant = (value: unknown): value is string => typeof value === "string" && !Number.isNaN(Date.parse(value)) && new Date(value).toISOString() === value;
 export const hasAllScenarioEvidence = (ids: readonly string[]) => ABANDON_SHIP_SCENARIOS.every((scenario) => ids.includes(scenario.id));
