@@ -43,6 +43,7 @@ import { FIRE_QUIZ_RELEASE_REVIEW, FIRE_QUIZ_REVIEW_BASIS, isFireQuizReleaseAppr
 import { FIRE_QUIZ_PASS_POLICY } from "@/data/quizzes/safetyFire";
 import { fireQuizCompletionOutcome } from "@/features/quiz/fireAssessment";
 import { LIFE_RAFT_RELEASE_REVIEW, LIFE_RAFT_REVIEW_BASIS, isLifeRaftReleaseApproved } from "@/data/lifeRaftProcedures";
+import { LIFE_RAFT_QUIZ_PASS_POLICY } from "@/data/quizzes/safetyLifeRaft";
 
 const quizAttemptKey = (owner: string, topic: string) => ownerStorageKey("quiz-attempt", owner, topic);
 interface QuizWorkflow {
@@ -675,6 +676,7 @@ const Quiz = () => {
     const weatherMessage = weatherResultMessage(percentage);
     const isMobQuiz = topicKey === "safety-mob-quiz";
     const isFireQuiz = topicKey === "safety-fire-quiz";
+    const isLifeRaftQuiz = topicKey === "safety-life-raft-quiz";
 
     return (
       <div className="min-h-screen bg-gradient-to-br from-background via-ocean-light/10 to-background flex items-center justify-center p-3 sm:p-4">
@@ -715,6 +717,8 @@ const Quiz = () => {
               </div>
             ) : isFireQuiz ? (
               <div className={`p-4 border-2 rounded-lg text-center ${passed ? "bg-success/10 border-success" : "bg-accent/10 border-accent"}`} role="status" aria-live="polite"><p className={`font-semibold ${passed ? "text-success" : "text-accent"}`}>{passed ? "Applied fire decision check passed" : "Further fire-safety review needed"}</p><p className="mt-1 text-sm text-muted-foreground">{passed ? FIRE_QUIZ_PASS_POLICY.claim : FIRE_QUIZ_PASS_POLICY.remediation}</p></div>
+            ) : isLifeRaftQuiz ? (
+              <div className={`p-4 border-2 rounded-lg text-center ${passed ? "bg-success/10 border-success" : "bg-accent/10 border-accent"}`} role="status" aria-live="polite"><p className={`font-semibold ${passed ? "text-success" : "text-accent"}`}>{passed ? "Applied life-raft scenario check passed" : "Further life-raft review needed"}</p><p className="mt-1 text-sm text-muted-foreground">{passed ? LIFE_RAFT_QUIZ_PASS_POLICY.claim : LIFE_RAFT_QUIZ_PASS_POLICY.remediation}</p></div>
             ) : passed ? (
               <div className="p-4 bg-success/10 border-2 border-success rounded-lg text-center">
                 <p className="font-semibold text-success">🎉 Excellent work!</p>
