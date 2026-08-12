@@ -15,8 +15,9 @@ export const ABANDON_SHIP_SCENARIOS: readonly DrillScenario[] = [
     { before: "alarm", after: "deploy", reason: "Account for the crew and protect the escape route before committing people to the raft." },
     { before: "protect", after: "deploy", reason: "Lifejackets and immediately available protection must be donned before boarding." },
   ] },
-  { id: "sinking-auto", title: "Rapid sinking, automatic-launch raft", context: "The vessel is sinking rapidly in rough weather; the approved installation provides automatic launch and the grab bag is not safely accessible.", steps: [byId(deploymentProcedureSteps, "assess"), byId(deploymentProcedureSteps, "launch"), byId(deploymentProcedureSteps, "inflate"), byId(deploymentProcedureSteps, "inspect")], dependencies: [
-    { before: "assess", after: "launch", reason: "Check wind, sea, list, obstructions and vessel drift before launching." },
+  { id: "sinking-manual", title: "Flooding vessel, manual-launch raft", context: "Flooding and sinking risk are worsening in rough weather, but the escape route and designated painter strong point remain safely accessible. Follow the exact manual-launch installation instructions without delaying escape if conditions change.", steps: [byId(deploymentProcedureSteps, "assess"), byId(deploymentProcedureSteps, "secure"), byId(deploymentProcedureSteps, "launch"), byId(deploymentProcedureSteps, "inflate"), byId(deploymentProcedureSteps, "inspect")], dependencies: [
+    { before: "assess", after: "secure", reason: "Check wind, sea, list, obstructions and vessel drift before using the manual-launch arrangement." },
+    { before: "secure", after: "launch", reason: "For this manual installation, secure the painter to its designated strong point before launching; an approved automatic-launch arrangement may differ." },
     { before: "launch", after: "inflate", reason: "The raft must be launched clear before operating its labelled inflation system." },
     { before: "inflate", after: "inspect", reason: "Inflation and orientation can only be confirmed after inflation is initiated." },
   ] },
@@ -33,6 +34,18 @@ export const ABANDON_SHIP_SCENARIOS: readonly DrillScenario[] = [
 ];
 
 export const ABANDON_SHIP_EVIDENCE_KEY = "life-raft-context-drill-v2";
+export type DrillEvidence = { readonly masteredScenarioIds: readonly string[]; readonly completedAt: string | null };
+const isIsoInstant = (value: unknown): value is string => typeof value === "string" && !Number.isNaN(Date.parse(value)) && new Date(value).toISOString() === value;
+export const hasAllScenarioEvidence = (ids: readonly string[]) => ABANDON_SHIP_SCENARIOS.every((scenario) => ids.includes(scenario.id));
+export const parseDrillEvidence = (raw: string | null): DrillEvidence => {
+  try {
+    const value = JSON.parse(raw ?? "null");
+    if (value?.version !== 2 || !Array.isArray(value.masteredScenarioIds)) return { masteredScenarioIds: [], completedAt: null };
+    const known = new Set(ABANDON_SHIP_SCENARIOS.map((scenario) => scenario.id));
+    const masteredScenarioIds = [...new Set(value.masteredScenarioIds.filter((id: unknown): id is string => typeof id === "string" && known.has(id)))];
+    return { masteredScenarioIds, completedAt: hasAllScenarioEvidence(masteredScenarioIds) && isIsoInstant(value.completedAt) ? value.completedAt : null };
+  } catch { return { masteredScenarioIds: [], completedAt: null }; }
+};
 export const findDependencyViolations = (steps: readonly ProcedureStep[], dependencies: readonly Dependency[]) => {
   const positions = new Map(steps.map((step, index) => [step.id, index]));
   return dependencies.filter(({ before, after }) => (positions.get(before) ?? Infinity) > (positions.get(after) ?? -1));

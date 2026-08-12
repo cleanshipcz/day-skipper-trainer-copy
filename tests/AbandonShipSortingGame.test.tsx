@@ -4,7 +4,7 @@ import userEvent from "@testing-library/user-event";
 import {
   AbandonShipSortingGame,
 } from "../src/components/safety/AbandonShipSortingGame";
-import { ABANDON_SHIP_EVIDENCE_KEY, ABANDON_SHIP_SCENARIOS, findDependencyViolations } from "../src/data/abandonShipDrill";
+import { ABANDON_SHIP_EVIDENCE_KEY, ABANDON_SHIP_SCENARIOS, findDependencyViolations, hasAllScenarioEvidence, parseDrillEvidence } from "../src/data/abandonShipDrill";
 
 vi.mock("sonner", () => ({ toast: { success: vi.fn(), error: vi.fn() } }));
 
@@ -19,8 +19,15 @@ describe("abandon-ship dependency model", () => {
   it("identifies the exact unsafe dependency and diagnostic reason", () => {
     const scenario = ABANDON_SHIP_SCENARIOS[1];
     const violations = findDependencyViolations([...scenario.steps].reverse(), scenario.dependencies);
-    expect(violations).toHaveLength(3);
+    expect(violations).toHaveLength(4);
     expect(violations[0].reason).toMatch(/wind, sea, list, obstructions/i);
+  });
+
+  it("deduplicates known persisted IDs and rejects malformed completion evidence", () => {
+    const parsed = parseDrillEvidence(JSON.stringify({ version: 2, masteredScenarioIds: ["fast-fire", "fast-fire", "unknown"], completedAt: "2026-08-12T03:00:00.000Z" }));
+    expect(parsed).toEqual({ masteredScenarioIds: ["fast-fire"], completedAt: null });
+    expect(parseDrillEvidence("{broken")).toEqual({ masteredScenarioIds: [], completedAt: null });
+    expect(hasAllScenarioEvidence(["fast-fire", "fast-fire", "sinking-manual", "casualty-boarding"])).toBe(false);
   });
 
   it("covers vessel, fire, sinking, weather, crew and equipment context", () => {
@@ -45,7 +52,7 @@ describe("AbandonShipSortingGame", () => {
     const alert = screen.getByRole("alert");
     expect(alert.textContent).toContain("Revise 2 unsafe dependencies");
     expect(alert.textContent).toMatch(/account for the crew/i);
-    expect(within(alert).getByRole("link", { name: /review.*theory/i }).getAttribute("href")).toBe("#life-raft-procedures");
+    expect(within(alert).getByRole("button", { name: /review.*theory/i })).toBeDefined();
   });
 
   it("exposes semantic order, labelled controls, touch targets and move announcements", async () => {
@@ -65,15 +72,15 @@ describe("AbandonShipSortingGame", () => {
   it("switches scenario state semantically and reset restores an invalid order", async () => {
     const user = userEvent.setup();
     render(<AbandonShipSortingGame />);
-    const sinking = screen.getByRole("tab", { name: /rapid sinking/i });
+    const sinking = screen.getByRole("tab", { name: /flooding vessel/i });
     await user.click(sinking);
     expect(sinking.getAttribute("aria-selected")).toBe("true");
-    expect(screen.getByRole("tabpanel").getAttribute("aria-labelledby")).toBe("scenario-sinking-auto");
-    expect(screen.getByText(/approved installation provides automatic launch/i)).toBeDefined();
+    expect(screen.getByRole("tabpanel").getAttribute("aria-labelledby")).toBe("scenario-sinking-manual");
+    expect(screen.getByText(/designated painter strong point remain safely accessible/i)).toBeDefined();
     await user.click(screen.getByRole("button", { name: "Reset scenario" }));
     expect(screen.getByText(/reset to an unsolved order/i)).toBeDefined();
     await user.click(screen.getByRole("button", { name: "Check safety dependencies" }));
-    expect(screen.getByRole("alert").textContent).toContain("Revise 3 unsafe dependencies");
+    expect(screen.getByRole("alert").textContent).toContain("Revise 4 unsafe dependencies");
   });
 
   it("restores only versioned, known browser-local context evidence", () => {
@@ -81,6 +88,17 @@ describe("AbandonShipSortingGame", () => {
     render(<AbandonShipSortingGame />);
     expect(screen.getByTestId("drill-progress").textContent).toContain("1 of 4 complete");
     expect(screen.getByRole("tab", { name: /fast-moving fire — complete/i })).toBeDefined();
+  });
+
+  it("preserves a valid completedAt across remount instead of regenerating it", () => {
+    const completedAt = "2026-08-12T03:00:00.000Z";
+    const masteredScenarioIds = ABANDON_SHIP_SCENARIOS.map((scenario) => scenario.id);
+    localStorage.setItem(ABANDON_SHIP_EVIDENCE_KEY, JSON.stringify({ version: 2, masteredScenarioIds, completedAt }));
+    const view = render(<AbandonShipSortingGame />);
+    view.unmount();
+    render(<AbandonShipSortingGame />);
+    expect(JSON.parse(localStorage.getItem(ABANDON_SHIP_EVIDENCE_KEY)!).completedAt).toBe(completedAt);
+    expect(screen.getByTestId("drill-progress").textContent).toContain("All contexts completed");
   });
 
   it("uses narrow-screen-safe wrapping and 44px controls for 320/375px and 200% zoom", () => {

@@ -5,30 +5,26 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import type { ProcedureStep } from "@/data/lifeRaftProcedures";
-import { ABANDON_SHIP_EVIDENCE_KEY, ABANDON_SHIP_SCENARIOS, findDependencyViolations, getDrillStep, type DrillScenario } from "@/data/abandonShipDrill";
+import { ABANDON_SHIP_EVIDENCE_KEY, ABANDON_SHIP_SCENARIOS, findDependencyViolations, getDrillStep, hasAllScenarioEvidence, parseDrillEvidence, type Dependency, type DrillEvidence, type DrillScenario } from "@/data/abandonShipDrill";
 const initialOrder = (scenario: DrillScenario) => [...scenario.steps].reverse();
 
-export const AbandonShipSortingGame = () => {
+interface AbandonShipSortingGameProps { readonly onReviewTheory?: () => void }
+export const AbandonShipSortingGame = ({ onReviewTheory }: AbandonShipSortingGameProps) => {
   const [scenarioIndex, setScenarioIndex] = useState(0);
   const scenario = ABANDON_SHIP_SCENARIOS[scenarioIndex];
   const [steps, setSteps] = useState<ProcedureStep[]>(() => initialOrder(scenario));
   const [violations, setViolations] = useState<readonly Dependency[] | null>(null);
-  const [mastered, setMastered] = useState<readonly string[]>(() => {
-    try {
-      const value = JSON.parse(localStorage.getItem(ABANDON_SHIP_EVIDENCE_KEY) ?? "null");
-      return value?.version === 2 && Array.isArray(value.masteredScenarioIds)
-        ? value.masteredScenarioIds.filter((id: unknown): id is string => typeof id === "string" && ABANDON_SHIP_SCENARIOS.some((item) => item.id === id)) : [];
-    } catch { return []; }
-  });
+  const [evidence, setEvidence] = useState<DrillEvidence>(() => parseDrillEvidence(localStorage.getItem(ABANDON_SHIP_EVIDENCE_KEY)));
+  const mastered = evidence.masteredScenarioIds;
   const [announcement, setAnnouncement] = useState("");
   const itemRefs = useRef<Array<HTMLLIElement | null>>([]);
   const solved = violations?.length === 0;
-  const allMastered = mastered.length === ABANDON_SHIP_SCENARIOS.length;
+  const allMastered = hasAllScenarioEvidence(mastered);
   const dependencySummary = useMemo(() => scenario.dependencies.map(({ before, after }) => `${getDrillStep(scenario, before).text} before ${getDrillStep(scenario, after).text}`), [scenario]);
 
   useEffect(() => {
-    try { localStorage.setItem(ABANDON_SHIP_EVIDENCE_KEY, JSON.stringify({ version: 2, masteredScenarioIds: mastered, completedAt: allMastered ? new Date().toISOString() : null })); } catch { /* visible evidence remains explicitly browser-local */ }
-  }, [allMastered, mastered]);
+    try { localStorage.setItem(ABANDON_SHIP_EVIDENCE_KEY, JSON.stringify({ version: 2, masteredScenarioIds: mastered, completedAt: evidence.completedAt })); } catch { /* visible evidence remains explicitly browser-local */ }
+  }, [evidence.completedAt, mastered]);
 
   const selectScenario = (index: number) => {
     const next = ABANDON_SHIP_SCENARIOS[index];
@@ -44,7 +40,10 @@ export const AbandonShipSortingGame = () => {
   const check = () => {
     const result = findDependencyViolations(steps, scenario.dependencies); setViolations(result);
     if (result.length === 0) {
-      setMastered((current) => current.includes(scenario.id) ? current : [...current, scenario.id]);
+      setEvidence((current) => {
+        const masteredScenarioIds = current.masteredScenarioIds.includes(scenario.id) ? current.masteredScenarioIds : [...current.masteredScenarioIds, scenario.id];
+        return { masteredScenarioIds, completedAt: current.completedAt ?? (hasAllScenarioEvidence(masteredScenarioIds) ? new Date().toISOString() : null) };
+      });
       setAnnouncement(`Context solved. ${scenario.dependencies.length} safety dependencies satisfied; independent actions may be in different valid orders.`);
       toast.success("Safe dependencies satisfied", { description: "This is one valid plan; independent actions may also be reordered." });
     } else {
@@ -70,7 +69,7 @@ export const AbandonShipSortingGame = () => {
           </li>)}
         </ol>
         <p id="drill-order-help" className="text-xs text-muted-foreground">Use the labelled earlier/later controls with keyboard, pointer or touch. Focus follows the moved action.</p>
-        {violations && violations.length > 0 && <div role="alert" className="rounded-md border border-destructive p-3 text-sm"><p className="font-semibold">Revise {violations.length} unsafe {violations.length === 1 ? "dependency" : "dependencies"}:</p><ul className="list-disc space-y-1 pl-5">{violations.map((item) => <li key={`${item.before}-${item.after}`}>{item.reason}</li>)}</ul><a href="#life-raft-procedures" className="mt-2 inline-block underline">Review the life-raft procedures theory</a></div>}
+        {violations && violations.length > 0 && <div role="alert" className="rounded-md border border-destructive p-3 text-sm"><p className="font-semibold">Revise {violations.length} unsafe {violations.length === 1 ? "dependency" : "dependencies"}:</p><ul className="list-disc space-y-1 pl-5">{violations.map((item) => <li key={`${item.before}-${item.after}`}>{item.reason}</li>)}</ul><Button type="button" variant="link" className="mt-2 h-auto p-0 underline" onClick={onReviewTheory}>Review the life-raft procedures theory</Button></div>}
         {solved && <p role="status" className="rounded-md border border-green-600 p-3 text-sm">Valid for this context. This evidence means the stated dependencies were satisfied; it does not certify a universal abandon-ship order.</p>}
         <div className="flex min-w-0 flex-col gap-3 sm:flex-row"><Button className="min-h-11 flex-1" onClick={check} disabled={solved}>Check safety dependencies</Button><Button variant="outline" className="min-h-11" onClick={reset}><RefreshCcw aria-hidden="true" className="mr-2 h-4 w-4" />Reset scenario</Button></div>
         <p data-testid="drill-progress" className="text-sm">Context evidence: {mastered.length} of {ABANDON_SHIP_SCENARIOS.length} complete.{allMastered ? " All contexts completed in this browser." : ""}</p>
