@@ -33,13 +33,14 @@ import { TOPIC_IDS } from "@/constants/topicRegistry";
 import { evdsGuidance, flareOperatingSequence, flareReview, flareSources, flareStorageBoundary, flareTypes, isFlareContentReleased, representativeManufacturerInstructions, solasAndMakerBoundary, ukCarriageGuidance } from "@/data/flareTypes";
 import { FlareSchematic } from "@/components/safety/FlareSchematic";
 
+const REQUIRED_FLARE_THEORY_SECTIONS = ["overview", "flare-types", "expiry", "drill"] as const;
+
 const FlaresTheory = () => {
   const navigate = useNavigate();
   const { ownerId, loadProgressDetailed, saveProgressDetailed } = useProgress();
   const [visited, setVisited] = useState(() => new Set(["overview"]));
   const [theoryState, setTheoryState] = useState<"loading" | "ready" | "saving" | "confirmed" | "queued" | "anonymous" | "failed">("loading");
   const theoryCompleted = ["confirmed", "queued", "anonymous"].includes(theoryState);
-  const requiredSections = ["overview", "flare-types", "expiry", "drill"];
 
   useEffect(() => {
     let current = true;
@@ -47,17 +48,17 @@ const FlaresTheory = () => {
     void loadProgressDetailed(TOPIC_IDS.SAFETY_FLARES).then(result => {
       if (!current) return;
       const evidence = result.record?.answers_history as { revision?: unknown; visitedSectionIds?: unknown } | null;
-      const complete = result.record?.completed === true && evidence?.revision === "flare-theory-evidence-v1" && Array.isArray(evidence.visitedSectionIds) && requiredSections.every(id => evidence.visitedSectionIds!.includes(id));
+      const complete = result.record?.completed === true && evidence?.revision === "flare-theory-evidence-v1" && Array.isArray(evidence.visitedSectionIds) && REQUIRED_FLARE_THEORY_SECTIONS.every(id => evidence.visitedSectionIds!.includes(id));
       setTheoryState(complete ? "confirmed" : "ready");
     });
     return () => { current = false; };
   }, [loadProgressDetailed]);
 
   const handleMarkComplete = useCallback(async () => {
-    if (!isFlareContentReleased || theoryCompleted || theoryState === "saving" || !requiredSections.every(id => visited.has(id))) return;
+    if (!isFlareContentReleased || theoryCompleted || theoryState === "saving" || !REQUIRED_FLARE_THEORY_SECTIONS.every(id => visited.has(id))) return;
     setTheoryState("saving");
     try {
-      const result = await saveProgressDetailed(TOPIC_IDS.SAFETY_FLARES, true, 100, 10, { revision: "flare-theory-evidence-v1", ownerId, visitedSectionIds: requiredSections });
+      const result = await saveProgressDetailed(TOPIC_IDS.SAFETY_FLARES, true, 100, 10, { revision: "flare-theory-evidence-v1", ownerId, visitedSectionIds: REQUIRED_FLARE_THEORY_SECTIONS });
       setTheoryState(result === "remote" ? "confirmed" : result === "queued" ? "queued" : result === "anonymous" ? "anonymous" : "failed");
     } catch { setTheoryState("failed"); }
   }, [ownerId, saveProgressDetailed, theoryCompleted, theoryState, visited]);
@@ -369,7 +370,7 @@ const FlaresTheory = () => {
             size="lg"
             className="w-full md:w-auto gap-2"
             variant={theoryCompleted ? "outline" : "default"}
-            disabled={theoryCompleted || theoryState === "loading" || theoryState === "saving" || !requiredSections.every(id => visited.has(id))}
+            disabled={theoryCompleted || theoryState === "loading" || theoryState === "saving" || !REQUIRED_FLARE_THEORY_SECTIONS.every(id => visited.has(id))}
             onClick={() => void handleMarkComplete()}
           >
             {theoryCompleted ? (
@@ -378,10 +379,10 @@ const FlaresTheory = () => {
                 {theoryState === "queued" ? "Completion queued" : theoryState === "anonymous" ? "Completed on this device" : "Completed"}
               </>
             ) : (
-              theoryState === "loading" ? "Loading saved progress…" : theoryState === "saving" ? "Saving completion…" : theoryState === "failed" ? "Retry completion save" : requiredSections.every(id => visited.has(id)) ? "Save theory completion" : "Visit all four sections to complete"
+              theoryState === "loading" ? "Loading saved progress…" : theoryState === "saving" ? "Saving completion…" : theoryState === "failed" ? "Retry completion save" : REQUIRED_FLARE_THEORY_SECTIONS.every(id => visited.has(id)) ? "Save theory completion" : "Visit all four sections to complete"
             )}
           </Button>
-          <p role="status" aria-live="polite" className="text-center text-sm text-muted-foreground">{theoryState === "failed" ? "Theory completion was not saved; retry when ready." : theoryState === "queued" ? "Theory completion is durably queued for account sync." : theoryState === "anonymous" ? "Theory completion is stored for this anonymous device; sign in for cross-device restore." : theoryState === "confirmed" ? "Theory completion restored and confirmed for this account." : `${visited.size} of ${requiredSections.length} required sections visited.`}</p>
+          <p role="status" aria-live="polite" className="text-center text-sm text-muted-foreground">{theoryState === "failed" ? "Theory completion was not saved; retry when ready." : theoryState === "queued" ? "Theory completion is durably queued for account sync." : theoryState === "anonymous" ? "Theory completion is stored for this anonymous device; sign in for cross-device restore." : theoryState === "confirmed" ? "Theory completion restored and confirmed for this account." : `${visited.size} of ${REQUIRED_FLARE_THEORY_SECTIONS.length} required sections visited.`}</p>
           <Button
             size="lg"
             variant="outline"
