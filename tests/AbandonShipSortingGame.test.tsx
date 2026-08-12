@@ -101,6 +101,13 @@ describe("AbandonShipSortingGame", () => {
     expect(screen.getByTestId("drill-progress").textContent).toContain("All contexts completed");
   });
 
+  it("fails soft when browser storage blocks reads", () => {
+    const getItem = vi.spyOn(Storage.prototype, "getItem").mockImplementation(() => { throw new DOMException("Blocked", "SecurityError"); });
+    expect(() => render(<AbandonShipSortingGame />)).not.toThrow();
+    expect(screen.getByTestId("drill-progress").textContent).toContain("0 of 4 complete");
+    getItem.mockRestore();
+  });
+
   it("uses narrow-screen-safe wrapping and 44px controls for 320/375px and 200% zoom", () => {
     const { container } = render(<AbandonShipSortingGame />);
     expect(container.firstElementChild?.classList.contains("min-w-0")).toBe(true);

@@ -14,7 +14,10 @@ export const AbandonShipSortingGame = ({ onReviewTheory }: AbandonShipSortingGam
   const scenario = ABANDON_SHIP_SCENARIOS[scenarioIndex];
   const [steps, setSteps] = useState<ProcedureStep[]>(() => initialOrder(scenario));
   const [violations, setViolations] = useState<readonly Dependency[] | null>(null);
-  const [evidence, setEvidence] = useState<DrillEvidence>(() => parseDrillEvidence(localStorage.getItem(ABANDON_SHIP_EVIDENCE_KEY)));
+  const [evidence, setEvidence] = useState<DrillEvidence>(() => {
+    try { return parseDrillEvidence(localStorage.getItem(ABANDON_SHIP_EVIDENCE_KEY)); }
+    catch { return parseDrillEvidence(null); }
+  });
   const mastered = evidence.masteredScenarioIds;
   const [announcement, setAnnouncement] = useState("");
   const itemRefs = useRef<Array<HTMLLIElement | null>>([]);
