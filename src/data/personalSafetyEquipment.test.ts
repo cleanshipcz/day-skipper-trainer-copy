@@ -18,7 +18,7 @@ describe("lifeJacketTypes data", () => {
     expect(lifeJacketTypes.length).toBeGreaterThan(0);
   });
 
-  it("should define all 3 required life jacket buoyancy ratings (100N, 150N, 275N)", async () => {
+  it("distinguishes the Level 50 buoyancy aid from Level 100, 150, and 275 lifejackets", async () => {
     // given
     const { lifeJacketTypes } = await import("./personalSafetyEquipment");
 
@@ -28,10 +28,19 @@ describe("lifeJacketTypes data", () => {
     );
 
     // then
+    expect(buoyancyRatings).toContain("50N");
     expect(buoyancyRatings).toContain("100N");
     expect(buoyancyRatings).toContain("150N");
     expect(buoyancyRatings).toContain("275N");
-    expect(lifeJacketTypes.length).toBe(3);
+    expect(lifeJacketTypes.length).toBe(4);
+    expect(lifeJacketTypes.find((lj) => lj.buoyancyRating === "50N")?.name).toBe(
+      "Level 50 Buoyancy Aid",
+    );
+    for (const rating of ["100N", "150N", "275N"]) {
+      expect(lifeJacketTypes.find((lj) => lj.buoyancyRating === rating)?.name).toMatch(
+        /Lifejacket$/,
+      );
+    }
   });
 
   it("should have valid LifeJacketType shape for every entry", async () => {
@@ -55,7 +64,8 @@ describe("lifeJacketTypes data", () => {
       expect(typeof lj.suitableFor).toBe("string");
       expect(lj.suitableFor.length).toBeGreaterThan(0);
 
-      expect(typeof lj.turnsUnconsciousWearer).toBe("boolean");
+      expect(typeof lj.selfRightingPerformance).toBe("string");
+      expect(lj.selfRightingPerformance.length).toBeGreaterThan(0);
     }
   });
 
@@ -71,25 +81,24 @@ describe("lifeJacketTypes data", () => {
     expect(uniqueIds.size).toBe(ids.length);
   });
 
-  it("should mark 150N and 275N as turning unconscious wearer face-up", async () => {
+  it("qualifies self-righting advice by design, clothing, fit, and conditions", async () => {
     // given
     const { lifeJacketTypes } = await import("./personalSafetyEquipment");
 
     // when
-    const lj150 = lifeJacketTypes.find(
-      (lj: { buoyancyRating: string }) => lj.buoyancyRating === "150N",
-    );
-    const lj275 = lifeJacketTypes.find(
-      (lj: { buoyancyRating: string }) => lj.buoyancyRating === "275N",
-    );
-    const lj100 = lifeJacketTypes.find(
-      (lj: { buoyancyRating: string }) => lj.buoyancyRating === "100N",
-    );
+    const allGuidance = lifeJacketTypes
+      .map((lj) => `${lj.description} ${lj.suitableFor} ${lj.selfRightingPerformance}`)
+      .join(" ")
+      .toLowerCase();
 
     // then
-    expect(lj150?.turnsUnconsciousWearer).toBe(true);
-    expect(lj275?.turnsUnconsciousWearer).toBe(true);
-    expect(lj100?.turnsUnconsciousWearer).toBe(false);
+    expect(allGuidance).toMatch(/design/);
+    expect(allGuidance).toMatch(/cloth/);
+    expect(allGuidance).toMatch(/fit/);
+    expect(allGuidance).toMatch(/condition/);
+    expect(allGuidance).toMatch(/trapped air|air trapped/);
+    expect(allGuidance).toMatch(/manufacturer/);
+    expect(allGuidance).toMatch(/not (?:a universal |an? )?guarantee|never assume/);
   });
 });
 
@@ -226,12 +235,13 @@ describe("safetyEquipmentTopics data", () => {
 });
 
 describe("LIFE_JACKET_IDS constants", () => {
-  it("should export LIFE_JACKET_IDS object with all 3 life jacket IDs", async () => {
+  it("should export LIFE_JACKET_IDS object with all 4 buoyancy level IDs", async () => {
     // given
     const { LIFE_JACKET_IDS } = await import("./personalSafetyEquipment");
 
     // then
     expect(LIFE_JACKET_IDS).toBeDefined();
+    expect(typeof LIFE_JACKET_IDS.BUOYANCY_50N).toBe("string");
     expect(typeof LIFE_JACKET_IDS.BUOYANCY_100N).toBe("string");
     expect(typeof LIFE_JACKET_IDS.BUOYANCY_150N).toBe("string");
     expect(typeof LIFE_JACKET_IDS.BUOYANCY_275N).toBe("string");

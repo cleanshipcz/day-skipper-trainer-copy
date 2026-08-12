@@ -2,7 +2,7 @@
  * Personal safety equipment data for the Personal Safety Equipment sub-module.
  *
  * Covers the personal safety equipment a Day Skipper student must know:
- * life jacket types (100N, 150N, 275N), inflation methods (auto vs manual),
+ * buoyancy aids and life jacket levels (50, 100, 150, 275), inflation methods,
  * servicing schedule, crotch straps, harnesses & tethers, jacklines, and kill cords.
  *
  * @see docs/FEATURE_TASKS.md — Story E1-S4, AC-1
@@ -11,9 +11,14 @@
 // ── Life Jacket Types ──────────────────────────────────────────────────────
 
 /** Known life jacket IDs — used for compile-time validation. */
-export type LifeJacketId = "buoyancy-100n" | "buoyancy-150n" | "buoyancy-275n";
+export type LifeJacketId =
+  | "buoyancy-50n"
+  | "buoyancy-100n"
+  | "buoyancy-150n"
+  | "buoyancy-275n";
 
 export const LIFE_JACKET_IDS = {
+  BUOYANCY_50N: "buoyancy-50n",
   BUOYANCY_100N: "buoyancy-100n",
   BUOYANCY_150N: "buoyancy-150n",
   BUOYANCY_275N: "buoyancy-275n",
@@ -25,39 +30,53 @@ export interface LifeJacketType {
   readonly buoyancyRating: string;
   readonly description: string;
   readonly suitableFor: string;
-  readonly turnsUnconsciousWearer: boolean;
+  readonly selfRightingPerformance: string;
 }
 
 export const lifeJacketTypes: readonly LifeJacketType[] = [
   {
+    id: "buoyancy-50n",
+    name: "Level 50 Buoyancy Aid",
+    buoyancyRating: "50N",
+    description:
+      "An ISO 12402 Level 50 buoyancy aid for competent swimmers. It assists flotation but is not a lifejacket and is not designed to turn an unconscious wearer face-up.",
+    suitableFor:
+      "Sheltered or calm water where help and rescue are close at hand, such as dinghy sailing and water sports. Not suitable for offshore use, rough water, or anyone unable to swim.",
+    selfRightingPerformance:
+      "Not designed to self-right an unconscious wearer.",
+  },
+  {
     id: "buoyancy-100n",
-    name: "100 Newton Buoyancy Aid",
+    name: "Level 100 Lifejacket",
     buoyancyRating: "100N",
     description:
-      "A buoyancy aid rather than a true life jacket. Designed to assist a conscious swimmer and allow freedom of movement. Does not have sufficient buoyancy to turn an unconscious casualty face-up in the water.",
+      "An ISO 12402 Level 100 lifejacket for relatively sheltered or calm water. It provides limited self-righting assistance, but its performance can be affected by the design, fit, clothing, water conditions, and air trapped in clothing.",
     suitableFor:
-      "Inshore sailing, dinghy sailing, and water sports where the wearer is a competent swimmer and rescue is close at hand. Not recommended for offshore or heavy weather sailing.",
-    turnsUnconsciousWearer: false,
+      "Inshore and sheltered-water use where rescue should be reasonably quick. It is not intended for offshore or severe conditions and may not have enough buoyancy to overcome heavy or air-trapping clothing.",
+    selfRightingPerformance:
+      "May help turn some wearers face-up; never assume this is guaranteed. Check the manufacturer's stated performance and ensure the correct fit.",
   },
   {
     id: "buoyancy-150n",
-    name: "150 Newton Life Jacket",
+    name: "Level 150 Lifejacket",
     buoyancyRating: "150N",
     description:
-      "The standard offshore life jacket for most recreational sailing. Provides enough buoyancy to turn an unconscious wearer face-up and keep their airway clear of the water, even when wearing light clothing.",
+      "An ISO 12402 Level 150 lifejacket for general offshore and rough-weather use. It is designed to provide self-righting performance for many wearers, including with foul-weather clothing, but actual performance depends on the product, fit, clothing, and conditions.",
     suitableFor:
-      "Coastal and offshore sailing. The minimum recommended standard for Day Skipper level and most cruising situations. Should be worn whenever on deck in rough weather or at night.",
-    turnsUnconsciousWearer: true,
+      "Coastal and offshore sailing and rough weather. Confirm the selected model is suitable for the clothing and equipment being worn, fits correctly, and meets the manufacturer's instructions.",
+    selfRightingPerformance:
+      "Designed to self-right many unconscious wearers, but no universal guarantee applies across all designs, body types, clothing, fits, and sea conditions.",
   },
   {
     id: "buoyancy-275n",
-    name: "275 Newton Life Jacket",
+    name: "Level 275 Lifejacket",
     buoyancyRating: "275N",
     description:
-      "The highest buoyancy rating, designed for extreme conditions. Provides sufficient buoyancy to turn an unconscious wearer face-up even when wearing heavy foul-weather gear and oilskins that trap air and resist turning.",
+      "An ISO 12402 Level 275 lifejacket offering high buoyancy for demanding offshore conditions and for wearers carrying heavy clothing or equipment. Extra buoyancy can help overcome trapped air, but it does not make self-righting unconditional.",
     suitableFor:
-      "Offshore and ocean passages, commercial vessels, and heavy weather sailing where crew may be wearing multiple layers of heavy clothing. Required by some commercial codes of practice.",
-    turnsUnconsciousWearer: true,
+      "Offshore and ocean passages, severe conditions, and situations involving heavy protective clothing or equipment. Follow the manufacturer's limits because fit, equipment, clothing, and the particular design still affect performance.",
+    selfRightingPerformance:
+      "Designed for strong self-righting performance, including with heavier clothing, but trapped air, fit, design, body position, and conditions can prevent or delay turning.",
   },
 ];
 

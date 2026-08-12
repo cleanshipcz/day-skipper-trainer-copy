@@ -113,11 +113,11 @@ const PersonalSafetyTheory = () => {
                 </CardHeader>
                 <CardContent>
                   <p className="text-sm text-muted-foreground">
-                    Life jackets are rated by buoyancy in Newtons: 100N
-                    (buoyancy aid), 150N (standard offshore), and 275N
-                    (heavy weather / commercial). The higher the rating,
-                    the more likely the jacket will turn an unconscious
-                    wearer face-up — even when wearing heavy clothing.
+                    ISO 12402 distinguishes Level 50 buoyancy aids from
+                    Level 100, 150, and 275 lifejackets. Choose for the
+                    conditions, clothing, equipment, and the manufacturer's
+                    stated fit and performance — a higher level alone does
+                    not guarantee that every wearer will turn face-up.
                   </p>
                 </CardContent>
               </Card>
@@ -174,7 +174,7 @@ const PersonalSafetyTheory = () => {
                     <div className="flex items-center justify-between">
                       <CardTitle>{lj.name}</CardTitle>
                       <Badge
-                        variant={lj.turnsUnconsciousWearer ? "default" : "outline"}
+                        variant={lj.buoyancyRating === "50N" ? "outline" : "default"}
                         className="gap-1"
                       >
                         {lj.buoyancyRating}
@@ -192,12 +192,10 @@ const PersonalSafetyTheory = () => {
                       </div>
                       <div>
                         <p className="text-sm font-medium mb-1">
-                          Turns Unconscious Wearer
+                          Self-righting performance
                         </p>
                         <p className="text-xs text-muted-foreground">
-                          {lj.turnsUnconsciousWearer
-                            ? "Yes — will turn a casualty face-up"
-                            : "No — buoyancy aid only, does not turn wearer"}
+                          {lj.selfRightingPerformance}
                         </p>
                       </div>
                     </div>
