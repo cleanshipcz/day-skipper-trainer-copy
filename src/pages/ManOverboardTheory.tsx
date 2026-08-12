@@ -1,15 +1,30 @@
+import { useCallback, useMemo, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { ArrowLeft, LifeBuoy, Megaphone, Ship, Anchor, AlertTriangle, Gamepad2 } from "lucide-react";
 import { MOBSortingGame } from "@/components/safety/MOBSortingGame";
+import type { MobDrillScenarioKey } from "@/components/safety/mobDrillModel";
 import { MOB_MAYDAY_VOICE_OPENING, MOB_RECOVERY_CONSTRAINTS, MOB_SAIL_RETURN_GUIDANCE, MOB_THEORY_OUTCOMES, MOB_THEORY_RELEASE_REVIEW, MOB_THEORY_SOURCES, isMobTheoryReleaseApproved, type MobTheoryReleaseReview } from "@/data/mobGuidance";
+import { TOPIC_IDS } from "@/constants/topicRegistry";
+import { useTheoryCompletionGate } from "@/features/progress/useTheoryCompletionGate";
 
 interface ManOverboardTheoryProps { readonly releaseReview?: MobTheoryReleaseReview }
 
 const ManOverboardTheory = ({ releaseReview = MOB_THEORY_RELEASE_REVIEW }: ManOverboardTheoryProps) => {
   const navigate = useNavigate();
+  const [activeTab, setActiveTab] = useState("actions");
+  const evidenceIds = useMemo(() => ["actions", "distress", "maneuvers", "recovery", "drill-immediate", "drill-approach"], []);
+  const completion = useTheoryCompletionGate({ topicId: TOPIC_IDS.SAFETY_MOB, requiredSectionIds: evidenceIds, catalogueRevision: "mob-theory-drill-v2", pointsOnComplete: 10, acceptLegacyCompleted: true });
+  const selectTab = useCallback((value: string) => {
+    if (activeTab !== "drill") void completion.markSectionVisited(activeTab);
+    setActiveTab(value);
+    if (value !== "drill") void completion.markSectionVisited(value);
+  }, [activeTab, completion]);
+  const recordDrill = useCallback((scenario: MobDrillScenarioKey) => {
+    void completion.markSectionVisited(`drill-${scenario}`);
+  }, [completion]);
   if (!isMobTheoryReleaseApproved(releaseReview)) return <main className="container mx-auto max-w-2xl px-4 py-8"><Card className="border-amber-500" data-testid="mob-theory-release-gate"><CardHeader><CardTitle>MOB guidance awaiting qualified review</CardTitle><CardDescription>The lesson, drill and assessment hand-off remain withheld until qualified seamanship and medical reviewers record identities, qualifications, approval date and source evidence.</CardDescription></CardHeader><CardContent><Button onClick={() => navigate("/safety")}>Back to Safety Menu</Button></CardContent></Card></main>;
 
   return (
@@ -29,25 +44,25 @@ const ManOverboardTheory = ({ releaseReview = MOB_THEORY_RELEASE_REVIEW }: ManOv
       </header>
 
       <main className="container mx-auto px-4 py-8 max-w-4xl">
-        <Tabs defaultValue="actions" className="space-y-6">
-          <TabsList className="grid w-full grid-cols-2 lg:grid-cols-5 h-auto">
-            <TabsTrigger value="actions" className="py-2">
+        <Tabs value={activeTab} onValueChange={selectTab} className="space-y-6">
+          <TabsList aria-label="Man overboard lesson sections" className="grid h-auto w-full grid-cols-1 gap-1 sm:grid-cols-2 lg:grid-cols-5">
+            <TabsTrigger value="actions" className="min-h-11 whitespace-normal py-2">
               <Megaphone className="w-4 h-4 mr-2" />
               Immediate Actions
             </TabsTrigger>
-            <TabsTrigger value="distress" className="py-2">
+            <TabsTrigger value="distress" className="min-h-11 whitespace-normal py-2">
               <AlertTriangle className="w-4 h-4 mr-2" />
               Distress Call
             </TabsTrigger>
-            <TabsTrigger value="drill" className="py-2">
+            <TabsTrigger value="drill" className="min-h-11 whitespace-normal py-2">
               <Gamepad2 className="w-4 h-4 mr-2" />
               Drills
             </TabsTrigger>
-            <TabsTrigger value="maneuvers" className="py-2">
+            <TabsTrigger value="maneuvers" className="min-h-11 whitespace-normal py-2">
               <Ship className="w-4 h-4 mr-2" />
               Maneuvers
             </TabsTrigger>
-            <TabsTrigger value="recovery" className="py-2">
+            <TabsTrigger value="recovery" className="min-h-11 whitespace-normal py-2">
               <LifeBuoy className="w-4 h-4 mr-2" />
               Recovery
             </TabsTrigger>
@@ -241,7 +256,7 @@ const ManOverboardTheory = ({ releaseReview = MOB_THEORY_RELEASE_REVIEW }: ManOv
               <p>In an emergency, muscle memory saves lives. Test your knowledge of the sequence of events.</p>
             </div>
 
-            <MOBSortingGame />
+            <MOBSortingGame onScenarioComplete={recordDrill} />
 
             <div className="mt-8 p-6 bg-muted/50 rounded-xl text-center border">
               <h3 className="text-lg font-bold mb-2">Ready for the Theory Test?</h3>
@@ -312,6 +327,14 @@ const ManOverboardTheory = ({ releaseReview = MOB_THEORY_RELEASE_REVIEW }: ManOv
             <Card><CardHeader><CardTitle>If recovery is beyond the crew</CardTitle></CardHeader><CardContent className="text-sm">Keep the casualty secured and airway supported if achievable without creating another casualty. Maintain distress traffic, position and vessel control; request lifeboat, helicopter or nearby-vessel assistance early and follow rescue coordination instructions. If an approach becomes unstable, abort under control, retain lookout/mark, reset equipment and roles, then return—never send an unplanned swimmer.</CardContent></Card>
           </TabsContent>
         </Tabs>
+
+        <section className="mt-8 rounded-lg border p-4" aria-labelledby="mob-progress-heading">
+          <h2 id="mob-progress-heading" className="text-lg font-bold">Lesson completion evidence</h2>
+          <p className="mt-1 text-sm text-muted-foreground">Review all four theory sections and successfully practise both drill scenarios. This records learning activity, not operational mastery.</p>
+          {completion.loadState === "loading" && <p role="status" className="mt-3 text-sm">Restoring your MOB progress…</p>}
+          {completion.loadState === "failed" && <div className="mt-3"><p role="alert" className="text-sm text-destructive">Progress could not be restored. Completion is disabled until the load succeeds.</p><Button className="mt-2 min-h-11" variant="outline" onClick={completion.retryLoad}>Retry progress load</Button></div>}
+          {completion.loadState === "ready" && <div className="mt-3 space-y-2"><p role="status" aria-live="polite" className="text-sm">{completion.isCompletionDurable ? "MOB lesson completion is recorded." : `${completion.visitedSectionIds.length} of ${evidenceIds.length} learning activities recorded.`}</p><Button className="min-h-11" disabled={!completion.canComplete || completion.saveState === "saving" || completion.isCompletionDurable} onClick={() => void completion.markCompleted()}>{completion.isCompletionDurable ? "Completion recorded" : completion.saveState === "saving" ? "Saving completion…" : "Record lesson completion"}</Button>{completion.saveState === "failed" && <div><p role="alert" className="text-sm text-destructive">Progress was not saved. Your completion has not been confirmed.</p><Button className="mt-2 min-h-11" variant="outline" onClick={() => void completion.markCompleted()}>Retry completion save</Button></div>}{completion.saveState === "queued" && <p role="status" className="text-sm">Completion is saved offline and queued to sync.</p>}{completion.saveState === "local" && <p role="status" className="text-sm">Anonymous completion is saved in this browser.</p>}</div>}
+        </section>
 
         <section className="mt-8 space-y-4 rounded-lg border p-4" aria-labelledby="mob-handoff"><h2 id="mob-handoff" className="text-xl font-bold">Reviewed outcomes and constraints</h2><p>These stable outcome identifiers are the theory/assessment contract for the separate drill redesign; they describe decisions, not proof of competence.</p><ul className="list-disc pl-5">{MOB_THEORY_OUTCOMES.map((outcome)=><li key={outcome}><code>{outcome}</code></li>)}</ul><h3 className="font-semibold">Non-negotiable constraints</h3><ul className="list-disc pl-5">{MOB_RECOVERY_CONSTRAINTS.map((constraint)=><li key={constraint}>{constraint}</li>)}</ul><h3 className="font-semibold">Sources and review basis</h3><ul className="list-disc pl-5">{MOB_THEORY_SOURCES.map((source)=><li key={source}>{source}</li>)}</ul></section>
 
