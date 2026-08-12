@@ -7,7 +7,7 @@ const sql = readFileSync("supabase/migrations/20260730110000_engagement.sql", "u
 const hardened = readFileSync("supabase/migrations/20260730111000_harden_engagement_evidence.sql", "utf8");
 const issued = readFileSync("supabase/migrations/20260730112000_issued_quiz_attempts.sql", "utf8");
 const currentAttemptCatalogue = readFileSync(
-  "supabase/migrations/20260812100000_align_life_raft_quiz_attempts.sql",
+  "supabase/migrations/20260812110000_version_life_raft_quiz_attempts.sql",
   "utf8",
 );
 
@@ -47,6 +47,16 @@ describe("engagement migration", () => {
     expect(new Set(caseEntries.map(([topic]) => topic)).size).toBe(caseEntries.length);
     expect(Object.fromEntries(caseEntries)).toEqual(clientCatalogue);
     expect(currentAttemptCatalogue).toContain("and expected_total=expected");
+  });
+
+  test("should bound the Life Raft rollout to legacy 10 and current 12 question clients", () => {
+    expect(currentAttemptCatalogue).toContain("p_expected_total integer default null");
+    expect(currentAttemptCatalogue).toContain("expected := coalesce(p_expected_total,10)");
+    expect(currentAttemptCatalogue).toContain("expected not in (10,12)");
+    expect(currentAttemptCatalogue).toContain("p_expected_total<>current_total");
+    expect(currentAttemptCatalogue).toContain("Unsupported quiz catalogue total");
+    expect(currentAttemptCatalogue).toContain("and expected_total=expected");
+    expect(issued).toContain("issued.expected_total<>p_total_questions");
   });
 
   test("should use authenticated server-owned activity dates and idempotent awards", () => {

@@ -313,7 +313,7 @@ const Quiz = () => {
 
     setAttemptStartState("starting");
     const request = (async () => {
-      const { data, error } = await supabase.rpc("start_quiz_attempt", { p_topic_id: topicKey });
+      const { data, error } = await supabase.rpc("start_quiz_attempt", { p_topic_id: topicKey, p_expected_total: questions.length });
       if (seedOwnerRef.current !== owner || seedGenerationRef.current !== generation || attemptScopeRef.current !== scope) return null;
       if (error || !data || typeof data.attempt_id !== "string") {
         attemptStartRequestRef.current = null;

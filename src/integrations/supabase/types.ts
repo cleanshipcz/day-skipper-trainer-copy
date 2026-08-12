@@ -583,7 +583,7 @@ export type Database = {
         Returns: undefined
       }
       start_quiz_attempt: {
-        Args: { p_topic_id: string }
+        Args: { p_expected_total?: number; p_topic_id: string }
         Returns: {
           attempt_id: string
           completed_at: string | null
