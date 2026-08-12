@@ -92,6 +92,18 @@ describe("Quiz accessible interaction and reflow", () => {
     expect(screen.getByRole("button", { name: "Back to Life Raft lesson" })).toBeTruthy();
   });
 
+  it("does not start, hydrate, seed or persist an authenticated gated Life Raft attempt", async () => {
+    mocks.user = { id: "qualified-gate-user" };
+    renderQuiz("/quiz/safety-life-raft-quiz");
+    expect(screen.getByTestId("life-raft-quiz-release-gate")).toBeTruthy();
+    await new Promise((resolve) => setTimeout(resolve, 0));
+    expect(mocks.loadQuizTopic).not.toHaveBeenCalled();
+    expect(mocks.loadProgress).not.toHaveBeenCalled();
+    expect(mocks.saveProgress).not.toHaveBeenCalled();
+    expect(mocks.resetProgress).not.toHaveBeenCalled();
+    expect(mocks.rpc).not.toHaveBeenCalled();
+  });
+
   it("shows Fire prerequisites/remediation and fails a passing score with a critical miss", async () => {
     Object.assign(FIRE_QUIZ_RELEASE_REVIEW, { reviewed: true, reviewerName: "Reviewer", reviewerQualification: "Marine fire specialist", approvalDate: "2026-08-12", sourceEvidence: [...FIRE_QUIZ_REVIEW_BASIS] });
     const fireQuestions = FIRE_CRITICAL_QUESTION_IDS.map((id) => ({ id, question: id, options: [`unsafe ${id}`, `safe ${id}`], correctAnswer: 1, explanation: `Applicability and limitations. Review ${id}`, learningObjective: `Objective ${id}`, prerequisite: "Review the vessel fire plan", remediationRoute: "/safety/fire" }));

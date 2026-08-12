@@ -99,6 +99,7 @@ const Quiz = () => {
   const { topicId } = useParams<{ topicId: string }>();
   // If topicId is nautical-terms (legacy) or undefined, use the new specific ID
   const topicKey = !topicId || topicId === "nautical-terms" ? "nautical-terms-quiz" : topicId;
+  const releaseBlocked = topicKey === "safety-life-raft-quiz" && !isLifeRaftReleaseApproved(LIFE_RAFT_RELEASE_REVIEW);
   const { user } = useAuth();
   const { loadProgress, saveProgress, saveProgressDetailed, resetProgress } = useProgress();
   const [seed, setSeed] = useState(0);
@@ -109,6 +110,7 @@ const Quiz = () => {
   const [sessionHydrated, setSessionHydrated] = useState(false);
   const [sessionSaveState, setSessionSaveState] = useState<"idle" | "saving" | "saved" | "queued" | "anonymous" | "failed">("idle");
   useEffect(() => {
+    if (releaseBlocked) { setSourceQuestions(null); setCatalogueError(false); return; }
     let active = true;
     setSourceQuestions(null);
     setCatalogueError(false);
@@ -117,7 +119,7 @@ const Quiz = () => {
       () => { if (active) setCatalogueError(true); },
     );
     return () => { active = false; };
-  }, [topicKey, loadGeneration]);
+  }, [topicKey, loadGeneration, releaseBlocked]);
   const questions = useMemo(() => buildQuizSession(sourceQuestions ?? [], seed), [sourceQuestions, seed]);
   const meta = isQuizTopicId(topicKey) ? topicMeta[topicKey] : {
     title: "Topic Quiz",
@@ -178,6 +180,7 @@ const Quiz = () => {
   }, [persistenceIdentity, user]);
 
   const seedReviews = useCallback(async (owner: string, generation: number) => {
+    if (releaseBlocked) return;
     if (seedOwnerRef.current !== owner || seedGenerationRef.current !== generation) return;
     setSeedStatus("saving");
     try {
@@ -190,10 +193,11 @@ const Quiz = () => {
         toast.error("Review schedule could not be saved. Retry when connected.");
       }
     }
-  }, [questions, topicKey]);
+  }, [questions, topicKey, releaseBlocked]);
 
   // Initialize answers array when questions change
   useEffect(() => {
+    if (releaseBlocked) { setSessionHydrated(false); return; }
     if (!sourceQuestions) return;
     let active = true;
     setSessionHydrated(false);
@@ -290,9 +294,10 @@ const Quiz = () => {
     };
     void initQuiz().finally(() => { if (active) setSessionHydrated(true); });
     return () => { active = false; };
-  }, [sourceQuestions, questions, topicKey, user?.id, loadProgress, saveProgress, resetProgress, seedReviews]);
+  }, [sourceQuestions, questions, topicKey, user?.id, loadProgress, saveProgress, resetProgress, seedReviews, releaseBlocked]);
 
   const startAuthenticatedAttempt = useCallback((): Promise<QuizWorkflow | null> => {
+    if (releaseBlocked) return Promise.resolve(null);
     const owner = seedOwnerRef.current;
     const generation = seedGenerationRef.current;
     const scope = attemptScopeRef.current;
@@ -338,9 +343,10 @@ const Quiz = () => {
     });
     attemptStartRequestRef.current = request;
     return request;
-  }, [questions.length, sourceQuestions, topicKey]);
+  }, [questions.length, sourceQuestions, topicKey, releaseBlocked]);
 
   useEffect(() => {
+    if (releaseBlocked) return;
     if (!sourceQuestions || !sessionHydrated || isComplete) return;
     const owner = user?.id;
     const existing = readQuizWorkflow(owner, topicKey, questions.length);
@@ -349,7 +355,7 @@ const Quiz = () => {
     attemptStartRequestRef.current = null;
     attemptRecoveryRef.current = false;
     if (owner && !existing) void startAuthenticatedAttempt();
-  }, [user?.id, topicKey, attemptCycle, sourceQuestions, questions.length, startAuthenticatedAttempt, sessionHydrated, isComplete]);
+  }, [user?.id, topicKey, attemptCycle, sourceQuestions, questions.length, startAuthenticatedAttempt, sessionHydrated, isComplete, releaseBlocked]);
 
   const assessedAnswer = submittedAnswers[currentQuestion] ?? null;
   const showExplanation = assessedAnswer !== null;
@@ -422,7 +428,7 @@ const Quiz = () => {
   if (topicKey === "safety-fire-quiz" && !isFireQuizReleaseApproved(FIRE_QUIZ_RELEASE_REVIEW)) {
     return <main className="min-h-screen grid place-items-center p-4"><Card className="w-full max-w-2xl border-amber-500" data-testid="fire-quiz-release-gate"><CardHeader><CardTitle>Fire Safety Quiz awaiting competent review</CardTitle><p className="text-sm text-muted-foreground">The applied assessment is withheld until a competent marine fire-safety reviewer records their identity, qualification, approval date and confirms the source basis.</p></CardHeader><CardContent className="space-y-4"><ul className="list-disc pl-5 text-sm">{FIRE_QUIZ_REVIEW_BASIS.map((source) => <li key={source}>{source}</li>)}</ul><Button onClick={() => navigate("/safety/fire")}><ArrowLeft className="mr-2 h-4 w-4"/>Back to Fire Safety lesson</Button></CardContent></Card></main>;
   }
-  if (topicKey === "safety-life-raft-quiz" && !isLifeRaftReleaseApproved(LIFE_RAFT_RELEASE_REVIEW)) {
+  if (releaseBlocked) {
     return <main className="min-h-screen grid place-items-center p-4"><Card className="w-full max-w-2xl border-amber-500" data-testid="life-raft-quiz-release-gate"><CardHeader><CardTitle>Life Raft Quiz awaiting qualified review</CardTitle><p className="text-sm text-muted-foreground">The assessment is withheld until a qualified survival-craft reviewer records identity, qualification, approval date and confirms the complete source basis.</p></CardHeader><CardContent className="space-y-4"><ul className="list-disc pl-5 text-sm">{LIFE_RAFT_REVIEW_BASIS.map((source) => <li key={source}>{source}</li>)}</ul><Button onClick={() => navigate("/safety/life-raft")}><ArrowLeft className="mr-2 h-4 w-4"/>Back to Life Raft lesson</Button></CardContent></Card></main>;
   }
 

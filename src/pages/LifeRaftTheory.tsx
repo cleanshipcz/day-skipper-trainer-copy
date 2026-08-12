@@ -207,8 +207,9 @@ const LifeRaftTheory = ({ releaseReview = LIFE_RAFT_RELEASE_REVIEW }: LifeRaftTh
               <h2 className="text-2xl font-bold">Deployment Procedure</h2>
               <p>
                 Deploying a life raft under pressure requires a clear,
-                practiced procedure. The painter must be secured before
-                launching the canister.
+                practiced procedure. For manual deployment, secure the painter
+                to the designated strong point before launching; follow the
+                approved installation instructions for automatic arrangements.
               </p>
             </div>
 
