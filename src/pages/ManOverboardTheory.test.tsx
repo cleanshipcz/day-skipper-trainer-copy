@@ -1,6 +1,6 @@
 import { render, screen } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
-import { describe, expect, it, vi } from "vitest";
+import { beforeEach, describe, expect, it, vi } from "vitest";
 import TestRouter from "../../tests/TestRouter";
 import ManOverboardTheory from "./ManOverboardTheory";
 import type { MobTheoryReleaseReview } from "@/data/mobGuidance";
@@ -23,6 +23,10 @@ const approved: MobTheoryReleaseReview = {
 };
 
 describe("ManOverboardTheory", () => {
+  beforeEach(() => {
+    gate.markSectionVisited.mockReset(); gate.markCompleted.mockReset(); gate.retryLoad.mockReset(); gate.retrySave.mockReset();
+    gate.loadState = "ready"; gate.saveState = "idle"; gate.canComplete = false; gate.isCompletionDurable = false; gate.visitedSectionIds = [];
+  });
   it("does not award progress on mount and records only meaningful theory and drill activity", async () => {
     const user = userEvent.setup();
     gate.markSectionVisited.mockClear(); gate.markCompleted.mockClear();
@@ -70,5 +74,19 @@ describe("ManOverboardTheory", () => {
     expect(tabs).toHaveLength(5);
     expect(screen.getByRole("tablist", { name: "Man overboard lesson sections" }).className).toContain("grid-cols-1");
     tabs.forEach((tab) => expect(tab.className).toContain("min-h-11"));
+  });
+
+  it("retries partial evidence separately from a failed final completion", async () => {
+    const user = userEvent.setup();
+    gate.saveState = "failed";
+    const { unmount } = render(<TestRouter><ManOverboardTheory releaseReview={approved} /></TestRouter>);
+    await user.click(screen.getByRole("button", { name: "Retry progress save" }));
+    expect(gate.retrySave).toHaveBeenCalledOnce();
+    expect(gate.markCompleted).not.toHaveBeenCalled();
+    unmount();
+    gate.canComplete = true;
+    render(<TestRouter><ManOverboardTheory releaseReview={approved} /></TestRouter>);
+    await user.click(screen.getByRole("button", { name: "Retry completion save" }));
+    expect(gate.markCompleted).toHaveBeenCalledOnce();
   });
 });

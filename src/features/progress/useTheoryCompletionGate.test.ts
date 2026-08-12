@@ -262,6 +262,18 @@ describe("useTheoryCompletionGate", () => {
     expect(JSON.parse(localStorage.getItem("theory-gate:legacy-owner:weather-fog:fog-v1")!)).toMatchObject({ completed: true, visitedSectionIds: requiredSectionIds });
   });
 
+  it("does not trust a legacy auto-completed MOB record without revisioned evidence", async () => {
+    mocks.ownerId = "mob-owner";
+    mocks.loadProgressDetailed.mockResolvedValue({ status: "remote", record: { completed: true, answers_history: null } });
+    const mobEvidenceIds = ["actions", "distress", "maneuvers", "recovery", "drill-immediate", "drill-approach"];
+    const { result } = renderHook(() => useTheoryCompletionGate({ topicId: "safety-mob", requiredSectionIds: mobEvidenceIds, catalogueRevision: "mob-theory-drill-v2" }));
+    await waitFor(() => expect(result.current.isHydrated).toBe(true));
+    expect(result.current.visitedSectionIds).toEqual([]);
+    expect(result.current.canComplete).toBe(false);
+    expect(result.current.isCompletionDurable).toBe(false);
+    expect(result.current.saveState).not.toBe("saved");
+  });
+
   it("does not let an incomplete legacy record bypass new evidence", async () => {
     mocks.ownerId = "legacy-owner";
     mocks.loadProgressDetailed.mockResolvedValue({ status: "remote", record: { completed: false, answers_history: { completionState: "in_progress" } } });
@@ -347,6 +359,19 @@ describe("useTheoryCompletionGate", () => {
     expect(result.current.saveState).toBe("failed");
     await act(async () => { const one = result.current.markCompleted(); const two = result.current.markCompleted(); expect(await one).toBe(true); expect(await two).toBe(true); });
     expect(mocks.saveProgressDetailed).toHaveBeenCalledTimes(2);
+  });
+
+  it("retries a failed partial evidence snapshot without attempting completion", async () => {
+    const { result } = renderHook(() => useTheoryCompletionGate({ topicId: "safety-mob", requiredSectionIds, catalogueRevision: "mob-theory-drill-v2" }));
+    await waitFor(() => expect(result.current.isHydrated).toBe(true));
+    mocks.saveProgressDetailed.mockClear();
+    mocks.saveProgressDetailed.mockResolvedValueOnce("failed").mockResolvedValueOnce("remote");
+    await act(async () => { await result.current.markSectionVisited("s1"); });
+    expect(result.current.saveState).toBe("failed");
+    await act(async () => { await result.current.retrySave(); });
+    expect(mocks.saveProgressDetailed).toHaveBeenLastCalledWith("safety-mob", false, 33, 0, expect.objectContaining({ visitedSectionIds: ["s1"] }));
+    expect(result.current.saveState).toBe("saved");
+    expect(mocks.saveProgressDetailed.mock.calls.some((call) => call[1] === true)).toBe(false);
   });
 
   it.each([false, "failed", "conflict"])("marks revisioned in-progress persistence result %s as failed", async (saveResult) => {
