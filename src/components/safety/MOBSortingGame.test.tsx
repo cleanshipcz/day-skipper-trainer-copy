@@ -27,17 +27,22 @@ describe("MOB drill contract", () => {
 
   it("accepts permutations only inside a concurrent phase", () => {
     const ordered = [...MOB_DRILL_SCENARIOS.immediate.steps];
-    expect(isValidMobDrillOrder(ordered)).toBe(true);
+    expect(isValidMobDrillOrder("immediate", ordered)).toBe(true);
     const concurrentSwap = [...ordered];
     [concurrentSwap[1], concurrentSwap[4]] = [concurrentSwap[4], concurrentSwap[1]];
-    expect(isValidMobDrillOrder(concurrentSwap)).toBe(true);
-    expect(isValidMobDrillOrder([...ordered.slice(1), ordered[0]])).toBe(false);
+    expect(isValidMobDrillOrder("immediate", concurrentSwap)).toBe(true);
+    expect(isValidMobDrillOrder("immediate", [...ordered.slice(1), ordered[0]])).toBe(false);
+    expect(isValidMobDrillOrder("immediate", [])).toBe(false);
+    expect(isValidMobDrillOrder("immediate", ordered.slice(0, -1))).toBe(false);
+    expect(isValidMobDrillOrder("immediate", [...ordered.slice(0, -1), ordered[1]])).toBe(false);
+    expect(isValidMobDrillOrder("immediate", [...ordered.slice(0, -1), MOB_DRILL_SCENARIOS.approach.steps[0]])).toBe(false);
+    expect(isValidMobDrillOrder("immediate", [{ ...ordered[0], phase: 99 }, ...ordered.slice(1)])).toBe(false);
   });
 
   it("always returns a non-pre-solved shuffle, including a hostile deterministic RNG", () => {
-    for (const scenario of Object.values(MOB_DRILL_SCENARIOS)) {
-      expect(isValidMobDrillOrder(shuffleMobDrillSteps(scenario.steps, () => 0))).toBe(false);
-      expect(shuffleMobDrillSteps(scenario.steps, () => 0)).toHaveLength(scenario.steps.length);
+    for (const key of Object.keys(MOB_DRILL_SCENARIOS) as (keyof typeof MOB_DRILL_SCENARIOS)[]) {
+      expect(isValidMobDrillOrder(key, shuffleMobDrillSteps(key, () => 0))).toBe(false);
+      expect(shuffleMobDrillSteps(key, () => 0)).toHaveLength(MOB_DRILL_SCENARIOS[key].steps.length);
     }
   });
 
@@ -63,7 +68,14 @@ describe("MOB drill contract", () => {
     fireEvent.keyDown(down, { key: "Enter" });
     fireEvent.click(down);
     await waitFor(() => expect(screen.getByRole("status").textContent).toContain("moved to position"));
-    await waitFor(() => expect(document.activeElement?.textContent).toContain(actionName));
+    await waitFor(() => expect(document.activeElement?.getAttribute("aria-label")).toMatch(new RegExp(`^Move ${actionName.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")} (up|down)$`)));
+    expect(document.activeElement?.tagName).toBe("BUTTON");
+
+    const enabledDownButtons = screen.getAllByRole("button", { name: / down$/ }).filter((button) => !(button as HTMLButtonElement).disabled);
+    const edgeButton = enabledDownButtons.at(-1)!;
+    const edgeActionName = edgeButton.getAttribute("aria-label")!.replace(/^Move /, "").replace(/ down$/, "");
+    fireEvent.click(edgeButton);
+    await waitFor(() => expect(document.activeElement?.getAttribute("aria-label")).toBe(`Move ${edgeActionName} up`));
   });
 
   it("resets and reshuffles on scenario switches without retaining solved feedback", () => {

@@ -24,11 +24,22 @@ export const MOB_DRILL_SCENARIOS = {
   ] },
 } as const satisfies Record<string, Scenario>;
 export type MobDrillScenarioKey = keyof typeof MOB_DRILL_SCENARIOS;
-export const isValidMobDrillOrder = (steps: readonly MobDrillStep[]) => steps.every((step, index) => index === 0 || steps[index - 1].phase <= step.phase);
-export const shuffleMobDrillSteps = (steps: readonly MobDrillStep[], random = Math.random) => {
-  const shuffled = [...steps];
+export const isValidMobDrillOrder = (scenario: MobDrillScenarioKey, steps: readonly MobDrillStep[]) => {
+  const expected = MOB_DRILL_SCENARIOS[scenario].steps;
+  const expectedById = new Map<string, MobDrillStep>(expected.map((step) => [step.id, step]));
+  const actualIds = steps.map((step) => step.id);
+  return steps.length === expected.length &&
+    new Set(actualIds).size === expected.length &&
+    steps.every((step) => {
+      const canonical = expectedById.get(step.id);
+      return canonical !== undefined && canonical.text === step.text && canonical.role === step.role && canonical.phase === step.phase && canonical.outcome === step.outcome;
+    }) &&
+    steps.every((step, index) => index === 0 || steps[index - 1].phase <= step.phase);
+};
+export const shuffleMobDrillSteps = (scenario: MobDrillScenarioKey, random = Math.random) => {
+  const shuffled: MobDrillStep[] = [...MOB_DRILL_SCENARIOS[scenario].steps];
   for (let i = shuffled.length - 1; i > 0; i--) { const j = Math.floor(random() * (i + 1)); [shuffled[i], shuffled[j]] = [shuffled[j], shuffled[i]]; }
-  if (isValidMobDrillOrder(shuffled)) [shuffled[0], shuffled[shuffled.length - 1]] = [shuffled[shuffled.length - 1], shuffled[0]];
+  if (isValidMobDrillOrder(scenario, shuffled)) [shuffled[0], shuffled[shuffled.length - 1]] = [shuffled[shuffled.length - 1], shuffled[0]];
   return shuffled;
 };
 type Evidence = { revision: number; completedScenarioIds: MobDrillScenarioKey[]; lastCompletedAt: string; attempts: number; claim: "practice-completed-not-mastery" };

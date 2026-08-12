@@ -9,12 +9,12 @@ import { isValidMobDrillOrder, MOB_DRILL_SCENARIOS, type MobDrillScenarioKey, ty
 
 export const MOBSortingGame = () => {
   const [scenarioKey, setScenarioKey] = useState<MobDrillScenarioKey>("immediate");
-  const [steps, setSteps] = useState<MobDrillStep[]>(() => shuffleMobDrillSteps(MOB_DRILL_SCENARIOS.immediate.steps));
+  const [steps, setSteps] = useState<MobDrillStep[]>(() => shuffleMobDrillSteps("immediate"));
   const [result, setResult] = useState<boolean | null>(null);
   const [announcement, setAnnouncement] = useState("Immediate response scenario loaded in a shuffled order.");
-  const itemRefs = useRef<Record<string, HTMLDivElement | null>>({});
+  const buttonRefs = useRef<Record<string, HTMLButtonElement | null>>({});
 
-  const reset = (key = scenarioKey) => { setSteps(shuffleMobDrillSteps(MOB_DRILL_SCENARIOS[key].steps)); setResult(null); setAnnouncement(`${MOB_DRILL_SCENARIOS[key].title} reset in a shuffled order.`); };
+  const reset = (key = scenarioKey) => { setSteps(shuffleMobDrillSteps(key)); setResult(null); setAnnouncement(`${MOB_DRILL_SCENARIOS[key].title} reset in a shuffled order.`); };
   useEffect(() => { reset(scenarioKey); }, [scenarioKey]); // eslint-disable-line react-hooks/exhaustive-deps
 
   const move = (index: number, delta: -1 | 1) => {
@@ -24,11 +24,12 @@ export const MOBSortingGame = () => {
     setSteps((current) => { const next = [...current]; [next[index], next[destination]] = [next[destination], next[index]]; return next; });
     setResult(null);
     setAnnouncement(`${steps[index].text} moved to position ${destination + 1} of ${steps.length}.`);
-    requestAnimationFrame(() => itemRefs.current[movedId]?.focus());
+    const preferredDirection = delta === -1 ? (destination > 0 ? "up" : "down") : (destination < steps.length - 1 ? "down" : "up");
+    requestAnimationFrame(() => buttonRefs.current[`${movedId}:${preferredDirection}`]?.focus());
   };
 
   const check = () => {
-    const valid = isValidMobDrillOrder(steps); setResult(valid);
+    const valid = isValidMobDrillOrder(scenarioKey, steps); setResult(valid);
     if (valid) {
       const saved = saveMobDrillEvidence(scenarioKey);
       setAnnouncement(`Practice sequence accepted. ${saved ? "Completion evidence saved on this device." : "Evidence could not be saved on this device."} This does not demonstrate operational mastery.`);
@@ -46,9 +47,9 @@ export const MOBSortingGame = () => {
     </div></fieldset>
     <Card className="min-w-0 border-2 border-primary/20"><CardHeader><div className="flex flex-wrap items-start justify-between gap-2"><div className="min-w-0"><CardTitle>{MOB_DRILL_SCENARIOS[scenarioKey].title}</CardTitle><CardDescription>{MOB_DRILL_SCENARIOS[scenarioKey].description}</CardDescription></div>{result && <Badge className="gap-1 bg-green-600"><CheckCircle2 aria-hidden="true" className="h-3 w-3"/>Practised</Badge>}</div></CardHeader>
       <CardContent className="space-y-4"><ol className="space-y-2" aria-label="Reorder the scenario actions">
-        {steps.map((step, index) => <li key={step.id}><div ref={(node) => { itemRefs.current[step.id] = node; }} tabIndex={-1} className={`flex min-w-0 flex-col gap-2 rounded-lg border p-3 focus:outline-none focus:ring-2 focus:ring-ring sm:flex-row sm:items-center sm:justify-between ${result === true ? "border-green-300 bg-green-50/50 dark:bg-green-950/20" : result === false ? "border-red-300" : "bg-card"}`}>
+        {steps.map((step, index) => <li key={step.id}><div className={`flex min-w-0 flex-col gap-2 rounded-lg border p-3 ${result === true ? "border-green-300 bg-green-50/50 dark:bg-green-950/20" : result === false ? "border-red-300" : "bg-card"}`}>
           <div className="flex min-w-0 items-start gap-3"><Badge variant="outline" className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full p-0">{index + 1}</Badge><div className="min-w-0"><p className="break-words font-medium">{step.text}</p><p className="text-xs text-muted-foreground">Role: {step.role}</p></div></div>
-          <div className="flex shrink-0 gap-2 self-end sm:self-auto"><Button type="button" variant="outline" size="icon" className="h-11 w-11 touch-manipulation" disabled={index === 0 || result === true} onClick={() => move(index, -1)} aria-label={`Move ${step.text} up`}><ArrowUp aria-hidden="true"/></Button><Button type="button" variant="outline" size="icon" className="h-11 w-11 touch-manipulation" disabled={index === steps.length - 1 || result === true} onClick={() => move(index, 1)} aria-label={`Move ${step.text} down`}><ArrowDown aria-hidden="true"/></Button></div>
+          <div className="flex shrink-0 gap-2 self-end sm:self-auto"><Button ref={(node) => { buttonRefs.current[`${step.id}:up`] = node; }} type="button" variant="outline" size="icon" className="h-11 w-11 touch-manipulation" disabled={index === 0 || result === true} onClick={() => move(index, -1)} aria-label={`Move ${step.text} up`}><ArrowUp aria-hidden="true"/></Button><Button ref={(node) => { buttonRefs.current[`${step.id}:down`] = node; }} type="button" variant="outline" size="icon" className="h-11 w-11 touch-manipulation" disabled={index === steps.length - 1 || result === true} onClick={() => move(index, 1)} aria-label={`Move ${step.text} down`}><ArrowDown aria-hidden="true"/></Button></div>
         </div></li>)}
       </ol><div className="flex flex-col gap-2 sm:flex-row"><Button className="min-h-11 flex-1" onClick={check} disabled={result === true}>Check decision boundaries</Button><Button className="min-h-11" variant="outline" onClick={() => reset()}><RefreshCcw aria-hidden="true" className="mr-2 h-4 w-4"/>Reset and shuffle</Button></div>
       <div className={`rounded-md border p-3 text-sm ${result === false ? "border-red-300" : ""}`} role="status" aria-live="polite" aria-atomic="true">{result === true ? <CheckCircle2 aria-hidden="true" className="mr-2 inline h-4 w-4"/> : result === false ? <XCircle aria-hidden="true" className="mr-2 inline h-4 w-4"/> : null}{announcement}</div>
