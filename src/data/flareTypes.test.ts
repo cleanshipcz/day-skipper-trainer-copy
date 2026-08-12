@@ -242,8 +242,8 @@ describe("flare qualified-review release contract", () => {
   });
 
   it("derives release only from complete approved evidence for this version and all sources", async () => {
-    const { flareReview, flareSources, isFlareQualifiedReviewComplete } = await import("./flareTypes");
-    const complete = { reviewerName: "Qualified reviewer", qualification: "Relevant maritime qualification", reviewedOn: "2026-08-12", reviewedCommit: "abc123", approvedContentVersion: flareReview.contentVersion, status: "approved" as const, sourceIds: flareSources.map(source => source.id) };
+    const { flareReview, FLARE_QUALIFIED_REVIEW_SOURCE_IDS, isFlareQualifiedReviewComplete, representativeManufacturerInstructions } = await import("./flareTypes");
+    const complete = { reviewerName: "Qualified reviewer", qualification: "Relevant maritime qualification", reviewedOn: "2026-08-12", reviewedCommit: "abc123", approvedContentVersion: flareReview.contentVersion, status: "approved" as const, sourceIds: FLARE_QUALIFIED_REVIEW_SOURCE_IDS };
     expect(isFlareQualifiedReviewComplete(complete, flareReview.contentVersion)).toBe(true);
     expect(isFlareQualifiedReviewComplete({ ...complete, status: "pending" }, flareReview.contentVersion)).toBe(false);
     expect(isFlareQualifiedReviewComplete({ ...complete, approvedContentVersion: "stale" }, flareReview.contentVersion)).toBe(false);
@@ -251,6 +251,9 @@ describe("flare qualified-review release contract", () => {
     const duplicateSubstitution = [...complete.sourceIds.slice(0, -1), complete.sourceIds[0]];
     expect(duplicateSubstitution).toHaveLength(complete.sourceIds.length);
     expect(isFlareQualifiedReviewComplete({ ...complete, sourceIds: duplicateSubstitution }, flareReview.contentVersion)).toBe(false);
+    for (const manufacturer of representativeManufacturerInstructions) {
+      expect(isFlareQualifiedReviewComplete({ ...complete, sourceIds: complete.sourceIds.filter(id => id !== manufacturer.id) }, flareReview.contentVersion)).toBe(false);
+    }
     expect(isFlareQualifiedReviewComplete({ ...complete, reviewedOn: "2999-01-01" }, flareReview.contentVersion)).toBe(false);
     expect(isFlareQualifiedReviewComplete({ ...complete, reviewedOn: "2026-99-99" }, flareReview.contentVersion)).toBe(false);
   });

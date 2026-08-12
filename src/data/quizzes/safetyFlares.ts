@@ -1,7 +1,7 @@
 import type { Question } from "./types";
-import { flareSources, representativeManufacturerInstructions } from "../flareTypes";
+import { FLARE_QUALIFIED_REVIEW_SOURCE_IDS } from "../flareTypes";
 
-export const FLARE_QUIZ_REVIEW_BASIS = [...flareSources, ...representativeManufacturerInstructions].map(({ id }) => id);
+export const FLARE_QUIZ_REVIEW_BASIS = FLARE_QUALIFIED_REVIEW_SOURCE_IDS;
 
 export const FLARE_QUIZ_CATALOGUE_REVISION = "safety-flares-applied-v2";
 
@@ -31,7 +31,26 @@ export const FLARE_QUIZ_REVIEW_METADATA = {
 const prerequisite = "Review the qualified-review-gated Flares lesson, the exact products carried and the vessel's distress plan first.";
 const remediationRoute = "/safety/flares";
 const sourceNote = "Source/review basis: flareTypes reviewed model and FLARE_QUIZ_REVIEW_BASIS; qualified maritime approval remains pending.";
-const q = (id: string, learningObjective: string, question: string, options: readonly string[], correctAnswer: number, explanation: string, scenario?: Question["scenario"]): Question => ({ id, learningObjective, prerequisite, remediationRoute, question, options, correctAnswer, explanation: `${explanation} Review the Flares lesson. ${sourceNote}`, scenario });
+const answerPositions: Readonly<Record<string, number>> = {
+  "flare-applied-white-warning-v2": 2,
+  "flare-applied-long-range-v2": 1,
+  "flare-applied-close-range-v2": 3,
+  "flare-applied-day-position-v2": 2,
+  "flare-applied-launch-instructions-v2": 1,
+  "flare-applied-misfire-v2": 3,
+  "flare-applied-service-life-v2": 2,
+  "flare-applied-disposal-v2": 1,
+  "flare-applied-labelled-recognition-v2": 3,
+  "flare-applied-learning-limit-v2": 2,
+};
+const q = (id: string, learningObjective: string, question: string, authoredOptions: readonly string[], authoredCorrectAnswer: number, explanation: string, scenario?: Question["scenario"]): Question => {
+  const correctOption = authoredOptions[authoredCorrectAnswer];
+  const correctAnswer = answerPositions[id];
+  if (correctOption === undefined || correctAnswer === undefined || correctAnswer >= authoredOptions.length) throw new Error(`Invalid flare quiz answer contract for ${id}.`);
+  const options = authoredOptions.filter((_, index) => index !== authoredCorrectAnswer);
+  options.splice(correctAnswer, 0, correctOption);
+  return { id, learningObjective, prerequisite, remediationRoute, question, options, correctAnswer, explanation: `${explanation} Review the Flares lesson. ${sourceNote}`, scenario };
+};
 
 const questions: readonly Question[] = [
   q("flare-applied-white-warning-v2", "Distinguish collision warning from distress signalling", "Another vessel is approaching and collision risk is developing, but your vessel is not in distress. Which carried signal has the relevant intended role?", ["A white hand flare, used as a collision warning according to its label", "A red hand flare, because every bright light means distress", "Orange smoke, because it is a night collision warning", "Any rocket fired toward the approaching vessel"], 0, "White hand flares are collision-warning signals, not distress signals. Red light and orange smoke communicate distress; no pyrotechnic should be aimed at a vessel."),

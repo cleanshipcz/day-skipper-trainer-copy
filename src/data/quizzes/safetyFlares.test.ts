@@ -8,6 +8,10 @@ describe("review-gated flares quiz", () => {
     expect(questions.every(({ id }) => id.endsWith("-v2"))).toBe(true);
     expect(Object.values(FLARE_QUIZ_OUTCOME_MAP).flat().sort()).toEqual(questions.map(({ id }) => id).sort());
     expect(questions.every(({ learningObjective, prerequisite, remediationRoute }) => learningObjective && prerequisite && remediationRoute === "/safety/flares")).toBe(true);
+    expect(new Set(questions.map(({ correctAnswer }) => correctAnswer)).size).toBeGreaterThan(1);
+    for (const position of [0, 1, 2, 3]) {
+      expect(questions.filter(({ correctAnswer }) => correctAnswer === position).length).toBeLessThan(questions.length * 0.5);
+    }
   });
 
   it("keeps release approval fail-closed and cites the inherited source model", () => {
