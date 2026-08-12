@@ -202,7 +202,7 @@ const LifeRaftTheory = ({ releaseReview = LIFE_RAFT_RELEASE_REVIEW }: LifeRaftTh
           </TabsContent>
 
           {/* ── DEPLOYMENT, BOARDING & ACTIONS ──────────────────────── */}
-          <TabsContent value="deployment" className="space-y-6">
+          <TabsContent value="deployment" className="space-y-6" id="life-raft-procedures">
             <div className="prose dark:prose-invert max-w-none">
               <h2 className="text-2xl font-bold">Deployment Procedure</h2>
               <p>
@@ -265,8 +265,8 @@ const LifeRaftTheory = ({ releaseReview = LIFE_RAFT_RELEASE_REVIEW }: LifeRaftTh
             <div className="prose dark:prose-invert max-w-none">
               <h2 className="text-2xl font-bold">Abandon Ship Procedure Drill</h2>
               <p>
-                Test your knowledge: put the steps in the correct order. In a
-                real emergency, hesitation costs lives.
+                Practise context-specific safety dependencies. Several actions
+                may be concurrent or valid in more than one order.
               </p>
             </div>
 

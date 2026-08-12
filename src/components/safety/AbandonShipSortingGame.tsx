@@ -1,186 +1,81 @@
-import { useState, useEffect } from "react";
-import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
-import { ArrowUp, ArrowDown, RefreshCcw, CheckCircle2 } from "lucide-react";
+import { useEffect, useMemo, useRef, useState } from "react";
+import { ArrowDown, ArrowUp, CheckCircle2, RefreshCcw } from "lucide-react";
 import { toast } from "sonner";
 import { Badge } from "@/components/ui/badge";
-import {
-  abandonShipSteps,
-  deploymentProcedureSteps,
-  boardingProcedureSteps,
-  actionsInRaftSteps,
-  type ProcedureStep,
-} from "@/data/lifeRaftProcedures";
-
-interface Scenario {
-  readonly title: string;
-  readonly description: string;
-  readonly steps: readonly ProcedureStep[];
-}
-
-const SCENARIOS: Record<string, Scenario> = {
-  abandon: {
-    title: "Abandon Ship Procedure",
-    description: "Order the steps for abandoning a vessel in distress.",
-    steps: abandonShipSteps,
-  },
-  deployment: {
-    title: "Life Raft Deployment",
-    description: "Order the steps to launch and inflate the life raft.",
-    steps: deploymentProcedureSteps,
-  },
-  boarding: {
-    title: "Boarding the Raft",
-    description: "Order the steps for safely boarding the life raft.",
-    steps: boardingProcedureSteps,
-  },
-  actions: {
-    title: "Actions in the Raft",
-    description: "Order the immediate actions once everyone is aboard.",
-    steps: actionsInRaftSteps,
-  },
-};
-
-const SCENARIO_KEYS = Object.keys(SCENARIOS) as ReadonlyArray<string>;
-
-/** Fisher-Yates shuffle — returns a new array. */
-const shuffle = <T,>(items: readonly T[]): T[] => {
-  const copy = [...items];
-  for (let i = copy.length - 1; i > 0; i--) {
-    const j = Math.floor(Math.random() * (i + 1));
-    [copy[i], copy[j]] = [copy[j], copy[i]];
-  }
-  return copy;
-};
+import { Button } from "@/components/ui/button";
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import type { ProcedureStep } from "@/data/lifeRaftProcedures";
+import { ABANDON_SHIP_EVIDENCE_KEY, ABANDON_SHIP_SCENARIOS, findDependencyViolations, getDrillStep, type DrillScenario } from "@/data/abandonShipDrill";
+const initialOrder = (scenario: DrillScenario) => [...scenario.steps].reverse();
 
 export const AbandonShipSortingGame = () => {
-  const [scenarioKey, setScenarioKey] = useState<string>(SCENARIO_KEYS[0]);
-  const [currentSteps, setCurrentSteps] = useState<ProcedureStep[]>([]);
-  const [isCorrect, setIsCorrect] = useState<boolean | null>(null);
+  const [scenarioIndex, setScenarioIndex] = useState(0);
+  const scenario = ABANDON_SHIP_SCENARIOS[scenarioIndex];
+  const [steps, setSteps] = useState<ProcedureStep[]>(() => initialOrder(scenario));
+  const [violations, setViolations] = useState<readonly Dependency[] | null>(null);
+  const [mastered, setMastered] = useState<readonly string[]>(() => {
+    try {
+      const value = JSON.parse(localStorage.getItem(ABANDON_SHIP_EVIDENCE_KEY) ?? "null");
+      return value?.version === 2 && Array.isArray(value.masteredScenarioIds)
+        ? value.masteredScenarioIds.filter((id: unknown): id is string => typeof id === "string" && ABANDON_SHIP_SCENARIOS.some((item) => item.id === id)) : [];
+    } catch { return []; }
+  });
+  const [announcement, setAnnouncement] = useState("");
+  const itemRefs = useRef<Array<HTMLLIElement | null>>([]);
+  const solved = violations?.length === 0;
+  const allMastered = mastered.length === ABANDON_SHIP_SCENARIOS.length;
+  const dependencySummary = useMemo(() => scenario.dependencies.map(({ before, after }) => `${getDrillStep(scenario, before).text} before ${getDrillStep(scenario, after).text}`), [scenario]);
 
-  const shuffleScenario = (key: string) => {
-    setCurrentSteps(shuffle(SCENARIOS[key].steps));
-    setIsCorrect(null);
-  };
-
-  // Shuffle on load or scenario change
   useEffect(() => {
-    shuffleScenario(scenarioKey);
-  }, [scenarioKey]);
+    try { localStorage.setItem(ABANDON_SHIP_EVIDENCE_KEY, JSON.stringify({ version: 2, masteredScenarioIds: mastered, completedAt: allMastered ? new Date().toISOString() : null })); } catch { /* visible evidence remains explicitly browser-local */ }
+  }, [allMastered, mastered]);
 
-  const moveItem = (index: number, direction: -1 | 1) => {
-    const newSteps = [...currentSteps];
-    const newIndex = index + direction;
-    if (newIndex < 0 || newIndex >= newSteps.length) return;
-    [newSteps[index], newSteps[newIndex]] = [newSteps[newIndex], newSteps[index]];
-    setCurrentSteps(newSteps);
-    setIsCorrect(null);
+  const selectScenario = (index: number) => {
+    const next = ABANDON_SHIP_SCENARIOS[index];
+    setScenarioIndex(index); setSteps(initialOrder(next)); setViolations(null); setAnnouncement(`${next.title} selected. Order reset.`);
   };
-
-  const checkOrder = () => {
-    const correctOrder = SCENARIOS[scenarioKey].steps;
-    const isNowCorrect = currentSteps.every(
-      (step, index) => step.id === correctOrder[index].id,
-    );
-    setIsCorrect(isNowCorrect);
-
-    if (isNowCorrect) {
-      toast.success("Correct Order!", { description: "Well done, you know the procedure." });
+  const move = (index: number, direction: -1 | 1) => {
+    const destination = index + direction;
+    if (destination < 0 || destination >= steps.length) return;
+    const next = [...steps]; [next[index], next[destination]] = [next[destination], next[index]];
+    setSteps(next); setViolations(null); setAnnouncement(`${steps[index].text} moved to position ${destination + 1} of ${steps.length}.`);
+    requestAnimationFrame(() => itemRefs.current[destination]?.focus());
+  };
+  const check = () => {
+    const result = findDependencyViolations(steps, scenario.dependencies); setViolations(result);
+    if (result.length === 0) {
+      setMastered((current) => current.includes(scenario.id) ? current : [...current, scenario.id]);
+      setAnnouncement(`Context solved. ${scenario.dependencies.length} safety dependencies satisfied; independent actions may be in different valid orders.`);
+      toast.success("Safe dependencies satisfied", { description: "This is one valid plan; independent actions may also be reordered." });
     } else {
-      toast.error("Incorrect Order", { description: "Review the sequence and try again." });
+      setAnnouncement(`${result.length} safety dependencies violated. ${result[0].reason}`);
+      toast.error("Unsafe dependency found", { description: result[0].reason });
     }
   };
+  const reset = () => { setSteps(initialOrder(scenario)); setViolations(null); setAnnouncement(`${scenario.title} reset to an unsolved order.`); itemRefs.current[0]?.focus(); };
 
-  const scenario = SCENARIOS[scenarioKey];
-
-  return (
-    <div className="space-y-6">
-      {/* Scenario selector buttons */}
-      <div className="flex flex-wrap gap-2 justify-center">
-        {SCENARIO_KEYS.map((key) => (
-          <Button
-            key={key}
-            variant={scenarioKey === key ? "default" : "outline"}
-            onClick={() => setScenarioKey(key)}
-          >
-            {SCENARIOS[key].title}
-          </Button>
-        ))}
-      </div>
-
-      {/* Sortable steps card */}
-      <Card className="border-2 border-primary/20">
-        <CardHeader>
-          <div className="flex justify-between items-start">
-            <div>
-              <CardTitle>{scenario.title}</CardTitle>
-              <CardDescription>{scenario.description}</CardDescription>
-            </div>
-            {isCorrect === true && (
-              <Badge className="bg-green-500 hover:bg-green-600 gap-1">
-                <CheckCircle2 className="w-3 h-3" />
-                Solved
-              </Badge>
-            )}
-          </div>
-        </CardHeader>
-        <CardContent className="space-y-4">
-          <div className="space-y-2">
-            {currentSteps.map((step, index) => (
-              <div
-                key={step.id}
-                className={`p-3 rounded-lg border flex items-center justify-between transition-colors ${
-                  isCorrect === true
-                    ? "bg-green-50/50 border-green-200 dark:bg-green-900/10"
-                    : isCorrect === false
-                      ? "bg-red-50/10 border-red-200"
-                      : "bg-card hover:bg-accent/5"
-                }`}
-              >
-                <div className="flex items-center gap-3">
-                  <Badge
-                    variant="outline"
-                    className="w-8 h-8 rounded-full flex items-center justify-center p-0"
-                  >
-                    {index + 1}
-                  </Badge>
-                  <span className="font-medium">{step.text}</span>
-                </div>
-                <div className="flex gap-1">
-                  <Button
-                    variant="ghost"
-                    size="sm"
-                    className="h-8 w-8 p-0"
-                    disabled={index === 0 || isCorrect === true}
-                    onClick={() => moveItem(index, -1)}
-                  >
-                    <ArrowUp className="w-4 h-4" />
-                  </Button>
-                  <Button
-                    variant="ghost"
-                    size="sm"
-                    className="h-8 w-8 p-0"
-                    disabled={index === currentSteps.length - 1 || isCorrect === true}
-                    onClick={() => moveItem(index, 1)}
-                  >
-                    <ArrowDown className="w-4 h-4" />
-                  </Button>
-                </div>
-              </div>
-            ))}
-          </div>
-
-          <div className="flex gap-3 pt-4">
-            <Button onClick={checkOrder} className="flex-1" disabled={isCorrect === true}>
-              Check Order
-            </Button>
-            <Button variant="outline" onClick={() => shuffleScenario(scenarioKey)}>
-              <RefreshCcw className="w-4 h-4 mr-2" />
-              Reset
-            </Button>
-          </div>
-        </CardContent>
-      </Card>
+  return <section className="min-w-0 space-y-4" aria-labelledby="abandon-drill-title">
+    <div><h2 id="abandon-drill-title" className="text-xl font-bold">Context-dependent abandon-ship drill</h2><p className="text-sm text-muted-foreground">Arrange actions so every stated safety dependency is satisfied. Actions without a dependency may happen concurrently or in either order; this records contextual planning, not recall of one universal sequence.</p></div>
+    <div role="tablist" aria-label="Emergency scenario" className="grid min-w-0 grid-cols-1 gap-2 sm:grid-cols-2">
+      {ABANDON_SHIP_SCENARIOS.map((item, index) => <Button key={item.id} role="tab" aria-selected={index === scenarioIndex} aria-controls="abandon-scenario-panel" id={`scenario-${item.id}`} variant={index === scenarioIndex ? "default" : "outline"} className="h-auto min-h-11 whitespace-normal px-3 py-2 text-left" onClick={() => selectScenario(index)}>{item.title}{mastered.includes(item.id) ? " — complete" : ""}</Button>)}
     </div>
-  );
+    <Card id="abandon-scenario-panel" role="tabpanel" aria-labelledby={`scenario-${scenario.id}`} className="min-w-0 border-2 border-primary/20">
+      <CardHeader><div className="flex min-w-0 flex-wrap items-start justify-between gap-2"><div className="min-w-0"><CardTitle>{scenario.title}</CardTitle><CardDescription>{scenario.context}</CardDescription></div>{solved && <Badge className="gap-1 bg-green-600"><CheckCircle2 className="h-3 w-3" />Dependencies satisfied</Badge>}</div></CardHeader>
+      <CardContent className="min-w-0 space-y-4">
+        <div className="rounded-md bg-muted p-3 text-sm"><p className="font-semibold">Required dependencies</p><ul className="list-disc space-y-1 pl-5">{dependencySummary.map((text) => <li key={text}>{text}</li>)}</ul></div>
+        <ol aria-label={`Proposed action order for ${scenario.title}`} aria-describedby="drill-order-help" className="min-w-0 space-y-2">
+          {steps.map((step, index) => <li key={step.id} ref={(node) => { itemRefs.current[index] = node; }} tabIndex={-1} className={`flex min-w-0 flex-col gap-2 rounded-lg border p-3 sm:flex-row sm:items-center sm:justify-between ${violations?.some((item) => item.before === step.id || item.after === step.id) ? "border-destructive bg-destructive/5" : solved ? "border-green-600/40 bg-green-500/5" : "bg-card"}`}>
+            <div className="flex min-w-0 items-start gap-3"><Badge variant="outline" aria-hidden="true" className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full p-0">{index + 1}</Badge><span className="min-w-0 break-words font-medium">{step.text}</span></div>
+            <div className="flex shrink-0 gap-2 self-end sm:self-auto"><Button type="button" variant="outline" size="icon" className="h-11 w-11 touch-manipulation" disabled={index === 0 || solved} aria-label={`Move ${step.text} earlier`} onClick={() => move(index, -1)}><ArrowUp aria-hidden="true" className="h-4 w-4" /></Button><Button type="button" variant="outline" size="icon" className="h-11 w-11 touch-manipulation" disabled={index === steps.length - 1 || solved} aria-label={`Move ${step.text} later`} onClick={() => move(index, 1)}><ArrowDown aria-hidden="true" className="h-4 w-4" /></Button></div>
+          </li>)}
+        </ol>
+        <p id="drill-order-help" className="text-xs text-muted-foreground">Use the labelled earlier/later controls with keyboard, pointer or touch. Focus follows the moved action.</p>
+        {violations && violations.length > 0 && <div role="alert" className="rounded-md border border-destructive p-3 text-sm"><p className="font-semibold">Revise {violations.length} unsafe {violations.length === 1 ? "dependency" : "dependencies"}:</p><ul className="list-disc space-y-1 pl-5">{violations.map((item) => <li key={`${item.before}-${item.after}`}>{item.reason}</li>)}</ul><a href="#life-raft-procedures" className="mt-2 inline-block underline">Review the life-raft procedures theory</a></div>}
+        {solved && <p role="status" className="rounded-md border border-green-600 p-3 text-sm">Valid for this context. This evidence means the stated dependencies were satisfied; it does not certify a universal abandon-ship order.</p>}
+        <div className="flex min-w-0 flex-col gap-3 sm:flex-row"><Button className="min-h-11 flex-1" onClick={check} disabled={solved}>Check safety dependencies</Button><Button variant="outline" className="min-h-11" onClick={reset}><RefreshCcw aria-hidden="true" className="mr-2 h-4 w-4" />Reset scenario</Button></div>
+        <p data-testid="drill-progress" className="text-sm">Context evidence: {mastered.length} of {ABANDON_SHIP_SCENARIOS.length} complete.{allMastered ? " All contexts completed in this browser." : ""}</p>
+        <p className="sr-only" aria-live="polite" aria-atomic="true">{announcement}</p>
+      </CardContent>
+    </Card>
+  </section>;
 };
