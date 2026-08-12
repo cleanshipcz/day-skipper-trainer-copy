@@ -1,136 +1,20 @@
 import type { Question } from "./types";
 
-const safetyLifeRaftQuestions: readonly Question[] = [
-  {
-    id: "raft1",
-    question: "What is the golden rule of abandoning ship?",
-    options: [
-      "Step UP into the life raft — the vessel should be sinking beneath you",
-      "Jump into the water first, then swim to the raft",
-      "Always abandon ship at the first sign of danger",
-      "The youngest crew member should board first",
-    ],
-    correctAnswer: 0,
-    explanation:
-      "The golden rule is to step UP into the life raft, meaning the vessel should be sinking beneath you. A yacht, even damaged, is a better survival platform than a life raft.",
-  },
-  {
-    id: "raft2",
-    question: "What is the purpose of a sea anchor (drogue) in a life raft?",
-    options: [
-      "To anchor the raft to the seabed",
-      "To slow drift and keep the raft oriented to wind and waves",
-      "To paddle the raft towards shore",
-      "To signal rescuers",
-    ],
-    correctAnswer: 1,
-    explanation:
-      "A sea anchor (drogue) is deployed to slow the raft's drift and keep it oriented bow-to-waves, reducing the risk of capsizing and keeping the raft near the last known position.",
-  },
-  {
-    id: "raft3",
-    question: "Which type of life raft includes a full SOLAS B equipment pack?",
-    options: [
-      "Coastal life raft",
-      "Open-reversible life raft",
-      "Offshore life raft",
-      "Inflatable dinghy",
-    ],
-    correctAnswer: 2,
-    explanation:
-      "Offshore life rafts carry a full SOLAS B equipment pack including flares, water, first aid kit, and survival equipment for extended ocean survival.",
-  },
-  {
-    id: "raft4",
-    question: "What is the FIRST action when deploying a life raft canister?",
-    options: [
-      "Pull the painter sharply to trigger inflation",
-      "Throw the canister over the leeward side",
-      "Secure the painter to a strong point on the vessel",
-      "Remove the canister lashings",
-    ],
-    correctAnswer: 2,
-    explanation:
-      "The painter must be secured to a strong point BEFORE launching the canister, to prevent the raft from drifting away once inflated.",
-  },
-  {
-    id: "raft5",
-    question: "Who should board the life raft first?",
-    options: [
-      "The skipper",
-      "The lightest crew member",
-      "The strongest person, to stabilise the raft",
-      "Children and elderly first",
-    ],
-    correctAnswer: 2,
-    explanation:
-      "The strongest person boards first to stabilise the raft and then help injured or weaker crew members aboard.",
-  },
-  {
-    id: "raft6",
-    question: "What should you do with water rations in the first 24 hours in a life raft?",
-    options: [
-      "Drink as much as possible while supplies last",
-      "Distribute water equally immediately",
-      "No food or water for the first 24 hours",
-      "Only drink sea water to conserve fresh water",
-    ],
-    correctAnswer: 2,
-    explanation:
-      "The general guidance is no food or water for the first 24 hours. The body can manage without, and this preserves limited supplies for the longer term. Never drink sea water.",
-  },
-  {
-    id: "raft7",
-    question: "Which side of the vessel should you launch the life raft from?",
-    options: [
-      "The windward side for maximum clearance",
-      "The leeward side for shelter from wind and waves",
-      "The bow for best visibility",
-      "It doesn't matter which side",
-    ],
-    correctAnswer: 1,
-    explanation:
-      "Launch from the leeward side. This provides shelter from wind and waves, making it easier to bring the raft alongside and board safely.",
-  },
-  {
-    id: "raft8",
-    question: "When should you cut the painter line from the sinking vessel?",
-    options: [
-      "Immediately after inflation",
-      "Before anyone boards the raft",
-      "Only when everyone is safely aboard the raft",
-      "You should never cut it — keep attached to the vessel",
-    ],
-    correctAnswer: 2,
-    explanation:
-      "Cut the painter only when everyone is safely aboard. The painter keeps the raft alongside for boarding, but must be cut before the vessel sinks to avoid dragging the raft down.",
-  },
-  {
-    id: "raft9",
-    question: "What item in the SOLAS pack is used to maintain buoyancy if the raft is punctured?",
-    options: [
-      "Bailer",
-      "Repair kit",
-      "Bellows / inflation pump",
-      "Sea anchor",
-    ],
-    correctAnswer: 1,
-    explanation:
-      "The repair kit contains patches and adhesive to seal punctures and maintain the raft's buoyancy. The bellows can re-inflate tubes after patching.",
-  },
-  {
-    id: "raft10",
-    question: "What is the main advantage of an open-reversible life raft?",
-    options: [
-      "It carries more equipment than offshore models",
-      "It can be boarded from either side if it inflates upside down",
-      "It is cheaper than other types",
-      "It provides better weather protection",
-    ],
-    correctAnswer: 1,
-    explanation:
-      "An open-reversible life raft can be used whichever way up it inflates, eliminating the dangerous task of righting an inverted raft in heavy seas.",
-  },
+const prerequisite = "Review the qualified-review-gated Life Raft & Abandon Ship lesson and the exact raft, vessel plan and equipment instructions first.";
+const remediationRoute = "/safety/life-raft";
+const q = (id: string, learningObjective: string, question: string, options: readonly string[], correctAnswer: number, explanation: string): Question => ({ id, learningObjective, prerequisite, remediationRoute, question, options, correctAnswer, explanation });
+
+const questions: readonly Question[] = [
+  q("raft-selection-v2", "Select by approval and voyage", "Two rafts are advertised as “offshore”. What establishes whether one is suitable?", ["Its colour and marketing label", "Its certificate, capacity, temperature group, pack, service status, voyage and applicable rules", "Whether it is the heaviest model", "A fixed distance printed by the retailer"], 1, "Marketing labels do not define approval or carriage suitability. Verify the exact raft against vessel, voyage, climate, expected rescue time and applicable requirements, using its certificate and competent advice. Review Raft Types."),
+  q("raft-pack-v2", "Verify actual pack contents", "What should a crew assume from the words “SOLAS B pack”?", ["It always contains 1.5 litres of water per person", "It is identical to every ISO emergency pack", "Nothing beyond the exact certified inventory; packs and supplements vary", "It guarantees indefinite survival"], 2, "SOLAS, ISO and owner-supplement packs differ. Inventory the actual approved pack and grab bag before departure; never infer quantities from a generic list. Review SOLAS Pack Contents."),
+  q("raft-painter-v2", "Prevent loss during deployment", "Before launching a manually deployed canister, what painter precaution is generally required?", ["Secure it to the designated strong point and follow the labelled sequence", "Hold it loosely by hand", "Cut it before inflation", "Tie it to a person"], 0, "A manually deployed raft can be lost if the painter is not secured. Use the designated strong point and exact instructions; an approved automatic-launch installation may have a different sequence. Review Deployment."),
+  q("raft-position-v2", "Choose a condition-dependent launch position", "Which side must a liferaft always be launched from?", ["Leeward", "Windward", "Stern", "No side is universal; assess fire, wind, sea, list, obstructions and drift"], 3, "Leeward shelter may help in some conditions, but fire, vessel list, wreckage, obstructions and drift can make it dangerous. Use the vessel plan and current conditions. Review Deployment."),
+  q("raft-boarding-v2", "Board without a universal crew order", "Who must always board first?", ["The strongest person", "The skipper", "The youngest person", "No universal person; use the practised vessel plan and assign capable assistance for casualties"], 3, "Crew ability, injury, raft design and conditions determine a safe order. Board directly and stay dry where practicable, with capable crew positioned to assist. Review Boarding Procedure."),
+  q("raft-release-v2", "Release before the vessel endangers the raft", "Everyone is aboard but the burning vessel is drifting onto the raft. What controls painter release?", ["Wait exactly ten minutes", "Remain attached regardless", "Release by the raft's safe method before fire, sinking or entanglement endangers occupants", "Enter the water and untie it"], 2, "Attachment can aid boarding, but must not drag the raft down, into fire or into entanglement. Use the fitted release/safety knife as instructed and move clear. Review Boarding Procedure."),
+  q("raft-water-v2", "Manage hydration without unsafe folklore", "Which water-ration rule is defensible?", ["Nobody may drink for exactly 24 hours", "Drink seawater first", "Drink all fresh water immediately", "Inventory supplies, protect them and set a situation-specific plan; never drink seawater"], 3, "A blanket 24-hour fluid fast ignores health, heat and rescue circumstances. Manage the actual supply using survival and medical advice; seawater worsens dehydration. Review Actions in the Raft."),
+  q("raft-stability-v2", "Stabilise to exact instructions", "After clearing immediate danger, how should drogue and canopy systems be used?", ["Deploy or close everything without checking", "Follow the exact raft instructions and adapt to damage and conditions", "Discard the drogue", "Open every entrance in cold spray"], 1, "Raft systems and attachment points vary. The drogue, canopy, floor and entrances support stability and exposure control only when operated as designed. Review Actions in the Raft."),
+  q("raft-signals-v2", "Use distress equipment safely", "How should pyrotechnics or beacons from the raft be operated?", ["By memory from a different model", "Continuously until empty", "By exact device instructions and trained procedures, timed to aid detection", "Inside a closed canopy"], 2, "Distress equipment has device-specific hazards and controls. Retain active beacons, maintain lookout and use visual signals when they can aid location, following formal training and labels. Review Actions in the Raft."),
+  q("raft-service-v2", "Verify serviceability", "What proves a raft is ready for the intended voyage?", ["A universal annual-service claim", "An unopened canister", "A retailer's description", "Current service documentation, external checks, correct stowage and release arrangements under manufacturer and applicable rules"], 3, "Intervals and permitted servicing depend on the raft, approval and governing rules. Check dates, seals, stowage, hydrostatic release where fitted and safe access; use an authorised service station. Review Raft Types."),
 ];
 
-export default safetyLifeRaftQuestions;
+export default questions;

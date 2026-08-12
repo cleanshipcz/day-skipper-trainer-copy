@@ -42,6 +42,7 @@ import { mobQuizCompletionOutcome } from "@/features/quiz/mobAssessment";
 import { FIRE_QUIZ_RELEASE_REVIEW, FIRE_QUIZ_REVIEW_BASIS, isFireQuizReleaseApproved } from "@/data/quizzes/safetyFire";
 import { FIRE_QUIZ_PASS_POLICY } from "@/data/quizzes/safetyFire";
 import { fireQuizCompletionOutcome } from "@/features/quiz/fireAssessment";
+import { LIFE_RAFT_RELEASE_REVIEW, LIFE_RAFT_REVIEW_BASIS, isLifeRaftReleaseApproved } from "@/data/lifeRaftProcedures";
 
 const quizAttemptKey = (owner: string, topic: string) => ownerStorageKey("quiz-attempt", owner, topic);
 interface QuizWorkflow {
@@ -420,6 +421,9 @@ const Quiz = () => {
 
   if (topicKey === "safety-fire-quiz" && !isFireQuizReleaseApproved(FIRE_QUIZ_RELEASE_REVIEW)) {
     return <main className="min-h-screen grid place-items-center p-4"><Card className="w-full max-w-2xl border-amber-500" data-testid="fire-quiz-release-gate"><CardHeader><CardTitle>Fire Safety Quiz awaiting competent review</CardTitle><p className="text-sm text-muted-foreground">The applied assessment is withheld until a competent marine fire-safety reviewer records their identity, qualification, approval date and confirms the source basis.</p></CardHeader><CardContent className="space-y-4"><ul className="list-disc pl-5 text-sm">{FIRE_QUIZ_REVIEW_BASIS.map((source) => <li key={source}>{source}</li>)}</ul><Button onClick={() => navigate("/safety/fire")}><ArrowLeft className="mr-2 h-4 w-4"/>Back to Fire Safety lesson</Button></CardContent></Card></main>;
+  }
+  if (topicKey === "safety-life-raft-quiz" && !isLifeRaftReleaseApproved(LIFE_RAFT_RELEASE_REVIEW)) {
+    return <main className="min-h-screen grid place-items-center p-4"><Card className="w-full max-w-2xl border-amber-500" data-testid="life-raft-quiz-release-gate"><CardHeader><CardTitle>Life Raft Quiz awaiting qualified review</CardTitle><p className="text-sm text-muted-foreground">The assessment is withheld until a qualified survival-craft reviewer records identity, qualification, approval date and confirms the complete source basis.</p></CardHeader><CardContent className="space-y-4"><ul className="list-disc pl-5 text-sm">{LIFE_RAFT_REVIEW_BASIS.map((source) => <li key={source}>{source}</li>)}</ul><Button onClick={() => navigate("/safety/life-raft")}><ArrowLeft className="mr-2 h-4 w-4"/>Back to Life Raft lesson</Button></CardContent></Card></main>;
   }
 
   if (!sourceQuestions && !catalogueError) {

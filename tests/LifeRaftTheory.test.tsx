@@ -1,7 +1,8 @@
 import { describe, it, expect, vi, beforeEach } from "vitest";
 import { render, screen } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
-import LifeRaftTheory from "../src/pages/LifeRaftTheory";
+import RawLifeRaftTheory from "../src/pages/LifeRaftTheory";
+import { LIFE_RAFT_REVIEW_BASIS } from "../src/data/lifeRaftProcedures";
 import TestRouter from "./TestRouter";
 
 // Mock the sorting game component to isolate theory page tests.
@@ -18,6 +19,9 @@ vi.mock("@/hooks/useProgress", () => ({
     saveProgress: mockSaveProgress,
   }),
 }));
+
+const approvedReview = { reviewed: true, reviewerName: "Survival craft reviewer", reviewerQualification: "Qualified marine survival-craft specialist", approvalDate: "2026-08-12", sourceEvidence: [...LIFE_RAFT_REVIEW_BASIS] } as const;
+const LifeRaftTheory = () => <RawLifeRaftTheory releaseReview={approvedReview} />;
 
 describe("LifeRaftTheory Page", () => {
   beforeEach(() => {

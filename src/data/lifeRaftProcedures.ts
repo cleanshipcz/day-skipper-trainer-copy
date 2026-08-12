@@ -1,174 +1,66 @@
-/**
- * Life Raft & Abandon Ship data — types, SOLAS pack contents, and
- * ordered procedure steps for the Day Skipper safety module.
- *
- * @see docs/FEATURE_TASKS.md — Story E1-S2
- */
+export interface LifeRaftType { readonly id: string; readonly name: string; readonly description: string; readonly features: readonly string[] }
+export interface SolasPackItem { readonly id: string; readonly name: string; readonly purpose: string }
+export interface ProcedureStep { readonly id: string; readonly text: string }
 
-// ── Types ────────────────────────────────────────────────────────────────
-
-export interface LifeRaftType {
-  readonly id: string;
-  readonly name: string;
-  readonly description: string;
-  readonly features: readonly string[];
-}
-
-export interface SolasPackItem {
-  readonly id: string;
-  readonly name: string;
-  readonly purpose: string;
-}
-
-export interface ProcedureStep {
-  readonly id: string;
-  readonly text: string;
-}
-
-// ── Life Raft Types ──────────────────────────────────────────────────────
+export const LIFE_RAFT_REVIEW_BASIS = [
+  "ISO 9650-1/2 — inflatable liferafts for small craft",
+  "SOLAS Chapter III and LSA Code — survival-craft equipment and operation",
+  "MCA MGN 548 (M+F) — life-saving appliances on small commercial vessels",
+  "Manufacturer instructions and service record for the exact liferaft carried",
+] as const;
+export interface LifeRaftReleaseReview { readonly reviewed: boolean; readonly reviewerName: string | null; readonly reviewerQualification: string | null; readonly approvalDate: string | null; readonly sourceEvidence: readonly string[] }
+export const LIFE_RAFT_RELEASE_REVIEW: LifeRaftReleaseReview = { reviewed: false, reviewerName: null, reviewerQualification: null, approvalDate: null, sourceEvidence: [] };
+const isUtcCalendarDate = (value: string | null) => {
+  if (!value || !/^\d{4}-\d{2}-\d{2}$/.test(value)) return false;
+  const [year, month, day] = value.split("-").map(Number); const date = new Date(Date.UTC(year, month - 1, day));
+  return date.getUTCFullYear() === year && date.getUTCMonth() === month - 1 && date.getUTCDate() === day;
+};
+export const isLifeRaftReleaseApproved = (review: LifeRaftReleaseReview) => review.reviewed && Boolean(review.reviewerName?.trim()) && Boolean(review.reviewerQualification?.trim()) && isUtcCalendarDate(review.approvalDate) && LIFE_RAFT_REVIEW_BASIS.every((source) => review.sourceEvidence.includes(source));
 
 export const lifeRaftTypes: readonly LifeRaftType[] = [
-  {
-    id: "coastal",
-    name: "Coastal Life Raft",
-    description:
-      "Designed for use within 3 nautical miles of shore. Lighter and more compact than offshore models, but carries a reduced equipment pack.",
-    features: [
-      "Suitable for coastal passages",
-      "Lighter and more compact than offshore models",
-      "Basic equipment pack (no SOLAS B pack)",
-      "Typically 4–8 person capacity",
-      "Must be serviced annually",
-    ],
-  },
-  {
-    id: "offshore",
-    name: "Offshore Life Raft",
-    description:
-      "Built for extended survival in open ocean conditions. Carries a full SOLAS B equipment pack and is constructed to withstand heavy weather.",
-    features: [
-      "Suitable for offshore and ocean passages",
-      "Full SOLAS B equipment pack included",
-      "Double-floor insulation against hypothermia",
-      "Ballast bags to resist capsizing",
-      "Canopy for weather protection and visibility (orange/red)",
-      "Must be serviced annually",
-    ],
-  },
-  {
-    id: "open-reversible",
-    name: "Open-Reversible Life Raft",
-    description:
-      "Can be boarded from either side if it inflates upside down, eliminating the need to right it in the water.",
-    features: [
-      "Usable whichever way up it inflates",
-      "Faster boarding in heavy seas",
-      "Common on racing yachts (ISAF/World Sailing requirement)",
-      "Usually lighter than canopied models",
-    ],
-  },
+  { id: "iso-9650-1", name: "ISO 9650-1 (high-seas)", description: "A small-craft liferaft category intended for extended voyages where strong winds and significant waves may be encountered.", features: ["Select capacity, operating-temperature group and emergency pack for the voyage", "Insulated-floor and pack options are specification-dependent", "Check the exact certificate, manual and service label"] },
+  { id: "iso-9650-2", name: "ISO 9650-2 (coastal)", description: "A small-craft category intended for navigation where moderate conditions may be met; the standard does not create a universal distance-from-shore rule.", features: ["Suitability depends on voyage, climate, rescue time and applicable rules", "Pack contents vary", "Check carriage rules and the exact raft certificate"] },
+  { id: "open-reversible", name: "Open-reversible", description: "A different design that can be boarded whichever way up it inflates, usually trading enclosed protection for rapid access.", features: ["No universal equivalence to a canopied ISO/SOLAS raft", "Exposure protection and equipment depend on its approval", "Use only within its certified operating limits"] },
 ];
-
-// ── SOLAS B Pack Contents ────────────────────────────────────────────────
-// Items required in a SOLAS B (yacht) equipment pack.
 
 export const solasPackContents: readonly SolasPackItem[] = [
-  {
-    id: "bailer",
-    name: "Bailer",
-    purpose: "Remove water from inside the raft",
-  },
-  {
-    id: "sponge",
-    name: "Sponges (2)",
-    purpose: "Mop up residual water and keep the floor dry",
-  },
-  {
-    id: "sea-anchor",
-    name: "Sea Anchor (Drogue)",
-    purpose: "Slow drift and keep the raft oriented to wind and waves",
-  },
-  {
-    id: "paddles",
-    name: "Paddles (2)",
-    purpose: "Manoeuvre the raft away from danger or toward rescue",
-  },
-  {
-    id: "repair-kit",
-    name: "Repair Kit",
-    purpose: "Patch punctures to maintain buoyancy",
-  },
-  {
-    id: "bellows",
-    name: "Bellows / Inflation Pump",
-    purpose: "Top up air pressure in tubes and floor",
-  },
-  {
-    id: "knife",
-    name: "Safety Knife",
-    purpose: "Cut the painter after boarding and free entanglements",
-  },
-  {
-    id: "whistle",
-    name: "Whistle",
-    purpose: "Attract attention of nearby vessels in poor visibility",
-  },
-  {
-    id: "torch",
-    name: "Waterproof Torch",
-    purpose: "Signal at night and illuminate inside the raft",
-  },
-  {
-    id: "flares",
-    name: "Flares (hand-held and parachute)",
-    purpose: "Signal for rescue; visible over long distances",
-  },
-  {
-    id: "first-aid",
-    name: "First Aid Kit",
-    purpose: "Treat injuries and seasickness",
-  },
-  {
-    id: "water",
-    name: "Fresh Water (1.5 L per person)",
-    purpose: "Prevent dehydration; essential for survival",
-  },
+  { id: "inventory", name: "Raft-specific inventory", purpose: "Read the sealed pack list and certificate: SOLAS A, SOLAS B, ISO packs and owner supplements are not interchangeable." },
+  { id: "water-food", name: "Water and food", purpose: "Quantities and carriage vary by approved pack. Protect supplies and follow the ration plan; never drink seawater and do not impose a blanket 24-hour fluid fast." },
+  { id: "drogue", name: "Drogue / sea anchor", purpose: "Reduce drift and improve orientation when deployed exactly as the raft instructions specify." },
+  { id: "bailing", name: "Bailer and sponges", purpose: "Remove water and help keep occupants and the floor dry." },
+  { id: "repair", name: "Repair and inflation equipment", purpose: "Use patches, clamps/stoppers and bellows only as the raft manual directs; equipment varies." },
+  { id: "signalling", name: "Signalling equipment", purpose: "Inventory may include torch, whistle, radar reflector and pyrotechnics. Use exact device instructions and trained procedures." },
+  { id: "medical", name: "First-aid / seasickness supplies", purpose: "Treat casualties within training and pack instructions; seek medical advice through rescue communications." },
+  { id: "release-tools", name: "Release and rescue tools", purpose: "Locate the safety knife, quoit/heaving line and any rescue loop carried; use them only as the raft instructions specify." },
 ];
-
-// ── Procedure Steps (ordered correctly) ──────────────────────────────────
-// The correct order is the array order. Games shuffle these for the player.
 
 export const abandonShipSteps: readonly ProcedureStep[] = [
-  { id: "mayday", text: "Send a MAYDAY distress call with position" },
-  { id: "lifejackets", text: "Ensure all crew don lifejackets and warm clothing" },
-  { id: "grab-bag", text: "Collect the grab bag, EPIRB, and SART" },
-  { id: "launch-raft", text: "Launch and inflate the life raft" },
-  { id: "board", text: "Board the raft — stay as dry as possible" },
-  { id: "cut-painter", text: "Cut the painter only when everyone is aboard" },
-  { id: "clear-vessel", text: "Paddle clear of the sinking vessel" },
+  { id: "alarm", text: "Raise the alarm, account for crew and protect the escape route" },
+  { id: "distress", text: "Send distress information early without delaying immediate escape" },
+  { id: "protect", text: "Don lifejackets, warm layers and immersion protection where time permits" },
+  { id: "equipment", text: "Take the prepared grab bag and beacons only when safely accessible" },
+  { id: "deploy", text: "Deploy and board using the exact raft and vessel plan" },
+  { id: "release", text: "Release from the vessel before sinking, fire or entanglement endangers the raft" },
 ];
-
 export const deploymentProcedureSteps: readonly ProcedureStep[] = [
-  { id: "check-painter", text: "Secure the painter to a strong point on the vessel" },
-  { id: "remove-lashings", text: "Remove the raft canister lashings" },
-  { id: "launch-leeward", text: "Launch the canister over the leeward side" },
-  { id: "pull-painter", text: "Pull the painter sharply to trigger inflation" },
-  { id: "bring-alongside", text: "Pull the raft alongside using the painter" },
+  { id: "assess", text: "Choose the safest deployment position for wind, sea, list, fire, obstructions and vessel drift" },
+  { id: "secure", text: "Secure the painter to the designated strong point unless the approved automatic-launch arrangement specifies otherwise" },
+  { id: "launch", text: "Release the securing arrangement and launch clear, following the canister and vessel instructions" },
+  { id: "inflate", text: "Operate the painter/inflation system as labelled; keep clear of inflation hazards" },
+  { id: "inspect", text: "Confirm full inflation and orientation; right an inverted raft only by its marked method" },
 ];
-
 export const boardingProcedureSteps: readonly ProcedureStep[] = [
-  { id: "strongest-first", text: "Strongest person boards first to stabilise the raft" },
-  { id: "help-others", text: "Help injured or weaker crew members aboard" },
-  { id: "stay-low", text: "Keep low when entering to avoid capsizing" },
-  { id: "sit-opposite", text: "Distribute weight evenly around the raft" },
-  { id: "cut-free", text: "Cut the painter when everyone is safely aboard" },
+  { id: "dry", text: "Board directly from the vessel where practicable; avoid entering the water" },
+  { id: "assist", text: "Use the vessel's practised order and assign capable crew to assist casualties; no universal person boards first" },
+  { id: "distribute", text: "Keep low and distribute occupants as the raft instructions require" },
+  { id: "account", text: "Account for everyone and recover only equipment that is immediately safe to take" },
+  { id: "release", text: "Use the safety knife or release arrangement before the vessel or painter threatens the raft" },
 ];
-
 export const actionsInRaftSteps: readonly ProcedureStep[] = [
-  { id: "stream-drogue", text: "Stream the sea anchor (drogue) to slow drift" },
-  { id: "close-canopy", text: "Close the canopy to retain warmth and reduce exposure" },
-  { id: "bail-water", text: "Bail out water and dry the floor with sponges" },
-  { id: "treat-injured", text: "Administer first aid and treat seasickness" },
-  { id: "ration-water", text: "Ration water — no food or water for the first 24 hours" },
-  { id: "post-lookout", text: "Post a lookout and prepare flares for signalling" },
+  { id: "account", text: "Account for people, treat urgent injuries and activate/retain distress beacons as trained" },
+  { id: "stabilise", text: "Deploy the drogue, close entrances and inflate floor/canopy only according to the raft instructions" },
+  { id: "dry", text: "Bail, dry and protect occupants from cold, heat, wind and seasickness" },
+  { id: "inspect", text: "Inspect tubes, valves and attachments; repair or top up only with the supplied equipment and instructions" },
+  { id: "inventory", text: "Inventory water, food, medical and signalling supplies; set a situation-specific ration plan and never drink seawater" },
+  { id: "signal", text: "Maintain lookout and use signals when they can aid detection, following each device's instructions" },
 ];
