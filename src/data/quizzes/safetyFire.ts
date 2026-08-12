@@ -1,105 +1,57 @@
 import type { Question } from "./types";
 
-const safetyFireQuestions: readonly Question[] = [
-  {
-    id: "fire1",
-    question: "What are the three sides of the fire triangle?",
-    options: [
-      "Heat, Fuel, Oxygen",
-      "Heat, Water, Fuel",
-      "Oxygen, Carbon Dioxide, Fuel",
-      "Smoke, Heat, Flame",
-    ],
-    correctAnswer: 0,
-    explanation:
-      "The fire triangle consists of Heat, Fuel, and Oxygen. Remove any one element and the fire goes out.",
-  },
-  {
-    id: "fire2",
-    question: "What colour band identifies a dry powder extinguisher?",
-    options: ["Cream", "Black", "Blue", "Red"],
-    correctAnswer: 2,
-    explanation:
-      "Dry powder extinguishers are identified by a blue colour band on the body.",
-  },
-  {
-    id: "fire3",
-    question:
-      "A pan of cooking oil catches fire on the galley stove. What is the BEST first response?",
-    options: [
-      "Throw water on it",
-      "Use a CO2 extinguisher",
-      "Place a fire blanket over the pan",
-      "Blow on the flames",
-    ],
-    correctAnswer: 2,
-    explanation:
-      "A fire blanket gently placed over a pan fire smothers it without risk of splashing burning oil. Never use water on a fat fire.",
-  },
-  {
-    id: "fire4",
-    question:
-      "Which extinguisher type is MOST suitable for an engine room fire?",
-    options: ["Foam", "Water", "CO2", "Fire blanket"],
-    correctAnswer: 2,
-    explanation:
-      "CO2 suffocates fire in enclosed spaces without leaving residue or damaging the engine.",
-  },
-  {
-    id: "fire5",
-    question:
-      "What is the FIRST action in an engine room fire procedure?",
-    options: [
-      "Open the engine hatch fully to see the fire",
-      "Stop the engine",
-      "Send a Mayday",
-      "Discharge the fire extinguisher",
-    ],
-    correctAnswer: 1,
-    explanation:
-      "Stop the engine first to remove the ignition source and reduce air flow to the engine space.",
-  },
-  {
-    id: "fire6",
-    question: "Class B fires involve which type of material?",
-    options: [
-      "Solid combustibles (wood, paper)",
-      "Flammable liquids (diesel, petrol, oil)",
-      "Flammable gases (butane, propane)",
-      "Electrical equipment",
-    ],
-    correctAnswer: 1,
-    explanation:
-      "Class B covers flammable liquids such as diesel, petrol, paraffin, and cooking oil.",
-  },
-  {
-    id: "fire7",
-    question:
-      "Why should you NOT open the engine hatch fully during an engine room fire?",
-    options: [
-      "The heat will burn your hands",
-      "The smoke will obscure your vision",
-      "It feeds the fire with oxygen",
-      "The extinguisher will not reach",
-    ],
-    correctAnswer: 2,
-    explanation:
-      "Opening the hatch fully allows a rush of fresh air (oxygen) that can cause the fire to flare up dramatically.",
-  },
-  {
-    id: "fire8",
-    question:
-      "What is the main disadvantage of a dry powder extinguisher aboard a yacht?",
-    options: [
-      "It does not work on electrical fires",
-      "It only works on Class A fires",
-      "The powder damages electronics and is hard to clean up",
-      "It must be refilled after each use",
-    ],
-    correctAnswer: 2,
-    explanation:
-      "While versatile, dry powder creates a cloud that damages electronics and engines, and is very difficult to clean from confined boat spaces.",
-  },
+export const FIRE_QUIZ_OUTCOME_MAP = {
+  prevention: ["fire-applied-prevention-v2"],
+  "alarm-muster-escape": ["fire-applied-offshore-alarm-v2", "fire-applied-marina-escape-v2"],
+  distress: ["fire-applied-distress-v2"],
+  isolation: ["fire-applied-engine-space-v2", "fire-applied-gas-isolation-v2"],
+  "equipment-rating": ["fire-applied-galley-rating-v2", "fire-applied-electrical-rating-v2"],
+  "smoke-propagation": ["fire-applied-smoke-boundary-v2"],
+  "re-ignition-monitoring": ["fire-applied-reignition-v2"],
+  "decision-not-to-fight": ["fire-applied-withdraw-v2"],
+  "integrated-response": ["fire-applied-integrated-v2"],
+} as const;
+
+export const FIRE_QUIZ_PASS_POLICY = {
+  passingPercentage: 70,
+  claim: "A pass records performance on these written scenarios only; it is not practical firefighting competence or vessel-specific readiness.",
+  remediation: "Review every missed outcome and practise the vessel's alarm, escape, shutdown and communications plan under competent supervision.",
+} as const;
+
+export const FIRE_QUIZ_REVIEW_BASIS = [
+  "RYA Day Skipper Shorebased syllabus — fire prevention and fighting",
+  "MCA MGN 560 (M+F) — fire safety on small vessels",
+  "BS EN 2 — classification of fires",
+  "Manufacturer markings and instructions for each installed extinguisher or fixed system",
+] as const;
+
+export interface FireQuizReleaseReview {
+  readonly reviewed: boolean;
+  readonly reviewerName: string | null;
+  readonly reviewerQualification: string | null;
+  readonly approvalDate: string | null;
+  readonly sourceEvidence: readonly string[];
+}
+
+export const FIRE_QUIZ_RELEASE_REVIEW: FireQuizReleaseReview = { reviewed: false, reviewerName: null, reviewerQualification: null, approvalDate: null, sourceEvidence: [] };
+export const isFireQuizReleaseApproved = (review: FireQuizReleaseReview) => review.reviewed && Boolean(review.reviewerName?.trim()) && Boolean(review.reviewerQualification?.trim()) && /^\d{4}-\d{2}-\d{2}$/.test(review.approvalDate ?? "") && review.sourceEvidence.length >= FIRE_QUIZ_REVIEW_BASIS.length && FIRE_QUIZ_REVIEW_BASIS.every((source) => review.sourceEvidence.includes(source));
+
+const prerequisite = "Review the competent-review-gated Fire Safety lesson and the actual vessel's fire plan, shutdowns and equipment markings first.";
+const remediationRoute = "/safety/fire";
+
+const questions: readonly Question[] = [
+  { id: "fire-applied-prevention-v2", learningObjective: "Prevent ignition and preserve early detection", prerequisite, remediationRoute, question: "Before an overnight passage, which check most directly reduces fire likelihood and improves early response?", options: ["Test alarms; inspect fuel, LPG and electrical systems for defects; control charging and galley ignition sources; brief exits and shutdowns", "Rely on extinguisher colour bands because suppression replaces prevention", "Disable a nuisance detector until landfall", "Stow every extinguisher below to protect it from spray"], correctAnswer: 0, explanation: "Prevention combines maintained detection, defect control and a crew brief tied to the vessel. Extinguishers do not prevent ignition; disabling detection delays warning; inaccessible equipment cannot support escape-first response. Applicability depends on the fitted systems and their instructions. Review Prevention and correct defects before departure." },
+  { id: "fire-applied-offshore-alarm-v2", learningObjective: "Raise the alarm, account for crew and preserve escape before any attack", prerequisite, remediationRoute, question: "Offshore, smoke appears from accommodation and one crewmember is not yet in the cockpit. What is the first complete response?", options: ["Enter alone to find the seat before waking the crew", "Raise the alarm, account for and move crew to the safe muster/escape position, communicate early, then isolate or attack only if safe", "Select an extinguisher first so the fire cannot grow", "Open hatches to clear smoke while people remain below"], correctAnswer: 1, explanation: "People, alarm, accounting and escape come first; delegate distress communication and consider only safe isolation or a limited attack. Solo entry, equipment-first delay and opening boundaries expose crew and can feed or spread fire. The exact muster point and escape options are vessel-specific. Review Fire Triangle and Prevention." },
+  { id: "fire-applied-marina-escape-v2", learningObjective: "Use a clear shore escape and summon land emergency services", prerequisite, remediationRoute, question: "Alongside, fire is growing by the shore-power inlet and the pontoon route is clear. Which action fits the conditions?", options: ["Evacuate ashore, call fire and rescue/marina staff, warn nearby craft, and isolate power only from a known safe point", "Reach through smoke to unplug the lead before alerting anyone", "Cast off immediately with crew still below", "Stay aboard because MAYDAY is the only valid fire response"], correctAnswer: 0, explanation: "A clear land route should be used promptly and shore responders called. Reaching through smoke risks electrocution and entrapment; casting off can endanger crew and neighbours; distress communication depends on location and available services. Review alarm, muster and escape in the lesson." },
+  { id: "fire-applied-distress-v2", learningObjective: "Send early distress information without delaying escape", prerequisite, remediationRoute, question: "Offshore, a cabin fire is not controlled and the crew are mustered. What communication is appropriate?", options: ["Wait until extinguishers are empty so the call is certain", "Send an early MAYDAY by the available equipment with vessel identity, position, fire, people and assistance needed; keep it updated without delaying escape", "Use a routine working channel because fire is only urgency", "Transmit position only after abandoning"], correctAnswer: 1, explanation: "An uncontrolled vessel fire is grave and imminent danger. Early distress gives rescuers time; delegate it while escape remains protected. Delay, routine traffic and withholding position waste that margin. Follow the fitted radio's instructions and rescue coordination. Review the lesson's offshore response." },
+  { id: "fire-applied-engine-space-v2", learningObjective: "Preserve enclosure and complete approved engine-space shutdowns", prerequisite, remediationRoute, question: "A detector alarms at a closed engine space fitted with an approved fixed CO2 system and remote shutdowns. What sequence is appropriate?", options: ["Open the hatch to verify flames, then use portable CO2", "Discharge first, then check whether anyone is inside", "Alarm and account for crew, call early, stop engine/fuel/ventilation remotely, keep sealed, discharge only to system instructions, then monitor without reopening", "Run ventilation to clear smoke before discharge"], correctAnswer: 2, explanation: "The approved system depends on evacuation, required shutdowns and enclosure. Opening or ventilating supplies oxygen and releases agent; discharge before accounting can expose people. System-specific instructions remain authoritative, and reopening requires competent advice. Review Fire Types and the inherited closed-space procedure." },
+  { id: "fire-applied-gas-isolation-v2", learningObjective: "Avoid extinguishing a gas flame while fuel continues to escape", prerequisite, remediationRoute, question: "LPG burns as a jet from a cracked cooker fitting. The cylinder valve cannot be reached safely. What should the crew do?", options: ["Use any powder extinguisher immediately, even while gas flows", "Withdraw, raise alarm and distress as needed; do not extinguish unless the fuel supply can be stopped safely", "Close cabin vents and remain beside the flame", "Apply foam because all fuel fires are Class B"], correctAnswer: 1, explanation: "Without safe fuel isolation, extinguishing can allow unburned gas to accumulate and explode. Withdrawal is safer; a Class C-marked powder may be relevant only after safe isolation and according to its instructions. Foam is not for gas, and remaining in the compartment sacrifices escape. Review Fire Types and the gas scenario." },
+  { id: "fire-applied-galley-rating-v2", learningObjective: "Select only equipment whose marking and limits cover a contained Class F fire", prerequisite, remediationRoute, question: "A small oil pan remains contained, heat can be isolated safely, and the escape route is clear. Which available equipment is supportable?", options: ["A wet-chemical unit marked 25F and approved for this pan/distance, or an adequate compliant blanket used to its instructions", "Water, because cooling is always safest", "Foam marked only 13A 21B", "Any blue-band powder regardless of its cylinder rating"], correctAnswer: 0, explanation: "The inherited model supports the stated 25F unit or suitable blanket only under their limits. Water can violently spread burning oil; A/B foam lacks Class F approval; colour does not prove a powder's rating or safe application. If the fire spreads or approach becomes unsafe, withdraw. Review Extinguishers and the equipment markings." },
+  { id: "fire-applied-electrical-rating-v2", learningObjective: "Treat electricity as a hazard and verify unit approval", prerequisite, remediationRoute, question: "An energised navigation panel is sparking. Isolation is not yet confirmed. Which choice is justified?", options: ["Any extinguisher labelled Class A because electrical is Class A", "Only a unit whose marking and instructions permit the voltage and distance, used from a safe escape position; isolate first if safe", "Foam regardless of its electrical testing", "A fire blanket wrapped around the live panel"], correctAnswer: 1, explanation: "Electricity is a hazard, not a fire class. The particular unit's electrical-use marking, distance and instructions control suitability; after isolation, classify the burning material. Generic Class A, unverified foam and wrapping live gear ignore shock and approach hazards. Review Extinguishers." },
+  { id: "fire-applied-smoke-boundary-v2", learningObjective: "Avoid smoke entry and limit oxygen and propagation", prerequisite, remediationRoute, question: "Smoke obscures the deckhead behind an accommodation door and there is no second exit. Should an unprotected crew member enter?", options: ["Yes, if crawling", "Yes, for one minute with a watcher", "No; close the boundary if possible, withdraw, protect escape and update distress information", "Open every boundary to improve visibility"], correctAnswer: 2, explanation: "Toxic smoke, lost visibility and one exit make entry untenable without appropriate trained capability and protection. Crawling or a watcher does not control those hazards; opening boundaries can feed fire and spread smoke. Maintain separation only where safe. Review the escape-first scenarios." },
+  { id: "fire-applied-reignition-v2", learningObjective: "Monitor cooling and re-ignition without unsafe reopening", prerequisite, remediationRoute, question: "Flame is no longer visible after an approved engine-space system discharge. What follows?", options: ["Reopen immediately to prove the fire is out", "Restart ventilation and engine to test them", "Keep the space sealed, monitor boundaries and conditions, maintain communications, and follow system/emergency-service advice before re-entry", "Declare success because CO2 permanently cools fuel"], correctAnswer: 2, explanation: "Flame knockdown is not proof of extinction: CO2 has little cooling and air on reopening can cause re-ignition. Restarting equipment or immediate entry defeats enclosure and exposes crew. Monitor from safety and follow the installed system and responder advice. Review Extinguishers and the closed-space drill." },
+  { id: "fire-applied-withdraw-v2", learningObjective: "Recognise when not to fight", prerequisite, remediationRoute, question: "Dense smoke advances toward the only viable exit while fire grows beyond a portable extinguisher's reach. What is the decision?", options: ["Continue until the extinguisher is empty", "Send one person for a closer attack", "Evacuate immediately by the viable route, transmit location/distress as able, and do not delay for equipment", "Shut every service before leaving even if the route closes"], correctAnswer: 2, explanation: "A threatened escape route ends the attack. Portable equipment, belongings and shutdowns are subordinate to immediate evacuation; a closer attack creates another casualty. Communicate without delaying escape and use the vessel's abandonment plan. Review alarm, muster and escape." },
+  { id: "fire-applied-integrated-v2", learningObjective: "Adapt the complete response to vessel, fire and escape conditions", prerequisite, remediationRoute, question: "A small bunk fire is visible, but powder discharge would obscure the crew's only exit and a Class A-rated foam unit is accessible. Which plan is defensible?", options: ["Alarm and muster first; only if escape remains protected, use the marked Class A foam from a safe position, withdraw if conditions worsen, then monitor for deep-seated re-ignition", "Use powder because rapid knockdown is always best indoors", "Fight alone before calling so other crew do not panic", "Close yourself inside to keep smoke from the cockpit"], correctAnswer: 0, explanation: "After alarm and escape protection, a limited attack may use equipment whose actual A rating and range fit the fire. Foam provides cooling but does not guarantee extinction; monitor and withdraw early. Powder can destroy visibility and gives little cooling, while solo or enclosed attack sacrifices escape. Review the bunk scenario and actual cylinder markings." },
 ];
 
-export default safetyFireQuestions;
+export default questions;

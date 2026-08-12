@@ -73,6 +73,14 @@ describe("Quiz accessible interaction and reflow", () => {
     mocks.user = null;
   });
 
+  it("withholds the Fire Safety Quiz until competent review evidence is complete", () => {
+    renderQuiz("/quiz/safety-fire-quiz");
+    expect(screen.getByTestId("fire-quiz-release-gate")).toBeTruthy();
+    expect(screen.getByText(/identity, qualification, approval date/i)).toBeTruthy();
+    expect(screen.queryByText(questions[0].question)).toBeNull();
+    expect(screen.getByRole("button", { name: "Back to Fire Safety lesson" })).toBeTruthy();
+  });
+
   it.each([
     ["/quiz/nautical-terms-quiz", "Back to Nautical Terms & Boat Parts from Full Nautical Terms Quiz", "/nautical-terms"],
     ["/quiz/nautical-terms", "Back to Nautical Terms & Boat Parts from Full Nautical Terms Quiz", "/nautical-terms"],
