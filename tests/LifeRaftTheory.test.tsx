@@ -13,10 +13,14 @@ vi.mock("@/components/safety/AbandonShipSortingGame", () => ({
 }));
 
 const mockSaveProgress = vi.fn();
+const mockLoadProgress = vi.fn().mockResolvedValue({ status: "missing", record: null });
 
 vi.mock("@/hooks/useProgress", () => ({
   useProgress: () => ({
     saveProgress: mockSaveProgress,
+    saveProgressDetailed: mockSaveProgress,
+    loadProgressDetailed: mockLoadProgress,
+    ownerId: null,
   }),
 }));
 
@@ -164,41 +168,27 @@ describe("LifeRaftTheory Page", () => {
     expect(mockSaveProgress).not.toHaveBeenCalled();
   });
 
-  // AC-3: Explicit completion button marks safety-life-raft complete
-  it("should render a 'Mark as Complete' button that saves progress when clicked", async () => {
-    // given
-    const user = userEvent.setup();
+  // Completion is evidence-gated rather than awarded for a button click.
+  it("should withhold completion until reviewed sections and drill evidence are complete", () => {
     render(
       <TestRouter>
         <LifeRaftTheory />
       </TestRouter>
     );
 
-    // when - click the completion button
-    const completeButton = screen.getByRole("button", { name: /mark as complete/i });
-    await user.click(completeButton);
-
-    // then - saveProgress called with topic ID, completed=true, score=100, points=10
-    expect(mockSaveProgress).toHaveBeenCalledWith("safety-life-raft", true, 100, 10);
+    const completeButton = screen.getByRole("button", { name: /complete lesson/i });
+    expect((completeButton as HTMLButtonElement).disabled).toBe(true);
+    expect(mockSaveProgress).not.toHaveBeenCalledWith("safety-life-raft", true, 100, 10, expect.anything());
   });
 
-  // AC-4: Points awarded on first completion
-  it("should disable the complete button after clicking it", async () => {
-    // given
-    const user = userEvent.setup();
+  it("should explain the evidence still required", async () => {
     render(
       <TestRouter>
         <LifeRaftTheory />
       </TestRouter>
     );
 
-    // when
-    const completeButton = screen.getByRole("button", { name: /mark as complete/i });
-    await user.click(completeButton);
-
-    // then - button should now be disabled and show "Completed"
-    expect(screen.getByRole("button", { name: /completed/i })).toBeDefined();
-    expect(screen.getByRole("button", { name: /completed/i }).hasAttribute("disabled")).toBe(true);
+    await waitFor(() => expect(screen.getByRole("status").textContent).toContain("evidence requirements complete"));
   });
 
   it("should have a back to safety menu button at the bottom", () => {

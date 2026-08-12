@@ -1,5 +1,5 @@
 import { useNavigate } from "react-router-dom";
-import { useState, useCallback } from "react";
+import { useState, useCallback, useMemo } from "react";
 import { Button } from "@/components/ui/button";
 import {
   Card,
@@ -25,7 +25,7 @@ import {
   CheckCircle2,
 } from "lucide-react";
 import { AbandonShipSortingGame } from "@/components/safety/AbandonShipSortingGame";
-import { useProgress } from "@/hooks/useProgress";
+import { useTheoryCompletionGate } from "@/features/progress/useTheoryCompletionGate";
 import { TOPIC_IDS } from "@/constants/topicRegistry";
 import {
   lifeRaftTypes,
@@ -38,22 +38,35 @@ import {
   isLifeRaftReleaseApproved,
   type LifeRaftReleaseReview,
 } from "@/data/lifeRaftProcedures";
+import { hasAllScenarioEvidence, type DrillEvidence } from "@/data/abandonShipDrill";
 
 interface LifeRaftTheoryProps { readonly releaseReview?: LifeRaftReleaseReview }
 const LifeRaftTheory = ({ releaseReview = LIFE_RAFT_RELEASE_REVIEW }: LifeRaftTheoryProps) => {
   const navigate = useNavigate();
-  const { saveProgress } = useProgress();
-  const [theoryCompleted, setTheoryCompleted] = useState(false);
   const [activeTab, setActiveTab] = useState("when-to-abandon");
+  const evidenceIds = useMemo(() => ["when-to-abandon", "raft-types", "solas-pack", "deployment", "drill-mastery"], []);
+  const completion = useTheoryCompletionGate({
+    topicId: TOPIC_IDS.SAFETY_LIFE_RAFT,
+    requiredSectionIds: evidenceIds,
+    catalogueRevision: "life-raft-qualified-guidance-drill-v3",
+    pointsOnComplete: 10,
+  });
+  const selectTab = useCallback((value: string) => {
+    if (activeTab !== "drill") void completion.markSectionVisited(activeTab);
+    setActiveTab(value);
+    if (value !== "drill") void completion.markSectionVisited(value);
+  }, [activeTab, completion.markSectionVisited]);
+  const recordDrillEvidence = useCallback((evidence: DrillEvidence) => {
+    if (hasAllScenarioEvidence(evidence.masteredScenarioIds) && evidence.completedAt) {
+      void completion.markSectionVisited("drill-mastery");
+    }
+  }, [completion.markSectionVisited]);
   const reviewDeploymentTheory = useCallback(() => {
     setActiveTab("deployment");
     requestAnimationFrame(() => document.getElementById("life-raft-deployment-heading")?.focus());
   }, []);
 
-  const handleMarkComplete = useCallback(() => {
-    saveProgress(TOPIC_IDS.SAFETY_LIFE_RAFT, true, 100, 10);
-    setTheoryCompleted(true);
-  }, [saveProgress]);
+  const handleMarkComplete = useCallback(() => { void completion.markCompleted(); }, [completion.markCompleted]);
 
   if (!isLifeRaftReleaseApproved(releaseReview)) return <main className="container mx-auto max-w-2xl px-4 py-8"><Card className="border-amber-500" data-testid="life-raft-release-gate"><CardHeader><CardTitle>Life raft guidance awaiting qualified review</CardTitle><CardDescription>The lesson, drill, completion and assessment hand-off remain withheld until a qualified survival-craft reviewer records identity, qualification, approval date and all source evidence.</CardDescription></CardHeader><CardContent className="space-y-4"><ul className="list-disc pl-5 text-sm">{LIFE_RAFT_REVIEW_BASIS.map((source) => <li key={source}>{source}</li>)}</ul><Button onClick={() => navigate("/safety")}>Back to Safety Menu</Button></CardContent></Card></main>;
 
@@ -83,25 +96,25 @@ const LifeRaftTheory = ({ releaseReview = LIFE_RAFT_RELEASE_REVIEW }: LifeRaftTh
 
       {/* Main Content */}
       <main className="container mx-auto px-4 py-8 max-w-4xl">
-        <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-6">
-          <TabsList className="grid w-full grid-cols-2 lg:grid-cols-5 h-auto">
-            <TabsTrigger value="when-to-abandon" className="py-2">
+        <Tabs value={activeTab} onValueChange={selectTab} className="min-w-0 space-y-6">
+          <TabsList aria-label="Life raft lesson sections" className="grid h-auto w-full grid-cols-1 gap-1 min-[375px]:grid-cols-2 lg:grid-cols-5">
+            <TabsTrigger value="when-to-abandon" className="min-h-11 whitespace-normal py-2">
               <AlertTriangle className="w-4 h-4 mr-2" />
               When to Abandon
             </TabsTrigger>
-            <TabsTrigger value="raft-types" className="py-2">
+            <TabsTrigger value="raft-types" className="min-h-11 whitespace-normal py-2">
               <Ship className="w-4 h-4 mr-2" />
               Raft Types
             </TabsTrigger>
-            <TabsTrigger value="solas-pack" className="py-2">
+            <TabsTrigger value="solas-pack" className="min-h-11 whitespace-normal py-2">
               <Package className="w-4 h-4 mr-2" />
               SOLAS Pack
             </TabsTrigger>
-            <TabsTrigger value="deployment" className="py-2">
+            <TabsTrigger value="deployment" className="min-h-11 whitespace-normal py-2">
               <Anchor className="w-4 h-4 mr-2" />
               Deployment
             </TabsTrigger>
-            <TabsTrigger value="drill" className="py-2">
+            <TabsTrigger value="drill" className="min-h-11 whitespace-normal py-2">
               <Gamepad2 className="w-4 h-4 mr-2" />
               Drill
             </TabsTrigger>
@@ -275,7 +288,7 @@ const LifeRaftTheory = ({ releaseReview = LIFE_RAFT_RELEASE_REVIEW }: LifeRaftTh
               </p>
             </div>
 
-            <AbandonShipSortingGame onReviewTheory={reviewDeploymentTheory} />
+            <AbandonShipSortingGame onReviewTheory={reviewDeploymentTheory} onEvidenceChange={recordDrillEvidence} />
 
             <div className="mt-8 p-6 bg-muted/50 rounded-xl text-center border">
               <h3 className="text-lg font-bold mb-2">
@@ -299,19 +312,29 @@ const LifeRaftTheory = ({ releaseReview = LIFE_RAFT_RELEASE_REVIEW }: LifeRaftTh
           <Button
             size="lg"
             className="w-full md:w-auto gap-2"
-            variant={theoryCompleted ? "outline" : "default"}
-            disabled={theoryCompleted}
+            variant={completion.isCompletionDurable ? "outline" : "default"}
+            disabled={!completion.isHydrated || !completion.canComplete || completion.saveState === "saving" || completion.isCompletionDurable}
             onClick={handleMarkComplete}
           >
-            {theoryCompleted ? (
+            {completion.isCompletionDurable ? (
               <>
                 <CheckCircle2 className="w-5 h-5" />
                 Completed
               </>
             ) : (
-              "Mark as Complete"
+              completion.saveState === "saving" ? "Saving…" : "Complete lesson"
             )}
           </Button>
+          <div className="max-w-xl text-center text-sm" role="status" aria-live="polite" aria-atomic="true">
+            {completion.loadState === "loading" && "Loading saved lesson evidence…"}
+            {completion.loadState === "failed" && <>Saved progress could not be loaded. <Button type="button" variant="link" className="h-auto p-0 underline" onClick={completion.retryLoad}>Retry load</Button></>}
+            {completion.loadState === "ready" && !completion.canComplete && `${completion.visitedSectionIds.length} of ${evidenceIds.length} evidence requirements complete. Review every guidance section and master every drill context.`}
+            {completion.canComplete && !completion.isCompletionDurable && completion.saveState !== "saving" && "Evidence complete. Save completion to record the lesson."}
+            {completion.saveState === "saved" && completion.isCompletionDurable && "Completion saved and points awarded once."}
+            {completion.saveState === "queued" && completion.isCompletionDurable && "Completion queued securely and will sync when online."}
+            {completion.saveState === "local" && completion.isCompletionDurable && "Completion saved in this browser. Sign in to sync it across devices."}
+            {completion.saveState === "failed" && completion.loadState !== "failed" && <>Progress was not saved. <Button type="button" variant="link" className="h-auto p-0 underline" onClick={() => { if (completion.canComplete) void completion.markCompleted(); else void completion.retrySave(); }}>Retry save</Button></>}
+          </div>
           <Button
             size="lg"
             variant="outline"

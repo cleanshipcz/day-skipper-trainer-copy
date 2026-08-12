@@ -8,8 +8,12 @@ import type { ProcedureStep } from "@/data/lifeRaftProcedures";
 import { ABANDON_SHIP_EVIDENCE_KEY, ABANDON_SHIP_SCENARIOS, findDependencyViolations, getDrillStep, hasAllScenarioEvidence, parseDrillEvidence, type Dependency, type DrillEvidence, type DrillScenario } from "@/data/abandonShipDrill";
 const initialOrder = (scenario: DrillScenario) => [...scenario.steps].reverse();
 
-interface AbandonShipSortingGameProps { readonly onReviewTheory?: () => void }
-export const AbandonShipSortingGame = ({ onReviewTheory }: AbandonShipSortingGameProps) => {
+interface AbandonShipSortingGameProps {
+  readonly onReviewTheory?: () => void;
+  /** Reports validated, de-duplicated browser evidence to the lesson shell. */
+  readonly onEvidenceChange?: (evidence: DrillEvidence) => void;
+}
+export const AbandonShipSortingGame = ({ onReviewTheory, onEvidenceChange }: AbandonShipSortingGameProps) => {
   const [scenarioIndex, setScenarioIndex] = useState(0);
   const scenario = ABANDON_SHIP_SCENARIOS[scenarioIndex];
   const [steps, setSteps] = useState<ProcedureStep[]>(() => initialOrder(scenario));
@@ -27,7 +31,8 @@ export const AbandonShipSortingGame = ({ onReviewTheory }: AbandonShipSortingGam
 
   useEffect(() => {
     try { localStorage.setItem(ABANDON_SHIP_EVIDENCE_KEY, JSON.stringify({ version: 2, masteredScenarioIds: mastered, completedAt: evidence.completedAt })); } catch { /* visible evidence remains explicitly browser-local */ }
-  }, [evidence.completedAt, mastered]);
+    onEvidenceChange?.(evidence);
+  }, [evidence, mastered, onEvidenceChange]);
 
   const selectScenario = (index: number) => {
     const next = ABANDON_SHIP_SCENARIOS[index];
