@@ -105,6 +105,14 @@ describe("FlareIdentificationDrill", () => {
     expect(screen.queryByRole("button", { name: /completion queued/i })).toBeNull();
   });
 
+  it("does not restore a stale or tampered authenticated queued marker", async () => {
+    localStorage.setItem(`flare-drill:owner-a:${FLARE_DRILL_REVISION}`, JSON.stringify({ revision: FLARE_DRILL_REVISION, ownerId: "owner-a", mastered: true, masteredScenarioIds: flareScenarios.map(s => s.id), completionOutcome: "queued" }));
+    render(<FlareIdentificationDrill reviewApproved />);
+    expect(await screen.findByRole("radio", { name: /red rocket-parachute/i })).toBeTruthy();
+    expect(screen.queryByRole("button", { name: /completion queued/i })).toBeNull();
+    expect(progress.saveProgressDetailed).not.toHaveBeenCalled();
+  });
+
   it("keeps confirmed account success when optional local cache storage is denied", async () => {
     const setItem = vi.spyOn(Storage.prototype, "setItem").mockImplementation(() => { throw new DOMException("denied"); });
     const complete = vi.fn(); const user = userEvent.setup();

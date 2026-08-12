@@ -56,10 +56,13 @@ export const FlareIdentificationDrill = ({ onComplete, scenarioBank = flareScena
       if (!current) return;
       const history = remote.record?.answers_history;
       const restored = remote.status === "remote" && validEvidence(history, ownerId, ids) === "confirmed";
-      const localDurable = local === "queued" && Boolean(ownerId) || local === "anonymous" && !ownerId;
+      // An authenticated browser marker is mutable and cannot prove that an
+      // offline queue entry still exists. Only authoritative remote evidence
+      // may restore account completion; anonymous evidence remains local-only.
+      const localDurable = local === "anonymous" && !ownerId;
       if (restored || localDurable) {
         setSaveState(restored ? "confirmed" : local!);
-        setRoundIds([]); setAnnouncement(restored ? "Flare drill mastery restored from your account." : local === "queued" ? "Flare drill mastery restored from a real offline queue on this device." : "Anonymous mastery restored on this device.");
+        setRoundIds([]); setAnnouncement(restored ? "Flare drill mastery restored from your account." : "Anonymous mastery restored on this device.");
       } else { setSaveState("ready"); setAnnouncement(remote.status === "failed" ? "Saved progress could not be loaded. You may practise, but completion will require a successful save." : "Ready. Complete all scenarios; every missed item must be corrected."); }
     })();
     return () => { current = false; };

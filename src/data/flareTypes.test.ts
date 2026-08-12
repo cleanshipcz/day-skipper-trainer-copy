@@ -228,3 +228,25 @@ describe("FLARE_IDS constants", () => {
     expect(FLARE_IDS.WHITE_HAND_FLARE).toBe("white-hand-flare");
   });
 });
+
+describe("flare qualified-review release contract", () => {
+  it("keeps pending and every partial evidence record blocked", async () => {
+    const { flareQualifiedReview, flareReview, isFlareContentReleased, isFlareQualifiedReviewComplete } = await import("./flareTypes");
+    expect(isFlareContentReleased).toBe(false);
+    expect(isFlareQualifiedReviewComplete(flareQualifiedReview, flareReview.contentVersion)).toBe(false);
+    const almostComplete = { reviewerName: "Qualified reviewer", qualification: "Relevant maritime qualification", reviewedOn: "2026-08-12", reviewedCommit: "abc123", approvedContentVersion: flareReview.contentVersion, status: "approved" as const, sourceIds: [] };
+    for (const key of ["reviewerName", "qualification", "reviewedOn", "reviewedCommit", "approvedContentVersion"] as const) {
+      expect(isFlareQualifiedReviewComplete({ ...almostComplete, sourceIds: (await import("./flareTypes")).flareSources.map(source => source.id), [key]: null }, flareReview.contentVersion)).toBe(false);
+    }
+    expect(isFlareQualifiedReviewComplete(almostComplete, flareReview.contentVersion)).toBe(false);
+  });
+
+  it("derives release only from complete approved evidence for this version and all sources", async () => {
+    const { flareReview, flareSources, isFlareQualifiedReviewComplete } = await import("./flareTypes");
+    const complete = { reviewerName: "Qualified reviewer", qualification: "Relevant maritime qualification", reviewedOn: "2026-08-12", reviewedCommit: "abc123", approvedContentVersion: flareReview.contentVersion, status: "approved" as const, sourceIds: flareSources.map(source => source.id) };
+    expect(isFlareQualifiedReviewComplete(complete, flareReview.contentVersion)).toBe(true);
+    expect(isFlareQualifiedReviewComplete({ ...complete, status: "pending" }, flareReview.contentVersion)).toBe(false);
+    expect(isFlareQualifiedReviewComplete({ ...complete, approvedContentVersion: "stale" }, flareReview.contentVersion)).toBe(false);
+    expect(isFlareQualifiedReviewComplete({ ...complete, sourceIds: complete.sourceIds.slice(1) }, flareReview.contentVersion)).toBe(false);
+  });
+});

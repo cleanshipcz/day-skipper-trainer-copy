@@ -61,9 +61,23 @@ export const representativeManufacturerInstructions = [
 ] as const satisfies readonly { id: string; flareIds: readonly FlareId[]; label: string; href: string; version: string }[];
 
 export const flareReview = { contentVersion: "2026-08-10", reviewedOn: "2026-08-10", reviewScope: "Claims checked against the listed regulatory/guidance sources; illustrations are original repository-owned schematics.", manualVerification: "No qualified practitioner review is evidenced. A competent instructor should verify handling demonstrations against the actual products carried and current vessel requirements before practical use." } as const;
-export const flareQualifiedReview = { reviewerName: null, qualification: null, reviewedOn: null, approvedContentVersion: null } as const;
-/** Fail closed until complete qualified-practitioner evidence is recorded and independently verified. */
-export const isFlareContentReleased = false;
+export interface FlareQualifiedReviewEvidence {
+  reviewerName: string | null;
+  qualification: string | null;
+  reviewedOn: string | null;
+  reviewedCommit: string | null;
+  approvedContentVersion: string | null;
+  status: "approved" | "rejected" | "pending";
+  sourceIds: readonly string[];
+}
+export const flareQualifiedReview: FlareQualifiedReviewEvidence = { reviewerName: null, qualification: null, reviewedOn: null, reviewedCommit: null, approvedContentVersion: null, status: "pending", sourceIds: [] };
+export const isFlareQualifiedReviewComplete = (review: FlareQualifiedReviewEvidence, contentVersion: string) =>
+  review.status === "approved" && Boolean(review.reviewerName?.trim()) && Boolean(review.qualification?.trim()) &&
+  Boolean(review.reviewedCommit?.trim()) && review.approvedContentVersion === contentVersion &&
+  Boolean(review.reviewedOn && !Number.isNaN(Date.parse(review.reviewedOn))) && review.sourceIds.length === flareSources.length &&
+  review.sourceIds.every(id => flareSources.some(source => source.id === id));
+/** Derived only from complete evidence; there is no independent release switch. */
+export const isFlareContentReleased = isFlareQualifiedReviewComplete(flareQualifiedReview, flareReview.contentVersion);
 
 export interface FlareScenario { readonly id: string; readonly description: string; readonly correctFlareId: FlareId; readonly explanation: string; }
 export const flareScenarios: readonly FlareScenario[] = [
