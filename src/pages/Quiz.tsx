@@ -40,6 +40,8 @@ import { victuallingQuizRemediationRoute, victuallingTheoryRoute } from "@/featu
 import { buildWeatherLeafResults, weatherResultMessage } from "@/features/quiz/weatherReview";
 import { mobQuizCompletionOutcome } from "@/features/quiz/mobAssessment";
 import { FIRE_QUIZ_RELEASE_REVIEW, FIRE_QUIZ_REVIEW_BASIS, isFireQuizReleaseApproved } from "@/data/quizzes/safetyFire";
+import { FIRE_QUIZ_PASS_POLICY } from "@/data/quizzes/safetyFire";
+import { fireQuizCompletionOutcome } from "@/features/quiz/fireAssessment";
 
 const quizAttemptKey = (owner: string, topic: string) => ownerStorageKey("quiz-attempt", owner, topic);
 interface QuizWorkflow {
@@ -532,6 +534,8 @@ const Quiz = () => {
 
     const calculatedCompletion = topicKey === "safety-mob-quiz"
       ? mobQuizCompletionOutcome(submittedAnswers, questions)
+      : topicKey === "safety-fire-quiz"
+        ? fireQuizCompletionOutcome(submittedAnswers, questions)
       : quizCompletionOutcome(correctAnswers, questions.length);
     const missedMobCriticalOutcomes = "missedCriticalIds" in calculatedCompletion
       ? calculatedCompletion.missedCriticalIds
@@ -585,8 +589,8 @@ const Quiz = () => {
         toast.success(
           passed
             ? "Quiz passed and saved."
-            : topicKey === "safety-mob-quiz" && missedMobCriticalOutcomes.length > 0
-              ? "Quiz saved. Review the missed critical MOB safety outcomes before this check can pass."
+            : (topicKey === "safety-mob-quiz" || topicKey === "safety-fire-quiz") && missedMobCriticalOutcomes.length > 0
+              ? `Quiz saved. Review the missed critical ${topicKey === "safety-fire-quiz" ? "Fire" : "MOB"} safety outcomes before this check can pass.`
             : "Quiz saved. Score 70% or more to pass."
         );
         removeStored(localStorage, quizAttemptKey(owner, topicKey));
@@ -653,11 +657,14 @@ const Quiz = () => {
       : submittedAnswers;
     const passed = topicKey === "safety-mob-quiz"
       ? mobQuizCompletionOutcome(completedAnswers, questions).passed
+      : topicKey === "safety-fire-quiz"
+        ? fireQuizCompletionOutcome(completedAnswers, questions).passed
       : workflow?.completion?.passed ?? percentage >= 70;
     const missedQuestions = questions.filter((question, index) => completedAnswers[index] !== question.correctAnswer);
     const weatherLeaves = topicKey === "weather" ? buildWeatherLeafResults(questions, completedAnswers) : [];
     const weatherMessage = weatherResultMessage(percentage);
     const isMobQuiz = topicKey === "safety-mob-quiz";
+    const isFireQuiz = topicKey === "safety-fire-quiz";
 
     return (
       <div className="min-h-screen bg-gradient-to-br from-background via-ocean-light/10 to-background flex items-center justify-center p-3 sm:p-4">
@@ -696,6 +703,8 @@ const Quiz = () => {
                     : "Review every missed objective in the Man Overboard lesson, then retry and rehearse the vessel-specific recovery plan."}
                 </p>
               </div>
+            ) : isFireQuiz ? (
+              <div className={`p-4 border-2 rounded-lg text-center ${passed ? "bg-success/10 border-success" : "bg-accent/10 border-accent"}`} role="status" aria-live="polite"><p className={`font-semibold ${passed ? "text-success" : "text-accent"}`}>{passed ? "Applied fire decision check passed" : "Further fire-safety review needed"}</p><p className="mt-1 text-sm text-muted-foreground">{passed ? FIRE_QUIZ_PASS_POLICY.claim : FIRE_QUIZ_PASS_POLICY.remediation}</p></div>
             ) : passed ? (
               <div className="p-4 bg-success/10 border-2 border-success rounded-lg text-center">
                 <p className="font-semibold text-success">🎉 Excellent work!</p>
@@ -847,6 +856,7 @@ const Quiz = () => {
           <p className="mt-1 text-muted-foreground">Study the Man Overboard lesson and practise your vessel's own plan. Each missed scenario links back to the lesson; passing also requires the distress, propeller and cold-casualty safety outcomes.</p>
           <Button size="sm" variant="outline" className="mt-2" onClick={() => navigateFromQuiz("/safety/mob")}>Review Man Overboard lesson</Button>
         </div>}
+        {topicKey === "safety-fire-quiz" && <div className="mb-4 rounded-lg border bg-muted/50 p-4 text-sm"><p className="font-semibold">Prerequisite: review the escape-first vessel fire plan</p><p className="mt-1 text-muted-foreground">Study the Fire Safety lesson and the actual vessel's alarms, exits, shutdowns and equipment markings. Passing also requires every safety-critical decision.</p><Button size="sm" variant="outline" className="mt-2" onClick={() => navigateFromQuiz("/safety/fire")}>Review Fire Safety lesson</Button></div>}
         {user && attemptStartState !== "ready" && <div className="mb-3 space-y-2 rounded-lg border border-destructive/50 bg-destructive/10 p-3">
           <p role={attemptStartState === "failed" ? "alert" : "status"} aria-live="assertive" className="text-sm">
             {attemptStartState === "failed"
@@ -882,7 +892,7 @@ const Quiz = () => {
                 </dl>
               </figure>
             )}
-            {(topicKey === "colregs" || topicKey === "safety-mob-quiz") && question.learningObjective && <p className="text-sm text-muted-foreground">
+            {(topicKey === "colregs" || topicKey === "safety-mob-quiz" || topicKey === "safety-fire-quiz") && question.learningObjective && <p className="text-sm text-muted-foreground">
               Objective: {question.learningObjective} · Prerequisite: {question.prerequisite}
             </p>}
           </CardHeader>
@@ -944,6 +954,7 @@ const Quiz = () => {
                 <p className="text-muted-foreground break-words [overflow-wrap:anywhere]">{question.explanation}</p>
                 {topicKey === "colregs" && selectedAnswer !== question.correctAnswer && question.remediationRoute && <Button variant="link" className="h-auto px-0 pt-2" onClick={() => navigateFromQuiz(question.remediationRoute!)}>Review {question.prerequisite ?? "this objective"} theory</Button>}
                 {topicKey === "safety-mob-quiz" && selectedAnswer !== question.correctAnswer && question.remediationRoute && <Button variant="link" className="h-auto px-0 pt-2" onClick={() => navigateFromQuiz(question.remediationRoute!)}>Review this objective in the Man Overboard lesson</Button>}
+                {topicKey === "safety-fire-quiz" && selectedAnswer !== question.correctAnswer && question.remediationRoute && <Button variant="link" className="h-auto px-0 pt-2" onClick={() => navigateFromQuiz(question.remediationRoute!)}>Review this objective in the Fire Safety lesson</Button>}
                 {topicKey === "victualling" && selectedAnswer !== question.correctAnswer && <Button variant="link" className="h-auto px-0 pt-2" onClick={() => navigateFromQuiz(victuallingTheoryRoute(question.id))}>Review this objective in Victualling theory</Button>}
                 {topicKey === "engine" && selectedAnswer !== question.correctAnswer && <Button variant="link" className="h-auto px-0 pt-2" onClick={() => navigateFromQuiz(engineTheoryRoute(question.id))}>Review this objective in Engine theory</Button>}
               </div>

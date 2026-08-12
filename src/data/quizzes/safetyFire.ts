@@ -34,7 +34,13 @@ export interface FireQuizReleaseReview {
 }
 
 export const FIRE_QUIZ_RELEASE_REVIEW: FireQuizReleaseReview = { reviewed: false, reviewerName: null, reviewerQualification: null, approvalDate: null, sourceEvidence: [] };
-export const isFireQuizReleaseApproved = (review: FireQuizReleaseReview) => review.reviewed && Boolean(review.reviewerName?.trim()) && Boolean(review.reviewerQualification?.trim()) && /^\d{4}-\d{2}-\d{2}$/.test(review.approvalDate ?? "") && review.sourceEvidence.length >= FIRE_QUIZ_REVIEW_BASIS.length && FIRE_QUIZ_REVIEW_BASIS.every((source) => review.sourceEvidence.includes(source));
+const isUtcCalendarDate = (value: string | null) => {
+  if (!value || !/^\d{4}-\d{2}-\d{2}$/.test(value)) return false;
+  const [year, month, day] = value.split("-").map(Number);
+  const date = new Date(Date.UTC(year, month - 1, day));
+  return date.getUTCFullYear() === year && date.getUTCMonth() === month - 1 && date.getUTCDate() === day;
+};
+export const isFireQuizReleaseApproved = (review: FireQuizReleaseReview) => review.reviewed && Boolean(review.reviewerName?.trim()) && Boolean(review.reviewerQualification?.trim()) && isUtcCalendarDate(review.approvalDate) && review.sourceEvidence.length >= FIRE_QUIZ_REVIEW_BASIS.length && FIRE_QUIZ_REVIEW_BASIS.every((source) => review.sourceEvidence.includes(source));
 
 const prerequisite = "Review the competent-review-gated Fire Safety lesson and the actual vessel's fire plan, shutdowns and equipment markings first.";
 const remediationRoute = "/safety/fire";

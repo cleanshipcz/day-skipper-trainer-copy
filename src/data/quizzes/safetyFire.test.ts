@@ -41,6 +41,9 @@ describe("applied fire-safety quiz contract", () => {
     const approved = { reviewed: true, reviewerName: "Marine fire reviewer", reviewerQualification: "Competent marine fire-safety professional", approvalDate: "2026-08-12", sourceEvidence: [...FIRE_QUIZ_REVIEW_BASIS] };
     expect(isFireQuizReleaseApproved(approved)).toBe(true);
     expect(isFireQuizReleaseApproved({ ...approved, approvalDate: null })).toBe(false);
+    expect(isFireQuizReleaseApproved({ ...approved, approvalDate: "2026-99-99" })).toBe(false);
+    expect(isFireQuizReleaseApproved({ ...approved, approvalDate: "2026-02-31" })).toBe(false);
+    expect(isFireQuizReleaseApproved({ ...approved, approvalDate: "2024-02-29" })).toBe(true);
     expect(isFireQuizReleaseApproved({ ...approved, sourceEvidence: approved.sourceEvidence.slice(1) })).toBe(false);
   });
 });
