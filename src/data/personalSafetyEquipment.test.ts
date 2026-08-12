@@ -170,7 +170,29 @@ describe("inflationMethods data", () => {
     expect(water.disadvantages).toMatch(/rain.*spray|spray.*rain/i);
     expect(hydrostatic.description).toMatch(/water pressure|pressure-activated/i);
     expect(hydrostatic.advantages).toMatch(/resisting activation from rain, spray/i);
-    expect(hydrostatic.disadvantages).not.toMatch(/triggered.*(?:rain|spray)|(?:rain|spray).*triggered/i);
+
+    const unsafeHydrostaticWettingClaim = new RegExp(
+      [
+        String.raw`\b(?:can|could|may|will|is|are)\s+(?:be\s+)?(?:accidentally\s+|unintentionally\s+)?(?:triggered|activated)\s+(?:by|from|in)\s+[^.!?]{0,40}\b(?:rain|spray)\b`,
+        String.raw`\b(?:rain|spray)\b[^.!?]{0,60}\b(?:can|could|may|will)\s+(?:cause\s+)?(?:an?\s+)?(?:unwanted\s+|accidental\s+)?(?:activation|triggering|trigger|activate)\b`,
+        String.raw`\b(?:triggers?|activates?)\s+(?:in|from|because of|when exposed to)\s+[^.!?]{0,40}\b(?:rain|spray)\b`,
+      ].join("|"),
+      "i",
+    );
+    const hydrostaticLearnerFields = [
+      hydrostatic.name,
+      hydrostatic.description,
+      hydrostatic.advantages,
+      hydrostatic.disadvantages,
+    ];
+
+    for (const field of hydrostaticLearnerFields) {
+      expect(field).not.toMatch(unsafeHydrostaticWettingClaim);
+    }
+    expect("It may be accidentally triggered by heavy rain or spray.").toMatch(unsafeHydrostaticWettingClaim);
+    expect("Rain or spray can cause unwanted activation.").toMatch(unsafeHydrostaticWettingClaim);
+    expect("The unit activates when exposed to spray.").toMatch(unsafeHydrostaticWettingClaim);
+    expect("It resists activation from rain and spray.").not.toMatch(unsafeHydrostaticWettingClaim);
     expect(manual.description).toMatch(/pull a toggle|pull a .*cord/i);
     expect(manual.disadvantages).toMatch(/conscious/i);
     expect(oralInflationGuidance).toMatch(/topping up.*emergency backup/i);
