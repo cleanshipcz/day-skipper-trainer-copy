@@ -1,65 +1,91 @@
-/**
- * Tests for the FlareIdentificationDrill component.
- *
- * @see docs/FEATURE_TASKS.md — Story E1-S3, AC-3
- */
-import { describe, expect, it } from "vitest";
-import { renderToStaticMarkup } from "react-dom/server";
-import { FlareIdentificationDrill } from "./FlareIdentificationDrill";
+import { fireEvent, render, screen, waitFor } from "@testing-library/react";
+import userEvent from "@testing-library/user-event";
+import { beforeEach, describe, expect, it, vi } from "vitest";
+import { flareScenarios } from "@/data/flareTypes";
+import { FLARE_DRILL_REVISION, FlareIdentificationDrill } from "./FlareIdentificationDrill";
+
+const progress = vi.hoisted(() => ({
+  ownerId: "owner-a" as string | null,
+  loadProgressDetailed: vi.fn(),
+  saveProgressDetailed: vi.fn(),
+}));
+vi.mock("@/hooks/useProgress", () => ({ useProgress: () => progress }));
 
 describe("FlareIdentificationDrill", () => {
-  it("should render the first scenario description", () => {
-    // given
-    const noop = () => {};
-
-    // when
-    const html = renderToStaticMarkup(
-      <FlareIdentificationDrill onComplete={noop} />,
-    );
-
-    // then
-    // - should contain scenario prompt text
-    expect(html).toContain("Which flare would you use?");
-    // - should contain a score display
-    expect(html).toContain("Score:");
+  beforeEach(() => {
+    localStorage.clear(); vi.clearAllMocks(); progress.ownerId = "owner-a";
+    progress.loadProgressDetailed.mockResolvedValue({ status: "missing", record: null });
+    progress.saveProgressDetailed.mockResolvedValue("remote");
   });
 
-  it("should render all 5 flare type options as selectable buttons", () => {
-    // given
-    const noop = () => {};
-
-    // when
-    const html = renderToStaticMarkup(
-      <FlareIdentificationDrill onComplete={noop} />,
-    );
-
-    // then
-    expect(html).toContain("Red rocket-parachute flare");
-    expect(html).toContain("Red hand flare");
-    expect(html).toContain("Orange smoke — hand-held");
-    expect(html).toContain("Orange smoke — buoyant");
-    expect(html).toContain("White hand flare");
+  it("uses named single-choice controls and exposes reviewed recognition text", async () => {
+    render(<FlareIdentificationDrill />);
+    expect((await screen.findByRole("radio", { name: /red rocket-parachute flare/i })).getAttribute("name")).toMatch(/^flare-choice-/);
+    expect(screen.getAllByRole("radio")).toHaveLength(5);
+    expect(screen.getByText(/shape, colour and firing mechanism vary/i)).toBeTruthy();
+    expect((screen.getByRole("button", { name: /check answer/i }) as HTMLButtonElement).disabled).toBe(true);
   });
 
-  it("should render a Check Answer button", () => {
-    // given
-    const noop = () => {};
-
-    // when
-    const html = renderToStaticMarkup(
-      <FlareIdentificationDrill onComplete={noop} />,
-    );
-
-    // then
-    expect(html).toContain("Check Answer");
+  it("settles a correct answer once despite same-turn duplicate activation", async () => {
+    const user = userEvent.setup();
+    render(<FlareIdentificationDrill scenarioBank={[flareScenarios[0]]} />);
+    const choice = await screen.findByRole("radio", { name: /red rocket-parachute flare/i });
+    await user.click(choice);
+    const submit = screen.getByRole("button", { name: /check answer/i });
+    fireEvent.click(submit); fireEvent.click(submit);
+    expect(screen.getByTestId("drill-result").textContent).toMatch(/^Correct/);
+    await waitFor(() => expect((screen.getByRole("button", { name: /show mastery result/i }) as HTMLButtonElement).disabled).toBe(false));
+    await user.click(screen.getByRole("button", { name: /show mastery result/i }));
+    expect(screen.getByText("1 / 1")).toBeTruthy();
   });
 
-  it("should export DrillResult interface type", async () => {
-    // given
-    const mod = await import("./FlareIdentificationDrill");
+  it("requires a wrong answer to be corrected and caps the denominator", async () => {
+    const user = userEvent.setup();
+    render(<FlareIdentificationDrill scenarioBank={[flareScenarios[0]]} />);
+    await user.click(await screen.findByRole("radio", { name: /^red hand flare/i }));
+    const submit = screen.getByRole("button", { name: /check answer/i });
+    fireEvent.click(submit); fireEvent.click(submit);
+    expect(screen.getByTestId("drill-result").textContent).toMatch(/not correct/i);
+    await waitFor(() => expect((screen.getByRole("button", { name: /start remediation/i }) as HTMLButtonElement).disabled).toBe(false));
+    await user.click(screen.getByRole("button", { name: /start remediation/i }));
+    await user.click(screen.getByRole("radio", { name: /red rocket-parachute flare/i }));
+    fireEvent.click(screen.getByRole("button", { name: /check answer/i }));
+    await waitFor(() => expect((screen.getByRole("button", { name: /show mastery result/i }) as HTMLButtonElement).disabled).toBe(false));
+    await user.click(screen.getByRole("button", { name: /show mastery result/i }));
+    expect(screen.getByText("1 / 1")).toBeTruthy();
+  });
 
-    // then
-    expect(mod.FlareIdentificationDrill).toBeDefined();
-    expect(typeof mod.FlareIdentificationDrill).toBe("function");
+  it("does not complete, callback or save for an injected empty bank", async () => {
+    const complete = vi.fn();
+    render(<FlareIdentificationDrill scenarioBank={[]} onComplete={complete} />);
+    expect(screen.getByRole("status").textContent).toMatch(/unavailable/i);
+    expect(progress.saveProgressDetailed).not.toHaveBeenCalled();
+    expect(complete).not.toHaveBeenCalled();
+  });
+
+  it("reports a failed save truthfully, retries, and awards completion once", async () => {
+    progress.saveProgressDetailed.mockResolvedValueOnce("failed").mockResolvedValueOnce("queued");
+    const complete = vi.fn(); const user = userEvent.setup();
+    render(<FlareIdentificationDrill scenarioBank={[flareScenarios[0]]} onComplete={complete} />);
+    await user.click(await screen.findByRole("radio", { name: /red rocket-parachute flare/i }));
+    await user.click(screen.getByRole("button", { name: /check answer/i }));
+    await waitFor(() => expect((screen.getByRole("button", { name: /show mastery result/i }) as HTMLButtonElement).disabled).toBe(false));
+    await user.click(screen.getByRole("button", { name: /show mastery result/i }));
+    await user.click(screen.getByRole("button", { name: /save mastery/i }));
+    expect(await screen.findByRole("button", { name: /retry completion save/i })).toBeTruthy();
+    expect(complete).not.toHaveBeenCalled();
+    await user.click(screen.getByRole("button", { name: /retry completion save/i }));
+    expect((await screen.findByRole("button", { name: /completion queued/i }) as HTMLButtonElement).disabled).toBe(true);
+    expect(complete).toHaveBeenCalledTimes(1);
+    expect(progress.saveProgressDetailed).toHaveBeenLastCalledWith("safety-flares-drill", true, 100, 10, expect.objectContaining({ revision: FLARE_DRILL_REVISION, mastered: true }));
+  });
+
+  it("restores owner-scoped, revisioned remote evidence without saving or callback", async () => {
+    progress.loadProgressDetailed.mockResolvedValue({ status: "remote", record: { answers_history: { revision: FLARE_DRILL_REVISION, ownerId: "owner-a", mastered: true, masteredScenarioIds: flareScenarios.map(s => s.id) } } });
+    const complete = vi.fn();
+    render(<FlareIdentificationDrill onComplete={complete} />);
+    expect((await screen.findByRole("button", { name: /completion confirmed/i }) as HTMLButtonElement).disabled).toBe(true);
+    expect(screen.getByRole("status").textContent).toMatch(/restored from your account/i);
+    expect(progress.saveProgressDetailed).not.toHaveBeenCalled(); expect(complete).not.toHaveBeenCalled();
   });
 });

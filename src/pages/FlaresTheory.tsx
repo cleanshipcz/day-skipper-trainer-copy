@@ -1,5 +1,5 @@
 import { useNavigate } from "react-router-dom";
-import { useState, useCallback } from "react";
+import { useEffect, useState, useCallback } from "react";
 import { Button } from "@/components/ui/button";
 import {
   Card,
@@ -27,7 +27,6 @@ import {
 } from "lucide-react";
 import {
   FlareIdentificationDrill,
-  type DrillResult,
 } from "@/components/safety/FlareIdentificationDrill";
 import { useProgress } from "@/hooks/useProgress";
 import { TOPIC_IDS } from "@/constants/topicRegistry";
@@ -36,24 +35,32 @@ import { FlareSchematic } from "@/components/safety/FlareSchematic";
 
 const FlaresTheory = () => {
   const navigate = useNavigate();
-  const { saveProgress } = useProgress();
-  const [theoryCompleted, setTheoryCompleted] = useState(false);
+  const { ownerId, loadProgressDetailed, saveProgressDetailed } = useProgress();
+  const [visited, setVisited] = useState(() => new Set(["overview"]));
+  const [theoryState, setTheoryState] = useState<"loading" | "ready" | "saving" | "confirmed" | "queued" | "anonymous" | "failed">("loading");
+  const theoryCompleted = ["confirmed", "queued", "anonymous"].includes(theoryState);
+  const requiredSections = ["overview", "flare-types", "expiry", "drill"];
 
-  const handleMarkComplete = useCallback(() => {
-    saveProgress(TOPIC_IDS.SAFETY_FLARES, true, 100, 10);
-    setTheoryCompleted(true);
-  }, [saveProgress]);
+  useEffect(() => {
+    let current = true;
+    void loadProgressDetailed(TOPIC_IDS.SAFETY_FLARES).then(result => {
+      if (!current) return;
+      const evidence = result.record?.answers_history as { revision?: unknown; visitedSectionIds?: unknown } | null;
+      const complete = result.record?.completed === true && evidence?.revision === "flare-theory-evidence-v1" && Array.isArray(evidence.visitedSectionIds) && requiredSections.every(id => evidence.visitedSectionIds!.includes(id));
+      setTheoryState(complete ? "confirmed" : "ready");
+    });
+    return () => { current = false; };
+  }, [loadProgressDetailed]);
 
-  const handleDrillComplete = useCallback(
-    (result: DrillResult) => {
-      if (result.totalAnswered === 0) return;
-      const score = Math.round(
-        (result.correctCount / result.totalAnswered) * 100,
-      );
-      saveProgress(TOPIC_IDS.SAFETY_FLARES_DRILL, true, score, 10);
-    },
-    [saveProgress],
-  );
+  const handleMarkComplete = useCallback(async () => {
+    if (theoryCompleted || theoryState === "saving" || !requiredSections.every(id => visited.has(id))) return;
+    setTheoryState("saving");
+    try {
+      const result = await saveProgressDetailed(TOPIC_IDS.SAFETY_FLARES, true, 100, 10, { revision: "flare-theory-evidence-v1", ownerId, visitedSectionIds: requiredSections });
+      setTheoryState(result === "remote" ? "confirmed" : result === "queued" ? "queued" : result === "anonymous" ? "anonymous" : "failed");
+    } catch { setTheoryState("failed"); }
+  }, [ownerId, saveProgressDetailed, theoryCompleted, theoryState, visited]);
+
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-background via-ocean-light/10 to-background pb-20">
@@ -81,7 +88,7 @@ const FlaresTheory = () => {
 
       {/* Main Content */}
       <main className="container mx-auto px-4 py-8 max-w-4xl">
-        <Tabs defaultValue="overview" className="space-y-6">
+        <Tabs defaultValue="overview" className="space-y-6" onValueChange={value => setVisited(previous => new Set(previous).add(value))}>
           <TabsList className="grid w-full grid-cols-2 lg:grid-cols-4 h-auto">
             <TabsTrigger value="overview" className="py-2">
               <Sparkles className="w-4 h-4 mr-2" />
@@ -333,7 +340,7 @@ const FlaresTheory = () => {
               </p>
             </div>
 
-            <FlareIdentificationDrill onComplete={handleDrillComplete} />
+            <FlareIdentificationDrill />
 
             <div className="mt-8 p-6 bg-muted/50 rounded-xl text-center border">
               <h3 className="text-lg font-bold mb-2">
@@ -359,18 +366,19 @@ const FlaresTheory = () => {
             size="lg"
             className="w-full md:w-auto gap-2"
             variant={theoryCompleted ? "outline" : "default"}
-            disabled={theoryCompleted}
-            onClick={handleMarkComplete}
+            disabled={theoryCompleted || theoryState === "loading" || theoryState === "saving" || !requiredSections.every(id => visited.has(id))}
+            onClick={() => void handleMarkComplete()}
           >
             {theoryCompleted ? (
               <>
                 <CheckCircle2 className="w-5 h-5" />
-                Completed
+                {theoryState === "queued" ? "Completion queued" : theoryState === "anonymous" ? "Completed on this device" : "Completed"}
               </>
             ) : (
-              "Mark as Complete"
+              theoryState === "loading" ? "Loading saved progress…" : theoryState === "saving" ? "Saving completion…" : theoryState === "failed" ? "Retry completion save" : requiredSections.every(id => visited.has(id)) ? "Save theory completion" : "Visit all four sections to complete"
             )}
           </Button>
+          <p role="status" aria-live="polite" className="text-center text-sm text-muted-foreground">{theoryState === "failed" ? "Theory completion was not saved; retry when ready." : theoryState === "queued" ? "Theory completion is durably queued for account sync." : theoryState === "anonymous" ? "Theory completion is stored for this anonymous device; sign in for cross-device restore." : theoryState === "confirmed" ? "Theory completion restored and confirmed for this account." : `${visited.size} of ${requiredSections.length} required sections visited.`}</p>
           <Button
             size="lg"
             variant="outline"
