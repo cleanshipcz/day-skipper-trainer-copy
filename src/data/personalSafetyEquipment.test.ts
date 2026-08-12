@@ -81,24 +81,54 @@ describe("lifeJacketTypes data", () => {
     expect(uniqueIds.size).toBe(ids.length);
   });
 
-  it("qualifies self-righting advice by design, clothing, fit, and conditions", async () => {
+  it("gives safe, level-specific selection and self-righting guidance", async () => {
     // given
     const { lifeJacketTypes } = await import("./personalSafetyEquipment");
 
     // when
-    const allGuidance = lifeJacketTypes
-      .map((lj) => `${lj.description} ${lj.suitableFor} ${lj.selfRightingPerformance}`)
-      .join(" ")
-      .toLowerCase();
+    const guidanceFor = (rating: string) => {
+      const record = lifeJacketTypes.find((lj) => lj.buoyancyRating === rating);
+      expect(record).toBeDefined();
+      return `${record!.description} ${record!.suitableFor} ${record!.selfRightingPerformance}`
+        .toLowerCase();
+    };
+    const level50 = guidanceFor("50N");
+    const level100 = guidanceFor("100N");
+    const level150 = guidanceFor("150N");
+    const level275 = guidanceFor("275N");
 
     // then
-    expect(allGuidance).toMatch(/design/);
-    expect(allGuidance).toMatch(/cloth/);
-    expect(allGuidance).toMatch(/fit/);
-    expect(allGuidance).toMatch(/condition/);
-    expect(allGuidance).toMatch(/trapped air|air trapped/);
-    expect(allGuidance).toMatch(/manufacturer/);
-    expect(allGuidance).toMatch(/not (?:a universal |an? )?guarantee|never assume/);
+    expect(level50).toMatch(/competent swimmer/);
+    expect(level50).toMatch(/sheltered|calm/);
+    expect(level50).toMatch(/not designed to (?:turn|self-right)/);
+
+    expect(level100).toMatch(/sheltered|calm/);
+    expect(level100).toMatch(/not intended for offshore|not suitable for offshore/);
+    expect(level100).toMatch(/manufacturer/);
+    expect(level100).toMatch(/fit/);
+    expect(level100).toMatch(/cloth/);
+    expect(level100).toMatch(/never assume.*guaranteed/);
+
+    expect(level150).toMatch(/offshore/);
+    expect(level150).toMatch(/rough weather|rough-weather/);
+    expect(level150).toMatch(/manufacturer/);
+    expect(level150).toMatch(/design/);
+    expect(level150).toMatch(/cloth/);
+    expect(level150).toMatch(/fit/);
+    expect(level150).toMatch(/no universal guarantee/);
+
+    expect(level275).toMatch(/offshore|ocean/);
+    expect(level275).toMatch(/severe|demanding/);
+    expect(level275).toMatch(/heavy|heavier/);
+    expect(level275).toMatch(/trapped air/);
+    expect(level275).toMatch(/manufacturer/);
+    expect(level275).toMatch(/fit/);
+    expect(level275).toMatch(/can prevent or delay turning/);
+
+    for (const guidance of [level50, level100, level150, level275]) {
+      expect(guidance).not.toMatch(/will (?:always )?turn (?:an? |the )?(?:unconscious )?(?:wearer|casualty)/);
+      expect(guidance).not.toMatch(/guarantees? (?:that )?(?:every|all) wearers?/);
+    }
   });
 });
 
