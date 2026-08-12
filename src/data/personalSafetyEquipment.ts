@@ -131,6 +131,53 @@ export const inflationMethods: readonly InflationMethod[] = [
 export const oralInflationGuidance =
   "The oral inflation tube is for topping up a partly inflated bladder or as an emergency backup if the normal system fails. It is not a substitute for pulling a manual toggle or allowing the fitted automatic system to activate. Follow the lifejacket instructions; do not trigger the CO₂ cylinder when the bladder is already orally inflated because over-pressure can injure the wearer or damage the bladder.";
 
+export const lifejacketServicingGuidance = {
+  ownerChecks: {
+    name: "Routine owner checks",
+    description:
+      "Before use and at the intervals on the product label or in its manual, inspect the lifejacket without dismantling or altering its inflation system.",
+    keyPoints: [
+      "Check the cover, bladder, webbing, stitching, buckles, crotch strap, whistle, light, reflective material, oral tube, and inflation indicators for damage, contamination, corrosion, or missing parts.",
+      "Confirm the CO₂ cylinder is secure, undamaged, unpierced, and the specified type and charge for that model. Weigh or remove it only when the manufacturer's instructions tell the owner how to do so.",
+      "Check dated firing heads, cartridges, lights, and other replaceable parts against their marked expiry dates and the manual; replace them at the earlier product-specific limit.",
+      "An oral-inflation leak test, including whether the bladder should remain inflated for 24 hours, is manufacturer-dependent. Perform it only at the interval and by the method in that lifejacket's instructions, then fully deflate and repack exactly as directed.",
+      "If a check finds damage, leakage, corrosion, an incorrect or expired component, an uncertain indicator, or a missed service date, withdraw the lifejacket from use until the manufacturer or an approved service station confirms it is serviceable.",
+    ],
+  },
+  approvedService: {
+    name: "Manufacturer-approved servicing",
+    description:
+      "Use the service interval printed on the lifejacket or stated in its current manual; there is no single leisure-lifejacket interval that overrides the product instructions.",
+    keyPoints: [
+      "Use a service station approved for the exact make and model whenever the label/manual requires professional servicing, after damage or a failed owner check, or whenever the owner procedure is unclear.",
+      "Servicing, repairs, replacement intervals, pressure tests, and repacking must follow the manufacturer's current instructions and service bulletins.",
+      "After activation, re-arm only if the manufacturer permits owner re-arming, using the exact cylinder, firing head or water-activated element, seals, and status indicators specified for that model. Otherwise use an approved service station.",
+      "Record inspections, servicing, activation, re-arming, and component replacement so the next due date and fitted parts can be verified.",
+    ],
+  },
+  regulatedVessels: {
+    name: "Commercial and SOLAS requirements",
+    description:
+      "Commercial, coded, fishing, passenger, and SOLAS vessels may be subject to statutory service intervals, approved-service-station rules, certification, and record-keeping beyond leisure-craft owner guidance.",
+    keyPoints: [
+      "Identify the vessel's applicable flag-state regulations, code, certification, and survey requirements; do not assume a leisure product manual alone satisfies them.",
+      "MCA MGN 548 Amendment 1 requires SOLAS-certificated inflatable lifejackets in its scope to be serviced every 12 months at an approved service station, subject only to the formal exceptions described there.",
+      "Other UK commercial categories can have different regimes. Follow the applicable MCA code or regulation, the lifejacket approval and manufacturer instructions, and any surveyor direction.",
+    ],
+  },
+} as const;
+
+export const lifejacketServiceSources = [
+  {
+    label: "RYA: Life Jackets and Buoyancy Aids",
+    href: "https://www.rya.org.uk/water-safety/lifejacket-safety/lifejackets-and-buoyancy-aids/",
+  },
+  {
+    label: "MCA MGN 548 (M+F) Amendment 1: SOLAS inflatable life-saving appliance servicing",
+    href: "https://www.gov.uk/government/publications/mgn-548-mf-amendment-1-life-saving-appliances-servicing-requirements-for-solas-inflatable-life-saving-appliances-at-approved-service-stations/mgn-548-mf-amendment-1-life-saving-appliances-servicing-requirements-for-solas-inflatable-life-saving-appliances-at-approved-service-stations",
+  },
+] as const;
+
 // ── Safety Equipment Topics ────────────────────────────────────────────────
 
 export interface SafetyEquipmentTopic {
@@ -145,16 +192,12 @@ export const safetyEquipmentTopics: readonly SafetyEquipmentTopic[] = [
     id: "servicing",
     name: "Servicing & Maintenance Schedule",
     description:
-      "Life jackets must be serviced regularly to ensure they will function when needed. A life jacket that fails to inflate in an emergency is worse than useless — the wearer may not have attempted to swim because they trusted the device. Annual professional servicing is the standard for inflatable life jackets.",
+      "Lifejackets need routine checks and servicing at the intervals specified on the product label and in the current manufacturer instructions. Legal requirements for regulated vessels are a separate minimum and may be more prescriptive.",
     keyPoints: [
-      "Inflatable life jackets should be professionally serviced every 12 months by a manufacturer-approved service agent.",
-      "Check the CO₂ cylinder is correctly fitted, not corroded, and has not been discharged — weigh it if in doubt.",
-      "Inspect the fitted automatic firing head and replace it at or before its marked expiry date, following the manufacturer's instructions.",
-      "Check the oral inflation tube is clear and the valve seals correctly.",
-      "Inspect all webbing, stitching, and buckles for wear, UV damage, or salt corrosion.",
-      "Test-inflate the bladder orally and leave inflated for 24 hours to check for slow leaks.",
-      "Record each service date and keep the service log with the vessel's safety documentation.",
-      "After any activation, re-arm only with the exact cylinder, firing head or water-activated element, seals, and indicators specified for that model; kits and procedures are manufacturer-specific.",
+      "Read the product label and current manual before checking, testing, servicing, or re-arming the lifejacket; intervals, parts, and procedures are manufacturer-specific.",
+      "Keep owner checks within the procedures the manufacturer assigns to the owner; use an approved service station for specified service work and defects.",
+      "Check the next service date and component expiry dates before each passage and record completed work.",
+      "Apply any separate commercial, coding, flag-state, or SOLAS requirements that govern the vessel and equipment.",
     ],
   },
   {

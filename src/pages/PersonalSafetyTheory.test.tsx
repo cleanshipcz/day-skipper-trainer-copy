@@ -42,4 +42,20 @@ describe("PersonalSafetyTheory lifejacket guidance", () => {
     expect(screen.getByText("Automatic Hydrostatic Inflation")).toBeTruthy();
     expect(screen.getByText(/oral inflation tube is for topping up.*emergency backup/i)).toBeTruthy();
   });
+
+  it("renders product-specific servicing boundaries and reviewed sources", async () => {
+    const user = userEvent.setup();
+    render(<MemoryRouter><PersonalSafetyTheory /></MemoryRouter>);
+
+    await user.click(screen.getByRole("tab", { name: "Servicing" }));
+    expect(screen.getByRole("heading", { name: "Routine owner checks" })).toBeTruthy();
+    expect(screen.getByRole("heading", { name: "Manufacturer-approved servicing" })).toBeTruthy();
+    expect(screen.getByRole("heading", { name: "Commercial and SOLAS requirements" })).toBeTruthy();
+    expect(screen.getByText(/whether the bladder should remain inflated for 24 hours, is manufacturer-dependent/i)).toBeTruthy();
+    expect(screen.getByText(/manufacturer permits owner re-arming/i)).toBeTruthy();
+    expect(screen.getByText(/Reviewed 12 August 2026/i)).toBeTruthy();
+    expect(screen.getByRole("link", { name: /RYA: Life Jackets and Buoyancy Aids/i }).getAttribute("href")).toMatch(/^https:\/\/www\.rya\.org\.uk\//);
+    expect(screen.getByRole("link", { name: /MCA MGN 548/i }).getAttribute("href")).toMatch(/^https:\/\/www\.gov\.uk\//);
+    expect(screen.queryByText(/Annual professional servicing is the standard/i)).toBeNull();
+  });
 });

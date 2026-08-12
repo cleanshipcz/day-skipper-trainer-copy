@@ -307,6 +307,35 @@ describe("safetyEquipmentTopics data", () => {
     expect(servicing).toBeDefined();
     expect(servicing!.description.toLowerCase()).toMatch(/servic|inspect|maintain/);
   });
+
+  it("separates owner checks, approved servicing, and regulated-vessel requirements", async () => {
+    const { lifejacketServicingGuidance, lifejacketServiceSources, safetyEquipmentTopics } = await import("./personalSafetyEquipment");
+    const { ownerChecks, approvedService, regulatedVessels } = lifejacketServicingGuidance;
+    const ownerText = `${ownerChecks.description} ${ownerChecks.keyPoints.join(" ")}`;
+    const serviceText = `${approvedService.description} ${approvedService.keyPoints.join(" ")}`;
+    const legalText = `${regulatedVessels.description} ${regulatedVessels.keyPoints.join(" ")}`;
+    const allGeneralGuidance = [
+      safetyEquipmentTopics.find((topic) => topic.id === "servicing")!.description,
+      ...safetyEquipmentTopics.find((topic) => topic.id === "servicing")!.keyPoints,
+      ownerText,
+      serviceText,
+    ].join(" ");
+
+    expect(ownerText).toMatch(/before use|before each passage/i);
+    expect(ownerText).toMatch(/24 hours.*manufacturer-dependent/i);
+    expect(ownerText).toMatch(/withdraw.*from use/i);
+    expect(serviceText).toMatch(/product label|current manual/i);
+    expect(serviceText).toMatch(/approved.*exact make and model/i);
+    expect(serviceText).toMatch(/manufacturer permits owner re-arming/i);
+    expect(legalText).toMatch(/commercial.*SOLAS|SOLAS.*commercial/i);
+    expect(legalText).toMatch(/MGN 548.*12 months/i);
+    expect(allGeneralGuidance).not.toMatch(/(?:should|must|is to be) (?:be )?(?:professionally )?serviced every 12 months/i);
+    expect(allGeneralGuidance).not.toMatch(/leave inflated for 24 hours/i);
+    expect(lifejacketServiceSources.map((source) => source.href)).toEqual(expect.arrayContaining([
+      expect.stringMatching(/^https:\/\/www\.rya\.org\.uk\//),
+      expect.stringMatching(/^https:\/\/www\.gov\.uk\/government\/publications\/mgn-548/),
+    ]));
+  });
 });
 
 describe("LIFE_JACKET_IDS constants", () => {
