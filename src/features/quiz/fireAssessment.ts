@@ -4,7 +4,9 @@ import { quizCompletionOutcome } from "./scoring";
 
 export const FIRE_CRITICAL_QUESTION_IDS = [
   "fire-applied-offshore-alarm-v2",
+  "fire-applied-distress-v2",
   "fire-applied-engine-space-v2",
+  "fire-applied-gas-isolation-v2",
   "fire-applied-smoke-boundary-v2",
   "fire-applied-withdraw-v2",
 ] as const;
