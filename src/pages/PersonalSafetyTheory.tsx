@@ -28,6 +28,7 @@ import { TOPIC_IDS } from "@/constants/topicRegistry";
 import {
   lifeJacketTypes,
   inflationMethods,
+  oralInflationGuidance,
   safetyEquipmentTopics,
 } from "@/data/personalSafetyEquipment";
 
@@ -162,7 +163,8 @@ const PersonalSafetyTheory = () => {
                 ISO 12402 personal flotation devices are classified by level.
                 A Day Skipper must know whether a buoyancy aid or lifejacket
                 is appropriate for the conditions and understand the difference
-                between auto-inflate and manual inflation.
+                between manual, water-activated automatic, and hydrostatic
+                pressure-activated inflation.
               </p>
             </div>
 
@@ -207,11 +209,11 @@ const PersonalSafetyTheory = () => {
             {/* Inflation methods */}
             <div className="prose dark:prose-invert max-w-none mt-8">
               <h3 className="text-xl font-bold">
-                Inflation Methods: Auto-Inflate vs Manual
+                Inflation Methods
               </h3>
             </div>
 
-            <div className="grid gap-4 md:grid-cols-2">
+            <div className="grid gap-4 md:grid-cols-3">
               {inflationMethods.map((method) => (
                 <Card key={method.id}>
                   <CardHeader>
@@ -239,6 +241,15 @@ const PersonalSafetyTheory = () => {
                 </Card>
               ))}
             </div>
+
+            <Card className="bg-muted/50">
+              <CardHeader>
+                <CardTitle className="text-lg">Oral inflation: backup and top-up</CardTitle>
+              </CardHeader>
+              <CardContent>
+                <p className="text-sm text-muted-foreground">{oralInflationGuidance}</p>
+              </CardContent>
+            </Card>
 
             {/* Crotch straps card */}
             <Card className="bg-destructive/5 border-destructive/20 mt-6">
@@ -344,9 +355,10 @@ const PersonalSafetyTheory = () => {
                     passage.
                   </li>
                   <li>
-                    A life jacket that has been accidentally inflated must be
-                    re-armed with a new CO₂ cylinder and (for auto-inflate
-                    models) a new hydrostatic release before the next use.
+                    After activation, re-arm the lifejacket only with the
+                    exact cylinder, firing head or water-activated element,
+                    seals, and indicators specified by its manufacturer;
+                    kits and procedures are model-specific.
                   </li>
                   <li>
                     Brief all crew on how to operate their life jacket at the

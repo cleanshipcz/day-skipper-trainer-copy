@@ -145,7 +145,7 @@ describe("inflationMethods data", () => {
     expect(inflationMethods.length).toBeGreaterThanOrEqual(2);
   });
 
-  it("should include both auto-inflate and manual inflation methods", async () => {
+  it("distinguishes manual, water-activated, and hydrostatic inflation", async () => {
     // given
     const { inflationMethods } = await import("./personalSafetyEquipment");
 
@@ -155,8 +155,29 @@ describe("inflationMethods data", () => {
     );
 
     // then
-    expect(names).toContain("auto-inflate");
+    expect(names).toContain("automatic-water-activated");
+    expect(names).toContain("automatic-hydrostatic");
     expect(names).toContain("manual");
+  });
+
+  it("teaches activation trade-offs without attributing rain or spray triggers to hydrostatic heads", async () => {
+    const { inflationMethods, oralInflationGuidance, safetyEquipmentTopics } = await import("./personalSafetyEquipment");
+    const water = inflationMethods.find((method) => method.id === "automatic-water-activated")!;
+    const hydrostatic = inflationMethods.find((method) => method.id === "automatic-hydrostatic")!;
+    const manual = inflationMethods.find((method) => method.id === "manual")!;
+
+    expect(`${water.description} ${water.disadvantages}`).toMatch(/water-sensitive|wetting/i);
+    expect(water.disadvantages).toMatch(/rain.*spray|spray.*rain/i);
+    expect(hydrostatic.description).toMatch(/water pressure|pressure-activated/i);
+    expect(hydrostatic.advantages).toMatch(/resisting activation from rain, spray/i);
+    expect(hydrostatic.disadvantages).not.toMatch(/triggered.*(?:rain|spray)|(?:rain|spray).*triggered/i);
+    expect(manual.description).toMatch(/pull a toggle|pull a .*cord/i);
+    expect(manual.disadvantages).toMatch(/conscious/i);
+    expect(oralInflationGuidance).toMatch(/topping up.*emergency backup/i);
+    expect(oralInflationGuidance).toMatch(/not a substitute/i);
+
+    const servicing = safetyEquipmentTopics.find((topic) => topic.id === "servicing")!;
+    expect(servicing.keyPoints.join(" ")).toMatch(/manufacturer-specific/i);
   });
 
   it("should have valid InflationMethod shape for every entry", async () => {
