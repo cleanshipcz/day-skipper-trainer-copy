@@ -30,7 +30,7 @@ import {
 } from "@/components/safety/FlareIdentificationDrill";
 import { useProgress } from "@/hooks/useProgress";
 import { TOPIC_IDS } from "@/constants/topicRegistry";
-import { evdsGuidance, flareOperatingSequence, flareReview, flareSources, flareStorageBoundary, flareTypes, representativeManufacturerInstructions, solasAndMakerBoundary, ukCarriageGuidance } from "@/data/flareTypes";
+import { evdsGuidance, flareOperatingSequence, flareReview, flareSources, flareStorageBoundary, flareTypes, isFlareContentReleased, representativeManufacturerInstructions, solasAndMakerBoundary, ukCarriageGuidance } from "@/data/flareTypes";
 import { FlareSchematic } from "@/components/safety/FlareSchematic";
 
 const FlaresTheory = () => {
@@ -43,6 +43,7 @@ const FlaresTheory = () => {
 
   useEffect(() => {
     let current = true;
+    if (!isFlareContentReleased) { setTheoryState("ready"); return () => { current = false; }; }
     void loadProgressDetailed(TOPIC_IDS.SAFETY_FLARES).then(result => {
       if (!current) return;
       const evidence = result.record?.answers_history as { revision?: unknown; visitedSectionIds?: unknown } | null;
@@ -53,7 +54,7 @@ const FlaresTheory = () => {
   }, [loadProgressDetailed]);
 
   const handleMarkComplete = useCallback(async () => {
-    if (theoryCompleted || theoryState === "saving" || !requiredSections.every(id => visited.has(id))) return;
+    if (!isFlareContentReleased || theoryCompleted || theoryState === "saving" || !requiredSections.every(id => visited.has(id))) return;
     setTheoryState("saving");
     try {
       const result = await saveProgressDetailed(TOPIC_IDS.SAFETY_FLARES, true, 100, 10, { revision: "flare-theory-evidence-v1", ownerId, visitedSectionIds: requiredSections });
@@ -61,6 +62,8 @@ const FlaresTheory = () => {
     } catch { setTheoryState("failed"); }
   }, [ownerId, saveProgressDetailed, theoryCompleted, theoryState, visited]);
 
+
+  if (!isFlareContentReleased) return <main className="container mx-auto max-w-2xl p-6"><Card role="status" className="forced-colors:border-[CanvasText]"><CardHeader><CardTitle>Flare lesson release blocked</CardTitle><CardDescription>Qualified-practitioner approval for content version {flareReview.contentVersion} is not evidenced. Revised theory, identification drill and completion controls are unavailable; no progress is loaded, saved, restored or awarded.</CardDescription></CardHeader><CardContent><Button variant="outline" onClick={() => navigate("/safety")}><ArrowLeft className="mr-2 size-4" />Back to Safety</Button></CardContent></Card></main>;
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-background via-ocean-light/10 to-background pb-20">
