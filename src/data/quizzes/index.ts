@@ -29,7 +29,7 @@ const definitions: Record<QuizTopicId, { meta: TopicMeta; importer: QuizImporter
   "safety-mob-quiz": { meta: { title: "Man Overboard Applied Recovery Check", subtitle: "12 scenarios across immediate action, return, recovery, aftercare, and prevention" }, importer: () => import("./safetyMob") },
   "safety-fire-quiz": { meta: { title: "Fire Safety Applied Decision Check", subtitle: "12 vessel and condition scenarios; a pass is not practical firefighting competence" }, importer: () => import("./safetyFire") },
   "safety-life-raft-quiz": { meta: { title: "Life Raft & Abandon Ship Applied Check", subtitle: "12 source-aligned vessel, equipment, deployment, boarding and survival scenarios" }, importer: () => import("./safetyLifeRaft") },
-  "safety-flares-quiz": { meta: { title: "Flares & Pyrotechnics Quiz", subtitle: "Flare types, identification, usage scenarios, and expiry rules" }, importer: () => import("./safetyFlares") },
+  "safety-flares-quiz": { meta: { title: "Flares & Pyrotechnics Applied Check", subtitle: "10 source-aligned recognition, selection, serviceability and safety-limit scenarios" }, importer: () => import("./safetyFlares") },
   safety: { meta: { title: "Comprehensive Safety Quiz", subtitle: "MOB, fire, life raft, flares, personal safety & gas safety" }, importer: () => import("./safety") },
   pilotage: { meta: { title: "Pilotage Quiz", subtitle: "IALA buoyage, transits, clearing bearings, and harbour plans" }, importer: () => import("./pilotage") },
   weather: { meta: { title: "Meteorology Quiz", subtitle: "Weather systems, Beaufort scale, forecasts, fog and visibility" }, importer: () => import("./weather") },

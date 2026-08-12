@@ -92,6 +92,20 @@ describe("Quiz accessible interaction and reflow", () => {
     expect(screen.getByRole("button", { name: "Back to Life Raft lesson" })).toBeTruthy();
   });
 
+  it("withholds corrected flare questions and all progress work pending qualified maritime review", async () => {
+    mocks.user = { id: "flare-gate-user" };
+    renderQuiz("/quiz/safety-flares-quiz");
+    expect(screen.getByTestId("flare-quiz-release-gate")).toBeTruthy();
+    expect(screen.getByText(/reviewed commit and complete source evidence/i)).toBeTruthy();
+    expect(screen.queryByText(questions[0].question)).toBeNull();
+    expect(screen.getByRole("button", { name: "Back to Flares lesson" })).toBeTruthy();
+    await new Promise((resolve) => setTimeout(resolve, 0));
+    expect(mocks.loadQuizTopic).not.toHaveBeenCalled();
+    expect(mocks.loadProgress).not.toHaveBeenCalled();
+    expect(mocks.saveProgress).not.toHaveBeenCalled();
+    expect(mocks.rpc).not.toHaveBeenCalled();
+  });
+
   it("does not start, hydrate, seed or persist an authenticated gated Life Raft attempt", async () => {
     mocks.user = { id: "qualified-gate-user" };
     renderQuiz("/quiz/safety-life-raft-quiz");
