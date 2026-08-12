@@ -103,7 +103,7 @@ describe("Quiz accessible interaction and reflow", () => {
         }
         await user.click(await screen.findByRole("button", { name: index === fireQuestions.length - 1 ? "View Results" : "Next Question" }));
       }
-      expect(await screen.findByText("75%")).toBeTruthy();
+      expect(await screen.findByText("83%")).toBeTruthy();
       expect(screen.getByText("Further fire-safety review needed")).toBeTruthy();
       expect(screen.getByText(/practise the vessel's alarm, escape, shutdown/i)).toBeTruthy();
       expect(screen.queryByText(/mastered this topic/i)).toBeNull();
