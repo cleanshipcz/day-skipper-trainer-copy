@@ -3,6 +3,8 @@ import { render, screen, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { MemoryRouter, Route, Routes, useLocation, useNavigate } from "react-router-dom";
 import { buildQuizSessionProgress } from "@/features/quiz/sessionProgress";
+import { FIRE_QUIZ_RELEASE_REVIEW, FIRE_QUIZ_REVIEW_BASIS } from "@/data/quizzes/safetyFire";
+import { FIRE_CRITICAL_QUESTION_IDS } from "@/features/quiz/fireAssessment";
 
 const mocks = vi.hoisted(() => ({
   loadProgress: vi.fn(),
@@ -71,6 +73,43 @@ describe("Quiz accessible interaction and reflow", () => {
     mocks.rpc.mockReset().mockResolvedValue({ data: null, error: null });
     mocks.toastSuccess.mockReset();
     mocks.user = null;
+  });
+
+  it("withholds the Fire Safety Quiz until competent review evidence is complete", () => {
+    renderQuiz("/quiz/safety-fire-quiz");
+    expect(screen.getByTestId("fire-quiz-release-gate")).toBeTruthy();
+    expect(screen.getByText(/identity, qualification, approval date/i)).toBeTruthy();
+    expect(screen.queryByText(questions[0].question)).toBeNull();
+    expect(screen.getByRole("button", { name: "Back to Fire Safety lesson" })).toBeTruthy();
+  });
+
+  it("shows Fire prerequisites/remediation and fails a passing score with a critical miss", async () => {
+    Object.assign(FIRE_QUIZ_RELEASE_REVIEW, { reviewed: true, reviewerName: "Reviewer", reviewerQualification: "Marine fire specialist", approvalDate: "2026-08-12", sourceEvidence: [...FIRE_QUIZ_REVIEW_BASIS] });
+    const fireQuestions = FIRE_CRITICAL_QUESTION_IDS.map((id) => ({ id, question: id, options: [`unsafe ${id}`, `safe ${id}`], correctAnswer: 1, explanation: `Applicability and limitations. Review ${id}`, learningObjective: `Objective ${id}`, prerequisite: "Review the vessel fire plan", remediationRoute: "/safety/fire" }));
+    mocks.loadQuizTopic.mockResolvedValue(fireQuestions);
+    const user = userEvent.setup();
+    try {
+      renderQuiz("/quiz/safety-fire-quiz");
+      expect(await screen.findByText(/Prerequisite: review the escape-first/i)).toBeTruthy();
+      for (let index = 0; index < fireQuestions.length; index += 1) {
+        const heading = await screen.findByRole("heading", { level: 3 });
+        const id = heading.textContent!;
+        expect(screen.getByText(new RegExp(`Objective ${id}`))).toBeTruthy();
+        const miss = id === "fire-applied-smoke-boundary-v2";
+        await user.click(screen.getByRole("radio", { name: `${miss ? "unsafe" : "safe"} ${id}` }));
+        await user.click(screen.getByRole("button", { name: "Submit Answer" }));
+        if (miss) {
+          expect(screen.getByRole("button", { name: "Review this objective in the Fire Safety lesson" })).toBeTruthy();
+        }
+        await user.click(await screen.findByRole("button", { name: index === fireQuestions.length - 1 ? "View Results" : "Next Question" }));
+      }
+      expect(await screen.findByText("83%")).toBeTruthy();
+      expect(screen.getByText("Further fire-safety review needed")).toBeTruthy();
+      expect(screen.getByText(/practise the vessel's alarm, escape, shutdown/i)).toBeTruthy();
+      expect(screen.queryByText(/mastered this topic/i)).toBeNull();
+    } finally {
+      Object.assign(FIRE_QUIZ_RELEASE_REVIEW, { reviewed: false, reviewerName: null, reviewerQualification: null, approvalDate: null, sourceEvidence: [] });
+    }
   });
 
   it.each([
