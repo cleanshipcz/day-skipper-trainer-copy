@@ -28,6 +28,10 @@ export const useProgress = () => {
       try {
         const supabase = await loadProgressClient();
         if (ownerRef.current !== user.id) return { status: "failed", record: null };
+        if (topicId === "passage-planning-checklist") {
+          const { error: cleanupError } = await supabase.rpc("expire_readiness_record_progress");
+          if (cleanupError) throw cleanupError;
+        }
         const { data, error } = await supabase
           .from("user_progress")
           .select("*")
@@ -108,6 +112,10 @@ export const useProgress = () => {
           && isVictuallingChecklistConflict(error)
         ) return "conflict" as const;
         if (topicId === ENGINE_CHECKLIST_PROGRESS_ID && isEngineChecklistConflict(error)) return "conflict" as const;
+        if (topicId === "passage-planning-builder") {
+          const candidate=error as {code?:string;message?:string};
+          if(candidate?.code==="40001"&&candidate.message?.includes("Passage plan revision conflict"))return "conflict" as const;
+        }
         if (!isRetryableProgressError(error)) {
           toast.error("Failed to save progress");
           return "failed" as const;
@@ -163,5 +171,19 @@ export const useProgress = () => {
     [user]
   );
 
-  return { ownerId: user?.id ?? null, loadProgress, loadProgressDetailed, saveProgress, saveProgressDetailed, resetProgress };
+  const quarantineReadinessRecord = useCallback(async () => {
+    if (!user || ownerRef.current !== user.id) return false;
+    try {
+      const supabase = await loadProgressClient();
+      if (ownerRef.current !== user.id) return false;
+      const { error } = await supabase.rpc("quarantine_readiness_record_progress");
+      if (error) throw error;
+      return ownerRef.current === user.id;
+    } catch (error) {
+      console.error("Error quarantining invalid readiness record:", error);
+      return false;
+    }
+  }, [user]);
+
+  return { ownerId: user?.id ?? null, loadProgress, loadProgressDetailed, saveProgress, saveProgressDetailed, resetProgress, quarantineReadinessRecord };
 };

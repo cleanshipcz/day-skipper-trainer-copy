@@ -36,6 +36,21 @@ const buildSupabaseMock = () => {
 };
 
 describe("saveProgressRecord", () => {
+  it("routes readiness corrections through the revocable evidence RPC",async()=>{
+    const {client,rpc}=buildSupabaseMock();
+    const answersHistory={readinessRecord:{version:2,sessionId:"session-1",catalogueFingerprint:"fnv1a-current",context:{vessel:"Aster",voyage:"Cowes",conditions:"F4"},entries:{},createdAt:"2026-08-11T15:00:00Z",updatedAt:"2026-08-11T16:00:00Z",expiresAt:"2026-09-10T16:00:00Z"}};
+    await saveProgressRecord({supabaseClient:client as never,userId:"user-1",topicId:"passage-planning-checklist",completed:false,answersHistory});
+    expect(rpc).toHaveBeenCalledWith("save_readiness_record_progress_v2",{p_completed:false,p_answers_history:answersHistory});
+    expect(rpc).not.toHaveBeenCalledWith("save_topic_progress",expect.anything());
+  });
+  it("sends v2 completed readiness evidence intact through the specialized RPC",async()=>{
+    const {client,rpc}=buildSupabaseMock();
+    const record={version:2,sessionId:"session-2",catalogueFingerprint:"fnv1a-current",context:{vessel:"Aster",voyage:"Cowes",conditions:"F4"},entries:{"passage-plan":{status:"satisfactory"}},createdAt:"2026-08-11T15:00:00Z",updatedAt:"2026-08-11T16:00:00Z",expiresAt:"2026-09-10T16:00:00Z",completedAt:"2026-08-11T16:00:00Z"};
+    await saveProgressRecord({supabaseClient:client as never,userId:"user-1",topicId:"passage-planning-checklist",completed:true,answersHistory:{readinessRecord:record}});
+    expect(rpc).toHaveBeenCalledWith("save_readiness_record_progress_v2",{p_completed:true,p_answers_history:{readinessRecord:record}});
+  });
+  it("routes owner-bound passage plans through the CAS RPC",async()=>{const{client,rpc}=buildSupabaseMock();const record={ownerId:"user-1",revision:2,updatedAt:"2026-08-11T12:00:00Z",lineage:["2026-08-11T11:00:00Z"],plan:{name:"edited"}};await saveProgressRecord({supabaseClient:client as never,userId:"user-1",topicId:"passage-planning-builder",completed:false,score:0,answersHistory:{expectedServerHead:"2026-08-11T11:00:00Z",passagePlanRecord:record}});expect(rpc).toHaveBeenCalledWith("save_passage_plan_progress",{p_completed:false,p_score:0,p_expected_updated_at:"2026-08-11T11:00:00Z",p_answers_history:{expectedServerHead:"2026-08-11T11:00:00Z",passagePlanRecord:record}});expect(rpc).not.toHaveBeenCalledWith("save_topic_progress",expect.anything())});
+  it("rejects passage plan owner substitution before database access",async()=>{const{client,rpc}=buildSupabaseMock();await expect(saveProgressRecord({supabaseClient:client as never,userId:"user-1",topicId:"passage-planning-builder",answersHistory:{expectedServerHead:null,passagePlanRecord:{ownerId:"user-2",revision:1,updatedAt:"2026-08-11T12:00:00Z",lineage:[],plan:{}}}})).rejects.toThrow("owner-bound");expect(rpc).not.toHaveBeenCalled()});
   it("routes revisioned Lights evidence through its completed-row refresh RPC", async () => {
     const { client, rpc } = buildSupabaseMock();
     const evidence = { catalogueRevision: "colregs-parts-c-d-annex-iv-v1", completionState: "in_progress", visitedSectionIds: ["part-c-recognition"] };

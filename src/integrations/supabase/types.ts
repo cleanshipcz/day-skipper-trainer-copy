@@ -419,10 +419,13 @@ export type Database = {
         Args: { p_source_id: string; p_source_type: string; p_user_id: string }
         Returns: Json
       }
+      expire_all_readiness_record_progress: { Args: never; Returns: number }
+      expire_readiness_record_progress: { Args: never; Returns: boolean }
       increment_user_points: {
         Args: { p_increment: number; p_user_id: string }
         Returns: undefined
       }
+      quarantine_readiness_record_progress: { Args: never; Returns: boolean }
       record_active_question_review_internal: {
         Args: {
           p_quality: number
@@ -514,6 +517,35 @@ export type Database = {
       }
       save_lights_theory_progress: {
         Args: { p_answers_history: Json; p_completed: boolean; p_score: number }
+        Returns: {
+          awarded_points: number
+          completion_awarded: boolean
+          points_awarded: boolean
+        }[]
+      }
+      save_passage_plan_progress: {
+        Args: {
+          p_answers_history: Json
+          p_completed: boolean
+          p_expected_updated_at: string
+          p_score: number
+        }
+        Returns: {
+          awarded_points: number
+          completion_awarded: boolean
+          points_awarded: boolean
+        }[]
+      }
+      save_readiness_record_progress: {
+        Args: { p_answers_history: Json; p_completed: boolean }
+        Returns: {
+          awarded_points: number
+          completion_awarded: boolean
+          points_awarded: boolean
+        }[]
+      }
+      save_readiness_record_progress_v2: {
+        Args: { p_answers_history: Json; p_completed: boolean }
         Returns: {
           awarded_points: number
           completion_awarded: boolean

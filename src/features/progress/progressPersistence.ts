@@ -56,6 +56,27 @@ export const saveProgressRecord = async ({
   const lightsPayload = answersHistory as { catalogueRevision?: unknown; completionState?: unknown; visitedSectionIds?: unknown } | undefined;
   const lightsEvidenceIds = ["part-c-recognition", "part-d-recognition", "distress-recognition"];
   const lightsEvidenceCount = Array.isArray(lightsPayload?.visitedSectionIds) ? new Set(lightsPayload.visitedSectionIds).size : 0;
+  const passagePayload = answersHistory as { expectedServerHead?: unknown; passagePlanRecord?: { ownerId?: unknown; revision?: unknown; updatedAt?: unknown; lineage?: unknown; plan?: unknown } } | undefined;
+  const passageRecord = passagePayload?.passagePlanRecord;
+  const readinessPayload = answersHistory as { readinessRecord?: { version?: unknown; sessionId?: unknown; catalogueFingerprint?: unknown; context?: unknown; entries?: unknown; createdAt?: unknown; updatedAt?: unknown; expiresAt?: unknown } } | undefined;
+  if (topicId === "passage-planning-checklist" && (
+    readinessPayload?.readinessRecord?.version !== 2
+    || typeof readinessPayload.readinessRecord.sessionId !== "string" || !readinessPayload.readinessRecord.sessionId.trim()
+    || typeof readinessPayload.readinessRecord.catalogueFingerprint !== "string" || !readinessPayload.readinessRecord.catalogueFingerprint.trim()
+    || !readinessPayload.readinessRecord.context || typeof readinessPayload.readinessRecord.context !== "object"
+    || !readinessPayload.readinessRecord.entries || typeof readinessPayload.readinessRecord.entries !== "object"
+    || typeof readinessPayload.readinessRecord.createdAt !== "string"
+    || typeof readinessPayload.readinessRecord.updatedAt !== "string"
+    || typeof readinessPayload.readinessRecord.expiresAt !== "string"
+  )) throw new Error("Pre-departure readiness requires a valid evidence record");
+  if (topicId === "passage-planning-builder" && (
+    !passageRecord || passageRecord.ownerId !== userId
+    || !Number.isSafeInteger(passageRecord.revision) || (passageRecord.revision as number) < 0
+    || typeof passageRecord.updatedAt !== "string" || Number.isNaN(Date.parse(passageRecord.updatedAt))
+    || !Array.isArray(passageRecord.lineage) || passageRecord.lineage.some(value => typeof value !== "string")
+    || !(passagePayload?.expectedServerHead===null||typeof passagePayload?.expectedServerHead==="string")
+    || !passageRecord.plan || typeof passageRecord.plan !== "object"
+  )) throw new Error("Passage plan progress requires a valid owner-bound revisioned snapshot");
   if (topicId === "lights-theory" && (
     lightsPayload?.catalogueRevision !== "colregs-parts-c-d-annex-iv-v1"
     || !Array.isArray(lightsPayload.visitedSectionIds)
@@ -91,6 +112,18 @@ export const saveProgressRecord = async ({
         p_completed: completed,
         p_score: score,
         p_answers_history: lightsPayload as Record<string, unknown>,
+      })
+    : topicId === "passage-planning-builder"
+      ? await supabaseClient.rpc("save_passage_plan_progress", {
+        p_completed: completed,
+        p_score: score,
+        p_expected_updated_at: passagePayload?.expectedServerHead as string|null,
+        p_answers_history: answersHistory as Record<string, unknown>,
+      })
+    : topicId === "passage-planning-checklist"
+      ? await supabaseClient.rpc("save_readiness_record_progress_v2", {
+        p_completed: completed,
+        p_answers_history: answersHistory as Record<string, unknown>,
       })
       : await supabaseClient.rpc("save_topic_progress", {
       p_topic_id: topicId,

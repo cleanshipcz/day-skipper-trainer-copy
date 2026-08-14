@@ -167,6 +167,8 @@ describe("useProgress", () => {
     expect(mocks.toastError).not.toHaveBeenCalled();
   });
 
+  it("exposes passage-plan CAS conflicts without offline queueing",async()=>{mocks.saveProgressRecord.mockRejectedValueOnce({code:"40001",message:"Passage plan revision conflict"});const{result}=renderHook(()=>useProgress());expect(await result.current.saveProgressDetailed("passage-planning-builder",false)).toBe("conflict");expect(mocks.queueProgress).not.toHaveBeenCalled()});
+
   it("does not reinterpret another RPC's serialization failure as a checklist conflict", async () => {
     mocks.retryable = true;
     mocks.saveProgressRecord.mockRejectedValueOnce({ code: "40001", message: "serialization failure" });
