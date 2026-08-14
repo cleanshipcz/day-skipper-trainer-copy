@@ -44,6 +44,11 @@ const LifeRaftTheory = ({ releaseReview = LIFE_RAFT_RELEASE_REVIEW }: LifeRaftTh
   const navigate = useNavigate();
   const { saveProgress } = useProgress();
   const [theoryCompleted, setTheoryCompleted] = useState(false);
+  const [activeTab, setActiveTab] = useState("when-to-abandon");
+  const reviewDeploymentTheory = useCallback(() => {
+    setActiveTab("deployment");
+    requestAnimationFrame(() => document.getElementById("life-raft-deployment-heading")?.focus());
+  }, []);
 
   const handleMarkComplete = useCallback(() => {
     saveProgress(TOPIC_IDS.SAFETY_LIFE_RAFT, true, 100, 10);
@@ -78,7 +83,7 @@ const LifeRaftTheory = ({ releaseReview = LIFE_RAFT_RELEASE_REVIEW }: LifeRaftTh
 
       {/* Main Content */}
       <main className="container mx-auto px-4 py-8 max-w-4xl">
-        <Tabs defaultValue="when-to-abandon" className="space-y-6">
+        <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-6">
           <TabsList className="grid w-full grid-cols-2 lg:grid-cols-5 h-auto">
             <TabsTrigger value="when-to-abandon" className="py-2">
               <AlertTriangle className="w-4 h-4 mr-2" />
@@ -202,9 +207,9 @@ const LifeRaftTheory = ({ releaseReview = LIFE_RAFT_RELEASE_REVIEW }: LifeRaftTh
           </TabsContent>
 
           {/* ── DEPLOYMENT, BOARDING & ACTIONS ──────────────────────── */}
-          <TabsContent value="deployment" className="space-y-6">
+          <TabsContent value="deployment" className="space-y-6" id="life-raft-procedures">
             <div className="prose dark:prose-invert max-w-none">
-              <h2 className="text-2xl font-bold">Deployment Procedure</h2>
+              <h2 id="life-raft-deployment-heading" tabIndex={-1} className="text-2xl font-bold">Deployment Procedure</h2>
               <p>
                 Deploying a life raft under pressure requires a clear,
                 practiced procedure. For manual deployment, secure the painter
@@ -265,12 +270,12 @@ const LifeRaftTheory = ({ releaseReview = LIFE_RAFT_RELEASE_REVIEW }: LifeRaftTh
             <div className="prose dark:prose-invert max-w-none">
               <h2 className="text-2xl font-bold">Abandon Ship Procedure Drill</h2>
               <p>
-                Test your knowledge: put the steps in the correct order. In a
-                real emergency, hesitation costs lives.
+                Practise context-specific safety dependencies. Several actions
+                may be concurrent or valid in more than one order.
               </p>
             </div>
 
-            <AbandonShipSortingGame />
+            <AbandonShipSortingGame onReviewTheory={reviewDeploymentTheory} />
 
             <div className="mt-8 p-6 bg-muted/50 rounded-xl text-center border">
               <h3 className="text-lg font-bold mb-2">

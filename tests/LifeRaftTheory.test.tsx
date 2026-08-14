@@ -1,5 +1,5 @@
 import { describe, it, expect, vi, beforeEach } from "vitest";
-import { render, screen } from "@testing-library/react";
+import { render, screen, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import RawLifeRaftTheory from "../src/pages/LifeRaftTheory";
 import { LIFE_RAFT_REVIEW_BASIS } from "../src/data/lifeRaftProcedures";
@@ -7,8 +7,8 @@ import TestRouter from "./TestRouter";
 
 // Mock the sorting game component to isolate theory page tests.
 vi.mock("@/components/safety/AbandonShipSortingGame", () => ({
-  AbandonShipSortingGame: () => (
-    <div data-testid="abandon-ship-sorting-game">Sorting Game Mock</div>
+  AbandonShipSortingGame: ({ onReviewTheory }: { onReviewTheory?: () => void }) => (
+    <div data-testid="abandon-ship-sorting-game">Sorting Game Mock<button onClick={onReviewTheory}>Review the life-raft procedures theory</button></div>
   ),
 }));
 
@@ -138,6 +138,17 @@ describe("LifeRaftTheory Page", () => {
 
     // then
     expect(await screen.findByTestId("abandon-ship-sorting-game")).toBeDefined();
+  });
+
+  it("opens and focuses Deployment theory from drill remediation", async () => {
+    const user = userEvent.setup();
+    render(<TestRouter><LifeRaftTheory /></TestRouter>);
+    await user.click(screen.getByRole("tab", { name: /drill/i }));
+    await user.click(screen.getByRole("button", { name: /review the life-raft procedures theory/i }));
+    const deploymentTab = screen.getByRole("tab", { name: /deployment/i });
+    expect(deploymentTab.getAttribute("aria-selected")).toBe("true");
+    const heading = await screen.findByRole("heading", { name: "Deployment Procedure" });
+    await waitFor(() => expect(document.activeElement).toBe(heading));
   });
 
   // AC-3: Theory should NOT auto-save on mount

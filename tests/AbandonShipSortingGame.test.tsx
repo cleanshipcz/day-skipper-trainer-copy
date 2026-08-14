@@ -1,94 +1,121 @@
-import { describe, it, expect, vi, beforeEach } from "vitest";
-import { render, screen } from "@testing-library/react";
+import { beforeEach, describe, expect, it, vi } from "vitest";
+import { render, screen, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
-import { AbandonShipSortingGame } from "../src/components/safety/AbandonShipSortingGame";
+import {
+  AbandonShipSortingGame,
+} from "../src/components/safety/AbandonShipSortingGame";
+import { ABANDON_SHIP_EVIDENCE_KEY, ABANDON_SHIP_SCENARIOS, findDependencyViolations, hasAllScenarioEvidence, parseDrillEvidence } from "../src/data/abandonShipDrill";
 
-// Mock sonner toast to verify notifications
-vi.mock("sonner", () => ({
-  toast: {
-    success: vi.fn(),
-    error: vi.fn(),
-  },
-}));
+vi.mock("sonner", () => ({ toast: { success: vi.fn(), error: vi.fn() } }));
+
+describe("abandon-ship dependency model", () => {
+  it("accepts alternate permutations when independent actions change order", () => {
+    const scenario = ABANDON_SHIP_SCENARIOS[0];
+    const [alarm, distress, protect, deploy] = scenario.steps;
+    expect(findDependencyViolations([alarm, distress, protect, deploy], scenario.dependencies)).toEqual([]);
+    expect(findDependencyViolations([protect, distress, alarm, deploy], scenario.dependencies)).toEqual([]);
+  });
+
+  it("identifies the exact unsafe dependency and diagnostic reason", () => {
+    const scenario = ABANDON_SHIP_SCENARIOS[1];
+    const violations = findDependencyViolations([...scenario.steps].reverse(), scenario.dependencies);
+    expect(violations).toHaveLength(4);
+    expect(violations[0].reason).toMatch(/wind, sea, list, obstructions/i);
+  });
+
+  it("deduplicates known persisted IDs and rejects malformed completion evidence", () => {
+    const parsed = parseDrillEvidence(JSON.stringify({ version: 2, masteredScenarioIds: ["fast-fire", "fast-fire", "unknown"], completedAt: "2026-08-12T03:00:00.000Z" }));
+    expect(parsed).toEqual({ masteredScenarioIds: ["fast-fire"], completedAt: null });
+    expect(parseDrillEvidence("{broken")).toEqual({ masteredScenarioIds: [], completedAt: null });
+    expect(hasAllScenarioEvidence(["fast-fire", "fast-fire", "sinking-manual", "casualty-boarding"])).toBe(false);
+  });
+
+  it("covers vessel, fire, sinking, weather, crew and equipment context", () => {
+    const contexts = ABANDON_SHIP_SCENARIOS.map((scenario) => `${scenario.title} ${scenario.context}`).join(" ");
+    expect(contexts).toMatch(/vessel/i);
+    expect(contexts).toMatch(/fire/i);
+    expect(contexts).toMatch(/sinking/i);
+    expect(contexts).toMatch(/weather/i);
+    expect(contexts).toMatch(/crew/i);
+    expect(contexts).toMatch(/equipment/i);
+  });
+});
 
 describe("AbandonShipSortingGame", () => {
-  beforeEach(() => {
-    vi.clearAllMocks();
-  });
+  beforeEach(() => { vi.clearAllMocks(); localStorage.clear(); });
 
-  it("should render scenario selection buttons", () => {
-    // when
-    render(<AbandonShipSortingGame />);
-
-    // then - multiple scenario buttons should be visible
-    expect(screen.getByRole("button", { name: /abandon ship/i })).toBeDefined();
-    expect(screen.getByRole("button", { name: /deployment/i })).toBeDefined();
-  });
-
-  it("should render step items for the default scenario", () => {
-    // when
-    render(<AbandonShipSortingGame />);
-
-    // then - steps are visible as numbered items (badges with numbers)
-    const badges = screen.getAllByText(/^\d+$/);
-    expect(badges.length).toBeGreaterThanOrEqual(4);
-  });
-
-  it("should render a 'Check Order' button", () => {
-    // when
-    render(<AbandonShipSortingGame />);
-
-    // then
-    expect(screen.getByRole("button", { name: /check order/i })).toBeDefined();
-  });
-
-  it("should render a 'Reset' button", () => {
-    // when
-    render(<AbandonShipSortingGame />);
-
-    // then
-    expect(screen.getByRole("button", { name: /reset/i })).toBeDefined();
-  });
-
-  it("should render arrow buttons for reordering steps", () => {
-    // when
-    render(<AbandonShipSortingGame />);
-
-    // then - there should be small icon buttons for reordering (2 per step: up + down)
-    const allButtons = screen.getAllByRole("button");
-    // - at minimum we have: 4 scenario buttons + check order + reset + (N steps * 2 arrows)
-    // - with 7 abandon ship steps that's 6 + 14 = 20 buttons minimum
-    expect(allButtons.length).toBeGreaterThan(10);
-  });
-
-  it("should switch scenarios when clicking a different scenario button", async () => {
-    // given
+  it("starts deterministically unsolved and reports each violated dependency", async () => {
     const user = userEvent.setup();
     render(<AbandonShipSortingGame />);
-
-    // when - click the deployment scenario
-    const deploymentButton = screen.getByRole("button", { name: /life raft deployment/i });
-    await user.click(deploymentButton);
-
-    // then - card title updates to show deployment (multiple matches expected: button + title)
-    const matches = screen.getAllByText("Life Raft Deployment");
-    expect(matches.length).toBeGreaterThanOrEqual(2);
+    expect(screen.getByRole("tab", { name: "Fast-moving fire" }).getAttribute("aria-selected")).toBe("true");
+    await user.click(screen.getByRole("button", { name: "Check safety dependencies" }));
+    const alert = screen.getByRole("alert");
+    expect(alert.textContent).toContain("Revise 2 unsafe dependencies");
+    expect(alert.textContent).toMatch(/account for the crew/i);
+    expect(within(alert).getByRole("button", { name: /review.*theory/i })).toBeDefined();
   });
 
-  it("should show toast feedback when checking order", async () => {
-    // given
-    const { toast } = await import("sonner");
+  it("exposes semantic order, labelled controls, touch targets and move announcements", async () => {
     const user = userEvent.setup();
     render(<AbandonShipSortingGame />);
+    const list = screen.getByRole("list", { name: /proposed action order/i });
+    const firstAction = within(list).getAllByRole("listitem")[0];
+    const later = within(firstAction).getByRole("button", { name: /move .* later/i });
+    expect(later.classList.contains("h-11")).toBe(true);
+    expect(later.classList.contains("w-11")).toBe(true);
+    expect(later.classList.contains("touch-manipulation")).toBe(true);
+    await user.click(later);
+    expect(screen.getByText(/moved to position 2 of 4/i)).toBeDefined();
+    expect(document.activeElement).toBe(within(list).getAllByRole("listitem")[1]);
+  });
 
-    // when - click check order (will be wrong since shuffled)
-    const checkButton = screen.getByRole("button", { name: /check order/i });
-    await user.click(checkButton);
+  it("switches scenario state semantically and reset restores an invalid order", async () => {
+    const user = userEvent.setup();
+    render(<AbandonShipSortingGame />);
+    const sinking = screen.getByRole("tab", { name: /flooding vessel/i });
+    await user.click(sinking);
+    expect(sinking.getAttribute("aria-selected")).toBe("true");
+    expect(screen.getByRole("tabpanel").getAttribute("aria-labelledby")).toBe("scenario-sinking-manual");
+    expect(screen.getByText(/designated painter strong point remain safely accessible/i)).toBeDefined();
+    await user.click(screen.getByRole("button", { name: "Reset scenario" }));
+    expect(screen.getByText(/reset to an unsolved order/i)).toBeDefined();
+    await user.click(screen.getByRole("button", { name: "Check safety dependencies" }));
+    expect(screen.getByRole("alert").textContent).toContain("Revise 4 unsafe dependencies");
+  });
 
-    // then - either success or error toast should fire
-    const totalCalls =
-      (toast.success as ReturnType<typeof vi.fn>).mock.calls.length +
-      (toast.error as ReturnType<typeof vi.fn>).mock.calls.length;
-    expect(totalCalls).toBeGreaterThanOrEqual(1);
+  it("restores only versioned, known browser-local context evidence", () => {
+    localStorage.setItem(ABANDON_SHIP_EVIDENCE_KEY, JSON.stringify({ version: 2, masteredScenarioIds: ["fast-fire", "forged-unknown"], completedAt: "forged" }));
+    render(<AbandonShipSortingGame />);
+    expect(screen.getByTestId("drill-progress").textContent).toContain("1 of 4 complete");
+    expect(screen.getByRole("tab", { name: /fast-moving fire — complete/i })).toBeDefined();
+  });
+
+  it("preserves a valid completedAt across remount instead of regenerating it", () => {
+    const completedAt = "2026-08-12T03:00:00.000Z";
+    const masteredScenarioIds = ABANDON_SHIP_SCENARIOS.map((scenario) => scenario.id);
+    localStorage.setItem(ABANDON_SHIP_EVIDENCE_KEY, JSON.stringify({ version: 2, masteredScenarioIds, completedAt }));
+    const view = render(<AbandonShipSortingGame />);
+    view.unmount();
+    render(<AbandonShipSortingGame />);
+    expect(JSON.parse(localStorage.getItem(ABANDON_SHIP_EVIDENCE_KEY)!).completedAt).toBe(completedAt);
+    expect(screen.getByTestId("drill-progress").textContent).toContain("All contexts completed");
+  });
+
+  it("fails soft when browser storage blocks reads", () => {
+    const getItem = vi.spyOn(Storage.prototype, "getItem").mockImplementation(() => { throw new DOMException("Blocked", "SecurityError"); });
+    expect(() => render(<AbandonShipSortingGame />)).not.toThrow();
+    expect(screen.getByTestId("drill-progress").textContent).toContain("0 of 4 complete");
+    getItem.mockRestore();
+  });
+
+  it("uses narrow-screen-safe wrapping and 44px controls for 320/375px and 200% zoom", () => {
+    const { container } = render(<AbandonShipSortingGame />);
+    expect(container.firstElementChild?.classList.contains("min-w-0")).toBe(true);
+    expect(screen.getByRole("tablist").classList.contains("grid-cols-1")).toBe(true);
+    for (const tab of screen.getAllByRole("tab")) {
+      expect(tab.classList.contains("whitespace-normal")).toBe(true);
+      expect(tab.classList.contains("min-h-11")).toBe(true);
+    }
+    expect(container.querySelector(".overflow-x-auto")).toBeNull();
   });
 });
