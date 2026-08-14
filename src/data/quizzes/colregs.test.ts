@@ -55,6 +55,7 @@ describe("combined Rules diagnostic curriculum", () => {
     const scenarios = questions.filter(({ scenario }) => scenario);
     expect(scenarios.map(({ id }) => id)).toEqual(["cr2", "cr3", "cr4", "cr5", "cr7", "cr13", "cr14"]);
     expect(new Set(scenarios.map(({ scenario }) => scenario!.accessibleName)).size).toBe(scenarios.length);
+    expect(new Set(scenarios.map(({ scenario }) => scenario!.description)).size).toBe(scenarios.length);
     for (const { id, scenario } of scenarios) {
       expect(scenario!.accessibleName).toContain(id);
       expect(scenario!.facts.length).toBeGreaterThanOrEqual(3);
@@ -70,5 +71,7 @@ describe("combined Rules diagnostic curriculum", () => {
     expect(text("cr5")).toMatch(/Boat A.*windward.*Boat B.*leeward/i);
     expect(text("cr7")).toMatch(/reciprocal.*masthead lights.*both sidelights/i);
     expect(text("cr13")).toMatch(/white masthead.*red sidelight.*green sidelight/i);
+    expect(text("cr14")).toMatch(/red sidelight.*green sidelight.*white masthead light.*none visible/i);
+    expect(`${text("cr13")} ${text("cr14")}`).not.toMatch(/power-driven vessel|sailing vessel|under sail|propulsion/i);
   });
 });
