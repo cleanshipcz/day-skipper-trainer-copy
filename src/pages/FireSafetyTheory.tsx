@@ -1,5 +1,5 @@
 import { useNavigate } from "react-router-dom";
-import { useState, useCallback } from "react";
+import { useState, useCallback, useMemo, useRef, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import {
   Card,
@@ -24,12 +24,14 @@ import {
   Gamepad2,
   CheckCircle2,
 } from "lucide-react";
-import { FireExtinguisherDrill, type DrillResult } from "@/components/safety/FireExtinguisherDrill";
+import { FireExtinguisherDrill, FIRE_DRILL_PASS_PERCENT, type DrillResult } from "@/components/safety/FireExtinguisherDrill";
 import { useProgress } from "@/hooks/useProgress";
 import { TOPIC_IDS } from "@/constants/topicRegistry";
+import { useTheoryCompletionGate } from "@/features/progress/useTheoryCompletionGate";
 import {
   fireBlankets,
   fireExtinguishers,
+  fireResponseScenarios,
   FIRE_SAFETY_RELEASE_REVIEW,
   isFireSafetyReleaseApproved,
   type FireSafetyReleaseReview,
@@ -41,23 +43,46 @@ interface FireSafetyTheoryProps {
 
 const FireSafetyTheory = ({ releaseReview = FIRE_SAFETY_RELEASE_REVIEW }: FireSafetyTheoryProps) => {
   const navigate = useNavigate();
-  const { saveProgress } = useProgress();
-  const [theoryCompleted, setTheoryCompleted] = useState(false);
+  const { saveProgressDetailed, ownerId } = useProgress();
+  const theorySectionIds = useMemo(() => ["fire-triangle", "fire-types", "extinguishers", "prevention"], []);
+  const theoryGate = useTheoryCompletionGate({ topicId: TOPIC_IDS.SAFETY_FIRE, requiredSectionIds: theorySectionIds, catalogueRevision: "fire-safety-v2", pointsOnComplete: 10, acceptLegacyCompleted: true });
+  const [activeTab, setActiveTab] = useState("fire-triangle");
+  const [drillSaveState, setDrillSaveState] = useState<"idle" | "saving" | "saved" | "queued" | "local" | "failed" | "retry">("idle");
+  const drillSaveRef = useRef<{ generation: number; promise: Promise<void> } | null>(null);
+  const drillOwnerRef = useRef(ownerId);
+  const drillGenerationRef = useRef(0);
   const releaseApproved = isFireSafetyReleaseApproved(releaseReview);
 
-  const handleMarkComplete = useCallback(() => {
-    saveProgress(TOPIC_IDS.SAFETY_FIRE, true, 100, 10);
-    setTheoryCompleted(true);
-  }, [saveProgress]);
+  if (drillOwnerRef.current !== ownerId) {
+    drillOwnerRef.current = ownerId;
+    drillGenerationRef.current += 1;
+    drillSaveRef.current = null;
+  }
+  useEffect(() => { setDrillSaveState("idle"); }, [ownerId]);
+
+  const handleMarkComplete = useCallback(() => void theoryGate.markCompleted(), [theoryGate]);
 
   const handleDrillComplete = useCallback(
-    (result: DrillResult) => {
-      const score = Math.round(
-        (result.correctCount / result.totalAnswered) * 100
-      );
-      saveProgress(TOPIC_IDS.SAFETY_FIRE_DRILL, true, score, 10);
+    (result: DrillResult, retry = false) => {
+      const generation = drillGenerationRef.current;
+      if (drillSaveRef.current?.generation === generation) {
+        if (retry) void drillSaveRef.current.promise.finally(() => { if (drillGenerationRef.current === generation) handleDrillComplete(result, true); });
+        return;
+      }
+      const total = Math.min(fireResponseScenarios.length, result.totalAnswered);
+      const correct = Math.min(total, result.correctCount);
+      const score = total === 0 ? 0 : Math.round((correct / total) * 100);
+      const passed = total === fireResponseScenarios.length && score >= FIRE_DRILL_PASS_PERCENT;
+      setDrillSaveState("saving");
+      const operation = saveProgressDetailed(TOPIC_IDS.SAFETY_FIRE_DRILL, passed, score, passed ? 10 : 0, { catalogueRevision: "fire-drill-v2", correctCount: correct, totalAnswered: total, incorrectScenarioIds: result.incorrectScenarioIds, passed })
+        .then((outcome) => {
+          if (drillGenerationRef.current !== generation) return;
+          setDrillSaveState(outcome === "remote" ? "saved" : outcome === "queued" ? "queued" : outcome === "anonymous" && result.browserPersisted ? "local" : "failed");
+        })
+        .finally(() => { if (drillSaveRef.current?.generation === generation) drillSaveRef.current = null; });
+      drillSaveRef.current = { generation, promise: operation };
     },
-    [saveProgress]
+    [saveProgressDetailed]
   );
 
   if (!releaseApproved) {
@@ -104,7 +129,7 @@ const FireSafetyTheory = ({ releaseReview = FIRE_SAFETY_RELEASE_REVIEW }: FireSa
 
       {/* Main Content */}
       <main className="container mx-auto px-4 py-8 max-w-4xl">
-        <Tabs defaultValue="fire-triangle" className="space-y-6">
+        <Tabs value={activeTab} onValueChange={(value) => { setActiveTab(value); if (theorySectionIds.includes(value)) void theoryGate.markSectionVisited(value); }} className="space-y-6">
           <TabsList className="grid w-full grid-cols-2 lg:grid-cols-5 h-auto">
             <TabsTrigger value="fire-triangle" className="py-2">
               <Flame className="w-4 h-4 mr-2" />
@@ -520,7 +545,10 @@ const FireSafetyTheory = ({ releaseReview = FIRE_SAFETY_RELEASE_REVIEW }: FireSa
               </p>
             </div>
 
-            <FireExtinguisherDrill onComplete={handleDrillComplete} />
+            <FireExtinguisherDrill key={ownerId ?? "anonymous"} storageKey={`fire-drill:${ownerId ?? "anonymous"}:v2`} onComplete={handleDrillComplete} onPersistenceRecovered={(result) => handleDrillComplete(result, true)} />
+            <p role={drillSaveState === "failed" ? "alert" : "status"} aria-live="polite" aria-atomic="true" className="break-words text-sm text-muted-foreground">
+              {drillSaveState === "saving" ? "Saving drill evidence…" : drillSaveState === "saved" ? "Drill evidence saved to your account." : drillSaveState === "queued" ? "Drill evidence is durably queued offline and will sync when you reconnect." : drillSaveState === "local" ? "Drill evidence is saved on this device. Sign in to sync it to an account." : drillSaveState === "failed" ? "Drill evidence could not be saved. Restart the drill and retry when ready." : `Pass requires at least ${FIRE_DRILL_PASS_PERCENT}% after all ${fireResponseScenarios.length} scenarios. A retry records evidence but does not award completion points.`}
+            </p>
 
             <div className="mt-8 p-6 bg-muted/50 rounded-xl text-center border">
               <h3 className="text-lg font-bold mb-2">
@@ -544,19 +572,23 @@ const FireSafetyTheory = ({ releaseReview = FIRE_SAFETY_RELEASE_REVIEW }: FireSa
           <Button
             size="lg"
             className="w-full md:w-auto gap-2"
-            variant={theoryCompleted ? "outline" : "default"}
-            disabled={theoryCompleted}
+            variant={theoryGate.isCompletionDurable ? "outline" : "default"}
+            disabled={!theoryGate.isHydrated || theoryGate.loadState !== "ready" || !theoryGate.canComplete || theoryGate.saveState === "saving" || theoryGate.isCompletionDurable}
             onClick={handleMarkComplete}
           >
-            {theoryCompleted ? (
+            {theoryGate.isCompletionDurable ? (
               <>
                 <CheckCircle2 className="w-5 h-5" />
                 Completed
               </>
             ) : (
-              "Mark as Complete"
+              theoryGate.saveState === "saving" ? "Saving…" : theoryGate.saveState === "failed" ? "Retry completion save" : theoryGate.canComplete ? "Mark as Complete" : `Review all theory sections (${theoryGate.visitedSectionIds.length} of ${theorySectionIds.length})`
             )}
           </Button>
+          <p role={theoryGate.loadState === "failed" || theoryGate.saveState === "failed" ? "alert" : "status"} aria-live="polite" className="max-w-xl text-center text-sm text-muted-foreground">
+            {theoryGate.loadState === "failed" ? "Saved theory evidence could not be loaded. Retry loading before completion." : theoryGate.saveState === "queued" ? "Theory completion is durably queued offline." : theoryGate.saveState === "local" ? "Theory completion is saved on this device; sign in to sync it." : theoryGate.saveState === "saved" ? "Theory completion is saved to your account." : "Open each theory section to record review evidence before completion."}
+          </p>
+          {theoryGate.loadState === "failed" && <Button type="button" variant="outline" onClick={theoryGate.retryLoad}>Retry loading progress</Button>}
           <Button
             size="lg"
             variant="outline"
