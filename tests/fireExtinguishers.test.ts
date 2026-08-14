@@ -1,11 +1,16 @@
 import { describe, it, expect } from "vitest";
 import {
   fireExtinguishers,
+  fireBlankets,
+  firefightingEquipment,
   fireScenarios,
   EXTINGUISHER_IDS,
+  EQUIPMENT_IDS,
   type FireExtinguisher,
   type FireClass,
   FIRE_CLASSES,
+  FIRE_SAFETY_RELEASE_REVIEW,
+  isFireSafetyReleaseApproved,
 } from "../src/data/fireExtinguishers";
 
 describe("fireExtinguishers data", () => {
@@ -16,7 +21,7 @@ describe("fireExtinguishers data", () => {
 
   it("should include all four required extinguisher types", () => {
     // given
-    const requiredTypes = ["Dry Powder", "Foam", "CO2", "Fire Blanket"];
+    const requiredTypes = ["Dry Powder", "Foam", "CO2", "Wet Chemical"];
 
     // when
     const typeNames = fireExtinguishers.map((e) => e.type);
@@ -55,34 +60,86 @@ describe("fireExtinguishers data", () => {
     expect(new Set(ids).size).toBe(ids.length);
   });
 
-  it("should cover all fire classes across all extinguishers", () => {
+  it("should only claim classes actually covered by the listed equipment", () => {
     // given
     const allCoveredClasses = new Set(
       fireExtinguishers.flatMap((e) => e.suitableClasses)
     );
 
-    // then - every fire class should be handled by at least one extinguisher
-    for (const cls of FIRE_CLASSES) {
-      expect(allCoveredClasses.has(cls)).toBe(true);
-    }
+    expect(allCoveredClasses).toEqual(new Set(["A", "B", "C", "F"]));
+    expect(allCoveredClasses.has("D")).toBe(false);
   });
 
   it("should export FIRE_CLASSES with all required classes", () => {
     expect(FIRE_CLASSES).toContain("A");
     expect(FIRE_CLASSES).toContain("B");
     expect(FIRE_CLASSES).toContain("C");
-    expect(FIRE_CLASSES).toContain("Electrical");
+    expect(FIRE_CLASSES).toContain("D");
+    expect(FIRE_CLASSES).toContain("F");
+    expect(FIRE_CLASSES).not.toContain("Electrical");
   });
 
-  // L1: correctExtinguisherId must reference a valid extinguisher ID
-  it("should have valid correctExtinguisherId in every fire scenario", () => {
+  it("should have valid acceptableEquipmentIds and prerequisites in every fire scenario", () => {
     // given
-    const validIds = new Set(fireExtinguishers.map((e) => e.id));
+    const validIds = new Set(firefightingEquipment.map((e) => e.id));
 
     // then - every scenario's correctExtinguisherId matches a real extinguisher
     for (const scenario of fireScenarios) {
-      expect(validIds.has(scenario.correctExtinguisherId)).toBe(true);
+      expect(scenario.acceptableEquipmentIds.length).toBeGreaterThan(0);
+      expect(scenario.prerequisites).toBeTruthy();
+      for (const id of scenario.acceptableEquipmentIds) {
+        expect(validIds.has(id)).toBe(true);
+        expect(scenario.assumedEquipment[id]).toMatch(/marked|BS EN|approved/i);
+      }
     }
+  });
+
+  it("classifies cooking oil as F and keeps blankets separate from extinguisher colour codes", () => {
+    expect(fireScenarios.find((s) => s.id === "galley-oil")?.fireClass).toBe("F");
+    expect(fireExtinguishers.some((e) => e.id === "fire-blanket")).toBe(false);
+    expect(fireBlankets).toHaveLength(1);
+    expect(fireBlankets[0]).not.toHaveProperty("colourCode");
+    expect(fireBlankets[0]).not.toHaveProperty("suitableClasses");
+  });
+
+  it("requires complete competent-review evidence before release", () => {
+    expect(isFireSafetyReleaseApproved(FIRE_SAFETY_RELEASE_REVIEW)).toBe(false);
+    expect(isFireSafetyReleaseApproved({
+      required: true,
+      reviewed: true,
+      reviewerName: "Competent Reviewer",
+      reviewerQualification: "Marine fire-safety qualification",
+      approvalDate: "2026-08-12",
+      sourceEvidence: ["Signed review record FS-337"],
+    })).toBe(true);
+    expect(isFireSafetyReleaseApproved({
+      required: true,
+      reviewed: true,
+      reviewerName: "Competent Reviewer",
+      reviewerQualification: null,
+      approvalDate: "2026-08-12",
+      sourceEvidence: ["Signed review record FS-337"],
+    })).toBe(false);
+  });
+
+  it("shows an exact marked rating or standard and manufacturer constraint for every drill option", () => {
+    for (const option of firefightingEquipment) {
+      expect(option.optionDetail).toMatch(/marked|BS EN|approved/i);
+      expect(option.optionDetail).toMatch(/manufacturer|instructions|no extinguisher colour band/i);
+    }
+  });
+
+  it("does not encode one universal medium where defensible alternatives depend on conditions", () => {
+    expect(fireScenarios.find((s) => s.id === "engine-diesel")?.acceptableEquipmentIds.length).toBeGreaterThan(1);
+    expect(fireScenarios.find((s) => s.id === "bunk-mattress")?.acceptableEquipmentIds).toContain("foam");
+  });
+
+  it("does not conflate portable CO2 with an approved fixed engine-space system", () => {
+    const engineScenario = fireScenarios.find((scenario) => scenario.id === "engine-diesel");
+    expect(engineScenario?.acceptableEquipmentIds).toContain(EQUIPMENT_IDS.FIXED_CO2_SYSTEM);
+    expect(engineScenario?.acceptableEquipmentIds).not.toContain(EXTINGUISHER_IDS.CO2);
+    expect(engineScenario?.assumedEquipment[EQUIPMENT_IDS.FIXED_CO2_SYSTEM]).toMatch(/fixed CO2 system/i);
+    expect(engineScenario?.assumedEquipment[EXTINGUISHER_IDS.CO2]).toBeUndefined();
   });
 
   // L1: EXTINGUISHER_IDS matches actual extinguisher IDs

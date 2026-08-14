@@ -3,6 +3,16 @@ import { render, screen } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import FireSafetyTheory from "../src/pages/FireSafetyTheory";
 import TestRouter from "./TestRouter";
+import type { FireSafetyReleaseReview } from "../src/data/fireExtinguishers";
+
+const approvedReview: FireSafetyReleaseReview = {
+  required: true,
+  reviewed: true,
+  reviewerName: "Test reviewer",
+  reviewerQualification: "Test marine fire qualification",
+  approvalDate: "2026-08-12",
+  sourceEvidence: ["Test approval evidence"],
+};
 
 // Mock the drill component to isolate theory page tests.
 // H1: The mock must accept and expose onComplete prop so we can test the parent wires it.
@@ -34,11 +44,18 @@ describe("FireSafetyTheory Page", () => {
     vi.clearAllMocks();
   });
 
+  it("withholds lesson, drill and completion until competent review is complete", () => {
+    render(<TestRouter><FireSafetyTheory /></TestRouter>);
+    expect(screen.getByTestId("fire-safety-release-gate")).toBeDefined();
+    expect(screen.queryByRole("tab", { name: /drill/i })).toBeNull();
+    expect(screen.queryByRole("button", { name: /mark as complete/i })).toBeNull();
+  });
+
   it("should render the page header with title and navigation back button", () => {
     // when
     render(
       <TestRouter>
-        <FireSafetyTheory />
+        <FireSafetyTheory releaseReview={approvedReview} />
       </TestRouter>
     );
 
@@ -52,7 +69,7 @@ describe("FireSafetyTheory Page", () => {
     // when
     render(
       <TestRouter>
-        <FireSafetyTheory />
+        <FireSafetyTheory releaseReview={approvedReview} />
       </TestRouter>
     );
 
@@ -68,7 +85,7 @@ describe("FireSafetyTheory Page", () => {
     // when
     render(
       <TestRouter>
-        <FireSafetyTheory />
+        <FireSafetyTheory releaseReview={approvedReview} />
       </TestRouter>
     );
 
@@ -84,7 +101,7 @@ describe("FireSafetyTheory Page", () => {
     const user = userEvent.setup();
     render(
       <TestRouter>
-        <FireSafetyTheory />
+        <FireSafetyTheory releaseReview={approvedReview} />
       </TestRouter>
     );
 
@@ -97,7 +114,9 @@ describe("FireSafetyTheory Page", () => {
     expect(await screen.findByText(/Class A — Solids/)).toBeDefined();
     expect(await screen.findByText(/Class B — Flammable Liquids/)).toBeDefined();
     expect(await screen.findByText(/Class C — Flammable Gases/)).toBeDefined();
-    expect(await screen.findByText(/Electrical Fires/)).toBeDefined();
+    expect(await screen.findByText(/Class D — Combustible Metals/)).toBeDefined();
+    expect(await screen.findByText(/Class F — Cooking Oils/)).toBeDefined();
+    expect(await screen.findByText(/Energised Electrical Equipment/)).toBeDefined();
   });
 
   it("should display extinguisher types when clicking the Extinguishers tab", async () => {
@@ -105,7 +124,7 @@ describe("FireSafetyTheory Page", () => {
     const user = userEvent.setup();
     render(
       <TestRouter>
-        <FireSafetyTheory />
+        <FireSafetyTheory releaseReview={approvedReview} />
       </TestRouter>
     );
 
@@ -119,6 +138,7 @@ describe("FireSafetyTheory Page", () => {
     expect(await screen.findByText("Foam")).toBeDefined();
     expect(await screen.findByText("CO2")).toBeDefined();
     expect(await screen.findByText("Fire Blanket")).toBeDefined();
+    expect(await screen.findByText("Fire Blankets")).toBeDefined();
   });
 
   it("should display prevention and engine room fire content", async () => {
@@ -126,7 +146,7 @@ describe("FireSafetyTheory Page", () => {
     const user = userEvent.setup();
     render(
       <TestRouter>
-        <FireSafetyTheory />
+        <FireSafetyTheory releaseReview={approvedReview} />
       </TestRouter>
     );
 
@@ -144,7 +164,7 @@ describe("FireSafetyTheory Page", () => {
     const user = userEvent.setup();
     render(
       <TestRouter>
-        <FireSafetyTheory />
+        <FireSafetyTheory releaseReview={approvedReview} />
       </TestRouter>
     );
 
@@ -161,7 +181,7 @@ describe("FireSafetyTheory Page", () => {
     // when
     render(
       <TestRouter>
-        <FireSafetyTheory />
+        <FireSafetyTheory releaseReview={approvedReview} />
       </TestRouter>
     );
 
@@ -175,7 +195,7 @@ describe("FireSafetyTheory Page", () => {
     const user = userEvent.setup();
     render(
       <TestRouter>
-        <FireSafetyTheory />
+        <FireSafetyTheory releaseReview={approvedReview} />
       </TestRouter>
     );
 
@@ -193,7 +213,7 @@ describe("FireSafetyTheory Page", () => {
     const user = userEvent.setup();
     render(
       <TestRouter>
-        <FireSafetyTheory />
+        <FireSafetyTheory releaseReview={approvedReview} />
       </TestRouter>
     );
 
@@ -218,7 +238,7 @@ describe("FireSafetyTheory Page", () => {
     const user = userEvent.setup();
     render(
       <TestRouter>
-        <FireSafetyTheory />
+        <FireSafetyTheory releaseReview={approvedReview} />
       </TestRouter>
     );
 
@@ -236,7 +256,7 @@ describe("FireSafetyTheory Page", () => {
     // when
     render(
       <TestRouter>
-        <FireSafetyTheory />
+        <FireSafetyTheory releaseReview={approvedReview} />
       </TestRouter>
     );
 

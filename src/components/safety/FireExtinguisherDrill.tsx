@@ -11,8 +11,9 @@ import { Badge } from "@/components/ui/badge";
 import { RefreshCcw, CheckCircle2, XCircle } from "lucide-react";
 import { toast } from "sonner";
 import {
-  fireExtinguishers,
+  firefightingEquipment,
   fireScenarios,
+  type FirefightingEquipmentId,
   type FireScenario,
 } from "@/data/fireExtinguishers";
 
@@ -43,7 +44,7 @@ const shuffle = <T,>(arr: readonly T[]): T[] => {
 interface DrillState {
   readonly scenarios: readonly FireScenario[];
   readonly currentIndex: number;
-  readonly selectedExtinguisherId: string | null;
+  readonly selectedExtinguisherId: FirefightingEquipmentId | null;
   readonly answered: boolean;
   readonly correctCount: number;
   readonly totalAnswered: number;
@@ -73,7 +74,8 @@ export const FireExtinguisherDrill = ({ onComplete }: FireExtinguisherDrillProps
 
   const isCorrect =
     state.answered &&
-    state.selectedExtinguisherId === currentScenario?.correctExtinguisherId;
+    state.selectedExtinguisherId !== null &&
+    currentScenario?.acceptableEquipmentIds.includes(state.selectedExtinguisherId);
 
   // H1: Fire onComplete callback when drill finishes (once only)
   useEffect(() => {
@@ -86,7 +88,7 @@ export const FireExtinguisherDrill = ({ onComplete }: FireExtinguisherDrillProps
     }
   }, [isComplete, onComplete, state.correctCount, state.totalAnswered]);
 
-  const handleSelect = useCallback((extId: string) => {
+  const handleSelect = useCallback((extId: FirefightingEquipmentId) => {
     setState((prev) =>
       prev.answered ? prev : { ...prev, selectedExtinguisherId: extId }
     );
@@ -99,7 +101,7 @@ export const FireExtinguisherDrill = ({ onComplete }: FireExtinguisherDrillProps
       if (!scenario || prev.selectedExtinguisherId === null) return prev;
 
       const correct =
-        prev.selectedExtinguisherId === scenario.correctExtinguisherId;
+        scenario.acceptableEquipmentIds.includes(prev.selectedExtinguisherId);
 
       if (correct) {
         toast.success("Correct!", {
@@ -177,19 +179,23 @@ export const FireExtinguisherDrill = ({ onComplete }: FireExtinguisherDrillProps
           <CardDescription data-testid="fire-scenario">
             {currentScenario.description}
           </CardDescription>
+          <CardDescription>
+            Assessment assumption: use the exact markings and manufacturer
+            constraints shown on each option. A medium name alone is never enough.
+          </CardDescription>
         </CardHeader>
         <CardContent className="space-y-4">
           <p className="text-sm font-medium">
-            Which extinguisher would you use?
+            Which item of firefighting equipment would you use?
           </p>
 
           <div className="grid gap-3 sm:grid-cols-2">
-            {fireExtinguishers.map((ext) => {
+            {firefightingEquipment.map((ext) => {
               const isSelected =
                 state.selectedExtinguisherId === ext.id;
               const showResult = state.answered;
               const isCorrectAnswer =
-                ext.id === currentScenario.correctExtinguisherId;
+                currentScenario.acceptableEquipmentIds.includes(ext.id);
 
               let borderClass = "border-border hover:border-primary/40";
               if (isSelected && !showResult) {
@@ -213,10 +219,13 @@ export const FireExtinguisherDrill = ({ onComplete }: FireExtinguisherDrillProps
                 >
                   <div className="flex items-center justify-between mb-1">
                     <span className="font-bold">{ext.type}</span>
-                    <Badge variant="outline">{ext.colourCode}</Badge>
+                    <Badge variant="outline">{ext.equipmentKind}</Badge>
                   </div>
                   <p className="text-xs text-muted-foreground">
-                    Classes: {ext.suitableClasses.join(", ")}
+                    {ext.optionDetail}
+                    {currentScenario.assumedEquipment[ext.id] && (
+                      <> Scenario approval: {currentScenario.assumedEquipment[ext.id]}</>
+                    )}
                   </p>
                   {showResult && isCorrectAnswer && (
                     <CheckCircle2 className="w-5 h-5 text-green-600 mt-2" />
@@ -243,6 +252,9 @@ export const FireExtinguisherDrill = ({ onComplete }: FireExtinguisherDrillProps
               </p>
               <p className="text-sm text-muted-foreground">
                 {currentScenario.explanation}
+              </p>
+              <p className="text-sm mt-2">
+                <strong>Before discharge:</strong> {currentScenario.prerequisites}
               </p>
             </div>
           )}

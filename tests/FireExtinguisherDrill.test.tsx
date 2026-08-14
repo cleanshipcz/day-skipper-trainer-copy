@@ -32,6 +32,8 @@ describe("FireExtinguisherDrill", () => {
     // then - should show extinguisher options to choose from
     const options = screen.getAllByTestId(/^extinguisher-option-/);
     expect(options.length).toBeGreaterThanOrEqual(3);
+    expect(screen.getByText(/medium name alone is never enough/i)).toBeDefined();
+    expect(options.every((option) => /marked|BS EN|approved/i.test(option.textContent ?? ""))).toBe(true);
   });
 
   it("should display feedback when an extinguisher is selected and submitted", async () => {
@@ -52,6 +54,7 @@ describe("FireExtinguisherDrill", () => {
 
     // then - should show a result (correct or incorrect)
     expect(screen.getByTestId("drill-result")).toBeDefined();
+    expect(screen.getByText(/before discharge:/i)).toBeDefined();
   });
 
   it("should allow advancing to next scenario after answering", async () => {
