@@ -218,7 +218,7 @@ describe("Quiz accessible interaction and reflow", () => {
     expect(mocks.rpc).not.toHaveBeenCalledWith("start_quiz_attempt", expect.anything());
 
     await user.click(screen.getByRole("button", { name: "Retry Quiz" }));
-    await waitFor(() => expect(mocks.rpc).toHaveBeenCalledWith("start_quiz_attempt", { p_topic_id: "weather" }));
+    await waitFor(() => expect(mocks.rpc).toHaveBeenCalledWith("start_quiz_attempt", { p_topic_id: "weather", p_expected_total: 4 }));
   });
 
   it("routes a missed sound objective to its exact theory tab and rule", async () => {

@@ -201,7 +201,7 @@ describe("quiz review seeding identity isolation", () => {
 
     renderQuiz();
 
-    await waitFor(() => expect(mocks.rpc).toHaveBeenCalledWith("start_quiz_attempt", { p_topic_id: "test" }));
+    await waitFor(() => expect(mocks.rpc).toHaveBeenCalledWith("start_quiz_attempt", { p_topic_id: "test", p_expected_total: 1 }));
     expect(localStorage.getItem("quiz-attempt:a:test")).toContain('"attemptId":"issued-attempt"');
     expect(localStorage.getItem("quiz-attempt:a:test")).not.toContain("expired-attempt");
   });
@@ -217,7 +217,7 @@ describe("quiz review seeding identity isolation", () => {
 
     renderQuiz();
 
-    await waitFor(() => expect(mocks.rpc).toHaveBeenCalledWith("start_quiz_attempt", { p_topic_id: "test" }));
+    await waitFor(() => expect(mocks.rpc).toHaveBeenCalledWith("start_quiz_attempt", { p_topic_id: "test", p_expected_total: 1 }));
     expect(localStorage.getItem("quiz-attempt:a:test")).toContain('"attemptId":"issued-attempt"');
     expect(localStorage.getItem("quiz-attempt:a:test")).toContain('"expectedTotal":1');
     expect(localStorage.getItem("quiz-attempt:a:test")).not.toContain("twelve-question-attempt");
@@ -368,7 +368,7 @@ describe("quiz review seeding identity isolation", () => {
     view.rerender(<MemoryRouter initialEntries={["/quiz/test"]}><Routes><Route path="/quiz/:topicId" element={<Quiz />} /></Routes></MemoryRouter>);
     await waitFor(() => expect(sessionStorage.getItem("quiz-anonymous-session-v1:test")).toBeNull());
     expect(sessionStorage.getItem("quiz-anonymous-session-v1:weather")).toBeNull();
-    await waitFor(() => expect(mocks.rpc).toHaveBeenCalledWith("start_quiz_attempt", { p_topic_id: "test" }));
+    await waitFor(() => expect(mocks.rpc).toHaveBeenCalledWith("start_quiz_attempt", { p_topic_id: "test", p_expected_total: 1 }));
     expect(mocks.rpc.mock.calls.some(([name]) => name === "submit_quiz_score")).toBe(false);
     expect(mocks.saveProgress.mock.calls.some((call) => call[1] === true)).toBe(false);
 

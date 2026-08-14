@@ -31,7 +31,7 @@ const EXPECTED_QUESTION_COUNTS: Record<string, number> = {
   "lights-signals": 20,
   "safety-mob-quiz": 12,
   "safety-fire-quiz": 12,
-  "safety-life-raft-quiz": 10,
+  "safety-life-raft-quiz": 12,
   "safety-flares-quiz": 10,
   safety: 24,
   pilotage: 20,
@@ -560,7 +560,7 @@ describe("E1-S6: Comprehensive Safety Quiz", () => {
     // then — existing sub-quizzes still present and unchanged
     expect(await loadQuizTopic("safety-mob-quiz")).toHaveLength(12);
     expect(await loadQuizTopic("safety-fire-quiz")).toHaveLength(12);
-    expect(await loadQuizTopic("safety-life-raft-quiz")).toHaveLength(10);
+    expect(await loadQuizTopic("safety-life-raft-quiz")).toHaveLength(12);
     expect(await loadQuizTopic("safety-flares-quiz")).toHaveLength(10);
   });
 });
