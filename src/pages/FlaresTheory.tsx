@@ -1,5 +1,5 @@
 import { useNavigate } from "react-router-dom";
-import { useState, useCallback } from "react";
+import { useEffect, useState, useCallback } from "react";
 import { Button } from "@/components/ui/button";
 import {
   Card,
@@ -27,32 +27,44 @@ import {
 } from "lucide-react";
 import {
   FlareIdentificationDrill,
-  type DrillResult,
 } from "@/components/safety/FlareIdentificationDrill";
 import { useProgress } from "@/hooks/useProgress";
 import { TOPIC_IDS } from "@/constants/topicRegistry";
-import { flareTypes } from "@/data/flareTypes";
+import { evdsGuidance, flareOperatingSequence, flareReview, flareSources, flareStorageBoundary, flareTypes, isFlareContentReleased, representativeManufacturerInstructions, solasAndMakerBoundary, ukCarriageGuidance } from "@/data/flareTypes";
+import { FlareSchematic } from "@/components/safety/FlareSchematic";
+
+const REQUIRED_FLARE_THEORY_SECTIONS = ["overview", "flare-types", "expiry", "drill"] as const;
 
 const FlaresTheory = () => {
   const navigate = useNavigate();
-  const { saveProgress } = useProgress();
-  const [theoryCompleted, setTheoryCompleted] = useState(false);
+  const { ownerId, loadProgressDetailed, saveProgressDetailed } = useProgress();
+  const [visited, setVisited] = useState(() => new Set(["overview"]));
+  const [theoryState, setTheoryState] = useState<"loading" | "ready" | "saving" | "confirmed" | "queued" | "anonymous" | "failed">("loading");
+  const theoryCompleted = ["confirmed", "queued", "anonymous"].includes(theoryState);
 
-  const handleMarkComplete = useCallback(() => {
-    saveProgress(TOPIC_IDS.SAFETY_FLARES, true, 100, 10);
-    setTheoryCompleted(true);
-  }, [saveProgress]);
+  useEffect(() => {
+    let current = true;
+    if (!isFlareContentReleased) { setTheoryState("ready"); return () => { current = false; }; }
+    void loadProgressDetailed(TOPIC_IDS.SAFETY_FLARES).then(result => {
+      if (!current) return;
+      const evidence = result.record?.answers_history as { revision?: unknown; visitedSectionIds?: unknown } | null;
+      const complete = result.record?.completed === true && evidence?.revision === "flare-theory-evidence-v1" && Array.isArray(evidence.visitedSectionIds) && REQUIRED_FLARE_THEORY_SECTIONS.every(id => evidence.visitedSectionIds!.includes(id));
+      setTheoryState(complete ? "confirmed" : "ready");
+    });
+    return () => { current = false; };
+  }, [loadProgressDetailed]);
 
-  const handleDrillComplete = useCallback(
-    (result: DrillResult) => {
-      if (result.totalAnswered === 0) return;
-      const score = Math.round(
-        (result.correctCount / result.totalAnswered) * 100,
-      );
-      saveProgress(TOPIC_IDS.SAFETY_FLARES_DRILL, true, score, 10);
-    },
-    [saveProgress],
-  );
+  const handleMarkComplete = useCallback(async () => {
+    if (!isFlareContentReleased || theoryCompleted || theoryState === "saving" || !REQUIRED_FLARE_THEORY_SECTIONS.every(id => visited.has(id))) return;
+    setTheoryState("saving");
+    try {
+      const result = await saveProgressDetailed(TOPIC_IDS.SAFETY_FLARES, true, 100, 10, { revision: "flare-theory-evidence-v1", ownerId, visitedSectionIds: REQUIRED_FLARE_THEORY_SECTIONS });
+      setTheoryState(result === "remote" ? "confirmed" : result === "queued" ? "queued" : result === "anonymous" ? "anonymous" : "failed");
+    } catch { setTheoryState("failed"); }
+  }, [ownerId, saveProgressDetailed, theoryCompleted, theoryState, visited]);
+
+
+  if (!isFlareContentReleased) return <main className="container mx-auto max-w-2xl p-6"><Card role="status" className="forced-colors:border-[CanvasText]"><CardHeader><CardTitle>Flare lesson release blocked</CardTitle><CardDescription>Qualified-practitioner approval for content version {flareReview.contentVersion} is not evidenced. Revised theory, identification drill and completion controls are unavailable; no progress is loaded, saved, restored or awarded.</CardDescription></CardHeader><CardContent><Button variant="outline" onClick={() => navigate("/safety")}><ArrowLeft className="mr-2 size-4" />Back to Safety</Button></CardContent></Card></main>;
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-background via-ocean-light/10 to-background pb-20">
@@ -80,7 +92,7 @@ const FlaresTheory = () => {
 
       {/* Main Content */}
       <main className="container mx-auto px-4 py-8 max-w-4xl">
-        <Tabs defaultValue="overview" className="space-y-6">
+        <Tabs defaultValue="overview" className="space-y-6" onValueChange={value => setVisited(previous => new Set(previous).add(value))}>
           <TabsList className="grid w-full grid-cols-2 lg:grid-cols-4 h-auto">
             <TabsTrigger value="overview" className="py-2">
               <Sparkles className="w-4 h-4 mr-2" />
@@ -169,9 +181,7 @@ const FlaresTheory = () => {
             <div className="prose dark:prose-invert max-w-none">
               <h2 className="text-2xl font-bold">Flare Types</h2>
               <p>
-                A Day Skipper must recognise all five flare types, know their
-                range, burn time, and whether they are suitable for day,
-                night, or both.
+                Identify the printed signal type, purpose and operating label—not casing colour alone. Dimensions, mechanisms, performance and service life vary by product.
               </p>
             </div>
 
@@ -199,6 +209,8 @@ const FlaresTheory = () => {
                     <CardDescription>{flare.description}</CardDescription>
                   </CardHeader>
                   <CardContent>
+                    <FlareSchematic id={flare.id} label={flare.visualLabel} />
+                    <p className="my-3 text-sm"><strong>Recognition:</strong> {flare.recognition}</p>
                     <div className="grid md:grid-cols-3 gap-4">
                       <div>
                         <p className="text-sm font-medium mb-1">Range</p>
@@ -223,6 +235,9 @@ const FlaresTheory = () => {
                 </Card>
               ))}
             </div>
+            <Card><CardHeader><CardTitle>Prepare, operate and handle a misfire</CardTitle></CardHeader><CardContent><ol className="list-decimal space-y-2 pl-5 text-sm">{flareOperatingSequence.map((step) => <li key={step}>{step}</li>)}</ol></CardContent></Card>
+            <Card><CardHeader><CardTitle>Electronic visual distress signals (EVDS)</CardTitle></CardHeader><CardContent><p className="text-sm text-muted-foreground">{evdsGuidance}</p></CardContent></Card>
+            <Card><CardHeader><CardTitle>Approval and product instructions</CardTitle></CardHeader><CardContent><p className="text-sm text-muted-foreground">{solasAndMakerBoundary}</p></CardContent></Card>
           </TabsContent>
 
           {/* ── EXPIRY & STORAGE ──────────────────────────────────── */}
@@ -246,10 +261,7 @@ const FlaresTheory = () => {
                 </CardHeader>
                 <CardContent className="text-sm text-muted-foreground space-y-2">
                   <p>
-                    All pyrotechnic flares are stamped with a date of
-                    manufacture. The typical shelf life is <strong>3 years</strong>{" "}
-                    from manufacture. Check the expiry date printed on each
-                    flare before every passage.
+                    Check the expiry or service-life date printed on every unit. Do not infer a universal life from another maker or product.
                   </p>
                 </CardContent>
               </Card>
@@ -260,10 +272,7 @@ const FlaresTheory = () => {
                 </CardHeader>
                 <CardContent className="text-sm text-muted-foreground space-y-2">
                   <p>
-                    Store flares in a cool, dry, readily accessible location —
-                    ideally a dedicated flare locker or waterproof container
-                    near the companionway. Every crew member should know where
-                    they are kept.
+                    {flareStorageBoundary}
                   </p>
                 </CardContent>
               </Card>
@@ -275,9 +284,7 @@ const FlaresTheory = () => {
                 <CardContent className="text-sm text-muted-foreground space-y-2">
                   <p>
                     Never throw expired flares overboard, fire them off
-                    casually, or store them as backups. Return expired flares
-                    to a coastguard station or marine chandlery for safe
-                    professional disposal.
+                    casually, or store them as backups. In the UK, HM Coastguard and RNLI stations do not accept unwanted flares. Arrange acceptance before travel through a registered disposal point, supplier, marina/port, participating council facility or specialist contractor.
                   </p>
                 </CardContent>
               </Card>
@@ -288,11 +295,7 @@ const FlaresTheory = () => {
                 </CardHeader>
                 <CardContent className="text-sm text-muted-foreground space-y-2">
                   <p>
-                    While UK law does not mandate specific flare types for
-                    pleasure craft, the MCA and RYA strongly recommend
-                    carrying a minimum outfit appropriate to your sailing
-                    area. Coastal: hand flares and orange smoke. Offshore:
-                    add parachute rockets.
+                    {ukCarriageGuidance}
                   </p>
                 </CardContent>
               </Card>
@@ -308,12 +311,11 @@ const FlaresTheory = () => {
               <CardContent className="text-sm">
                 <ul className="list-disc list-inside space-y-1">
                   <li>
-                    Always hold handheld flares at arm&apos;s length on the
-                    downwind side to avoid burns from dripping residue.
+                    Follow the handling and wind instructions printed on the exact device; do not transfer a method between products.
                   </li>
                   <li>
                     Never fire a parachute rocket under a helicopter — it
-                    reaches 300 m altitude and could endanger the aircraft.
+                    can reach aircraft operating overhead and could endanger them.
                   </li>
                   <li>
                     Wear gloves if possible — flares burn at extremely high
@@ -326,6 +328,7 @@ const FlaresTheory = () => {
                 </ul>
               </CardContent>
             </Card>
+            <Card><CardHeader><CardTitle>Sources, version and review boundary</CardTitle></CardHeader><CardContent className="space-y-3 text-sm"><p>{flareReview.reviewScope} Content version {flareReview.contentVersion}; reviewed {flareReview.reviewedOn}.</p><p className="font-medium">Manual verification limit: {flareReview.manualVerification}</p><ul className="list-disc space-y-2 pl-5">{[...flareSources, ...representativeManufacturerInstructions].map((source) => <li key={source.id}><a href={source.href} target="_blank" rel="noreferrer" className="text-primary underline underline-offset-4">{source.label}</a><span className="text-muted-foreground"> — {source.version}</span></li>)}</ul></CardContent></Card>
           </TabsContent>
 
           {/* ── DRILL TAB ─────────────────────────────────────────── */}
@@ -341,7 +344,7 @@ const FlaresTheory = () => {
               </p>
             </div>
 
-            <FlareIdentificationDrill onComplete={handleDrillComplete} />
+            <FlareIdentificationDrill />
 
             <div className="mt-8 p-6 bg-muted/50 rounded-xl text-center border">
               <h3 className="text-lg font-bold mb-2">
@@ -367,18 +370,19 @@ const FlaresTheory = () => {
             size="lg"
             className="w-full md:w-auto gap-2"
             variant={theoryCompleted ? "outline" : "default"}
-            disabled={theoryCompleted}
-            onClick={handleMarkComplete}
+            disabled={theoryCompleted || theoryState === "loading" || theoryState === "saving" || !REQUIRED_FLARE_THEORY_SECTIONS.every(id => visited.has(id))}
+            onClick={() => void handleMarkComplete()}
           >
             {theoryCompleted ? (
               <>
                 <CheckCircle2 className="w-5 h-5" />
-                Completed
+                {theoryState === "queued" ? "Completion queued" : theoryState === "anonymous" ? "Completed on this device" : "Completed"}
               </>
             ) : (
-              "Mark as Complete"
+              theoryState === "loading" ? "Loading saved progress…" : theoryState === "saving" ? "Saving completion…" : theoryState === "failed" ? "Retry completion save" : REQUIRED_FLARE_THEORY_SECTIONS.every(id => visited.has(id)) ? "Save theory completion" : "Visit all four sections to complete"
             )}
           </Button>
+          <p role="status" aria-live="polite" className="text-center text-sm text-muted-foreground">{theoryState === "failed" ? "Theory completion was not saved; retry when ready." : theoryState === "queued" ? "Theory completion is durably queued for account sync." : theoryState === "anonymous" ? "Theory completion is stored for this anonymous device; sign in for cross-device restore." : theoryState === "confirmed" ? "Theory completion restored and confirmed for this account." : `${visited.size} of ${REQUIRED_FLARE_THEORY_SECTIONS.length} required sections visited.`}</p>
           <Button
             size="lg"
             variant="outline"
