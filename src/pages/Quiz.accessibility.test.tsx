@@ -5,6 +5,7 @@ import { MemoryRouter, Route, Routes, useLocation, useNavigate } from "react-rou
 import { buildQuizSessionProgress } from "@/features/quiz/sessionProgress";
 import { FIRE_QUIZ_RELEASE_REVIEW, FIRE_QUIZ_REVIEW_BASIS } from "@/data/quizzes/safetyFire";
 import { FIRE_CRITICAL_QUESTION_IDS } from "@/features/quiz/fireAssessment";
+import { LIFE_RAFT_RELEASE_REVIEW } from "@/data/lifeRaftProcedures";
 
 const mocks = vi.hoisted(() => ({
   loadProgress: vi.fn(),
@@ -81,6 +82,26 @@ describe("Quiz accessible interaction and reflow", () => {
     expect(screen.getByText(/identity, qualification, approval date/i)).toBeTruthy();
     expect(screen.queryByText(questions[0].question)).toBeNull();
     expect(screen.getByRole("button", { name: "Back to Fire Safety lesson" })).toBeTruthy();
+  });
+
+  it("withholds the Life Raft Quiz until qualified review evidence is complete", () => {
+    expect(LIFE_RAFT_RELEASE_REVIEW.reviewed).toBe(false);
+    renderQuiz("/quiz/safety-life-raft-quiz");
+    expect(screen.getByTestId("life-raft-quiz-release-gate")).toBeTruthy();
+    expect(screen.queryByText(questions[0].question)).toBeNull();
+    expect(screen.getByRole("button", { name: "Back to Life Raft lesson" })).toBeTruthy();
+  });
+
+  it("does not start, hydrate, seed or persist an authenticated gated Life Raft attempt", async () => {
+    mocks.user = { id: "qualified-gate-user" };
+    renderQuiz("/quiz/safety-life-raft-quiz");
+    expect(screen.getByTestId("life-raft-quiz-release-gate")).toBeTruthy();
+    await new Promise((resolve) => setTimeout(resolve, 0));
+    expect(mocks.loadQuizTopic).not.toHaveBeenCalled();
+    expect(mocks.loadProgress).not.toHaveBeenCalled();
+    expect(mocks.saveProgress).not.toHaveBeenCalled();
+    expect(mocks.resetProgress).not.toHaveBeenCalled();
+    expect(mocks.rpc).not.toHaveBeenCalled();
   });
 
   it("shows Fire prerequisites/remediation and fails a passing score with a critical miss", async () => {

@@ -33,9 +33,14 @@ import {
   deploymentProcedureSteps,
   boardingProcedureSteps,
   actionsInRaftSteps,
+  LIFE_RAFT_RELEASE_REVIEW,
+  LIFE_RAFT_REVIEW_BASIS,
+  isLifeRaftReleaseApproved,
+  type LifeRaftReleaseReview,
 } from "@/data/lifeRaftProcedures";
 
-const LifeRaftTheory = () => {
+interface LifeRaftTheoryProps { readonly releaseReview?: LifeRaftReleaseReview }
+const LifeRaftTheory = ({ releaseReview = LIFE_RAFT_RELEASE_REVIEW }: LifeRaftTheoryProps) => {
   const navigate = useNavigate();
   const { saveProgress } = useProgress();
   const [theoryCompleted, setTheoryCompleted] = useState(false);
@@ -44,6 +49,8 @@ const LifeRaftTheory = () => {
     saveProgress(TOPIC_IDS.SAFETY_LIFE_RAFT, true, 100, 10);
     setTheoryCompleted(true);
   }, [saveProgress]);
+
+  if (!isLifeRaftReleaseApproved(releaseReview)) return <main className="container mx-auto max-w-2xl px-4 py-8"><Card className="border-amber-500" data-testid="life-raft-release-gate"><CardHeader><CardTitle>Life raft guidance awaiting qualified review</CardTitle><CardDescription>The lesson, drill, completion and assessment hand-off remain withheld until a qualified survival-craft reviewer records identity, qualification, approval date and all source evidence.</CardDescription></CardHeader><CardContent className="space-y-4"><ul className="list-disc pl-5 text-sm">{LIFE_RAFT_REVIEW_BASIS.map((source) => <li key={source}>{source}</li>)}</ul><Button onClick={() => navigate("/safety")}>Back to Safety Menu</Button></CardContent></Card></main>;
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-background via-ocean-light/10 to-background pb-20">
@@ -142,9 +149,9 @@ const LifeRaftTheory = () => {
             <div className="prose dark:prose-invert max-w-none">
               <h2 className="text-2xl font-bold">Life Raft Types</h2>
               <p>
-                Life rafts for leisure sailing fall into three main categories.
-                Choosing the right type depends on your sailing area and passage
-                distance.
+                Labels such as “coastal” and “offshore” are not enough to select
+                a raft. Match its approval, capacity, temperature group, pack and
+                service status to the vessel, voyage and applicable rules.
               </p>
             </div>
 
@@ -172,9 +179,9 @@ const LifeRaftTheory = () => {
             <div className="prose dark:prose-invert max-w-none">
               <h2 className="text-2xl font-bold">SOLAS Pack Contents</h2>
               <p>
-                The SOLAS B equipment pack is the standard for offshore yacht
-                life rafts. Know what is inside — you will need to use this
-                equipment to survive.
+                Pack names do not prove what your raft contains. Check its sealed
+                inventory, certificate and owner supplements before departure,
+                and brief where critical equipment is stowed.
               </p>
             </div>
 
@@ -200,8 +207,9 @@ const LifeRaftTheory = () => {
               <h2 className="text-2xl font-bold">Deployment Procedure</h2>
               <p>
                 Deploying a life raft under pressure requires a clear,
-                practiced procedure. The painter must be secured before
-                launching the canister.
+                practiced procedure. For manual deployment, secure the painter
+                to the designated strong point before launching; follow the
+                approved installation instructions for automatic arrangements.
               </p>
             </div>
 
