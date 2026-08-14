@@ -7,14 +7,11 @@ import {
   CardTitle,
   CardDescription,
 } from "@/components/ui/card";
-import { Badge } from "@/components/ui/badge";
 import { RefreshCcw, CheckCircle2, XCircle } from "lucide-react";
 import { toast } from "sonner";
 import {
-  firefightingEquipment,
-  fireScenarios,
-  type FirefightingEquipmentId,
-  type FireScenario,
+  fireResponseScenarios,
+  type FireResponseScenario,
 } from "@/data/fireExtinguishers";
 
 /** Result payload passed to the onComplete callback when the drill finishes. */
@@ -42,18 +39,18 @@ const shuffle = <T,>(arr: readonly T[]): T[] => {
 };
 
 interface DrillState {
-  readonly scenarios: readonly FireScenario[];
+  readonly scenarios: readonly FireResponseScenario[];
   readonly currentIndex: number;
-  readonly selectedExtinguisherId: FirefightingEquipmentId | null;
+  readonly selectedOptionId: string | null;
   readonly answered: boolean;
   readonly correctCount: number;
   readonly totalAnswered: number;
 }
 
-const initialState = (scenarios: readonly FireScenario[]): DrillState => ({
+const initialState = (scenarios: readonly FireResponseScenario[]): DrillState => ({
   scenarios: shuffle(scenarios),
   currentIndex: 0,
-  selectedExtinguisherId: null,
+  selectedOptionId: null,
   answered: false,
   correctCount: 0,
   totalAnswered: 0,
@@ -61,21 +58,20 @@ const initialState = (scenarios: readonly FireScenario[]): DrillState => ({
 
 export const FireExtinguisherDrill = ({ onComplete }: FireExtinguisherDrillProps) => {
   const [state, setState] = useState<DrillState>(() =>
-    initialState(fireScenarios)
+    initialState(fireResponseScenarios)
   );
 
   const completedRef = useRef(false);
 
   const currentScenario = state.scenarios[state.currentIndex] as
-    | FireScenario
+    | FireResponseScenario
     | undefined;
 
   const isComplete = state.currentIndex >= state.scenarios.length;
 
   const isCorrect =
     state.answered &&
-    state.selectedExtinguisherId !== null &&
-    currentScenario?.acceptableEquipmentIds.includes(state.selectedExtinguisherId);
+    state.selectedOptionId === currentScenario?.correctOptionId;
 
   // H1: Fire onComplete callback when drill finishes (once only)
   useEffect(() => {
@@ -88,9 +84,9 @@ export const FireExtinguisherDrill = ({ onComplete }: FireExtinguisherDrillProps
     }
   }, [isComplete, onComplete, state.correctCount, state.totalAnswered]);
 
-  const handleSelect = useCallback((extId: FirefightingEquipmentId) => {
+  const handleSelect = useCallback((optionId: string) => {
     setState((prev) =>
-      prev.answered ? prev : { ...prev, selectedExtinguisherId: extId }
+      prev.answered ? prev : { ...prev, selectedOptionId: optionId }
     );
   }, []);
 
@@ -98,10 +94,10 @@ export const FireExtinguisherDrill = ({ onComplete }: FireExtinguisherDrillProps
   const handleSubmit = useCallback(() => {
     setState((prev) => {
       const scenario = prev.scenarios[prev.currentIndex];
-      if (!scenario || prev.selectedExtinguisherId === null) return prev;
+      if (!scenario || prev.selectedOptionId === null) return prev;
 
       const correct =
-        scenario.acceptableEquipmentIds.includes(prev.selectedExtinguisherId);
+        scenario.correctOptionId === prev.selectedOptionId;
 
       if (correct) {
         toast.success("Correct!", {
@@ -126,14 +122,14 @@ export const FireExtinguisherDrill = ({ onComplete }: FireExtinguisherDrillProps
     setState((prev) => ({
       ...prev,
       currentIndex: prev.currentIndex + 1,
-      selectedExtinguisherId: null,
+      selectedOptionId: null,
       answered: false,
     }));
   }, []);
 
   const handleReset = useCallback(() => {
     completedRef.current = false;
-    setState(initialState(fireScenarios));
+    setState(initialState(fireResponseScenarios));
   }, []);
 
   if (isComplete) {
@@ -175,27 +171,27 @@ export const FireExtinguisherDrill = ({ onComplete }: FireExtinguisherDrillProps
 
       <Card className="border-2 border-primary/20">
         <CardHeader>
-          <CardTitle>Fire Scenario</CardTitle>
+          <CardTitle>Onboard Response Scenario</CardTitle>
           <CardDescription data-testid="fire-scenario">
             {currentScenario.description}
           </CardDescription>
           <CardDescription>
-            Assessment assumption: use the exact markings and manufacturer
-            constraints shown on each option. A medium name alone is never enough.
+            This check assesses decisions and sequence. It does not ask you to
+            match extinguisher media to fire classes.
           </CardDescription>
         </CardHeader>
         <CardContent className="space-y-4">
           <p className="text-sm font-medium">
-            Which item of firefighting equipment would you use?
+            {currentScenario.question}
           </p>
 
           <div className="grid gap-3 sm:grid-cols-2">
-            {firefightingEquipment.map((ext) => {
+            {currentScenario.options.map((option) => {
               const isSelected =
-                state.selectedExtinguisherId === ext.id;
+                state.selectedOptionId === option.id;
               const showResult = state.answered;
               const isCorrectAnswer =
-                currentScenario.acceptableEquipmentIds.includes(ext.id);
+                currentScenario.correctOptionId === option.id;
 
               let borderClass = "border-border hover:border-primary/40";
               if (isSelected && !showResult) {
@@ -210,23 +206,14 @@ export const FireExtinguisherDrill = ({ onComplete }: FireExtinguisherDrillProps
 
               return (
                 <button
-                  key={ext.id}
-                  data-testid={`extinguisher-option-${ext.id}`}
+                  key={option.id}
+                  data-testid={`response-option-${option.id}`}
                   type="button"
                   className={`p-4 rounded-lg border-2 text-left transition-colors ${borderClass}`}
                   disabled={state.answered}
-                  onClick={() => handleSelect(ext.id)}
+                  onClick={() => handleSelect(option.id)}
                 >
-                  <div className="flex items-center justify-between mb-1">
-                    <span className="font-bold">{ext.type}</span>
-                    <Badge variant="outline">{ext.equipmentKind}</Badge>
-                  </div>
-                  <p className="text-xs text-muted-foreground">
-                    {ext.optionDetail}
-                    {currentScenario.assumedEquipment[ext.id] && (
-                      <> Scenario approval: {currentScenario.assumedEquipment[ext.id]}</>
-                    )}
-                  </p>
+                  <span className="text-sm font-medium">{option.label}</span>
                   {showResult && isCorrectAnswer && (
                     <CheckCircle2 className="w-5 h-5 text-green-600 mt-2" />
                   )}
@@ -253,9 +240,6 @@ export const FireExtinguisherDrill = ({ onComplete }: FireExtinguisherDrillProps
               <p className="text-sm text-muted-foreground">
                 {currentScenario.explanation}
               </p>
-              <p className="text-sm mt-2">
-                <strong>Before discharge:</strong> {currentScenario.prerequisites}
-              </p>
             </div>
           )}
 
@@ -264,7 +248,7 @@ export const FireExtinguisherDrill = ({ onComplete }: FireExtinguisherDrillProps
               <Button
                 onClick={handleSubmit}
                 className="flex-1"
-                disabled={state.selectedExtinguisherId === null}
+                disabled={state.selectedOptionId === null}
               >
                 Check Answer
               </Button>

@@ -95,7 +95,7 @@ const FireSafetyTheory = ({ releaseReview = FIRE_SAFETY_RELEASE_REVIEW }: FireSa
             <div>
               <h1 className="text-xl font-bold">Fire Safety</h1>
               <p className="text-sm text-muted-foreground">
-                Prevention, Types & Extinguishers
+                Escape-first response, prevention & equipment
               </p>
             </div>
           </div>
@@ -391,9 +391,33 @@ const FireSafetyTheory = ({ releaseReview = FIRE_SAFETY_RELEASE_REVIEW }: FireSa
             <div className="prose dark:prose-invert max-w-none">
               <h2 className="text-2xl font-bold">Fire Prevention at Sea</h2>
               <p>
-                Prevention is always better than firefighting, especially on a
-                boat where escape routes are limited and help may be hours away.
+                Prevention and a rehearsed response protect people before anyone
+                considers fighting a fire. The vessel's plans, installed systems
+                and manufacturer instructions are authoritative.
               </p>
+            </div>
+
+            <Card className="border-destructive/40" data-testid="escape-first-procedure">
+              <CardHeader>
+                <CardTitle>Alarm → Muster and escape → Call → Isolate → Fight only if safe</CardTitle>
+                <CardDescription>Start every response with people, escape and early communication.</CardDescription>
+              </CardHeader>
+              <CardContent>
+                <ol className="list-decimal list-inside space-y-2 text-sm">
+                  <li><strong>Raise the alarm:</strong> shout “Fire”, operate the alarm and alert everyone immediately.</li>
+                  <li><strong>Muster and escape:</strong> account for every person, move them away from smoke and flame, put on lifejackets when appropriate and keep a viable exit. Never delay an immediate evacuation.</li>
+                  <li><strong>Communicate early:</strong> offshore send a Mayday with position, people and fire details before capacity is lost. Alongside or inland, evacuate ashore where safe, call the local fire and rescue service/marina and warn nearby craft.</li>
+                  <li><strong>Contain and isolate only if safe:</strong> from a safe location use labelled remote stops for engines, fuel, gas, batteries/shore power and ventilation as the vessel plan directs. Close—not enter—boundaries where that preserves containment and escape.</li>
+                  <li><strong>Fight only a small, contained fire:</strong> use installed or portable equipment approved for that application, keep the exit behind you and stop immediately if smoke, heat, spread or equipment limitations threaten the route.</li>
+                </ol>
+                <p className="text-sm font-medium mt-4">No unprotected smoke entry. Do not pass through smoke, work alone, or let firefighting block the only escape route.</p>
+              </CardContent>
+            </Card>
+
+            <div className="grid gap-4 md:grid-cols-3">
+              <Card><CardHeader><CardTitle className="text-lg">Offshore</CardTitle></CardHeader><CardContent className="text-sm text-muted-foreground">Muster in the safest available position, make an early Mayday, ready survival equipment without delaying escape, and manoeuvre only if the vessel plan and conditions allow.</CardContent></Card>
+              <Card><CardHeader><CardTitle className="text-lg">Alongside or inland</CardTitle></CardHeader><CardContent className="text-sm text-muted-foreground">Use a clear route ashore, call shore emergency services and the marina/navigation authority, warn adjacent craft and do not cast off a burning vessel unless directed by the authorities.</CardContent></Card>
+              <Card><CardHeader><CardTitle className="text-lg">Immediate evacuation</CardTitle></CardHeader><CardContent className="text-sm text-muted-foreground">If fire or smoke threatens the last exit, evacuate now. Do not delay for shutdowns, firefighting equipment, a grab bag or property; transmit location and distress information as able.</CardContent></Card>
             </div>
 
             <div className="grid gap-4 md:grid-cols-2">
@@ -402,11 +426,7 @@ const FireSafetyTheory = ({ releaseReview = FIRE_SAFETY_RELEASE_REVIEW }: FireSa
                   <CardTitle className="text-lg">Galley Safety</CardTitle>
                 </CardHeader>
                 <CardContent className="text-sm text-muted-foreground space-y-2">
-                  <p>
-                    Never leave cooking unattended. Keep a fire blanket within
-                    arm's reach of the stove. Use fiddle rails to prevent pans
-                    sliding off in a seaway.
-                  </p>
+                  <p>Never leave cooking or portable heaters unattended. Secure pans, keep combustibles clear, and ensure approved equipment is visible, accessible and positioned so it can be reached without passing the hazard.</p>
                 </CardContent>
               </Card>
 
@@ -415,24 +435,16 @@ const FireSafetyTheory = ({ releaseReview = FIRE_SAFETY_RELEASE_REVIEW }: FireSa
                   <CardTitle className="text-lg">Gas System</CardTitle>
                 </CardHeader>
                 <CardContent className="text-sm text-muted-foreground space-y-2">
-                  <p>
-                    Turn off gas at the bottle after each use. Check hoses and
-                    connections regularly for leaks (use soapy water). Ensure the
-                    gas locker drains overboard, not into the bilge.
-                  </p>
+                  <p>Turn gas off at the bottle after use. Inspect hoses, connections and locker drains to the service schedule; use qualified servicing and approved replacement parts.</p>
                 </CardContent>
               </Card>
 
               <Card>
                 <CardHeader>
-                  <CardTitle className="text-lg">Electrical Systems</CardTitle>
+                  <CardTitle className="text-lg">Batteries, charging and shore power</CardTitle>
                 </CardHeader>
                 <CardContent className="text-sm text-muted-foreground space-y-2">
-                  <p>
-                    Check wiring for chafe, especially where it passes through
-                    bulkheads. Use correct fuse ratings. Isolate battery banks
-                    when leaving the boat unattended.
-                  </p>
+                  <p>Inspect wiring, fuses, chargers, batteries, terminals and shore leads for damage, heat or corrosion. Ventilate as designed, use compatible approved chargers, avoid unattended charging and know safe remote isolation points.</p>
                 </CardContent>
               </Card>
 
@@ -450,6 +462,14 @@ const FireSafetyTheory = ({ releaseReview = FIRE_SAFETY_RELEASE_REVIEW }: FireSa
               </Card>
             </div>
 
+            <Card>
+              <CardHeader><CardTitle className="text-lg">Detection, readiness and drills</CardTitle></CardHeader>
+              <CardContent className="text-sm text-muted-foreground space-y-2">
+                <p>Test smoke/heat/CO detection and alarms as specified. Inspect and service extinguishers, fixed systems, fire blankets, shutdowns and emergency communications at the approved intervals; check seals, gauges, dates, access and certification.</p>
+                <p>Keep exits and deck routes lit, unlocked and clear. Brief everyone on alarms, muster, two routes where available, distress calls, shutdown controls and survival equipment. Practise realistic drills without live discharge, smoke entry or sacrificing an escape route.</p>
+              </CardContent>
+            </Card>
+
             {/* Engine Room Fire Procedure */}
             <Card className="bg-destructive/5 border-destructive/20">
               <CardHeader>
@@ -458,40 +478,32 @@ const FireSafetyTheory = ({ releaseReview = FIRE_SAFETY_RELEASE_REVIEW }: FireSa
                   Engine Room Fire Procedure
                 </CardTitle>
                 <CardDescription>
-                  Engine room fires are the most common serious fire on yachts.
-                  Follow this procedure immediately.
+                  For a closed space with a system approved and sized for that space. Follow its instructions and the vessel plan.
                 </CardDescription>
               </CardHeader>
               <CardContent className="space-y-3">
                 <ol className="list-decimal list-inside space-y-2 text-sm">
                   <li>
-                    <strong>STOP the engine</strong> — remove the ignition
-                    source and reduce air flow.
+                    <strong>ALARM, MUSTER, ESCAPE AND CALL EARLY.</strong> Account for everyone and confirm nobody is in the protected space.
                   </li>
                   <li>
-                    <strong>CLOSE all hatches and ventilators</strong> to the
-                    engine space — starve the fire of oxygen.
+                    <strong>KEEP THE SPACE CLOSED.</strong> Do not open a hatch to inspect or discharge; preserve the enclosure and the crew's escape route.
                   </li>
                   <li>
-                    <strong>SHUT OFF the fuel supply</strong> at the fuel cock
-                    on the tank.
+                    <strong>OPERATE REMOTE SHUTDOWNS</strong> for engine/generator, fuel and ventilation, plus other controls required by the vessel and system manufacturer—only from a safe location.
                   </li>
                   <li>
-                    <strong>DISCHARGE extinguisher</strong> through the engine
-                    hatch port (a small opening) — do NOT open the main hatch
-                    fully or you will feed the fire with air.
+                    <strong>DISCHARGE THE APPROVED FIXED SYSTEM</strong> only after its evacuation and shutdown prerequisites are complete. Use a fire port only where the vessel plan and the particular approved portable unit explicitly provide for it.
                   </li>
                   <li>
-                    <strong>SEND a Mayday</strong> if the fire is not brought
-                    under control quickly.
+                    <strong>MAINTAIN CLOSURE AND MONITOR</strong> boundaries, smoke and temperature from a safe position. Expect re-ignition because hot fuel and machinery retain heat.
                   </li>
                   <li>
-                    <strong>PREPARE to abandon ship</strong> — ready the life
-                    raft and grab bag, but only as a last resort.
+                    <strong>DO NOT REOPEN.</strong> Reopening admits oxygen and may expose crew to flame, toxic products or extinguishing agent. Await the system's stated hold time and competent emergency-service advice; keep distress communications updated and remain ready to evacuate.
                   </li>
                 </ol>
                 <p className="text-xs text-muted-foreground mt-3">
-                  Use CO2 or dry powder — never water — on an engine room fire.
+                  The equipment ratings and limitations taught in the Extinguishers tab still apply; a medium name alone does not authorise use in an engine space.
                 </p>
               </CardContent>
             </Card>
@@ -500,10 +512,11 @@ const FireSafetyTheory = ({ releaseReview = FIRE_SAFETY_RELEASE_REVIEW }: FireSa
           {/* ── DRILL TAB ──────────────────────────────────────────── */}
           <TabsContent value="drill" className="space-y-6">
             <div className="prose dark:prose-invert max-w-none">
-              <h2 className="text-2xl font-bold">Extinguisher Matching Drill</h2>
+              <h2 className="text-2xl font-bold">Escape-first Response Drill</h2>
               <p>
-                Test your knowledge: given a fire scenario, choose the correct
-                extinguisher. In a real emergency, hesitation costs lives.
+                Practise the order of alarm, evacuation, distress communication,
+                safe isolation and limited firefighting. Equipment matching is
+                deliberately not assessed here.
               </p>
             </div>
 

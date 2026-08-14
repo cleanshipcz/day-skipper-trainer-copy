@@ -4,6 +4,7 @@ import {
   fireBlankets,
   firefightingEquipment,
   fireScenarios,
+  fireResponseScenarios,
   EXTINGUISHER_IDS,
   EQUIPMENT_IDS,
   type FireExtinguisher,
@@ -140,6 +141,16 @@ describe("fireExtinguishers data", () => {
     expect(engineScenario?.acceptableEquipmentIds).not.toContain(EXTINGUISHER_IDS.CO2);
     expect(engineScenario?.assumedEquipment[EQUIPMENT_IDS.FIXED_CO2_SYSTEM]).toMatch(/fixed CO2 system/i);
     expect(engineScenario?.assumedEquipment[EXTINGUISHER_IDS.CO2]).toBeUndefined();
+  });
+
+  it("accounts for everyone before engine-space shutdown or discharge actions", () => {
+    const scenario = fireResponseScenarios.find((item) => item.id === "engine-space-closed");
+    const safeOption = scenario?.options.find((option) => option.id === scenario.correctOptionId);
+    const label = safeOption?.label ?? "";
+
+    expect(label.indexOf("confirm everyone is out")).toBeGreaterThanOrEqual(0);
+    expect(label.indexOf("confirm everyone is out")).toBeLessThan(label.indexOf("stop engine/generator"));
+    expect(label.indexOf("confirm everyone is out")).toBeLessThan(label.indexOf("discharge the approved fixed system"));
   });
 
   // L1: EXTINGUISHER_IDS matches actual extinguisher IDs
