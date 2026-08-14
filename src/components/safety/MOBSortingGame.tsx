@@ -1,171 +1,60 @@
-import { useState, useEffect } from "react";
-import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
-import { ArrowUp, ArrowDown, RefreshCcw, CheckCircle2, XCircle } from "lucide-react";
-import { toast } from "sonner";
+import { useEffect, useRef, useState } from "react";
+import { Link } from "react-router-dom";
+import { ArrowDown, ArrowUp, CheckCircle2, RefreshCcw, XCircle } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
-
-interface Step {
-  id: string;
-  text: string;
-}
-
-const SCENARIOS = {
-  immediate: {
-    title: "Immediate Actions",
-    description: "Order the very first actions to take when someone falls overboard.",
-    steps: [
-      { id: "shout", text: "SHOUT 'Man Overboard' to alert crew" },
-      { id: "throw", text: "THROW lifebuoy/danbuoy to mark position" },
-      { id: "point", text: "POINT continuously at the casualty" },
-      { id: "digital", text: "PRESS MOB button on GPS" },
-      { id: "mayday", text: "SEND Mayday / DSC Distress" },
-    ],
-  },
-  williamson: {
-    title: "The Williamson Turn",
-    description: "Order the steps for a return maneuver under power in open water.",
-    steps: [
-      { id: "note", text: "Note the compass heading" },
-      { id: "turn60", text: "Turn 60° to port or starboard" },
-      { id: "hardover", text: "Turn hard over the OPPOSITE way" },
-      { id: "reciprocal", text: "Steady on the reciprocal course (original + 180°)" },
-      { id: "search", text: "Proceed down track line to search" },
-    ],
-  },
-};
+import { Button } from "@/components/ui/button";
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { MOB_RECOVERY_CONSTRAINTS } from "@/data/mobGuidance";
+import { isValidMobDrillOrder, MOB_DRILL_SCENARIOS, type MobDrillScenarioKey, type MobDrillStep, saveMobDrillEvidence, shuffleMobDrillSteps } from "./mobDrillModel";
 
 export const MOBSortingGame = () => {
-  const [scenarioKey, setScenarioKey] = useState<keyof typeof SCENARIOS>("immediate");
-  const [currentSteps, setCurrentSteps] = useState<Step[]>([]);
-  const [isCorrect, setIsCorrect] = useState<boolean | null>(null);
+  const [scenarioKey, setScenarioKey] = useState<MobDrillScenarioKey>("immediate");
+  const [steps, setSteps] = useState<MobDrillStep[]>(() => shuffleMobDrillSteps("immediate"));
+  const [result, setResult] = useState<boolean | null>(null);
+  const [announcement, setAnnouncement] = useState("Immediate response scenario loaded in a shuffled order.");
+  const buttonRefs = useRef<Record<string, HTMLButtonElement | null>>({});
 
-  // Shuffle steps on load or scenario change
-  useEffect(() => {
-    shuffleScenario(scenarioKey);
-  }, [scenarioKey]);
+  const reset = (key = scenarioKey) => { setSteps(shuffleMobDrillSteps(key)); setResult(null); setAnnouncement(`${MOB_DRILL_SCENARIOS[key].title} reset in a shuffled order.`); };
+  useEffect(() => { reset(scenarioKey); }, [scenarioKey]); // eslint-disable-line react-hooks/exhaustive-deps
 
-  const shuffleScenario = (key: keyof typeof SCENARIOS) => {
-    const original = [...SCENARIOS[key].steps];
-    // Fisher-Yates shuffle
-    for (let i = original.length - 1; i > 0; i--) {
-      const j = Math.floor(Math.random() * (i + 1));
-      [original[i], original[j]] = [original[j], original[i]];
-    }
-    setCurrentSteps(original);
-    setIsCorrect(null);
+  const move = (index: number, delta: -1 | 1) => {
+    const destination = index + delta;
+    if (destination < 0 || destination >= steps.length) return;
+    const movedId = steps[index].id;
+    setSteps((current) => { const next = [...current]; [next[index], next[destination]] = [next[destination], next[index]]; return next; });
+    setResult(null);
+    setAnnouncement(`${steps[index].text} moved to position ${destination + 1} of ${steps.length}.`);
+    const preferredDirection = delta === -1 ? (destination > 0 ? "up" : "down") : (destination < steps.length - 1 ? "down" : "up");
+    requestAnimationFrame(() => buttonRefs.current[`${movedId}:${preferredDirection}`]?.focus());
   };
 
-  const moveItem = (index: number, direction: -1 | 1) => {
-    const newSteps = [...currentSteps];
-    const newIndex = index + direction;
-
-    if (newIndex < 0 || newIndex >= newSteps.length) return;
-
-    [newSteps[index], newSteps[newIndex]] = [newSteps[newIndex], newSteps[index]];
-    setCurrentSteps(newSteps);
-    setIsCorrect(null); // Reset validation on move
-  };
-
-  const checkOrder = () => {
-    const correctOrder = SCENARIOS[scenarioKey].steps;
-    const isNowCorrect = currentSteps.every((step, index) => step.id === correctOrder[index].id);
-
-    setIsCorrect(isNowCorrect);
-
-    if (isNowCorrect) {
-      toast.success("Correct Order!", { description: "Well done, you know the procedure." });
+  const check = () => {
+    const valid = isValidMobDrillOrder(scenarioKey, steps); setResult(valid);
+    if (valid) {
+      const saved = saveMobDrillEvidence(scenarioKey);
+      setAnnouncement(`Practice sequence accepted. ${saved ? "Completion evidence saved on this device." : "Evidence could not be saved on this device."} This does not demonstrate operational mastery.`);
     } else {
-      toast.error("Incorrect Order", { description: "Review the sequence and try again." });
+      const firstBoundary = steps.findIndex((step, index) => index > 0 && steps[index - 1].phase > step.phase);
+      const misplaced = steps[firstBoundary];
+      setAnnouncement(`Sequence needs review: “${misplaced.text}” belongs before the preceding later-stage action. Keep concurrent roles together, then try again.`);
     }
   };
 
-  return (
-    <div className="space-y-6">
-      <div className="flex flex-wrap gap-2 justify-center">
-        <Button
-          variant={scenarioKey === "immediate" ? "default" : "outline"}
-          onClick={() => setScenarioKey("immediate")}
-        >
-          Immediate Actions
-        </Button>
-        <Button
-          variant={scenarioKey === "williamson" ? "default" : "outline"}
-          onClick={() => setScenarioKey("williamson")}
-        >
-          Williamson Turn
-        </Button>
-      </div>
-
-      <Card className="border-2 border-primary/20">
-        <CardHeader>
-          <div className="flex justify-between items-start">
-            <div>
-              <CardTitle>{SCENARIOS[scenarioKey].title}</CardTitle>
-              <CardDescription>{SCENARIOS[scenarioKey].description}</CardDescription>
-            </div>
-            {isCorrect === true && (
-              <Badge className="bg-green-500 hover:bg-green-600 gap-1">
-                <CheckCircle2 className="w-3 h-3" />
-                Solved
-              </Badge>
-            )}
-          </div>
-        </CardHeader>
-        <CardContent className="space-y-4">
-          <div className="space-y-2">
-            {currentSteps.map((step, index) => (
-              <div
-                key={step.id}
-                className={`p-3 rounded-lg border flex items-center justify-between transition-colors ${
-                  isCorrect === true
-                    ? "bg-green-50/50 border-green-200 dark:bg-green-900/10"
-                    : isCorrect === false
-                    ? "bg-red-50/10 border-red-200"
-                    : "bg-card hover:bg-accent/5"
-                }`}
-              >
-                <div className="flex items-center gap-3">
-                  <Badge variant="outline" className="w-8 h-8 rounded-full flex items-center justify-center p-0">
-                    {index + 1}
-                  </Badge>
-                  <span className="font-medium">{step.text}</span>
-                </div>
-                <div className="flex gap-1">
-                  <Button
-                    variant="ghost"
-                    size="sm"
-                    className="h-8 w-8 p-0"
-                    disabled={index === 0 || isCorrect === true}
-                    onClick={() => moveItem(index, -1)}
-                  >
-                    <ArrowUp className="w-4 h-4" />
-                  </Button>
-                  <Button
-                    variant="ghost"
-                    size="sm"
-                    className="h-8 w-8 p-0"
-                    disabled={index === currentSteps.length - 1 || isCorrect === true}
-                    onClick={() => moveItem(index, 1)}
-                  >
-                    <ArrowDown className="w-4 h-4" />
-                  </Button>
-                </div>
-              </div>
-            ))}
-          </div>
-
-          <div className="flex gap-3 pt-4">
-            <Button onClick={checkOrder} className="flex-1" disabled={isCorrect === true}>
-              Check Order
-            </Button>
-            <Button variant="outline" onClick={() => shuffleScenario(scenarioKey)}>
-              <RefreshCcw className="w-4 h-4 mr-2" />
-              Reset
-            </Button>
-          </div>
-        </CardContent>
-      </Card>
-    </div>
-  );
+  return <section className="min-w-0 space-y-4" aria-labelledby="mob-drill-heading">
+    <div><h2 id="mob-drill-heading" className="text-xl font-bold">MOB decision and crew-role drill</h2><p className="text-sm text-muted-foreground">A source-aligned practice check, not proof of competence. Rehearse the actual vessel plan with qualified supervision.</p></div>
+    <fieldset><legend className="mb-2 font-medium">Choose a scenario</legend><div className="flex flex-col gap-2 sm:flex-row">
+      {(Object.keys(MOB_DRILL_SCENARIOS) as MobDrillScenarioKey[]).map((key) => <label key={key} className="flex min-h-11 cursor-pointer items-center gap-2 rounded-md border px-3 py-2"><input type="radio" name="mob-scenario" value={key} checked={scenarioKey === key} onChange={() => setScenarioKey(key)} /><span>{MOB_DRILL_SCENARIOS[key].title}</span></label>)}
+    </div></fieldset>
+    <Card className="min-w-0 border-2 border-primary/20"><CardHeader><div className="flex flex-wrap items-start justify-between gap-2"><div className="min-w-0"><CardTitle>{MOB_DRILL_SCENARIOS[scenarioKey].title}</CardTitle><CardDescription>{MOB_DRILL_SCENARIOS[scenarioKey].description}</CardDescription></div>{result && <Badge className="gap-1 bg-green-600"><CheckCircle2 aria-hidden="true" className="h-3 w-3"/>Practised</Badge>}</div></CardHeader>
+      <CardContent className="space-y-4"><ol className="space-y-2" aria-label="Reorder the scenario actions">
+        {steps.map((step, index) => <li key={step.id}><div className={`flex min-w-0 flex-col gap-2 rounded-lg border p-3 ${result === true ? "border-green-300 bg-green-50/50 dark:bg-green-950/20" : result === false ? "border-red-300" : "bg-card"}`}>
+          <div className="flex min-w-0 items-start gap-3"><Badge variant="outline" className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full p-0">{index + 1}</Badge><div className="min-w-0"><p className="break-words font-medium">{step.text}</p><p className="text-xs text-muted-foreground">Role: {step.role}</p></div></div>
+          <div className="flex shrink-0 gap-2 self-end sm:self-auto"><Button ref={(node) => { buttonRefs.current[`${step.id}:up`] = node; }} type="button" variant="outline" size="icon" className="h-11 w-11 touch-manipulation" disabled={index === 0 || result === true} onClick={() => move(index, -1)} aria-label={`Move ${step.text} up`}><ArrowUp aria-hidden="true"/></Button><Button ref={(node) => { buttonRefs.current[`${step.id}:down`] = node; }} type="button" variant="outline" size="icon" className="h-11 w-11 touch-manipulation" disabled={index === steps.length - 1 || result === true} onClick={() => move(index, 1)} aria-label={`Move ${step.text} down`}><ArrowDown aria-hidden="true"/></Button></div>
+        </div></li>)}
+      </ol><div className="flex flex-col gap-2 sm:flex-row"><Button className="min-h-11 flex-1" onClick={check} disabled={result === true}>Check decision boundaries</Button><Button className="min-h-11" variant="outline" onClick={() => reset()}><RefreshCcw aria-hidden="true" className="mr-2 h-4 w-4"/>Reset and shuffle</Button></div>
+      <div className={`rounded-md border p-3 text-sm ${result === false ? "border-red-300" : ""}`} role="status" aria-live="polite" aria-atomic="true">{result === true ? <CheckCircle2 aria-hidden="true" className="mr-2 inline h-4 w-4"/> : result === false ? <XCircle aria-hidden="true" className="mr-2 inline h-4 w-4"/> : null}{announcement}</div>
+      {result === false && <p className="text-sm"><Link className="font-medium text-primary underline" to="/safety/mob#mob-handoff">Review the source-aligned theory outcomes and constraints</Link>, then return to the drill.</p>}
+      <details className="text-sm"><summary className="cursor-pointer font-medium">Safety boundaries used by this drill</summary><ul className="mt-2 list-disc space-y-1 pl-5">{MOB_RECOVERY_CONSTRAINTS.map((constraint) => <li key={constraint}>{constraint}</li>)}</ul></details>
+      </CardContent></Card>
+  </section>;
 };
