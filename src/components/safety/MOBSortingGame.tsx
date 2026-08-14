@@ -7,7 +7,11 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { MOB_RECOVERY_CONSTRAINTS } from "@/data/mobGuidance";
 import { isValidMobDrillOrder, MOB_DRILL_SCENARIOS, type MobDrillScenarioKey, type MobDrillStep, saveMobDrillEvidence, shuffleMobDrillSteps } from "./mobDrillModel";
 
-export const MOBSortingGame = () => {
+interface MOBSortingGameProps {
+  readonly onScenarioComplete?: (scenario: MobDrillScenarioKey) => void;
+}
+
+export const MOBSortingGame = ({ onScenarioComplete }: MOBSortingGameProps) => {
   const [scenarioKey, setScenarioKey] = useState<MobDrillScenarioKey>("immediate");
   const [steps, setSteps] = useState<MobDrillStep[]>(() => shuffleMobDrillSteps("immediate"));
   const [result, setResult] = useState<boolean | null>(null);
@@ -32,6 +36,7 @@ export const MOBSortingGame = () => {
     const valid = isValidMobDrillOrder(scenarioKey, steps); setResult(valid);
     if (valid) {
       const saved = saveMobDrillEvidence(scenarioKey);
+      onScenarioComplete?.(scenarioKey);
       setAnnouncement(`Practice sequence accepted. ${saved ? "Completion evidence saved on this device." : "Evidence could not be saved on this device."} This does not demonstrate operational mastery.`);
     } else {
       const firstBoundary = steps.findIndex((step, index) => index > 0 && steps[index - 1].phase > step.phase);
