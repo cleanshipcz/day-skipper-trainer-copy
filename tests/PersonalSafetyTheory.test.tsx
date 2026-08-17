@@ -47,12 +47,12 @@ describe("PersonalSafetyTheory Page", () => {
 
     // then - tabs for all required content areas
     expect(screen.getByRole("tab", { name: /overview/i })).toBeDefined();
-    expect(screen.getByRole("tab", { name: /life jackets/i })).toBeDefined();
+    expect(screen.getByRole("tab", { name: /buoyancy aids & lifejackets/i })).toBeDefined();
     expect(screen.getByRole("tab", { name: /equipment/i })).toBeDefined();
     expect(screen.getByRole("tab", { name: /servicing/i })).toBeDefined();
   });
 
-  it("should display overview content about life jackets in the default tab", () => {
+  it("should display overview content about buoyancy aids and lifejackets in the default tab", () => {
     // when
     render(
       <TestRouter>
@@ -61,15 +61,12 @@ describe("PersonalSafetyTheory Page", () => {
     );
 
     // then - overview tab content about personal safety
-    // - multiple elements mention "life jacket" across tabs, so use getAllByText
-    expect(screen.getAllByText(/life jacket/i).length).toBeGreaterThanOrEqual(1);
-    // - buoyancy ratings mentioned in overview text
-    expect(screen.getAllByText(/100N/).length).toBeGreaterThanOrEqual(1);
-    expect(screen.getAllByText(/150N/).length).toBeGreaterThanOrEqual(1);
-    expect(screen.getAllByText(/275N/).length).toBeGreaterThanOrEqual(1);
+    expect(screen.getAllByText(/buoyancy aid/i).length).toBeGreaterThanOrEqual(1);
+    expect(screen.getAllByText(/lifejacket/i).length).toBeGreaterThanOrEqual(1);
+    expect(screen.getByText(/Level 50 buoyancy aids from Level 100, 150, and 275 lifejackets/i)).toBeDefined();
   });
 
-  it("should display all three life jacket types when clicking the Life Jackets tab (AC-1)", async () => {
+  it("should display the buoyancy aid and all three lifejacket levels in the inclusive tab (AC-1)", async () => {
     // given
     const user = userEvent.setup();
     render(
@@ -79,13 +76,14 @@ describe("PersonalSafetyTheory Page", () => {
     );
 
     // when
-    const lifeJacketsTab = screen.getByRole("tab", { name: /life jackets/i });
+    const lifeJacketsTab = screen.getByRole("tab", { name: /buoyancy aids & lifejackets/i });
     await user.click(lifeJacketsTab);
 
-    // then - all three buoyancy ratings
-    expect(await screen.findByText("100 Newton Buoyancy Aid")).toBeDefined();
-    expect(await screen.findByText("150 Newton Life Jacket")).toBeDefined();
-    expect(await screen.findByText("275 Newton Life Jacket")).toBeDefined();
+    // then - Level 50 remains distinct from the three lifejacket levels
+    expect(await screen.findByText("Level 50 Buoyancy Aid")).toBeDefined();
+    expect(await screen.findByText("Level 100 Lifejacket")).toBeDefined();
+    expect(await screen.findByText("Level 150 Lifejacket")).toBeDefined();
+    expect(await screen.findByText("Level 275 Lifejacket")).toBeDefined();
   });
 
   it("should cover auto-inflate vs manual inflation (AC-1)", async () => {
@@ -98,7 +96,7 @@ describe("PersonalSafetyTheory Page", () => {
     );
 
     // when
-    const lifeJacketsTab = screen.getByRole("tab", { name: /life jackets/i });
+    const lifeJacketsTab = screen.getByRole("tab", { name: /buoyancy aids & lifejackets/i });
     await user.click(lifeJacketsTab);
 
     // then - inflation method content
@@ -116,7 +114,7 @@ describe("PersonalSafetyTheory Page", () => {
     );
 
     // when
-    const lifeJacketsTab = screen.getByRole("tab", { name: /life jackets/i });
+    const lifeJacketsTab = screen.getByRole("tab", { name: /buoyancy aids & lifejackets/i });
     await user.click(lifeJacketsTab);
 
     // then - crotch strap content

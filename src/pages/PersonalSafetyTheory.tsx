@@ -58,7 +58,7 @@ const PersonalSafetyTheory = () => {
             <div>
               <h1 className="text-xl font-bold">Personal Safety Equipment</h1>
               <p className="text-sm text-muted-foreground">
-                Life Jackets, Harnesses & Personal Gear
+                Buoyancy Aids, Lifejackets, Harnesses & Personal Gear
               </p>
             </div>
           </div>
@@ -75,7 +75,7 @@ const PersonalSafetyTheory = () => {
             </TabsTrigger>
             <TabsTrigger value="life-jackets" className="py-2">
               <LifeBuoy className="w-4 h-4 mr-2" />
-              Life Jackets
+              Buoyancy aids & lifejackets
             </TabsTrigger>
             <TabsTrigger value="equipment" className="py-2">
               <Link className="w-4 h-4 mr-2" />
@@ -108,16 +108,16 @@ const PersonalSafetyTheory = () => {
                 <CardHeader>
                   <CardTitle className="flex items-center gap-2">
                     <LifeBuoy className="w-5 h-5 text-blue-500" />
-                    Life Jackets
+                    Buoyancy aids & lifejackets
                   </CardTitle>
                 </CardHeader>
                 <CardContent>
                   <p className="text-sm text-muted-foreground">
-                    Life jackets are rated by buoyancy in Newtons: 100N
-                    (buoyancy aid), 150N (standard offshore), and 275N
-                    (heavy weather / commercial). The higher the rating,
-                    the more likely the jacket will turn an unconscious
-                    wearer face-up — even when wearing heavy clothing.
+                    ISO 12402 distinguishes Level 50 buoyancy aids from
+                    Level 100, 150, and 275 lifejackets. Choose for the
+                    conditions, clothing, equipment, and the manufacturer's
+                    stated fit and performance — a higher level alone does
+                    not guarantee that every wearer will turn face-up.
                   </p>
                 </CardContent>
               </Card>
@@ -144,9 +144,9 @@ const PersonalSafetyTheory = () => {
             <Card className="bg-muted/50">
               <CardContent className="pt-6">
                 <p className="text-sm font-medium">
-                  <strong>Key principle:</strong> Wear the right life jacket
-                  for the conditions, ensure it is properly fitted with a
-                  crotch strap fastened, clip on with a harness and tether
+                  <strong>Key principle:</strong> Wear the right buoyancy aid or lifejacket
+                  for the conditions, ensure it is properly fitted, fasten the
+                  crotch strap where one is provided, and clip on with a harness and tether
                   before conditions deteriorate, and always attach the kill
                   cord when at the helm.
                 </p>
@@ -154,15 +154,15 @@ const PersonalSafetyTheory = () => {
             </Card>
           </TabsContent>
 
-          {/* ── LIFE JACKETS ─────────────────────────────────────── */}
+          {/* ── BUOYANCY AIDS & LIFEJACKETS ──────────────────────── */}
           <TabsContent value="life-jackets" className="space-y-6">
             <div className="prose dark:prose-invert max-w-none">
-              <h2 className="text-2xl font-bold">Life Jacket Types</h2>
+              <h2 className="text-2xl font-bold">Buoyancy aids & lifejackets</h2>
               <p>
-                Life jackets are classified by their buoyancy rating in
-                Newtons. A Day Skipper must know which rating is appropriate
-                for different sailing conditions and understand the
-                difference between auto-inflate and manual inflation.
+                ISO 12402 personal flotation devices are classified by level.
+                A Day Skipper must know whether a buoyancy aid or lifejacket
+                is appropriate for the conditions and understand the difference
+                between auto-inflate and manual inflation.
               </p>
             </div>
 
@@ -174,7 +174,7 @@ const PersonalSafetyTheory = () => {
                     <div className="flex items-center justify-between">
                       <CardTitle>{lj.name}</CardTitle>
                       <Badge
-                        variant={lj.turnsUnconsciousWearer ? "default" : "outline"}
+                        variant={lj.buoyancyRating === "50N" ? "outline" : "default"}
                         className="gap-1"
                       >
                         {lj.buoyancyRating}
@@ -192,12 +192,10 @@ const PersonalSafetyTheory = () => {
                       </div>
                       <div>
                         <p className="text-sm font-medium mb-1">
-                          Turns Unconscious Wearer
+                          Self-righting performance
                         </p>
                         <p className="text-xs text-muted-foreground">
-                          {lj.turnsUnconsciousWearer
-                            ? "Yes — will turn a casualty face-up"
-                            : "No — buoyancy aid only, does not turn wearer"}
+                          {lj.selfRightingPerformance}
                         </p>
                       </div>
                     </div>
