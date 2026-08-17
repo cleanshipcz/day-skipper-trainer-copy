@@ -33,6 +33,7 @@
     "src/features/progress/victuallingProgress.ts",
     "src/features/quiz/buildQuizSession.ts",
     "src/features/quiz/fireAssessment.ts",
+    "src/features/quiz/flareAssessment.ts",
     "src/features/quiz/mobAssessment.ts",
     "src/features/quiz/progressKeys.ts",
     "src/features/quiz/randomization.ts",

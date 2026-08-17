@@ -60,6 +60,12 @@ export const representativeManufacturerInstructions = [
   { id: "pw-white-hand-mk8", flareIds: ["white-hand-flare"], label: "Pains Wessex White Handflare Mk8 instructions", href: "https://painswessex.com/our-products/white-handflare-mk8/", version: "Product 9527510, Mk8 page/datasheet and SDS v3.1.1.1 (24 September 2021); checked 10 August 2026" },
 ] as const satisfies readonly { id: string; flareIds: readonly FlareId[]; label: string; href: string; version: string }[];
 
+/** Complete evidence contract shared by theory, drill, quiz and runtime release. */
+export const FLARE_QUALIFIED_REVIEW_SOURCE_IDS = [
+  ...flareSources.map(({ id }) => id),
+  ...representativeManufacturerInstructions.map(({ id }) => id),
+] as const;
+
 export const flareReview = { contentVersion: "2026-08-10", reviewedOn: "2026-08-10", reviewScope: "Claims checked against the listed regulatory/guidance sources; illustrations are original repository-owned schematics.", manualVerification: "No qualified practitioner review is evidenced. A competent instructor should verify handling demonstrations against the actual products carried and current vessel requirements before practical use." } as const;
 export interface FlareQualifiedReviewEvidence {
   reviewerName: string | null;
@@ -72,7 +78,7 @@ export interface FlareQualifiedReviewEvidence {
 }
 export const flareQualifiedReview: FlareQualifiedReviewEvidence = { reviewerName: null, qualification: null, reviewedOn: null, reviewedCommit: null, approvedContentVersion: null, status: "pending", sourceIds: [] };
 export const isFlareQualifiedReviewComplete = (review: FlareQualifiedReviewEvidence, contentVersion: string) => {
-  const expectedSources = new Set(flareSources.map(source => source.id));
+  const expectedSources = new Set<string>(FLARE_QUALIFIED_REVIEW_SOURCE_IDS);
   const suppliedSources = new Set(review.sourceIds);
   const dateOnly = review.reviewedOn?.match(/^\d{4}-\d{2}-\d{2}$/)?.[0] ?? null;
   const reviewStartUtc = dateOnly ? Date.parse(`${dateOnly}T00:00:00.000Z`) : Number.NaN;
