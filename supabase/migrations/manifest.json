@@ -34,5 +34,6 @@
   "20260811223000_retire_legacy_mob_reviews.sql": "3ed06dd07d5d1a2b38a082bd8e500ca4b59e14ebe69e27a55c5579f271d86a88",
   "20260812090000_align_fire_quiz_attempts.sql": "fedca00c92374f1b759881bd1ea9ff59785aff72c93060c0593e0944fe085038",
   "20260812100000_align_life_raft_quiz_attempts.sql": "fb4858db3f4891a471f58d85ed57aa9a056e9359d2179dbcf4636b646d4e24d8",
-  "20260812110000_version_life_raft_quiz_attempts.sql": "418c83cbcb887ce86f04eb9a848ad762077f8f813bdbd7a305106ac4eec868f5"
+  "20260812110000_version_life_raft_quiz_attempts.sql": "418c83cbcb887ce86f04eb9a848ad762077f8f813bdbd7a305106ac4eec868f5",
+  "20260812152000_version_personal_safety_mastery.sql": "6d0b930537f03d9d672bea7fa72a9e34301025d11f3b9759dd11d1aa188725e4"
 }

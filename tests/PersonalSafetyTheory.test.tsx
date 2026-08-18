@@ -25,7 +25,8 @@ vi.mock("@/features/offline/progressQueue", () => ({
 }));
 
 vi.mock("@/components/safety/PersonalSafetyCheck", () => ({
-  PersonalSafetyCheck: ({ onMastery }: { onMastery: () => void }) => <button onClick={onMastery}>Complete practical safety check</button>,
+  isCurrentPersonalSafetyMastery: (value: unknown) => Boolean(value && typeof value === "object" && (value as { revision?: string }).revision === "personal-safety-practical-v2"),
+  PersonalSafetyCheck: ({ onMastery }: { onMastery: (value: object) => void }) => <button onClick={() => onMastery({ revision: "personal-safety-practical-v2", masteredScenarioIds: ["pfd", "fit", "tether", "kill-cord", "beacon"] })}>Complete practical safety check</button>,
 }));
 
 describe("PersonalSafetyTheory Page", () => {
@@ -254,7 +255,7 @@ describe("PersonalSafetyTheory Page", () => {
     await user.click(completeButton);
 
     // then - saveProgress called with topic ID, completed=true, score=100, points=10
-    expect(mockSaveProgressDetailed).toHaveBeenCalledWith("safety-personal", true, 100, 10);
+    expect(mockSaveProgressDetailed).toHaveBeenCalledWith("safety-personal", true, 100, 10, expect.objectContaining({ personalSafetyMastery: expect.objectContaining({ revision: "personal-safety-practical-v2" }) }));
   });
 
   it("should disable the completion button after clicking it (AC-2)", async () => {
