@@ -1,5 +1,5 @@
 import { useNavigate } from "react-router-dom";
-import { useState, useCallback } from "react";
+import { useState, useCallback, useEffect, useRef } from "react";
 import { Button } from "@/components/ui/button";
 import {
   Card,
@@ -25,6 +25,8 @@ import {
 } from "lucide-react";
 import { useProgress } from "@/hooks/useProgress";
 import { TOPIC_IDS } from "@/constants/topicRegistry";
+import { getQueuedProgress } from "@/features/offline/progressQueue";
+import { isCurrentPersonalSafetyMastery } from "@/components/safety/personalSafetyMastery";
 import {
   lifeJacketTypes,
   inflationMethods,
@@ -34,15 +36,111 @@ import {
   safetyEquipmentTopics,
 } from "@/data/personalSafetyEquipment";
 
+const bestEffortRemoveQueuedMarker = (key: string | null) => {
+  if (!key) return;
+  try { localStorage.removeItem(key); } catch { /* IndexedDB and the remote row are authoritative. */ }
+};
+
+const bestEffortWriteQueuedMarker = (key: string | null) => {
+  if (!key) return;
+  try { localStorage.setItem(key, "true"); } catch { /* The durable queue entry remains authoritative. */ }
+};
+
 const PersonalSafetyTheory = () => {
   const navigate = useNavigate();
-  const { saveProgress } = useProgress();
+  const { ownerId, loadProgressDetailed, saveProgressDetailed } = useProgress();
   const [theoryCompleted, setTheoryCompleted] = useState(false);
+  const [queuedOffline, setQueuedOffline] = useState(false);
+  const [loadState, setLoadState] = useState<"loading" | "ready" | "anonymous" | "failed">("loading");
+  const [saveState, setSaveState] = useState<"idle" | "saving" | "failed">("idle");
+  const [loadAttempt, setLoadAttempt] = useState(0);
+  const activeSaveRef = useRef<symbol | null>(null);
+  const ownerRef = useRef(ownerId);
+  ownerRef.current = ownerId;
+  const queuedMarkerKey = ownerId ? `personal-safety-completion-queued:${ownerId}` : null;
 
-  const handleMarkComplete = useCallback(() => {
-    saveProgress(TOPIC_IDS.SAFETY_PERSONAL, true, 100, 10);
-    setTheoryCompleted(true);
-  }, [saveProgress]);
+  useEffect(() => {
+    let active = true;
+    setLoadState("loading");
+    setSaveState("idle");
+    setTheoryCompleted(false);
+    setQueuedOffline(false);
+    activeSaveRef.current = null;
+    const hydrate = async () => {
+      let result: Awaited<ReturnType<typeof loadProgressDetailed>>;
+      try {
+        result = await loadProgressDetailed(TOPIC_IDS.SAFETY_PERSONAL);
+      } catch {
+        result = { status: "failed", record: null };
+      }
+      if (!active) return;
+      if (result.status === "anonymous") {
+        setLoadState("anonymous");
+        return;
+      }
+      let locallyQueued = false;
+      if (ownerId) {
+        try {
+          const queue = await getQueuedProgress(ownerId);
+          if (!active) return;
+          locallyQueued = queue.some((entry) =>
+            entry.userId === ownerId
+            && entry.topicId === TOPIC_IDS.SAFETY_PERSONAL
+            && entry.completed
+            && entry.status === "pending"
+            && isCurrentPersonalSafetyMastery(entry.answersHistory?.personalSafetyMastery));
+          if (!locallyQueued) bestEffortRemoveQueuedMarker(queuedMarkerKey);
+        } catch {
+          if (result.status !== "remote" || !result.record.completed) {
+            setLoadState("failed");
+            return;
+          }
+        }
+      }
+      if (!active) return;
+      if (result.status === "failed") {
+        if (locallyQueued) {
+          setTheoryCompleted(true);
+          setQueuedOffline(true);
+          setLoadState("ready");
+        } else setLoadState("failed");
+        return;
+      }
+      const remotelyCompleted = result.status === "remote" && Boolean(result.record.completed);
+      setTheoryCompleted(remotelyCompleted || locallyQueued);
+      setQueuedOffline(!remotelyCompleted && locallyQueued);
+      if (remotelyCompleted) bestEffortRemoveQueuedMarker(queuedMarkerKey);
+      setLoadState("ready");
+    };
+    void hydrate();
+    return () => { active = false; };
+  }, [loadAttempt, loadProgressDetailed, ownerId, queuedMarkerKey]);
+
+  const handleMarkComplete = useCallback(async () => {
+    if (loadState !== "ready" || theoryCompleted || activeSaveRef.current) return;
+    const saveToken = Symbol("personal-safety-save");
+    const saveOwner = ownerId;
+    activeSaveRef.current = saveToken;
+    setSaveState("saving");
+    let result: Awaited<ReturnType<typeof saveProgressDetailed>> = "failed";
+    try {
+      result = await saveProgressDetailed(TOPIC_IDS.SAFETY_PERSONAL, true, 100, 10);
+    } catch {
+      result = "failed";
+    } finally {
+      if (activeSaveRef.current === saveToken) activeSaveRef.current = null;
+    }
+    if (ownerRef.current !== saveOwner || activeSaveRef.current !== null) return;
+    if (result === "remote" || result === "queued") {
+      setTheoryCompleted(true);
+      setQueuedOffline(result === "queued");
+      setSaveState("idle");
+      if (queuedMarkerKey) {
+        if (result === "queued") bestEffortWriteQueuedMarker(queuedMarkerKey);
+        else bestEffortRemoveQueuedMarker(queuedMarkerKey);
+      }
+    } else setSaveState("failed");
+  }, [loadState, ownerId, queuedMarkerKey, saveProgressDetailed, theoryCompleted]);
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-background via-ocean-light/10 to-background pb-20">
@@ -414,21 +512,23 @@ const PersonalSafetyTheory = () => {
 
         {/* Completion button + back navigation */}
         <div className="flex flex-col items-center gap-4 pt-12 pb-8">
+          {loadState === "anonymous" && <div role="status" className="space-y-3 rounded-md border p-4 text-center"><p>Sign in to save completion and earn progress for this lesson.</p><Button type="button" variant="outline" onClick={() => navigate("/auth")}>Sign in</Button></div>}
+          {loadState === "failed" && <div role="alert" className="space-y-3 rounded-md border border-destructive p-4 text-center"><p>Saved progress could not be loaded. Completion is unavailable until loading succeeds.</p><Button type="button" variant="outline" onClick={() => setLoadAttempt((attempt) => attempt + 1)}>Retry loading progress</Button></div>}
+          {saveState === "failed" && <p role="alert" className="rounded-md border border-destructive p-4 text-center">Completion was not saved. Check your connection and retry.</p>}
+          {queuedOffline && <p role="status" className="rounded-md border p-4 text-center">Completion is queued offline for this account and will sync when you reconnect.</p>}
           <Button
             size="lg"
             className="w-full md:w-auto gap-2"
             variant={theoryCompleted ? "outline" : "default"}
-            disabled={theoryCompleted}
-            onClick={handleMarkComplete}
+            disabled={loadState !== "ready" || theoryCompleted || saveState === "saving"}
+            onClick={() => void handleMarkComplete()}
           >
             {theoryCompleted ? (
               <>
                 <CheckCircle2 className="w-5 h-5" />
-                Completed
+                {queuedOffline ? "Queued offline" : "Completed"}
               </>
-            ) : (
-              "Mark as Complete"
-            )}
+            ) : loadState === "loading" ? "Loading progress…" : loadState === "anonymous" ? "Sign in to complete" : loadState === "failed" ? "Progress unavailable" : saveState === "saving" ? "Saving completion…" : saveState === "failed" ? "Retry saving completion" : "Mark as Complete"}
           </Button>
           <Button
             size="lg"
