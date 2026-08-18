@@ -29,6 +29,8 @@ import {
   lifeJacketTypes,
   inflationMethods,
   oralInflationGuidance,
+  lifejacketServicingGuidance,
+  lifejacketServiceSources,
   safetyEquipmentTopics,
 } from "@/data/personalSafetyEquipment";
 
@@ -318,8 +320,9 @@ const PersonalSafetyTheory = () => {
               <p>
                 A life jacket is only as reliable as its last service.
                 Inflatable life jackets contain mechanisms that degrade over
-                time — regular professional servicing is essential to ensure
-                the device will work when your life depends on it.
+                time. The product label and current manufacturer instructions
+                define its checks, replacement dates, service interval, and
+                whether an owner may test or re-arm it.
               </p>
             </div>
 
@@ -340,6 +343,40 @@ const PersonalSafetyTheory = () => {
                   </CardContent>
                 </Card>
               ))}
+
+            <div className="grid gap-4 md:grid-cols-3">
+              {Object.values(lifejacketServicingGuidance).map((section) => (
+                <Card key={section.name}>
+                  <CardHeader>
+                    <CardTitle>{section.name}</CardTitle>
+                    <CardDescription>{section.description}</CardDescription>
+                  </CardHeader>
+                  <CardContent>
+                    <ul className="list-disc space-y-2 pl-5 text-sm text-muted-foreground">
+                      {section.keyPoints.map((point) => <li key={point}>{point}</li>)}
+                    </ul>
+                  </CardContent>
+                </Card>
+              ))}
+            </div>
+
+            <Card>
+              <CardHeader><CardTitle>Authoritative sources and currency</CardTitle></CardHeader>
+              <CardContent className="space-y-3 text-sm">
+                <p className="text-muted-foreground">
+                  Reviewed 12 August 2026. Check the product manufacturer and
+                  current legislation before relying on an interval or procedure;
+                  source pages and requirements can change.
+                </p>
+                <ul className="list-disc space-y-2 pl-5">
+                  {lifejacketServiceSources.map((source) => (
+                    <li key={source.href} className="break-words [overflow-wrap:anywhere]">
+                      <a className="text-primary underline underline-offset-4" href={source.href} target="_blank" rel="noreferrer">{source.label}</a>
+                    </li>
+                  ))}
+                </ul>
+              </CardContent>
+            </Card>
 
             <Card className="bg-destructive/5 border-destructive/20">
               <CardHeader>
