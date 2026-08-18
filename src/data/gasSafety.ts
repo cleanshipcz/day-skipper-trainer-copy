@@ -24,25 +24,29 @@ export const gasSafetyTopics: readonly GasSafetyTopic[] = [
     id: "lpg-properties",
     title: "LPG Properties",
     content:
-      "Liquefied Petroleum Gas (LPG) installations may use propane, butane or another approved supply. LPG vapour is heavier than air, so a leak can collect low in the vessel and form a flammable atmosphere. LPG is colourless and normally odorised: an unexpected gas smell is a warning to act on, but neither smell nor its absence proves whether the system is leaking or the space is safe. Fuel composition affects its flammable limits; even a small spark may ignite accumulated gas.",
+      "A permanently installed marine LPG system is a vapour-withdrawal system: vapour, not liquid LPG, must reach its regulator and appliances. Keep every connected and spare cylinder upright in its designed orientation and positively secured against vessel movement. A cylinder on its side or inverted in rough weather can feed liquid LPG into the regulator, causing dangerously high downstream pressure, leaks or flare-ups; isolate at the cylinder before rough weather and keep it secured. Installations may use propane, butane or another approved supply, but the cylinder, regulator, operating pressure and appliances must match—never improvise adapters or substitute fuels. LPG vapour is heavier than air, so a leak can collect low in the vessel and form a flammable atmosphere. LPG is colourless and normally odorised: an unexpected gas smell is a warning to act on, but neither smell nor its absence proves whether the system is leaking or the space is safe. Even a small spark may ignite accumulated gas.",
     keyPoints: [
       "LPG vapour can collect in low spaces; use approved detection and vessel checks",
       "A fuel-specific range of LPG mixtures in air is flammable",
       "Odour is a warning, not proof of a leak or proof that a space is safe",
       "A small spark can ignite accumulated gas",
       "Avoid ignition sources whenever gas is detected or suspected",
+      "Vapour withdrawal depends on cylinders remaining upright and secured; isolate at the bottle before rough weather",
     ],
   },
   {
     id: "isolation-valves",
     title: "Isolation Valves",
     content:
-      "Know the installation's designated isolation controls and follow the vessel shutdown procedure whenever gas is not in use. Some systems include a remote solenoid as well as cylinder isolation. An owner may make the routine visual checks described by the vessel and component manufacturers and use a fitted bubble tester exactly as its manufacturer directs. Those checks do not replace competent pressure or leak testing. Diagnosis, pressure testing, component replacement and repair belong to a competent boat-LPG person. Only use compatible approved components, and inspect or replace hoses, regulators and connections at their specified intervals. Never search for a leak with a naked flame.",
+      "Each appliance must have its own distribution branch and closing device. The cylinder valve or other designated main supply valve is the primary supply isolation; some installations also provide a labelled, accessible secondary tap or remote solenoid for routine use, but that extra control is installation-specific and does not replace the documented cylinder/main-valve routine. Each burner needs effective flame supervision that stops gas if its flame fails. Keep the installation's fixed ventilation open. Appliances must be intended for LPG and the marine environment, secured for vessel movement, and installed to their manufacturer's instructions. The regulator must match the fuel, cylinder connection, capacity and appliance pressure. The cited RYA RCR/ISO overview describes the ISO 10239:2014 basis as recognising EN 16129 Annex M regulators marked “Marine” for seawater craft; this lesson has not verified that detail against ISO 10239:2025, so a competent person must establish the standard and equipment applicable to the vessel. An owner or user may follow the vessel instructions for pre-use visual checks, use a fitted bubble tester exactly as its manufacturer directs, and apply proprietary leak-detection fluid to a just-remade cylinder connection if the instructions assign that task. Bubbles or a suspect result mean isolate and stop: these checks cover only their stated location or downstream scope and never prove the whole installation safe. Installation, alteration, pressure/tightness testing, service, diagnosis and repair belong to a competent boat-LPG person. Inspect accessible hose and pipework visually for cracking, hardening, discolouration, chafe, corrosion, loose support or damage; isolate and obtain competent replacement at the component/manufacturer interval or sooner if defective—do not impose a generic annual DIY joint test or universal hose replacement date. Never use a naked flame.",
     keyPoints: [
       "Use the installation's designated controls and vessel shutdown procedure",
       "Follow the vessel procedure for safely isolating the supply and residual gas",
       "Use only isolation equipment approved for the installation",
-      "Inspect approved hoses and components at their specified intervals",
+      "Distinguish the cylinder/main supply valve, each appliance branch closing device, and any installation-specific secondary tap",
+      "Use flame supervision, permanent ventilation and LPG/marine-suitable appliances installed to their instructions",
+      "Match the regulator to fuel, pressure and capacity; the cited RYA summary's 2014 basis describes EN 16129 Annex M equipment as marked Marine",
+      "Visually inspect accessible hoses and pipework; replacement timing follows condition, component instructions and competent assessment",
       "Limit owner checks to specified visual checks and correct use of a fitted manufacturer-approved bubble tester",
       "Use a competent boat-LPG person for pressure/leak testing, diagnosis and repair—never use a naked flame",
     ],
@@ -65,7 +69,7 @@ export const gasSafetyTopics: readonly GasSafetyTopic[] = [
     id: "gas-locker-requirements",
     title: "Gas Locker Requirements",
     content:
-      "Store connected and spare cylinders only in the approved cylinder enclosure, secured in their designed orientation. Current RYA recreational guidance calls for a dedicated enclosure separated from living accommodation, accessible only from outside and draining overboard. MCA LPG guidance used with MGN 280 sections 2.1–2.4 specifies, for small vessels in that Code's scope, a compartment vapour-tight to the vessel interior and a drain from the enclosure's lowest point that falls continuously without obstruction to an overboard outlet at least 75 mm above the at-rest waterline and at least 500 mm from openings into the vessel. Outside that Code's scope, treat its measurements as safety-critical design evidence rather than universal law: follow the vessel design, applicable rules and competent inspection advice, and never accept or improvise a drain outlet below the waterline.",
+      "Store connected and spare cylinders upright and secured only in the approved cylinder enclosure. Current RCR/ISO 10239-oriented RYA guidance describes a permanent system enclosure separated from living accommodation, accessible only from outside and ventilated outside so escaping vapour drains overboard. MCA LPG guidance used with MGN 280 sections 2.1–2.4 specifies, for small vessels in that Code's scope, a compartment vapour-tight to the vessel interior and a drain from the enclosure's lowest point that falls continuously without obstruction to an overboard outlet at least 75 mm above the at-rest waterline and at least 500 mm from openings into the vessel. Outside that Code's scope, treat its measurements as safety-critical design evidence rather than universal law: follow the vessel design, applicable rules and competent inspection advice, and never accept or improvise a drain outlet below the waterline.",
     keyPoints: [
       "Use only the approved cylinder enclosure: accessible from outside and vapour-tight to the accommodation",
       "Trace the drain from the locker low point: it must fall continuously, remain unobstructed and discharge overboard away from hull openings",
@@ -109,6 +113,18 @@ export const gasSafetyTopics: readonly GasSafetyTopic[] = [
 
 export const gasLockerSources = [
   {
+    id: "rya-rcr-gas",
+    label: "RYA: Gas safety regulations for boats (RCR and ISO 10239 overview)",
+    href: "https://www.rya.org.uk/water-safety/gas-safety/gas-safety-regulations-for-boats/",
+    scope: "RYA summary of RCR essential requirements and ISO 10239 context. Its regulator detail expressly cites ISO 10239:2014; this lesson has not verified ISO 10239:2025.",
+  },
+  {
+    id: "rya-installation-maintenance",
+    label: "RYA: Gas installation and maintenance",
+    href: "https://www.rya.org.uk/water-safety/gas-safety/gas-installation-and-maintenance/",
+    scope: "Competence, maintenance, ventilation, regulator compatibility and private-boat legal context; component and vessel instructions remain controlling.",
+  },
+  {
     id: "mca-mgn-280",
     label: "MCA LPG guidance used with MGN 280, sections 2.1–2.4",
     href: "https://assets.publishing.service.gov.uk/government/uploads/system/uploads/attachment_data/file/282245/mgn280.pdf",
@@ -133,7 +149,28 @@ export const gasLockerReview = {
   sourceCheckedOn: "2026-08-12",
   sourceIds: gasLockerSources.map(({ id }) => id),
   qualifiedReview: { status: "pending", reviewerName: null, qualification: null, approvedOn: null },
-  releaseNote: "No qualified practitioner approval is recorded; this lesson does not certify a locker or drain installation.",
+  releaseNote: "No qualified practitioner approval is recorded; this lesson does not certify an installation or claim verification against ISO 10239:2025.",
+} as const;
+
+export const gasUserRoutine = {
+  preUse: [
+    "Read the vessel gas routine; identify the cylinder or designated main supply valve, each appliance branch closing device, and any installation-specific accessible secondary tap or remote solenoid.",
+    "Confirm cylinders are upright and secured, the locker drain and fixed ventilation are clear, and accessible hose/pipework has no visible damage.",
+    "Confirm appliance controls are off. Use the fitted bubble tester exactly as its manufacturer directs; after an authorised cylinder change, use approved leak-detection fluid as instructed—never a flame.",
+    "If there is an alarm, smell, bubbles, damage or uncertainty, do not light an appliance: isolate only if safe, evacuate as required and obtain competent help.",
+  ],
+  shutdown: [
+    "Turn every appliance off and verify each flame is extinguished.",
+    "Close its branch closing device, any secondary or master control the installation provides, and the cylinder or designated main supply valve in the order set by the vessel and manufacturer procedure.",
+    "Before sleep, leaving the boat or rough weather, isolate at the cylinder unless the documented installation procedure identifies an appliance designed to remain supplied.",
+    "Leave fixed ventilation open; record defects and keep a suspect system out of use until competent testing and repair make it safe.",
+  ],
+} as const;
+
+export const gasWorkBoundaries = {
+  user: "Users carry out only the vessel's documented operation, cylinder-change and visual/bubble-tester/leak-fluid routines within their competence and the manufacturers' instructions.",
+  competent: "A competent boat-LPG person designs, installs or alters the system and performs installation pressure/tightness testing, servicing, diagnosis and repair.",
+  rentedBoat: "Gas Safe registration is not a blanket rule for every private pleasure craft. Where a boat is hired out as a business, made available to the public as part of a business, or used primarily as domestic/residential accommodation, in-scope gas work must be done by a suitably competent Gas Safe registered engineer; a rented boat also requires the applicable Gas Safety Record. Exact duties depend on the vessel's use and jurisdiction, so the owner/operator must confirm the legal scope.",
 } as const;
 
 export const carbonMonoxideSources = [
