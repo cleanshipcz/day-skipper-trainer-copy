@@ -178,6 +178,21 @@ describe("PersonalSafetyTheory Page", () => {
 
     // then
     expect(await screen.findByText("Kill Cords (Engine Cut-Off Devices)")).toBeDefined();
+    expect(screen.getByText(/purpose-designed point specified by the manufacturer/i)).toBeDefined();
+    expect(screen.getByText(/before setting off.*test the cut-off system/i)).toBeDefined();
+    expect(screen.getByText(/carry the correct serviceable spare/i)).toBeDefined();
+  });
+
+  it("should not guarantee that a kill cord prevents propeller injury", () => {
+    render(
+      <TestRouter>
+        <PersonalSafetyTheory />
+      </TestRouter>,
+    );
+
+    expect(screen.getByText(/kill cord should stop the engine/i)).toBeDefined();
+    expect(screen.getByText(/reducing the risk of an uncontrolled craft and propeller injury/i)).toBeDefined();
+    expect(screen.queryByText(/preventing propeller injury/i)).toBeNull();
   });
 
   it("should display servicing content when clicking the Servicing tab (AC-1)", async () => {

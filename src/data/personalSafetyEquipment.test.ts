@@ -294,6 +294,24 @@ describe("safetyEquipmentTopics data", () => {
     expect(uniqueIds.size).toBe(ids.length);
   });
 
+  it("should qualify kill-cord attachment, testing, maintenance, and legal guidance", async () => {
+    const { safetyEquipmentTopics } = await import("./personalSafetyEquipment");
+    const topic = safetyEquipmentTopics.find((item) => item.id === "kill-cords");
+    const guidance = topic?.keyPoints.join(" ") ?? "";
+
+    expect(guidance).toMatch(/engine and boat manufacturers' instructions/i);
+    expect(guidance).toMatch(/cannot slip off or detach during normal helm movement/i);
+    expect(guidance).toMatch(/loose loop around a bare wrist/i);
+    expect(guidance).toMatch(/ordinary lifejacket or harness D-ring/i);
+    expect(guidance).toMatch(/purpose-designed point/i);
+    expect(guidance).toMatch(/before setting off/i);
+    expect(guidance).toMatch(/after changing helm operator, cord, switch, or helm arrangement/i);
+    expect(guidance).toMatch(/replace suspect or time-expired parts/i);
+    expect(guidance).toMatch(/correct serviceable spare/i);
+    expect(guidance).toMatch(/essential safe practice/i);
+    expect(guidance).toMatch(/statutory or coded-vessel requirements may also apply/i);
+  });
+
   it("should include servicing schedule information", async () => {
     // given
     const { safetyEquipmentTopics } = await import("./personalSafetyEquipment");
