@@ -136,9 +136,10 @@ const PersonalSafetyTheory = () => {
                   <p className="text-sm text-muted-foreground">
                     The best safety strategy is preventing crew from going
                     overboard. Harnesses, tethers, and jacklines keep you
-                    attached to the vessel. A kill cord stops the engine if
-                    the helm operator is thrown clear — preventing propeller
-                    injury.
+                    attached to the vessel. A correctly fitted, functioning
+                    kill cord should stop the engine if the helm operator is
+                    thrown clear, reducing the risk of an uncontrolled craft
+                    and propeller injury.
                   </p>
                 </CardContent>
               </Card>
