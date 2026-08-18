@@ -9,17 +9,27 @@ import userEvent from "@testing-library/user-event";
 import PersonalSafetyTheory from "../src/pages/PersonalSafetyTheory";
 import TestRouter from "./TestRouter";
 
-const mockSaveProgress = vi.fn();
+const mockSaveProgressDetailed = vi.fn();
+const mockLoadProgressDetailed = vi.fn();
 
 vi.mock("@/hooks/useProgress", () => ({
   useProgress: () => ({
-    saveProgress: mockSaveProgress,
+    ownerId: "legacy-test-owner",
+    loadProgressDetailed: mockLoadProgressDetailed,
+    saveProgressDetailed: mockSaveProgressDetailed,
   }),
+}));
+
+vi.mock("@/features/offline/progressQueue", () => ({
+  getQueuedProgress: vi.fn().mockResolvedValue([]),
 }));
 
 describe("PersonalSafetyTheory Page", () => {
   beforeEach(() => {
     vi.clearAllMocks();
+    mockLoadProgressDetailed.mockResolvedValue({ status: "missing", record: null });
+    mockSaveProgressDetailed.mockResolvedValue("remote");
+    localStorage.clear();
   });
 
   it("should render the page header with title and navigation back button", () => {
@@ -222,7 +232,7 @@ describe("PersonalSafetyTheory Page", () => {
     );
 
     // then - saveProgress should NOT have been called yet
-    expect(mockSaveProgress).not.toHaveBeenCalled();
+    expect(mockSaveProgressDetailed).not.toHaveBeenCalled();
   });
 
   it("should render a 'Mark as Complete' button that saves progress when clicked (AC-2, AC-3)", async () => {
@@ -235,11 +245,11 @@ describe("PersonalSafetyTheory Page", () => {
     );
 
     // when - click the completion button
-    const completeButton = screen.getByRole("button", { name: /mark as complete/i });
+    const completeButton = await screen.findByRole("button", { name: /mark as complete/i });
     await user.click(completeButton);
 
     // then - saveProgress called with topic ID, completed=true, score=100, points=10
-    expect(mockSaveProgress).toHaveBeenCalledWith("safety-personal", true, 100, 10);
+    expect(mockSaveProgressDetailed).toHaveBeenCalledWith("safety-personal", true, 100, 10);
   });
 
   it("should disable the completion button after clicking it (AC-2)", async () => {
@@ -252,11 +262,11 @@ describe("PersonalSafetyTheory Page", () => {
     );
 
     // when
-    const completeButton = screen.getByRole("button", { name: /mark as complete/i });
+    const completeButton = await screen.findByRole("button", { name: /mark as complete/i });
     await user.click(completeButton);
 
     // then - button should now show "Completed" and be disabled
-    expect(screen.getByRole("button", { name: /completed/i })).toBeDefined();
+    expect(await screen.findByRole("button", { name: /completed/i })).toBeDefined();
     expect(screen.getByRole("button", { name: /completed/i }).hasAttribute("disabled")).toBe(true);
   });
 

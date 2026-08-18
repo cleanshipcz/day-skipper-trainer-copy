@@ -1,13 +1,29 @@
-import { render, screen } from "@testing-library/react";
+import { act, fireEvent, render, screen, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { MemoryRouter } from "react-router-dom";
-import { describe, expect, it, vi } from "vitest";
+import { beforeEach, describe, expect, it, vi } from "vitest";
+
+const progress = vi.hoisted(() => ({
+  ownerId: "learner-a" as string | null,
+  load: vi.fn(),
+  save: vi.fn(),
+}));
+const offlineQueue = vi.hoisted(() => ({ get: vi.fn() }));
 
 vi.mock("@/hooks/useProgress", () => ({
-  useProgress: () => ({ saveProgress: vi.fn() }),
+  useProgress: () => ({ ownerId: progress.ownerId, loadProgressDetailed: progress.load, saveProgressDetailed: progress.save }),
 }));
+vi.mock("@/features/offline/progressQueue", () => ({ getQueuedProgress: offlineQueue.get }));
 
 import PersonalSafetyTheory from "./PersonalSafetyTheory";
+
+beforeEach(() => {
+  progress.ownerId = "learner-a";
+  progress.load.mockReset().mockResolvedValue({ status: "missing", record: null });
+  progress.save.mockReset().mockResolvedValue("remote");
+  offlineQueue.get.mockReset().mockResolvedValue([]);
+  localStorage.clear();
+});
 
 describe("PersonalSafetyTheory lifejacket guidance", () => {
   it("shows ISO levels and qualified self-righting labels to learners", async () => {
@@ -57,5 +73,157 @@ describe("PersonalSafetyTheory lifejacket guidance", () => {
     expect(screen.getByRole("link", { name: /RYA: Life Jackets and Buoyancy Aids/i }).getAttribute("href")).toMatch(/^https:\/\/www\.rya\.org\.uk\//);
     expect(screen.getByRole("link", { name: /MCA MGN 548/i }).getAttribute("href")).toMatch(/^https:\/\/www\.gov\.uk\//);
     expect(screen.queryByText(/Annual professional servicing is the standard/i)).toBeNull();
+  });
+});
+
+describe("PersonalSafetyTheory completion", () => {
+  it("hydrates an existing signed-in completion and prevents another award", async () => {
+    progress.load.mockResolvedValue({ status: "remote", record: { completed: true } });
+    render(<MemoryRouter><PersonalSafetyTheory /></MemoryRouter>);
+
+    const button = await screen.findByRole("button", { name: "Completed" });
+    expect((button as HTMLButtonElement).disabled).toBe(true);
+    fireEvent.click(button);
+    expect(progress.save).not.toHaveBeenCalled();
+  });
+
+  it("awaits a successful save, disables while saving, and prevents repeat submissions", async () => {
+    let resolveSave!: (result: "remote") => void;
+    progress.save.mockReturnValue(new Promise((resolve) => { resolveSave = resolve; }));
+    render(<MemoryRouter><PersonalSafetyTheory /></MemoryRouter>);
+
+    const button = await screen.findByRole("button", { name: "Mark as Complete" });
+    fireEvent.click(button);
+    fireEvent.click(button);
+    expect((screen.getByRole("button", { name: "Saving completion…" }) as HTMLButtonElement).disabled).toBe(true);
+    expect(progress.save).toHaveBeenCalledTimes(1);
+    resolveSave("remote");
+    expect(((await screen.findByRole("button", { name: "Completed" })) as HTMLButtonElement).disabled).toBe(true);
+    expect(progress.save).toHaveBeenCalledWith("safety-personal", true, 100, 10);
+  });
+
+  it("offers an actionable sign-in path without attempting a write", async () => {
+    progress.ownerId = null;
+    progress.load.mockResolvedValue({ status: "anonymous", record: null });
+    render(<MemoryRouter><PersonalSafetyTheory /></MemoryRouter>);
+
+    expect((await screen.findByRole("status")).textContent).toMatch(/sign in to save completion/i);
+    expect((screen.getByRole("button", { name: "Sign in" }) as HTMLButtonElement).disabled).toBe(false);
+    expect((screen.getByRole("button", { name: "Sign in to complete" }) as HTMLButtonElement).disabled).toBe(true);
+    expect(progress.save).not.toHaveBeenCalled();
+  });
+
+  it("blocks completion after a load failure and retries the read", async () => {
+    progress.load.mockResolvedValueOnce({ status: "failed", record: null }).mockResolvedValueOnce({ status: "missing", record: null });
+    render(<MemoryRouter><PersonalSafetyTheory /></MemoryRouter>);
+
+    expect((await screen.findByRole("alert")).textContent).toMatch(/could not be loaded/i);
+    expect((screen.getByRole("button", { name: "Progress unavailable" }) as HTMLButtonElement).disabled).toBe(true);
+    fireEvent.click(screen.getByRole("button", { name: "Retry loading progress" }));
+    expect(((await screen.findByRole("button", { name: "Mark as Complete" })) as HTMLButtonElement).disabled).toBe(false);
+    expect(progress.load).toHaveBeenCalledTimes(2);
+  });
+
+  it("does not mark a rejected or failed save complete and permits retry", async () => {
+    progress.save.mockRejectedValueOnce(new Error("network rejected")).mockResolvedValueOnce("failed").mockResolvedValueOnce("remote");
+    render(<MemoryRouter><PersonalSafetyTheory /></MemoryRouter>);
+
+    fireEvent.click(await screen.findByRole("button", { name: "Mark as Complete" }));
+    expect((await screen.findByRole("alert")).textContent).toMatch(/not saved/i);
+    fireEvent.click(screen.getByRole("button", { name: "Retry saving completion" }));
+    await waitFor(() => expect(progress.save).toHaveBeenCalledTimes(2));
+    expect((screen.getByRole("button", { name: "Retry saving completion" }) as HTMLButtonElement).disabled).toBe(false);
+    fireEvent.click(screen.getByRole("button", { name: "Retry saving completion" }));
+    expect(((await screen.findByRole("button", { name: "Completed" })) as HTMLButtonElement).disabled).toBe(true);
+  });
+
+  it("accepts and restores an account-scoped offline-queued completion backed by the durable queue", async () => {
+    progress.save.mockResolvedValue("queued");
+    const first = render(<MemoryRouter><PersonalSafetyTheory /></MemoryRouter>);
+    fireEvent.click(await screen.findByRole("button", { name: "Mark as Complete" }));
+    expect(((await screen.findByRole("button", { name: "Queued offline" })) as HTMLButtonElement).disabled).toBe(true);
+    expect(screen.getByRole("status").textContent).toMatch(/queued offline.*sync/i);
+    first.unmount();
+
+    progress.load.mockResolvedValue({ status: "failed", record: null });
+    offlineQueue.get.mockResolvedValue([{
+      id: "learner-a:safety-personal", userId: "learner-a", topicId: "safety-personal",
+      completed: true, score: 100, pointsEarned: 10, updatedAt: 1, revision: 1,
+      attempts: 0, status: "pending", answersHistory: { personalSafetyMastery: {
+        revision: "personal-safety-practical-v2",
+        masteredScenarioIds: ["pfd", "fit", "tether", "kill-cord", "beacon"],
+      } },
+    }]);
+    render(<MemoryRouter><PersonalSafetyTheory /></MemoryRouter>);
+    expect(((await screen.findByRole("button", { name: "Queued offline" })) as HTMLButtonElement).disabled).toBe(true);
+    expect(progress.save).toHaveBeenCalledTimes(1);
+  });
+
+  it("rejects and clears a stale or forged queued marker without a matching durable entry", async () => {
+    localStorage.setItem("personal-safety-completion-queued:learner-a", "true");
+    render(<MemoryRouter><PersonalSafetyTheory /></MemoryRouter>);
+
+    expect(await screen.findByRole("button", { name: "Mark as Complete" })).toBeTruthy();
+    expect(screen.queryByText(/queued offline/i)).toBeNull();
+    expect(localStorage.getItem("personal-safety-completion-queued:learner-a")).toBeNull();
+    expect(offlineQueue.get).toHaveBeenCalledWith("learner-a");
+  });
+
+  it.each([
+    ["missing mastery", undefined, "learner-a"],
+    ["legacy mastery", { revision: "personal-safety-practical-v1", masteredScenarioIds: ["pfd", "fit", "tether", "kill-cord"] }, "learner-a"],
+    ["current-revision mastery with a wrong scenario", { revision: "personal-safety-practical-v2", masteredScenarioIds: ["pfd", "fit", "tether", "kill-cord", "forged"] }, "learner-a"],
+    ["current-revision mastery with duplicate scenarios", { revision: "personal-safety-practical-v2", masteredScenarioIds: ["pfd", "fit", "tether", "kill-cord", "kill-cord"] }, "learner-a"],
+    ["wrong-owner mastery", { revision: "personal-safety-practical-v2", masteredScenarioIds: ["pfd", "fit", "tether", "kill-cord", "beacon"] }, "learner-b"],
+  ])("rejects queued completion with %s", async (_label, personalSafetyMastery, userId) => {
+    offlineQueue.get.mockResolvedValue([{
+      id: `${userId}:safety-personal`, userId, topicId: "safety-personal",
+      completed: true, score: 100, pointsEarned: 10, updatedAt: 1, revision: 1,
+      attempts: 0, status: "pending", answersHistory: personalSafetyMastery ? { personalSafetyMastery } : undefined,
+    }]);
+    localStorage.setItem("personal-safety-completion-queued:learner-a", "true");
+    render(<MemoryRouter><PersonalSafetyTheory /></MemoryRouter>);
+
+    expect(await screen.findByRole("button", { name: "Mark as Complete" })).toBeTruthy();
+    expect(screen.queryByText(/queued offline/i)).toBeNull();
+    expect(localStorage.getItem("personal-safety-completion-queued:learner-a")).toBeNull();
+  });
+
+  it("continues safely when localStorage access is denied", async () => {
+    const remove = vi.spyOn(Storage.prototype, "removeItem").mockImplementation(() => { throw new DOMException("denied"); });
+    const set = vi.spyOn(Storage.prototype, "setItem").mockImplementation(() => { throw new DOMException("denied"); });
+    progress.save.mockResolvedValue("queued");
+    try {
+      render(<MemoryRouter><PersonalSafetyTheory /></MemoryRouter>);
+      fireEvent.click(await screen.findByRole("button", { name: "Mark as Complete" }));
+      expect(await screen.findByRole("button", { name: "Queued offline" })).toBeTruthy();
+      expect(screen.queryByRole("alert")).toBeNull();
+    } finally {
+      remove.mockRestore();
+      set.mockRestore();
+    }
+  });
+
+  it("releases an in-flight save on owner change and ignores the stale settlement", async () => {
+    let rejectOwnerA!: (error: Error) => void;
+    progress.save.mockReturnValueOnce(new Promise((_resolve, reject) => { rejectOwnerA = reject; })).mockResolvedValueOnce("remote");
+    const view = render(<MemoryRouter><PersonalSafetyTheory /></MemoryRouter>);
+
+    fireEvent.click(await screen.findByRole("button", { name: "Mark as Complete" }));
+    expect(screen.getByRole("button", { name: "Saving completion…" })).toBeTruthy();
+
+    progress.ownerId = "learner-b";
+    progress.load.mockResolvedValue({ status: "missing", record: null });
+    view.rerender(<MemoryRouter><PersonalSafetyTheory /></MemoryRouter>);
+    fireEvent.click(await screen.findByRole("button", { name: "Mark as Complete" }));
+    expect(await screen.findByRole("button", { name: "Completed" })).toBeTruthy();
+    expect(progress.save).toHaveBeenCalledTimes(2);
+
+    await act(async () => {
+      rejectOwnerA(new Error("owner A save failed late"));
+      await Promise.resolve();
+    });
+    expect(screen.queryByRole("alert")).toBeNull();
+    expect(screen.getByRole("button", { name: "Completed" })).toBeTruthy();
   });
 });
