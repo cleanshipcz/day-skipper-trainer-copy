@@ -86,7 +86,7 @@ describe("PersonalSafetyTheory Page", () => {
     expect(await screen.findByText("Level 275 Lifejacket")).toBeDefined();
   });
 
-  it("should cover auto-inflate vs manual inflation (AC-1)", async () => {
+  it("should distinguish all inflation mechanisms and oral backup guidance (AC-1)", async () => {
     // given
     const user = userEvent.setup();
     render(
@@ -100,8 +100,16 @@ describe("PersonalSafetyTheory Page", () => {
     await user.click(lifeJacketsTab);
 
     // then - inflation method content
-    expect(await screen.findByText(/Automatic \(Hydrostatic\) Inflation/)).toBeDefined();
+    expect(await screen.findByText("Automatic Water-Activated Inflation")).toBeDefined();
+    expect(await screen.findByText("Automatic Hydrostatic Inflation")).toBeDefined();
     expect(await screen.findByText("Manual Inflation")).toBeDefined();
+    expect(await screen.findByText(/responds to water pressure at a specified immersion depth/i)).toBeDefined();
+    expect(await screen.findByText(/resisting activation from rain, spray/i)).toBeDefined();
+    expect(await screen.findByText(/oral inflation tube is for topping up.*emergency backup/i)).toBeDefined();
+    expect(await screen.findByText(/not a substitute for pulling a manual toggle/i)).toBeDefined();
+
+    await user.click(screen.getByRole("tab", { name: /servicing/i }));
+    expect(await screen.findAllByText(/kits and procedures are (?:manufacturer|model)-specific/i)).not.toHaveLength(0);
   });
 
   it("should cover crotch straps (AC-1)", async () => {

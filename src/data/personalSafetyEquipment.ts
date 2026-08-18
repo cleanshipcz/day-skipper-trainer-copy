@@ -82,7 +82,10 @@ export const lifeJacketTypes: readonly LifeJacketType[] = [
 
 // ── Inflation Methods ──────────────────────────────────────────────────────
 
-export type InflationMethodId = "auto-inflate" | "manual";
+export type InflationMethodId =
+  | "automatic-water-activated"
+  | "automatic-hydrostatic"
+  | "manual";
 
 export interface InflationMethod {
   readonly id: InflationMethodId;
@@ -94,14 +97,24 @@ export interface InflationMethod {
 
 export const inflationMethods: readonly InflationMethod[] = [
   {
-    id: "auto-inflate",
-    name: "Automatic (Hydrostatic) Inflation",
+    id: "automatic-water-activated",
+    name: "Automatic Water-Activated Inflation",
     description:
-      "The life jacket inflates automatically when immersed in water. A hydrostatic release mechanism detects water pressure and triggers a CO₂ gas cylinder to inflate the bladder. Most modern offshore life jackets use this system.",
+      "A water-sensitive element dissolves or reacts when sufficiently wetted, releasing a mechanism that pierces the CO₂ cylinder and inflates the bladder. The exact trigger and delay depend on the model.",
     advantages:
-      "Inflates even if the wearer is unconscious or incapacitated. No action required — critical when a crew member falls overboard unexpectedly, especially at night or in heavy weather.",
+      "Can inflate without action from a wearer who is unconscious or incapacitated after entering the water.",
     disadvantages:
-      "Can be triggered accidentally by spray, heavy rain, or water in the cockpit. The hydrostatic mechanism and CO₂ cylinder must be serviced regularly and replaced after firing. More expensive than manual models.",
+      "Because the trigger responds to wetting, heavy rain, spray, or water collecting around the firing head can cause unwanted activation on some models. Keep it maintained and stowed as its manufacturer directs.",
+  },
+  {
+    id: "automatic-hydrostatic",
+    name: "Automatic Hydrostatic Inflation",
+    description:
+      "A hydrostatic firing head responds to water pressure at a specified immersion depth, then pierces the CO₂ cylinder to inflate the bladder. It is pressure-activated, not simply triggered by getting its surface wet.",
+    advantages:
+      "Can inflate without action from an unconscious or incapacitated wearer, while resisting activation from rain, spray, and ordinary deck wetness.",
+    disadvantages:
+      "It must reach the model's specified pressure or immersion condition, costs more than simpler mechanisms, and its firing head and cylinder require inspection and replacement as the manufacturer specifies.",
   },
   {
     id: "manual",
@@ -111,9 +124,12 @@ export const inflationMethods: readonly InflationMethod[] = [
     advantages:
       "Will not inflate accidentally in spray or rain. Lower servicing costs and simpler mechanism. Preferred by some dinghy sailors and racers who want to avoid accidental inflation.",
     disadvantages:
-      "Requires the wearer to be conscious and have the presence of mind to pull the toggle. Useless if the wearer is knocked unconscious by the boom or on falling into the water.",
+      "Requires the wearer to be conscious, able to reach the toggle, and capable of acting promptly; it may provide no inflated buoyancy if the wearer is incapacitated.",
   },
 ];
+
+export const oralInflationGuidance =
+  "The oral inflation tube is for topping up a partly inflated bladder or as an emergency backup if the normal system fails. It is not a substitute for pulling a manual toggle or allowing the fitted automatic system to activate. Follow the lifejacket instructions; do not trigger the CO₂ cylinder when the bladder is already orally inflated because over-pressure can injure the wearer or damage the bladder.";
 
 // ── Safety Equipment Topics ────────────────────────────────────────────────
 
@@ -133,11 +149,12 @@ export const safetyEquipmentTopics: readonly SafetyEquipmentTopic[] = [
     keyPoints: [
       "Inflatable life jackets should be professionally serviced every 12 months by a manufacturer-approved service agent.",
       "Check the CO₂ cylinder is correctly fitted, not corroded, and has not been discharged — weigh it if in doubt.",
-      "Inspect the hydrostatic release mechanism (auto-inflate models) — replace at or before the expiry date printed on the unit.",
+      "Inspect the fitted automatic firing head and replace it at or before its marked expiry date, following the manufacturer's instructions.",
       "Check the oral inflation tube is clear and the valve seals correctly.",
       "Inspect all webbing, stitching, and buckles for wear, UV damage, or salt corrosion.",
       "Test-inflate the bladder orally and leave inflated for 24 hours to check for slow leaks.",
       "Record each service date and keep the service log with the vessel's safety documentation.",
+      "After any activation, re-arm only with the exact cylinder, firing head or water-activated element, seals, and indicators specified for that model; kits and procedures are manufacturer-specific.",
     ],
   },
   {

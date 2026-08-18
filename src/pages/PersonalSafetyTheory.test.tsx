@@ -38,5 +38,8 @@ describe("PersonalSafetyTheory lifejacket guidance", () => {
     expect(screen.getByText(/can prevent or delay turning/i)).toBeTruthy();
     expect(screen.queryByText("Yes — will turn a casualty face-up")).toBeNull();
     expect(screen.queryByText("Life Jacket Types")).toBeNull();
+    expect(screen.getByText("Automatic Water-Activated Inflation")).toBeTruthy();
+    expect(screen.getByText("Automatic Hydrostatic Inflation")).toBeTruthy();
+    expect(screen.getByText(/oral inflation tube is for topping up.*emergency backup/i)).toBeTruthy();
   });
 });
