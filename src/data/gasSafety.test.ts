@@ -125,4 +125,30 @@ describe("gasSafety data", () => {
     expect(rendered).toMatch(/manufacturer's exact placement instructions/i);
     expect(rendered).toMatch(/vessel emergency procedure/i);
   });
+
+  it("requires a safe continuously falling LPG locker drain and rejects below-waterline guidance", async () => {
+    const { gasSafetyTopics } = await import("./gasSafety");
+    const locker = gasSafetyTopics.find(({ id }) => id === "gas-locker-requirements")!;
+    const guidance = `${locker.content} ${locker.keyPoints.join(" ")}`;
+    expect(guidance).toMatch(/accessible (?:only )?from outside/i);
+    expect(guidance).toMatch(/vapour-tight to the accommodation/i);
+    expect(guidance).toMatch(/low(?:est)? point.*falls continuously|continuously falling.*low point/i);
+    expect(guidance).toMatch(/unobstructed/i);
+    expect(guidance).toMatch(/at least 75 mm above the at-rest waterline/i);
+    expect(guidance).toMatch(/away from hull openings/i);
+    expect(guidance).toMatch(/at least 500 mm from openings into the vessel/i);
+    expect(guidance).toMatch(/blockage.*corrosion or damage.*connections.*stored items/i);
+    expect(guidance).toMatch(/below-waterline outlet is unsafe guidance/i);
+    expect(guidance).not.toMatch(/drain(?:age)? (?:outlet )?(?:may|can|should|must) (?:terminate|discharge|be) below (?:the )?waterline/i);
+  });
+
+  it("records source scope without claiming universal law or practitioner approval", async () => {
+    const { gasLockerReview, gasLockerSources } = await import("./gasSafety");
+    expect(gasLockerSources.map(({ id }) => id)).toEqual(["mca-mgn-280", "rya-gas-safety"]);
+    expect(gasLockerSources[0].scope).toMatch(/governed by the Code.*not stated as universal law/i);
+    expect(gasLockerReview.sourceIds).toEqual(gasLockerSources.map(({ id }) => id));
+    expect(gasLockerReview.qualifiedReview.status).toBe("pending");
+    expect(gasLockerReview.qualifiedReview.reviewerName).toBeNull();
+    expect(gasLockerReview.releaseNote).toMatch(/No qualified practitioner approval is recorded/i);
+  });
 });
