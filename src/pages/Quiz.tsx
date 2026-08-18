@@ -47,6 +47,7 @@ import { LIFE_RAFT_QUIZ_PASS_POLICY } from "@/data/quizzes/safetyLifeRaft";
 import { flareReview, isFlareContentReleased } from "@/data/flareTypes";
 import { FLARE_QUIZ_PASS_POLICY, FLARE_QUIZ_REVIEW_BASIS } from "@/data/quizzes/safetyFlares";
 import { flareQuizCompletionOutcome } from "@/features/quiz/flareAssessment";
+import { SAFETY_QUIZ_PASS_POLICY, safetyQuizCompletionOutcome } from "@/features/quiz/safetyAssessment";
 
 const quizAttemptKey = (owner: string, topic: string) => ownerStorageKey("quiz-attempt", owner, topic);
 interface QuizWorkflow {
@@ -556,6 +557,8 @@ const Quiz = () => {
         ? fireQuizCompletionOutcome(submittedAnswers, questions)
       : topicKey === "safety-flares-quiz"
         ? flareQuizCompletionOutcome(submittedAnswers, questions)
+      : topicKey === "safety"
+        ? safetyQuizCompletionOutcome(submittedAnswers, questions)
       : quizCompletionOutcome(correctAnswers, questions.length);
     const missedMobCriticalOutcomes = "missedCriticalIds" in calculatedCompletion
       ? calculatedCompletion.missedCriticalIds
@@ -611,7 +614,9 @@ const Quiz = () => {
             ? "Quiz passed and saved."
             : (topicKey === "safety-mob-quiz" || topicKey === "safety-fire-quiz" || topicKey === "safety-flares-quiz") && missedMobCriticalOutcomes.length > 0
               ? `Quiz saved. Review the missed critical ${topicKey === "safety-fire-quiz" ? "Fire" : topicKey === "safety-flares-quiz" ? "flare" : "MOB"} safety outcomes before this check can pass.`
-            : "Quiz saved. Score 70% or more to pass."
+            : topicKey === "safety"
+              ? "Quiz saved. Meet the minimum in every Safety leaf and correct all critical objectives to pass."
+              : "Quiz saved. Score 70% or more to pass."
         );
         removeStored(localStorage, quizAttemptKey(owner, topicKey));
         setWorkflow(null);
@@ -681,6 +686,8 @@ const Quiz = () => {
         ? fireQuizCompletionOutcome(completedAnswers, questions).passed
       : topicKey === "safety-flares-quiz"
         ? flareQuizCompletionOutcome(completedAnswers, questions).passed
+      : topicKey === "safety"
+        ? safetyQuizCompletionOutcome(completedAnswers, questions).passed
       : workflow?.completion?.passed ?? percentage >= 70;
     const missedQuestions = questions.filter((question, index) => completedAnswers[index] !== question.correctAnswer);
     const weatherLeaves = topicKey === "weather" ? buildWeatherLeafResults(questions, completedAnswers) : [];
@@ -689,6 +696,7 @@ const Quiz = () => {
     const isFireQuiz = topicKey === "safety-fire-quiz";
     const isLifeRaftQuiz = topicKey === "safety-life-raft-quiz";
     const isFlareQuiz = topicKey === "safety-flares-quiz";
+    const isComprehensiveSafetyQuiz = topicKey === "safety";
 
     return (
       <div className="min-h-screen bg-gradient-to-br from-background via-ocean-light/10 to-background flex items-center justify-center p-3 sm:p-4">
@@ -733,6 +741,8 @@ const Quiz = () => {
               <div className={`p-4 border-2 rounded-lg text-center ${passed ? "bg-success/10 border-success" : "bg-accent/10 border-accent"}`} role="status" aria-live="polite"><p className={`font-semibold ${passed ? "text-success" : "text-accent"}`}>{passed ? "Applied life-raft scenario check passed" : "Further life-raft review needed"}</p><p className="mt-1 text-sm text-muted-foreground">{passed ? LIFE_RAFT_QUIZ_PASS_POLICY.claim : LIFE_RAFT_QUIZ_PASS_POLICY.remediation}</p></div>
             ) : isFlareQuiz ? (
               <div className={`p-4 border-2 rounded-lg text-center ${passed ? "bg-success/10 border-success" : "bg-accent/10 border-accent"}`} role="status" aria-live="polite"><p className={`font-semibold ${passed ? "text-success" : "text-accent"}`}>{passed ? "Applied flare decision check passed" : "Further flare-safety review needed"}</p><p className="mt-1 text-sm text-muted-foreground">{passed ? FLARE_QUIZ_PASS_POLICY.claim : FLARE_QUIZ_PASS_POLICY.remediation}</p></div>
+            ) : isComprehensiveSafetyQuiz ? (
+              <div className={`p-4 border-2 rounded-lg text-center ${passed ? "bg-success/10 border-success" : "bg-accent/10 border-accent"}`} role="status" aria-live="polite"><p className={`font-semibold ${passed ? "text-success" : "text-accent"}`}>{passed ? "Comprehensive Safety check passed" : "Safety leaf remediation required"}</p><p className="mt-1 text-sm text-muted-foreground">{passed ? SAFETY_QUIZ_PASS_POLICY.claim : SAFETY_QUIZ_PASS_POLICY.remediation}</p></div>
             ) : passed ? (
               <div className="p-4 bg-success/10 border-2 border-success rounded-lg text-center">
                 <p className="font-semibold text-success">🎉 Excellent work!</p>

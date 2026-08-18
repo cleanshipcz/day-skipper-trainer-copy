@@ -22,7 +22,7 @@ vi.mock("@/hooks/useProgress", () => ({ useProgress: () => mocks }));
 vi.mock("@/integrations/supabase/client", () => ({ supabase: { rpc: mocks.rpc } }));
 vi.mock("sonner", () => ({ toast: { success: mocks.toastSuccess, error: vi.fn() } }));
 vi.mock("@/data/quizzes", () => ({
-  isQuizTopicId: (topic: string) => ["test", "anchorwork", "engine", "nautical-terms-quiz", "ropework", "lights-signals", "colregs", "weather", "safety-mob-quiz"].includes(topic),
+  isQuizTopicId: (topic: string) => ["test", "anchorwork", "engine", "nautical-terms-quiz", "ropework", "lights-signals", "colregs", "weather", "safety-mob-quiz", "safety"].includes(topic),
   topicMeta: {
     test: { title: "A very long localized quiz title that must reflow", subtitle: "Long localized supporting text" },
     "nautical-terms-quiz": { title: "Full Nautical Terms Quiz", subtitle: "Terms" },
@@ -33,6 +33,7 @@ vi.mock("@/data/quizzes", () => ({
     colregs: { title: "Combined Rules Diagnostic", subtitle: "Rules" },
     weather: { title: "Meteorology Quiz", subtitle: "Weather" },
     "safety-mob-quiz": { title: "Man Overboard Applied Recovery Check", subtitle: "12 applied scenarios" },
+    safety: { title: "Comprehensive Safety Quiz", subtitle: "24 objectives" },
   },
   loadQuizTopic: mocks.loadQuizTopic,
 }));
@@ -43,6 +44,10 @@ const questions = [
   { id: "q1", question: "First deliberately long localized question withoutshortbreakpoints?", options: ["First wrong", "First correct answer with exceptionallylonglocalizedcontent"], correctAnswer: 1, explanation: "First explanation with exceptionallylonglocalizedcontent." },
   { id: "q2", question: "Second question?", options: ["Second wrong", "Second correct"], correctAnswer: 1, explanation: "Second explanation." },
 ];
+const safetyQuestions = ["mob", "fire", "raft", "flare", "personal", "gas"].flatMap((leaf) => [1, 2, 3, 4].map((number) => {
+  const id = `safety-${leaf}${number}`;
+  return { id, leaf, question: id, options: [`unsafe ${id}`, `safe ${id}`], correctAnswer: 1, explanation: `Review ${id}`, learningObjective: `${leaf} objective ${number}`, prerequisite: "Review corrected Safety lesson", remediationRoute: `/safety/${leaf === "raft" ? "life-raft" : leaf}` };
+}));
 
 const LocationProbe = () => {
   const location = useLocation();
@@ -313,6 +318,35 @@ describe("Quiz accessible interaction and reflow", () => {
       75,
       0,
       expect.objectContaining({ completed: true }),
+    ));
+  });
+
+  it.each([
+    ["a 23/24 critical miss", new Set(["safety-mob3"]), "96%"],
+    ["a 21/24 weak leaf", new Set(["safety-mob1", "safety-mob2", "safety-mob4"]), "88%"],
+  ])("persists %s as incomplete Safety progress with remediation", async (_case, misses, displayedScore) => {
+    mocks.user = { id: "safety-learner" };
+    mocks.loadQuizTopic.mockResolvedValue(safetyQuestions);
+    mocks.rpc.mockImplementation((name: string) => Promise.resolve(name === "start_quiz_attempt"
+      ? { data: { attempt_id: `safety-attempt-${misses.size}`, started_at: new Date().toISOString() }, error: null }
+      : { data: null, error: null }));
+    const user = userEvent.setup();
+    renderQuiz("/quiz/safety");
+
+    await screen.findByText("Quiz progress is ready to save.");
+    for (let index = 0; index < safetyQuestions.length; index += 1) {
+      const id = (await screen.findByRole("heading", { level: 3 })).textContent!;
+      await user.click(screen.getByRole("radio", { name: `${misses.has(id) ? "unsafe" : "safe"} ${id}` }));
+      await user.click(screen.getByRole("button", { name: "Submit Answer" }));
+      await user.click(await screen.findByRole("button", { name: index === safetyQuestions.length - 1 ? "View Results" : "Next Question" }));
+    }
+
+    expect(await screen.findByText(displayedScore)).toBeTruthy();
+    expect(screen.getByText("Safety leaf remediation required")).toBeTruthy();
+    expect(screen.queryByText("Comprehensive Safety check passed")).toBeNull();
+    expect(screen.getAllByRole("button", { name: "Review this objective in its lesson" })).toHaveLength(misses.size);
+    await waitFor(() => expect(mocks.saveProgress).toHaveBeenCalledWith(
+      "quiz-safety", false, Number(displayedScore.slice(0, -1)), 0, expect.objectContaining({ completed: true }),
     ));
   });
 

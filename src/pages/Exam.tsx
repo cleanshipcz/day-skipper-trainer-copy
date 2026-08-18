@@ -146,9 +146,12 @@ export default function Exam() {
 
   const scored = session.submitted ? scoreExam(session.questions, session.answers, session.passMark) : null;
   if (scored) return <main className="container max-w-4xl mx-auto p-6 space-y-6">
-    <Card><CardHeader><CardTitle>{scored.passed ? "Practice pass" : "Keep practising"} — {scored.percentage}%</CardTitle></CardHeader>
+    <Card><CardHeader><CardTitle>{scored.passed ? "Overall practice pass" : "Keep practising"} — {scored.percentage}%</CardTitle></CardHeader>
       <CardContent><p>{scored.score}/{session.questions.length} correct · {Math.floor((session.elapsedSeconds ?? 0) / 60)}m {(session.elapsedSeconds ?? 0) % 60}s</p>
         <p className="text-sm text-muted-foreground mt-1">Self-assessed practice result only; this is not certification.</p>
+        {scored.safetyEvidence.status === "sampled" ? <p className="mt-2 rounded border border-amber-300 p-3 text-sm">Safety was sampled in this mixed exam. The overall result is not Safety mastery evidence; complete the dedicated 24-objective Comprehensive Safety Quiz.</p>
+          : !scored.safetyEvidence.passed ? <div className="mt-2 rounded border border-amber-300 p-3 text-sm"><p>Safety mastery was not demonstrated, regardless of the overall exam result.</p><p>Review failed leaves: {scored.safetyEvidence.failedLeaves.join(", ") || "none"}; missed critical objectives: {scored.safetyEvidence.missedCriticalIds.join(", ") || "none"}.</p></div>
+            : <p className="mt-2 rounded border p-3 text-sm">The full Safety block met its written policy; this remains non-practical, non-certifying evidence.</p>}
         <p className="text-sm mt-2">Save status: {session.saveStatus}</p>
         {user && (session.saveStatus === "failed" || session.saveStatus === "pending") &&
           <Button className="mt-2" onClick={() => void persist(session)}>Retry saving this attempt</Button>}
