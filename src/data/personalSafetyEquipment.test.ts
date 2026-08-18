@@ -312,6 +312,87 @@ describe("safetyEquipmentTopics data", () => {
     expect(guidance).toMatch(/statutory or coded-vessel requirements may also apply/i);
   });
 
+  it("teaches tether transfer without assuming every tether has two working hooks", async () => {
+    const { safetyEquipmentTopics } = await import("./personalSafetyEquipment");
+    const topic = safetyEquipmentTopics.find((item) => item.id === "harnesses-tethers")!;
+    const guidance = `${topic.description} ${topic.keyPoints.join(" ")}`;
+
+    expect(guidance).toMatch(/two-ended tether.*one working attachment/i);
+    expect(guidance).toMatch(/three-point tether.*second working leg or intermediate hook/i);
+    expect(guidance).toMatch(/clip the free working hook.*tug.*then release the previous hook/i);
+    expect(guidance).toMatch(/does not require momentary unclipping/i);
+    expect(guidance).not.toMatch(/always maintain.*unclip and re-clip one hook at a time/i);
+  });
+
+  it("keeps the wearer aboard and treats a tethered casualty as a practised recovery", async () => {
+    const { safetyEquipmentTopics } = await import("./personalSafetyEquipment");
+    const harness = safetyEquipmentTopics.find((item) => item.id === "harnesses-tethers")!;
+    const jackstay = safetyEquipmentTopics.find((item) => item.id === "jacklines")!;
+    const guidance = `${harness.description} ${harness.keyPoints.join(" ")} ${jackstay.description} ${jackstay.keyPoints.join(" ")}`;
+
+    expect(guidance).toMatch(/keep the wearer aboard wherever practicable/i);
+    expect(guidance).toMatch(/dragged alongside.*drown/i);
+    expect(guidance).toMatch(/shortest suitable working leg.*inboard route/i);
+    expect(guidance).toMatch(/practise a vessel-specific tethered-MOB recovery/i);
+    expect(guidance).toMatch(/prevent propeller exposure.*continued dragging/i);
+    expect(guidance).toMatch(/does not by itself recover/i);
+  });
+
+  it("requires verified strongpoints, safe hook loading, and retirement after load or doubt", async () => {
+    const { safetyEquipmentTopics } = await import("./personalSafetyEquipment");
+    const harness = safetyEquipmentTopics.find((item) => item.id === "harnesses-tethers")!;
+    const jackstay = safetyEquipmentTopics.find((item) => item.id === "jacklines")!;
+    const guidance = `${harness.keyPoints.join(" ")} ${jackstay.keyPoints.join(" ")}`;
+
+    expect(guidance).toMatch(/purpose-designed strongpoints or jackstays verified for the boat/i);
+    expect(guidance).toMatch(/ordinary cleats/i);
+    expect(guidance).toMatch(/self-closing hooks/i);
+    expect(guidance).toMatch(/physically tug|look at the connection and tug/i);
+    expect(guidance).toMatch(/snag.*side-load/i);
+    expect(guidance).toMatch(/overload indicator/i);
+    expect(guidance).toMatch(/retire the tether immediately.*significant load/i);
+    expect(guidance).toMatch(/loading history is in doubt/i);
+    expect(guidance).not.toMatch(/pad eyes, cleats, or dedicated jackline anchorage points/i);
+  });
+
+  it("records sources and honest review status while separating guidance, standards, and racing rules", async () => {
+    const { safetyEquipmentTopics, tetherJackstayReview, tetherJackstaySources } = await import("./personalSafetyEquipment");
+    const guidance = safetyEquipmentTopics.find((item) => item.id === "harnesses-tethers")!.keyPoints.join(" ");
+
+    expect(guidance).toMatch(/For recreational sailing/i);
+    expect(guidance).toMatch(/ISO 12401 is a product standard/i);
+    expect(guidance).toMatch(/World Sailing Offshore Special Regulations.*offshore racing/i);
+    expect(guidance).toMatch(/not as universal law/i);
+    expect(tetherJackstaySources.map((source) => source.id)).toEqual([
+      "rya-lifejackets-harnesses",
+      "world-sailing-osr-2026-2027",
+      "maib-annual-report-2019-cv30",
+    ]);
+    expect(tetherJackstayReview.sourceIds).toEqual(tetherJackstaySources.map((source) => source.id));
+    expect(tetherJackstayReview.qualifiedReview.status).toBe("pending");
+    expect(tetherJackstayReview.qualifiedReview.reviewerName).toBeNull();
+    expect(tetherJackstayReview.releaseNote).toMatch(/No qualified practitioner approval is recorded/i);
+  });
+
+  it("attributes each tether and jackstay source only to its evidenced scope", async () => {
+    const { tetherJackstayReview, tetherJackstaySources } = await import("./personalSafetyEquipment");
+    const rya = tetherJackstaySources.find((source) => source.id === "rya-lifejackets-harnesses")!;
+    const worldSailing = tetherJackstaySources.find((source) => source.id === "world-sailing-osr-2026-2027")!;
+    const maib = tetherJackstaySources.find((source) => source.id === "maib-annual-report-2019-cv30")!;
+
+    expect(rya.label).toMatch(/PFD harness attachment-point context/i);
+    expect(rya.scope).toMatch(/Recreational PFD context only/i);
+    expect(rya.scope).toMatch(/not a source for jackstay design, tether transfer, hook loading, or tethered-MOB recovery/i);
+    expect(worldSailing.label).toMatch(/sections 4\.04 and 5\.02/i);
+    expect(worldSailing.label).not.toMatch(/3\.23/);
+    expect(worldSailing.scope).toMatch(/Offshore-racing requirements/i);
+    expect(maib.scope).toMatch(/Accident evidence/i);
+    expect(tetherJackstayReview.reviewScope).toMatch(/PFD attachment-point context.*RYA/i);
+    expect(tetherJackstayReview.reviewScope).toMatch(/Tether and jackstay claims.*World Sailing.*MAIB/i);
+    expect(tetherJackstayReview.reviewScope).toMatch(/manufacturer instructions.*vessel-specific competent assessment.*recreational use/i);
+    expect(tetherJackstayReview.qualifiedReview.status).toBe("pending");
+  });
+
   it("should include servicing schedule information", async () => {
     // given
     const { safetyEquipmentTopics } = await import("./personalSafetyEquipment");

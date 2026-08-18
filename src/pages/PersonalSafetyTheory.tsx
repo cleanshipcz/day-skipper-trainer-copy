@@ -33,6 +33,8 @@ import {
   oralInflationGuidance,
   lifejacketServicingGuidance,
   lifejacketServiceSources,
+  tetherJackstayReview,
+  tetherJackstaySources,
   safetyEquipmentTopics,
 } from "@/data/personalSafetyEquipment";
 import { PersonalSafetyCheck } from "@/components/safety/PersonalSafetyCheck";
@@ -414,6 +416,25 @@ const PersonalSafetyTheory = () => {
                   </CardContent>
                 </Card>
               ))}
+
+            <Card>
+              <CardHeader><CardTitle>Tether and jackstay evidence boundaries</CardTitle></CardHeader>
+              <CardContent className="space-y-3 text-sm">
+                <p className="text-muted-foreground">
+                  Source claims checked {tetherJackstayReview.sourceCheckedOn}. Recreational PFD context,
+                  ISO 12401 product conformity, and World Sailing offshore-racing rules have different scopes.
+                  {" "}{tetherJackstayReview.releaseNote}
+                </p>
+                <ul className="list-disc space-y-2 pl-5">
+                  {tetherJackstaySources.map((source) => (
+                    <li key={source.id} className="break-words [overflow-wrap:anywhere]">
+                      <a className="text-primary underline underline-offset-4" href={source.href} target="_blank" rel="noreferrer">{source.label}</a>
+                      <span className="text-muted-foreground"> — {source.scope}</span>
+                    </li>
+                  ))}
+                </ul>
+              </CardContent>
+            </Card>
           </TabsContent>
 
           {/* ── SERVICING ────────────────────────────────────────── */}
