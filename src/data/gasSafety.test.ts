@@ -107,6 +107,41 @@ describe("gasSafety data", () => {
     expect(contentLower).toContain("colourless");
   });
 
+  it("specifies marine CO alarm standard, placement and maintenance without a generic height", async () => {
+    const { gasSafetyTopics } = await import("./gasSafety");
+    const detector = gasSafetyTopics.find(({ id }) => id === "detector-placement")!;
+    const guidance = `${detector.content} ${detector.keyPoints.join(" ")}`;
+    expect(guidance).toMatch(/BS EN 50291-2/i);
+    expect(guidance).toMatch(/certified audible.*boat-suitable|certified audible CO alarm suitable for boats/i);
+    expect(guidance).toMatch(/living and sleeping areas/i);
+    expect(guidance).toMatch(/heard|audib/i);
+    expect(guidance).toMatch(/heat.*steam/i);
+    expect(guidance).toMatch(/breathing-zone.*only.*instruct/i);
+    expect(guidance).toMatch(/no universal.*height/i);
+    expect(guidance).toMatch(/test button/i);
+    expect(guidance).toMatch(/batter/i);
+    expect(guidance).toMatch(/expiry.*end-of-life/i);
+    expect(guidance).toMatch(/never disable/i);
+  });
+
+  it("teaches complete CO prevention and ordered emergency response", async () => {
+    const { gasSafetyTopics } = await import("./gasSafety");
+    const co = gasSafetyTopics.find(({ id }) => id === "carbon-monoxide")!;
+    const guidance = `${co.content} ${co.keyPoints.join(" ")}`;
+    expect(guidance).toMatch(/competent installation and servicing/i);
+    expect(guidance).toMatch(/fixed ventilation.*flues.*exhausts/i);
+    expect(guidance).toMatch(/generators.*neighbouring craft/i);
+    expect(guidance).toMatch(/yellow flames.*sooting.*condensation/i);
+    const freshAir = guidance.indexOf("fresh air");
+    expect(freshAir).toBeGreaterThan(-1);
+    expect(guidance.indexOf("stop engines", freshAir)).toBeGreaterThan(freshAir);
+    expect(guidance.indexOf("call emergency services", freshAir)).toBeGreaterThan(freshAir);
+    expect(guidance).toMatch(/urgent medical advice/i);
+    expect(guidance).toMatch(/do not re-enter until/i);
+    expect(guidance).toMatch(/oxygen is (?:only )?for trained.*equipped responders/i);
+    expect(guidance).not.toMatch(/administer oxygen if available/i);
+  });
+
   it("should have exactly 6 topics covering all required areas", async () => {
     // given
     const { gasSafetyTopics } = await import("./gasSafety");
@@ -153,6 +188,14 @@ describe("gasSafety data", () => {
     expect(gasLockerReview.qualifiedReview.status).toBe("pending");
     expect(gasLockerReview.qualifiedReview.reviewerName).toBeNull();
     expect(gasLockerReview.releaseNote).toMatch(/No qualified practitioner approval is recorded/i);
+  });
+
+  it("exposes the verified canonical official CO source URLs", async () => {
+    const { carbonMonoxideSources } = await import("./gasSafety");
+    expect(carbonMonoxideSources.map(({ href }) => href)).toEqual([
+      "https://www.gov.uk/government/publications/fire-safety-on-boats/fire-safety-on-boats-accessible-version",
+      "https://www.boatsafetyscheme.org/stay-safe-advice/carbon-monoxide-co/",
+    ]);
   });
 
   it("teaches a complete no-ignition leak response and competent-person boundary", async () => {

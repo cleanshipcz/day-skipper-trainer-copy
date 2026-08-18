@@ -9,14 +9,17 @@ describe("GasSafetyPractice", () => {
     const { container } = render(<GasSafetyPractice onMastery={() => undefined}/>);
     expect(screen.getByRole("img", { name: /LPG accumulation and drainage/i })).toBeTruthy();
     expect(screen.getByRole("img", { name: /Safe isolation flow/i })).toBeTruthy();
-    expect(screen.getByRole("img", { name: /LPG and CO detector placement/i })).toBeTruthy();
-    expect(screen.getAllByText(/no single generic position is safe/i)).toHaveLength(2);
+    expect(screen.getByRole("img", { name: /Boat CO alarm placement/i })).toBeTruthy();
+    const placement = screen.getByRole("img", { name: /Boat CO alarm placement/i });
+    expect(placement.textContent).toMatch(/living area.*sleeping area.*audible CO alarm.*heat \/ steam.*height \/ breathing zone.*maker instructions/is);
+    expect(screen.getAllByText(/no universal height/i)).toHaveLength(2);
     expect(container.querySelector("section")?.className).toContain("min-w-0");
     expect(container.querySelector("label")?.className).toContain("min-h-11");
     expect(screen.getByRole("heading", { name: /practice source scope/i })).toBeTruthy();
     expect(screen.getByText(/no qualified practitioner approval is recorded/i)).toBeTruthy();
     expect(screen.getAllByRole("link")).toHaveLength(3);
-    expect(screen.getByRole("radio", { name: /follow dispatcher or qualified first-aid guidance/i })).toBeTruthy();
+    expect(screen.getByRole<HTMLAnchorElement>("link", { name: /UK government: Fire safety on boats/i }).href).toBe("https://www.gov.uk/government/publications/fire-safety-on-boats/fire-safety-on-boats-accessible-version");
+    expect(screen.getByRole("radio", { name: /oxygen is only for trained, equipped responders/i })).toBeTruthy();
     expect(screen.queryByText(/give first aid or oxygen/i)).toBeNull();
   });
 

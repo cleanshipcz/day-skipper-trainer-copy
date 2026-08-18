@@ -79,25 +79,29 @@ export const gasSafetyTopics: readonly GasSafetyTopic[] = [
     id: "carbon-monoxide",
     title: "Carbon Monoxide Awareness",
     content:
-      "Carbon monoxide (CO) is an odourless, colourless, and tasteless gas produced by incomplete combustion of any carbon-based fuel — including LPG, diesel, petrol, and charcoal. It is lethal in very small concentrations. Symptoms of CO poisoning include headache, dizziness, nausea, confusion, and drowsiness — often mistaken for seasickness. Ensure adequate ventilation whenever using gas appliances, heaters, or running the engine in enclosed spaces. Never block ventilation openings. Never use a gas cooker or oven for heating the cabin. CO poisoning can occur from a neighbouring vessel's exhaust in a raft-up or marina. If CO poisoning is suspected, move the casualty to fresh air immediately and administer oxygen if available.",
+      "Carbon monoxide (CO) is an odourless, colourless and tasteless gas produced by incomplete combustion of carbon-based fuels, including LPG, diesel, petrol and charcoal. Symptoms such as headache, dizziness, nausea, confusion and drowsiness can be mistaken for seasickness. Prevention starts with competent installation and servicing of fuel-burning equipment: keep fixed ventilation, flues and exhausts clear, never use a cooker or oven to heat the cabin, and investigate yellow flames, sooting or unusual condensation. Consider exhaust from engines and generators—including neighbouring craft when rafted or in a marina. If an alarm sounds or exposure is suspected, get everyone into fresh air, stop engines, generators or appliances only if this is safe, call emergency services and seek urgent medical advice. Do not re-enter until responders or another competent authority say it is safe. Supplemental oxygen is for trained, equipped responders, not an untrained crew treatment.",
     keyPoints: [
       "CO is odourless, colourless, and tasteless — you cannot detect it without an alarm",
       "Produced by incomplete combustion of any carbon-based fuel",
       "Symptoms mimic seasickness: headache, dizziness, nausea",
+      "Prevent CO through competent installation and servicing, clear fixed ventilation, flues and exhausts, and attention to yellow flames, sooting or condensation",
+      "Account for engines, generators and exhaust from neighbouring craft",
       "Never use a cooker or oven for cabin heating",
-      "Move casualties to fresh air immediately if CO poisoning is suspected",
+      "Fresh air first; stop sources only if safe, call emergency services and obtain urgent medical advice",
+      "Do not re-enter until declared safe; oxygen is only for trained and equipped responders",
     ],
   },
   {
     id: "detector-placement",
     title: "Detector Placement",
     content:
-      "Use detectors specified for the vessel and installation. LPG and CO sensors have different placement constraints: mounting height, distance from appliances, airflow, sleeping areas and environmental protection must follow the detector manufacturer and vessel instructions rather than a generic position. Test, service and replace detectors and batteries on their specified schedule. A detector supports—rather than replaces—ventilation, isolation, inspection and correct operation.",
+      "Fit a certified audible CO alarm suitable for boats and meeting BS EN 50291-2, following its manufacturer installation and location instructions. Place alarms to protect living and sleeping areas and ensure they can be heard where people sleep. Avoid positions affected by heat or steam. Use a sleeping breathing-zone position only when the alarm manufacturer specifically instructs it: there is no universal mounting height. Test routinely with the test button, check and replace batteries as instructed, note the expiry or end-of-life indication, replace the unit when due and never disable it. If it alarms, follow the fresh-air and emergency response rather than merely silencing it. LPG detectors have different requirements and must follow their own instructions. Alarms supplement rather than replace competent installation, servicing and fixed ventilation.",
     keyPoints: [
-      "Use alarms specified for the vessel, fuel and installation",
-      "Follow each alarm manufacturer's exact placement instructions",
-      "Account for airflow, appliances, sleeping spaces and environmental limits as instructed",
-      "Test, service and replace alarms and batteries on their specified schedule",
+      "Choose a certified audible boat-suitable CO alarm meeting BS EN 50291-2",
+      "Follow the manufacturer's exact placement instructions; protect living and sleeping areas and confirm audibility",
+      "Avoid heat and steam; use sleeping breathing-zone placement only where instructed—there is no universal height",
+      "Use the test button routinely, maintain batteries, heed expiry and end-of-life indications, replace when due and never disable the alarm",
+      "Treat an alarm as an emergency requiring fresh air and help, not as a device to silence",
       "Detection supplements rather than replaces ventilation, isolation and inspection",
     ],
   },
@@ -131,3 +135,8 @@ export const gasLockerReview = {
   qualifiedReview: { status: "pending", reviewerName: null, qualification: null, approvedOn: null },
   releaseNote: "No qualified practitioner approval is recorded; this lesson does not certify a locker or drain installation.",
 } as const;
+
+export const carbonMonoxideSources = [
+  { id: "gov-uk-fire-boats", label: "UK government: Fire safety on boats", href: "https://www.gov.uk/government/publications/fire-safety-on-boats/fire-safety-on-boats-accessible-version", scope: "Accessible official boat guidance covering CO alarms, escape and routine safety checks." },
+  { id: "boatsafety-co", label: "Boat Safety Scheme: Carbon monoxide", href: "https://www.boatsafetyscheme.org/stay-safe-advice/carbon-monoxide-co/", scope: "Marine alarm, installation, maintenance, symptoms and combustion warning signs." },
+] as const;

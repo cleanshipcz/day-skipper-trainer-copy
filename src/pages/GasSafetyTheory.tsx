@@ -25,7 +25,7 @@ import {
 } from "lucide-react";
 import { useProgress } from "@/hooks/useProgress";
 import { TOPIC_IDS } from "@/constants/topicRegistry";
-import { gasLockerReview, gasLockerSources, gasSafetyTopics } from "@/data/gasSafety";
+import { carbonMonoxideSources, gasLockerReview, gasLockerSources, gasSafetyTopics } from "@/data/gasSafety";
 
 import { GasLockerDrainDiagram } from "@/components/safety/GasLockerDrainDiagram";
 import { GasSafetyPractice } from "@/components/safety/GasSafetyPractice";
@@ -145,6 +145,7 @@ const GasSafetyTheory = () => {
                   </Card>
                 </>
               )}
+              {topic.id === "carbon-monoxide" && <Card><CardHeader><CardTitle className="text-base">CO source scope</CardTitle></CardHeader><CardContent className="space-y-3 text-sm"><p className="text-muted-foreground">Educational guidance checked 2026-08-12. The alarm and vessel manufacturer instructions control exact installation and operation; seek urgent professional medical advice after suspected exposure.</p><ul className="list-disc space-y-2 pl-5">{carbonMonoxideSources.map(source => <li key={source.id}><a href={source.href} target="_blank" rel="noreferrer" className="text-primary underline underline-offset-4">{source.label}</a><span className="text-muted-foreground"> — {source.scope}</span></li>)}</ul></CardContent></Card>}
             </TabsContent>
           ))}
         </Tabs>
