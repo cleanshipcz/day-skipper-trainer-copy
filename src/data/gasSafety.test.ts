@@ -124,6 +124,35 @@ describe("gasSafety data", () => {
     expect(guidance).toMatch(/never disable/i);
   });
 
+  it("gives vessel-specific marine LPG detector guidance without a blanket mandate or generic standard", async () => {
+    const { gasSafetyTopics } = await import("./gasSafety");
+    const detector = gasSafetyTopics.find(({ id }) => id === "detector-placement")!;
+    const guidance = `${detector.content} ${detector.keyPoints.join(" ")}`;
+
+    expect(guidance).toMatch(/not a universal mandate.*applicable regime/i);
+    expect(guidance).toMatch(/marine-suitable equipment/i);
+    expect(guidance).toMatch(/detector and vessel manufacturers' instructions/i);
+    expect(guidance).toMatch(/low space where leaked vapour could collect/i);
+    expect(guidance).toMatch(/bilge water.*oil.*chemicals.*damage/i);
+    expect(guidance).toMatch(/ignition-hazard.*certification/i);
+    expect(guidance).toMatch(/vapour-tight.*locker|locker.*vapour-tight/i);
+    expect(guidance).toMatch(/audible.*visible.*helm.*accommodation.*sleeping occupants.*applicable/i);
+    expect(guidance).toMatch(/solenoid interlock.*automatically isolate the LPG supply/i);
+    expect(guidance).toMatch(/which supply or branch it isolates.*alarm response.*reset procedure.*vessel and detector manufacturers' instructions/i);
+    expect(guidance).toMatch(/complete installed (?:LPG detector )?chain.*sensor.*wiring.*sounder.*solenoid/i);
+    expect(guidance).toMatch(/not merely the control-panel button/i);
+    expect(guidance).toMatch(/test and calibration intervals.*power supply.*fault indication/i);
+    expect(guidance).toMatch(/expiry or end-of-life/i);
+    expect(guidance).not.toMatch(/BS EN 50194|mount (?:the )?(?:LPG )?(?:sensor|detector) (?:at|within)|all boats must (?:have|fit)/i);
+  });
+
+  it("exposes scoped LPG detector sources without claiming practitioner approval", async () => {
+    const { lpgDetectorSources } = await import("./gasSafety");
+    expect(lpgDetectorSources.map(({ id }) => id)).toEqual(["bss-lpg-safety", "mca-mgn-280", "rya-gas-safety"]);
+    expect(lpgDetectorSources.find(({ id }) => id === "mca-mgn-280")?.scope).toMatch(/stated commercial-use scope.*not.*universal/i);
+    expect(lpgDetectorSources.map(({ scope }) => scope).join(" ")).not.toMatch(/practitioner approved|verified by.*engineer/i);
+  });
+
   it("teaches complete CO prevention and ordered emergency response", async () => {
     const { gasSafetyTopics } = await import("./gasSafety");
     const co = gasSafetyTopics.find(({ id }) => id === "carbon-monoxide")!;
