@@ -36,7 +36,7 @@ import { GasLockerDrainDiagram } from "@/components/safety/GasLockerDrainDiagram
 const TAB_CONFIG = [
   { topicId: "lpg-properties", icon: Flame, shortLabel: "LPG" },
   { topicId: "isolation-valves", icon: ToggleLeft, shortLabel: "Valves" },
-  { topicId: "bilge-sniff-test", icon: Wind, shortLabel: "Sniff Test" },
+  { topicId: "bilge-sniff-test", icon: Wind, shortLabel: "Leak Response" },
   { topicId: "gas-locker-requirements", icon: Box, shortLabel: "Locker" },
   { topicId: "carbon-monoxide", icon: AlertTriangle, shortLabel: "CO" },
   { topicId: "detector-placement", icon: Radar, shortLabel: "Detectors" },

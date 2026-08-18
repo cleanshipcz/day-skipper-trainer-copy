@@ -123,7 +123,7 @@ describe("gasSafety data", () => {
     expect(rendered).not.toMatch(/cylinders stored upright|must have an overboard drain/i);
     expect(rendered).not.toMatch(/mount low|head height|near the cooker/i);
     expect(rendered).toMatch(/manufacturer's exact placement instructions/i);
-    expect(rendered).toMatch(/vessel emergency procedure/i);
+    expect(rendered).toMatch(/summon help/i);
   });
 
   it("requires a safe continuously falling LPG locker drain and rejects below-waterline guidance", async () => {
@@ -144,11 +144,40 @@ describe("gasSafety data", () => {
 
   it("records source scope without claiming universal law or practitioner approval", async () => {
     const { gasLockerReview, gasLockerSources } = await import("./gasSafety");
-    expect(gasLockerSources.map(({ id }) => id)).toEqual(["mca-mgn-280", "rya-gas-safety"]);
+    expect(gasLockerSources.map(({ id }) => id)).toEqual(["mca-mgn-280", "rya-gas-safety", "gas-safe-boats"]);
     expect(gasLockerSources[0].scope).toMatch(/governed by the Code.*not stated as universal law/i);
+    expect(gasLockerSources.find(({ id }) => id === "gas-safe-boats")?.href).toBe(
+      "https://www.gassaferegister.co.uk/media/drxliecz/gas-on-boats-factsheet.pdf",
+    );
     expect(gasLockerReview.sourceIds).toEqual(gasLockerSources.map(({ id }) => id));
     expect(gasLockerReview.qualifiedReview.status).toBe("pending");
     expect(gasLockerReview.qualifiedReview.reviewerName).toBeNull();
     expect(gasLockerReview.releaseNote).toMatch(/No qualified practitioner approval is recorded/i);
+  });
+
+  it("teaches a complete no-ignition leak response and competent-person boundary", async () => {
+    const { gasSafetyTopics } = await import("./gasSafety");
+    const response = gasSafetyTopics.find(({ id }) => id === "bilge-sniff-test")!;
+    const guidance = `${response.content} ${response.keyPoints.join(" ")}`;
+
+    expect(guidance).toMatch(/smell.*warning|warning.*smell/i);
+    expect(guidance).toMatch(/shut the (?:LPG )?supply only if.*safe/i);
+    expect(guidance).toMatch(/electrical switch(?:es)? (?:either )?on or off|switch on or off/i);
+    expect(guidance).toMatch(/evacuat/i);
+    expect(guidance).toMatch(/through-draught/i);
+    expect(guidance).toMatch(/summon.*help/i);
+    expect(guidance).toMatch(/out of use until.*competent boat-LPG.*pressure\/leak test/i);
+    expect(guidance).toMatch(/do not handle.*move a cylinder|do not handle, disconnect or move the cylinder/i);
+  });
+
+  it("separates owner checks from competent LPG testing and repair", async () => {
+    const { gasSafetyTopics } = await import("./gasSafety");
+    const isolation = gasSafetyTopics.find(({ id }) => id === "isolation-valves")!;
+    const guidance = `${isolation.content} ${isolation.keyPoints.join(" ")}`;
+
+    expect(guidance).toMatch(/owner.*visual checks/i);
+    expect(guidance).toMatch(/bubble tester.*manufacturer/i);
+    expect(guidance).toMatch(/competent boat-LPG.*pressure.*leak testing/i);
+    expect(guidance).toMatch(/diagnosis.*repair/i);
   });
 });

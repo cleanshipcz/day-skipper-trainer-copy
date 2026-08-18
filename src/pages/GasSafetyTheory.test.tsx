@@ -45,8 +45,8 @@ describe("GasSafetyTheory", () => {
     expect(html).toContain("LPG");
     // - isolation valves tab
     expect(html).toContain("Valves");
-    // - bilge sniff test tab
-    expect(html).toContain("Sniff Test");
+    // - gas leak warning and response tab
+    expect(html).toContain("Leak Response");
     // - gas locker tab
     expect(html).toContain("Locker");
     // - carbon monoxide tab
