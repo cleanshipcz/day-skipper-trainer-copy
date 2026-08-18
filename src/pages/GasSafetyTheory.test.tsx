@@ -4,6 +4,8 @@
  * @see docs/FEATURE_TASKS.md — Story E1-S5, AC-1, AC-2, AC-3
  */
 import { describe, expect, it, vi } from "vitest";
+import { render, screen } from "@testing-library/react";
+import userEvent from "@testing-library/user-event";
 
 // Mock useProgress to avoid Supabase + auth context dependency chain
 vi.mock("@/hooks/useProgress", () => ({
@@ -13,6 +15,7 @@ vi.mock("@/hooks/useProgress", () => ({
     resetProgress: vi.fn(),
   }),
 }));
+vi.mock("@/contexts/AuthHooks", () => ({ useAuth: () => ({ user: null }) }));
 
 // Mock react-router-dom to avoid needing a Router context
 vi.mock("react-router-dom", () => ({
@@ -91,5 +94,16 @@ describe("GasSafetyTheory", () => {
     // - default tab shows LPG properties content
     expect(html).toContain("LPG Properties");
     expect(html).toContain("heavier than air");
+  });
+
+  it("labels tabs descriptively, hides their icons and supports Radix arrow-key navigation", async () => {
+    const user = userEvent.setup(); const { default: GasSafetyTheory } = await import("./GasSafetyTheory");
+    const { container } = render(<GasSafetyTheory/>);
+    const list = screen.getByRole("tablist", { name: "Gas safety lesson sections" });
+    const tabs = screen.getAllByRole("tab");
+    expect(tabs).toHaveLength(6); expect(tabs[0].getAttribute("aria-controls")).toBeTruthy();
+    expect(container.querySelectorAll('[aria-hidden="true"]')).not.toHaveLength(0);
+    tabs[0].focus(); await user.keyboard("{ArrowRight}"); expect(document.activeElement).toBe(tabs[1]);
+    expect(list.className).toContain("grid-cols-2"); expect(tabs[0].className).toContain("min-h-11");
   });
 });

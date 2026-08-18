@@ -28,6 +28,8 @@ import { TOPIC_IDS } from "@/constants/topicRegistry";
 import { gasLockerReview, gasLockerSources, gasSafetyTopics } from "@/data/gasSafety";
 
 import { GasLockerDrainDiagram } from "@/components/safety/GasLockerDrainDiagram";
+import { GasSafetyPractice } from "@/components/safety/GasSafetyPractice";
+import { useAuth } from "@/contexts/AuthHooks";
 
 /**
  * Tab configuration mapping gas safety topic IDs to their display metadata.
@@ -48,7 +50,9 @@ const GasSafetyTheory = () => {
   const fromVictualling = searchParams.get("from") === "victualling";
   const backDestination = fromVictualling ? "/victualling" : "/safety";
   const { saveProgress } = useProgress();
+  const { user } = useAuth();
   const [theoryCompleted, setTheoryCompleted] = useState(false);
+  const [, setPracticeMastery] = useState<unknown>(null);
 
   const handleMarkComplete = useCallback(() => {
     saveProgress(TOPIC_IDS.SAFETY_GAS, true, 100, 10);
@@ -67,7 +71,7 @@ const GasSafetyTheory = () => {
               aria-label="back"
               onClick={() => navigate(backDestination)}
             >
-              <ArrowLeft className="w-5 h-5" />
+              <ArrowLeft aria-hidden="true" className="w-5 h-5" />
             </Button>
             <div>
               <h1 className="text-xl font-bold">Gas Safety</h1>
@@ -83,10 +87,10 @@ const GasSafetyTheory = () => {
       <main className="container mx-auto px-4 py-8 max-w-4xl">
         <Card className="mb-6"><CardContent className="pt-6 text-sm text-muted-foreground">Apply the vessel's documented procedures, appliance and detector manufacturer instructions, competent inspection advice and applicable rules. Installation details and required checks vary; if the system is unfamiliar, damaged or suspect, isolate it and obtain competent help.</CardContent></Card>
         <Tabs defaultValue="lpg-properties" className="space-y-6">
-          <TabsList className="grid w-full grid-cols-3 lg:grid-cols-6 h-auto">
+          <TabsList aria-label="Gas safety lesson sections" className="grid h-auto w-full grid-cols-2 sm:grid-cols-3 lg:grid-cols-6">
             {TAB_CONFIG.map(({ topicId, icon: Icon, shortLabel }) => (
-              <TabsTrigger key={topicId} value={topicId} className="py-2">
-                <Icon className="w-4 h-4 mr-2" />
+              <TabsTrigger key={topicId} value={topicId} className="h-auto min-h-11 whitespace-normal py-2">
+                <Icon aria-hidden="true" className="mr-2 size-4 shrink-0" />
                 {shortLabel}
               </TabsTrigger>
             ))}
@@ -145,6 +149,8 @@ const GasSafetyTheory = () => {
           ))}
         </Tabs>
 
+        <div className="mt-10"><GasSafetyPractice evidenceOwnerKey={`${user?.id ?? "anonymous"}:gas-safety-practice-v1`} onMastery={setPracticeMastery} /></div>
+
         {/* Completion button + back navigation */}
         <div className="flex flex-col items-center gap-4 pt-12 pb-8">
           <Button
@@ -156,7 +162,7 @@ const GasSafetyTheory = () => {
           >
             {theoryCompleted ? (
               <>
-                <CheckCircle2 className="w-5 h-5" />
+                <CheckCircle2 aria-hidden="true" className="w-5 h-5" />
                 Completed
               </>
             ) : (
