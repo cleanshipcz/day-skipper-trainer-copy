@@ -1,7 +1,11 @@
 import { useNavigate } from "react-router-dom";
-import { LifeBuoy, Flame, Ship, Sparkles, Shield, Wind } from "lucide-react";
+import { LifeBuoy, Flame, Ship, Sparkles, Shield, Trophy, Wind } from "lucide-react";
 import { ModuleMenuPage } from "@/components/module-menu/ModuleMenuPage";
 import type { ModuleMenuItem } from "@/components/module-menu/types";
+import { getTopicById, TOPIC_IDS } from "@/constants/topicRegistry";
+
+const safetyQuizRoute = getTopicById(TOPIC_IDS.SAFETY)?.quizRoute;
+if (!safetyQuizRoute) throw new Error("Safety requires a registry-declared comprehensive quiz route");
 
 const safetyModules: ModuleMenuItem[] = [
   {
@@ -57,6 +61,17 @@ const safetyModules: ModuleMenuItem[] = [
     path: "/safety/gas",
     type: "learn",
     color: "from-yellow-500 to-orange-500",
+  },
+  {
+    id: TOPIC_IDS.SAFETY,
+    title: "Comprehensive Safety Quiz",
+    description: "Available now across Man Overboard, Fire Safety, Life Raft & Abandon Ship, Flares & Pyrotechnics, Personal Safety Equipment, and Gas Safety. Study the lessons first: opening them does not prove mastery; your quiz result records the assessment.",
+    icon: Trophy,
+    path: safetyQuizRoute,
+    type: "quiz",
+    badgeLabel: "Comprehensive quiz",
+    buttonLabel: "Take Comprehensive Safety Quiz",
+    color: "from-emerald-500 to-green-500",
   },
 ];
 
