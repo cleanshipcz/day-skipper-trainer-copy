@@ -35,6 +35,7 @@ import {
   lifejacketServiceSources,
   safetyEquipmentTopics,
 } from "@/data/personalSafetyEquipment";
+import { PersonalSafetyCheck } from "@/components/safety/PersonalSafetyCheck";
 
 const bestEffortRemoveQueuedMarker = (key: string | null) => {
   if (!key) return;
@@ -53,11 +54,16 @@ const PersonalSafetyTheory = () => {
   const [queuedOffline, setQueuedOffline] = useState(false);
   const [loadState, setLoadState] = useState<"loading" | "ready" | "anonymous" | "failed">("loading");
   const [saveState, setSaveState] = useState<"idle" | "saving" | "failed">("idle");
+  const [practicalMastered, setPracticalMastered] = useState(false);
   const [loadAttempt, setLoadAttempt] = useState(0);
   const activeSaveRef = useRef<symbol | null>(null);
   const ownerRef = useRef(ownerId);
   ownerRef.current = ownerId;
   const queuedMarkerKey = ownerId ? `personal-safety-completion-queued:${ownerId}` : null;
+
+  useEffect(() => {
+    setPracticalMastered(false);
+  }, [ownerId]);
 
   useEffect(() => {
     let active = true;
@@ -117,7 +123,7 @@ const PersonalSafetyTheory = () => {
   }, [loadAttempt, loadProgressDetailed, ownerId, queuedMarkerKey]);
 
   const handleMarkComplete = useCallback(async () => {
-    if (loadState !== "ready" || theoryCompleted || activeSaveRef.current) return;
+    if (loadState !== "ready" || theoryCompleted || !practicalMastered || activeSaveRef.current) return;
     const saveToken = Symbol("personal-safety-save");
     const saveOwner = ownerId;
     activeSaveRef.current = saveToken;
@@ -140,7 +146,7 @@ const PersonalSafetyTheory = () => {
         else bestEffortRemoveQueuedMarker(queuedMarkerKey);
       }
     } else setSaveState("failed");
-  }, [loadState, ownerId, queuedMarkerKey, saveProgressDetailed, theoryCompleted]);
+  }, [loadState, ownerId, practicalMastered, queuedMarkerKey, saveProgressDetailed, theoryCompleted]);
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-background via-ocean-light/10 to-background pb-20">
@@ -510,6 +516,10 @@ const PersonalSafetyTheory = () => {
           </TabsContent>
         </Tabs>
 
+        <div className="pt-10">
+          <PersonalSafetyCheck key={ownerId ?? "anonymous"} onMastery={(evidence) => setPracticalMastered(evidence !== null)} />
+        </div>
+
         {/* Completion button + back navigation */}
         <div className="flex flex-col items-center gap-4 pt-12 pb-8">
           {loadState === "anonymous" && <div role="status" className="space-y-3 rounded-md border p-4 text-center"><p>Sign in to save completion and earn progress for this lesson.</p><Button type="button" variant="outline" onClick={() => navigate("/auth")}>Sign in</Button></div>}
@@ -520,7 +530,7 @@ const PersonalSafetyTheory = () => {
             size="lg"
             className="w-full md:w-auto gap-2"
             variant={theoryCompleted ? "outline" : "default"}
-            disabled={loadState !== "ready" || theoryCompleted || saveState === "saving"}
+            disabled={loadState !== "ready" || theoryCompleted || !practicalMastered || saveState === "saving"}
             onClick={() => void handleMarkComplete()}
           >
             {theoryCompleted ? (
@@ -528,7 +538,7 @@ const PersonalSafetyTheory = () => {
                 <CheckCircle2 className="w-5 h-5" />
                 {queuedOffline ? "Queued offline" : "Completed"}
               </>
-            ) : loadState === "loading" ? "Loading progress…" : loadState === "anonymous" ? "Sign in to complete" : loadState === "failed" ? "Progress unavailable" : saveState === "saving" ? "Saving completion…" : saveState === "failed" ? "Retry saving completion" : "Mark as Complete"}
+            ) : loadState === "loading" ? "Loading progress…" : loadState === "anonymous" ? "Sign in to complete" : loadState === "failed" ? "Progress unavailable" : !practicalMastered ? "Complete the practical safety check" : saveState === "saving" ? "Saving completion…" : saveState === "failed" ? "Retry saving completion" : "Mark as Complete"}
           </Button>
           <Button
             size="lg"
