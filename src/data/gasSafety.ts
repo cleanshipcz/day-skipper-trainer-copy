@@ -63,12 +63,13 @@ export const gasSafetyTopics: readonly GasSafetyTopic[] = [
     id: "gas-locker-requirements",
     title: "Gas Locker Requirements",
     content:
-      "Store connected and spare cylinders only in the approved location provided by the vessel, secured in their designed orientation. A marine LPG locker is normally vapour-tight to the accommodation and drained overboard to open air from its low point; its design must follow the vessel specification and applicable standards. Keep drains and ventilation paths clear and inspect the locker, restraints and fittings as instructed. Never move a cylinder below decks or improvise storage to gain capacity.",
+      "Store connected and spare cylinders only in the approved cylinder enclosure, secured in their designed orientation. Current RYA recreational guidance calls for a dedicated enclosure separated from living accommodation, accessible only from outside and draining overboard. MCA LPG guidance used with MGN 280 sections 2.1–2.4 specifies, for small vessels in that Code's scope, a compartment vapour-tight to the vessel interior and a drain from the enclosure's lowest point that falls continuously without obstruction to an overboard outlet at least 75 mm above the at-rest waterline and at least 500 mm from openings into the vessel. Outside that Code's scope, treat its measurements as safety-critical design evidence rather than universal law: follow the vessel design, applicable rules and competent inspection advice, and never accept or improvise a drain outlet below the waterline.",
     keyPoints: [
-      "Use only the cylinder location approved for the vessel and installation",
-      "Keep specified drain and ventilation paths clear",
+      "Use only the approved cylinder enclosure: accessible from outside and vapour-tight to the accommodation",
+      "Trace the drain from the locker low point: it must fall continuously, remain unobstructed and discharge overboard away from hull openings",
+      "Confirm the outlet is at least 75 mm above the at-rest waterline; a below-waterline outlet is unsafe guidance",
       "Secure cylinders in their manufacturer-designed orientation",
-      "Inspect the locker, restraints and fittings as vessel instructions require",
+      "Inspect for drain blockage, corrosion or damage, sound connections, and stored items that could obstruct the low point or drain",
       "Never improvise cylinder storage or move cylinders into accommodation",
     ],
   },
@@ -99,3 +100,26 @@ export const gasSafetyTopics: readonly GasSafetyTopic[] = [
     ],
   },
 ];
+
+export const gasLockerSources = [
+  {
+    id: "mca-mgn-280",
+    label: "MCA LPG guidance used with MGN 280, sections 2.1–2.4",
+    href: "https://assets.publishing.service.gov.uk/government/uploads/system/uploads/attachment_data/file/282245/mgn280.pdf",
+    scope: "Cylinder stowage and LPG locker/drain requirements for small vessels governed by the Code; not stated as universal law for every leisure vessel.",
+  },
+  {
+    id: "rya-gas-safety",
+    label: "RYA: Gas safety on boats",
+    href: "https://www.rya.org.uk/water-safety/gas-safety/gas-safety-on-boats/",
+    scope: "Current recreational gas-safety context. Vessel documentation, equipment instructions and applicable requirements remain controlling.",
+  },
+] as const;
+
+export const gasLockerReview = {
+  contentVersion: "2026-08-12",
+  sourceCheckedOn: "2026-08-12",
+  sourceIds: gasLockerSources.map(({ id }) => id),
+  qualifiedReview: { status: "pending", reviewerName: null, qualification: null, approvedOn: null },
+  releaseNote: "No qualified practitioner approval is recorded; this lesson does not certify a locker or drain installation.",
+} as const;

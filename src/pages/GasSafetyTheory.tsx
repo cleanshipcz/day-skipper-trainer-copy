@@ -25,7 +25,9 @@ import {
 } from "lucide-react";
 import { useProgress } from "@/hooks/useProgress";
 import { TOPIC_IDS } from "@/constants/topicRegistry";
-import { gasSafetyTopics } from "@/data/gasSafety";
+import { gasLockerReview, gasLockerSources, gasSafetyTopics } from "@/data/gasSafety";
+
+import { GasLockerDrainDiagram } from "@/components/safety/GasLockerDrainDiagram";
 
 /**
  * Tab configuration mapping gas safety topic IDs to their display metadata.
@@ -109,6 +111,36 @@ const GasSafetyTheory = () => {
                   </ul>
                 </CardContent>
               </Card>
+              {topic.id === "gas-locker-requirements" && (
+                <>
+                  <GasLockerDrainDiagram />
+                  <Card>
+                    <CardHeader>
+                      <CardTitle className="text-base">Source scope and review status</CardTitle>
+                    </CardHeader>
+                    <CardContent className="space-y-3 text-sm">
+                      <p className="text-muted-foreground">
+                        Sources checked {gasLockerReview.sourceCheckedOn}. {gasLockerReview.releaseNote}
+                      </p>
+                      <ul className="list-disc space-y-2 pl-5">
+                        {gasLockerSources.map((source) => (
+                          <li key={source.id}>
+                            <a
+                              href={source.href}
+                              target="_blank"
+                              rel="noreferrer"
+                              className="text-primary underline underline-offset-4"
+                            >
+                              {source.label}
+                            </a>
+                            <span className="text-muted-foreground"> — {source.scope}</span>
+                          </li>
+                        ))}
+                      </ul>
+                    </CardContent>
+                  </Card>
+                </>
+              )}
             </TabsContent>
           ))}
         </Tabs>
