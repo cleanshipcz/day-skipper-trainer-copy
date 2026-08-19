@@ -24,6 +24,10 @@ vi.mock("@/features/offline/progressQueue", () => ({
   getQueuedProgress: vi.fn().mockResolvedValue([]),
 }));
 
+vi.mock("@/components/safety/PersonalSafetyCheck", () => ({
+  PersonalSafetyCheck: ({ onMastery }: { onMastery: () => void }) => <button onClick={onMastery}>Complete practical safety check</button>,
+}));
+
 describe("PersonalSafetyTheory Page", () => {
   beforeEach(() => {
     vi.clearAllMocks();
@@ -245,6 +249,7 @@ describe("PersonalSafetyTheory Page", () => {
     );
 
     // when - click the completion button
+    await user.click(screen.getByRole("button", { name: "Complete practical safety check" }));
     const completeButton = await screen.findByRole("button", { name: /mark as complete/i });
     await user.click(completeButton);
 
@@ -262,6 +267,7 @@ describe("PersonalSafetyTheory Page", () => {
     );
 
     // when
+    await user.click(screen.getByRole("button", { name: "Complete practical safety check" }));
     const completeButton = await screen.findByRole("button", { name: /mark as complete/i });
     await user.click(completeButton);
 
