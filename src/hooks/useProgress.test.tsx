@@ -102,6 +102,20 @@ describe("useProgress", () => {
     expect(await result.current.loadProgressDetailed("topic-a")).toEqual({ status: "missing", record: null });
   });
 
+  it("loads Sail Controls through its owner-bound RPC", async () => {
+    const row = { user_id: "user-123", topic_id: "nautical-terms-sail-controls", completed: true, score: 100 };
+    const rpc = vi.fn().mockResolvedValue({ data: [row], error: null });
+    mocks.loadProgressClient.mockResolvedValueOnce({ rpc });
+    const { result } = renderHook(() => useProgress());
+
+    await expect(result.current.loadProgressDetailed("nautical-terms-sail-controls")).resolves.toEqual({
+      status: "remote",
+      record: row,
+    });
+    expect(rpc).toHaveBeenCalledWith("load_sail_controls_progress");
+    expect(mocks.maybeSingle).not.toHaveBeenCalled();
+  });
+
   it("surfaces success toasts when save succeeds with points and completion", async () => {
     const { result } = renderHook(() => useProgress());
 

@@ -87,7 +87,13 @@ export const saveProgressRecord = async ({
     || completed !== (lightsEvidenceCount === lightsEvidenceIds.length)
     || score !== Math.round((lightsEvidenceCount / lightsEvidenceIds.length) * 100)
   )) throw new Error("Lights theory progress requires valid revisioned evidence");
-  const { data, error } = topicId === "quiz-nautical-terms-quiz"
+  const { data, error } = topicId === "nautical-terms-sail-controls"
+    ? await supabaseClient.rpc("save_sail_controls_progress", {
+      p_completed: completed,
+      p_score: score,
+      p_answers_history: answersHistory ?? {},
+    })
+    : topicId === "quiz-nautical-terms-quiz"
     ? await supabaseClient.rpc("save_nautical_terms_quiz_progress", {
       p_completed: completed,
       p_score: score,

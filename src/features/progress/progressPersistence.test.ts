@@ -36,6 +36,26 @@ const buildSupabaseMock = () => {
 };
 
 describe("saveProgressRecord", () => {
+  it("routes Sail Controls completion through its dedicated RPC", async () => {
+    const { client, rpc } = buildSupabaseMock();
+    const answersHistory = { module: "sail-controls", version: 1, score: 75 };
+    await saveProgressRecord({
+      supabaseClient: client as never,
+      userId: "user-1",
+      topicId: "nautical-terms-sail-controls",
+      completed: true,
+      score: 100,
+      pointsEarned: 75,
+      answersHistory,
+    });
+    expect(rpc).toHaveBeenCalledWith("save_sail_controls_progress", {
+      p_completed: true,
+      p_score: 100,
+      p_answers_history: answersHistory,
+    });
+    expect(rpc).not.toHaveBeenCalledWith("save_topic_progress", expect.anything());
+  });
+
   it("routes nautical terms quiz snapshots through its dedicated RPC", async () => {
     const { client, rpc } = buildSupabaseMock();
     const answersHistory = { version: 2, currentQuestion: 1, answers: ["bow", null] };

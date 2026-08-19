@@ -32,16 +32,19 @@ export const useProgress = () => {
           const { error: cleanupError } = await supabase.rpc("expire_readiness_record_progress");
           if (cleanupError) throw cleanupError;
         }
-        const { data, error } = await supabase
-          .from("user_progress")
-          .select("*")
-          .eq("user_id", user.id)
-          .eq("topic_id", topicId)
-          .maybeSingle();
+        const { data, error } = topicId === "nautical-terms-sail-controls"
+          ? await supabase.rpc("load_sail_controls_progress")
+          : await supabase
+            .from("user_progress")
+            .select("*")
+            .eq("user_id", user.id)
+            .eq("topic_id", topicId)
+            .maybeSingle();
 
         if (ownerRef.current !== user.id) return { status: "failed", record: null };
         if (error) throw error;
-        return data ? { status: "remote", record: data } : { status: "missing", record: null };
+        const record = Array.isArray(data) ? data[0] ?? null : data;
+        return record ? { status: "remote", record } : { status: "missing", record: null };
       } catch (error) {
         if (ownerRef.current !== user.id) return { status: "failed", record: null };
         console.error("Error loading progress:", error);
