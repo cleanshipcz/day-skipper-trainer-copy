@@ -319,16 +319,16 @@ const safetyQuestions: readonly Question[] = [
   },
   {
     id: "safety-gas3",
-    question: "What should you do FIRST if you smell gas below decks?",
+    question: "Before starting the engine after the yacht has been closed up, you smell LPG below. What is the safe response?",
     options: [
-      "Light a match to locate the leak",
-      "Turn off the gas at the bottle, extinguish all flames, and ventilate",
-      "Radio the Coastguard for advice",
-      "Start the engine to ventilate via the exhaust blower",
+      "Start the engine and use its blower to clear the low spaces",
+      "Switch off the battery, then move the cylinder on deck to inspect it",
+      "Do not start: isolate LPG only if safe, extinguish flames without using electrical switches, evacuate, ventilate naturally from outside and summon help",
+      "Open one hatch, then start once the smell has faded",
     ],
-    correctAnswer: 1,
+    correctAnswer: 2,
     explanation:
-      "Immediately shut off the gas at the bottle valve, extinguish all naked flames and ignition sources, and open hatches to ventilate. Never create sparks — even a light switch can ignite gas.",
+      "Smell warns of a possible leak but does not prove its source or that a space is safe when it fades. Do not operate any electrical switch on or off. Isolate only if the designated control is safely reachable, evacuate, create a natural through-draught from outside without ignition, and summon appropriate help. Keep the system out of use until a competent boat-LPG person has tested and made it safe; if a cylinder leak cannot be stopped, withdraw rather than handling or moving it.",
   },
   {
     id: "safety-gas4",

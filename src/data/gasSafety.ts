@@ -2,7 +2,7 @@
  * Gas Safety data — LPG and carbon monoxide risks aboard.
  *
  * Covers all theory areas required by RYA Day Skipper syllabus area 4 (Safety)
- * for gas safety: LPG properties, isolation valves, bilge sniff test,
+ * for gas safety: LPG properties, isolation valves, leak warning and response,
  * gas locker requirements, carbon monoxide awareness, detector placement.
  *
  * @see docs/FEATURE_TASKS.md — Story E1-S5, AC-1
@@ -24,11 +24,11 @@ export const gasSafetyTopics: readonly GasSafetyTopic[] = [
     id: "lpg-properties",
     title: "LPG Properties",
     content:
-      "Liquefied Petroleum Gas (LPG) installations may use propane, butane or another approved supply. LPG vapour is heavier than air, so a leak can collect low in the vessel and form a flammable atmosphere. LPG is colourless and is normally odorised to aid detection, but smell is not a substitute for approved detection and system checks. Fuel composition affects its flammable limits; even a small spark may ignite accumulated gas.",
+      "Liquefied Petroleum Gas (LPG) installations may use propane, butane or another approved supply. LPG vapour is heavier than air, so a leak can collect low in the vessel and form a flammable atmosphere. LPG is colourless and normally odorised: an unexpected gas smell is a warning to act on, but neither smell nor its absence proves whether the system is leaking or the space is safe. Fuel composition affects its flammable limits; even a small spark may ignite accumulated gas.",
     keyPoints: [
       "LPG vapour can collect in low spaces; use approved detection and vessel checks",
       "A fuel-specific range of LPG mixtures in air is flammable",
-      "Odour may warn of a leak but must never be the only detection method",
+      "Odour is a warning, not proof of a leak or proof that a space is safe",
       "A small spark can ignite accumulated gas",
       "Avoid ignition sources whenever gas is detected or suspected",
     ],
@@ -37,26 +37,28 @@ export const gasSafetyTopics: readonly GasSafetyTopic[] = [
     id: "isolation-valves",
     title: "Isolation Valves",
     content:
-      "Know the installation's designated isolation controls and follow the vessel shutdown procedure whenever gas is not in use. Some systems include a remote solenoid as well as cylinder isolation. Only use compatible approved components, and inspect or replace hoses, regulators and connections at the intervals specified by their manufacturer, the vessel procedure and applicable rules. Leak testing must use the approved method and competent help where required—never a naked flame.",
+      "Know the installation's designated isolation controls and follow the vessel shutdown procedure whenever gas is not in use. Some systems include a remote solenoid as well as cylinder isolation. An owner may make the routine visual checks described by the vessel and component manufacturers and use a fitted bubble tester exactly as its manufacturer directs. Those checks do not replace competent pressure or leak testing. Diagnosis, pressure testing, component replacement and repair belong to a competent boat-LPG person. Only use compatible approved components, and inspect or replace hoses, regulators and connections at their specified intervals. Never search for a leak with a naked flame.",
     keyPoints: [
       "Use the installation's designated controls and vessel shutdown procedure",
       "Follow the vessel procedure for safely isolating the supply and residual gas",
       "Use only isolation equipment approved for the installation",
       "Inspect approved hoses and components at their specified intervals",
-      "Use the approved leak-test method—never a naked flame",
+      "Limit owner checks to specified visual checks and correct use of a fitted manufacturer-approved bubble tester",
+      "Use a competent boat-LPG person for pressure/leak testing, diagnosis and repair—never use a naked flame",
     ],
   },
   {
     id: "bilge-sniff-test",
-    title: "Bilge Sniff Test",
+    title: "Leak Warning and Response",
     content:
-      "Follow the vessel's checks before starting engines or operating electrical equipment after it has been closed up. If gas is detected or suspected, do not operate switches, engines or flames. Evacuate as needed, isolate the supply only if safe, ventilate naturally from outside, follow the emergency procedure, and have the cause made safe by a competent person before reuse. Do not rely on smell alone.",
+      "Before starting an engine after the vessel has been closed up, follow its specified LPG checks and treat any detector alarm, gas smell or other sign as a suspected leak. Shut the LPG supply only if the designated control can be reached safely; extinguish flames and other ignition sources without operating electrical switches either on or off. Evacuate everyone, then from outside ventilate naturally with a through-draught, without using electrical fans or creating another ignition source, and summon the emergency or professional help the situation requires. Keep a suspected leaking system out of use until a competent boat-LPG person has pressure/leak tested it, found the cause and made it safe. If a cylinder valve or leak will not stop, do not handle, disconnect or move the cylinder through the vessel: withdraw, keep others away, raise the alarm and call the fire and rescue service or Coastguard as appropriate.",
     keyPoints: [
       "Carry out the vessel's specified pre-use gas checks",
-      "Never rely on smell alone to declare a space safe",
-      "If gas is suspected, do not operate switches, engines or flames",
-      "Evacuate as needed and isolate the supply only if it is safe to do so",
-      "Ventilate naturally from outside as directed by the vessel emergency procedure",
+      "Treat smell as a warning, never as proof for or against a leak",
+      "If gas is suspected, shut the supply only if safe and extinguish flames; operate no electrical switch on or off",
+      "Evacuate, ventilate from outside with a natural through-draught and summon help",
+      "Do not handle or move a cylinder whose leak cannot be stopped safely—withdraw and raise the alarm",
+      "Keep the system out of use until competent boat-LPG pressure/leak testing and repair make it safe",
     ],
   },
   {
@@ -113,6 +115,12 @@ export const gasLockerSources = [
     label: "RYA: Gas safety on boats",
     href: "https://www.rya.org.uk/water-safety/gas-safety/gas-safety-on-boats/",
     scope: "Current recreational gas-safety context. Vessel documentation, equipment instructions and applicable requirements remain controlling.",
+  },
+  {
+    id: "gas-safe-boats",
+    label: "Gas Safe Register: Gas safety on boats factsheet",
+    href: "https://www.gassaferegister.co.uk/media/drxliecz/gas-on-boats-factsheet.pdf",
+    scope: "Consumer guidance on recognising a suspected LPG escape, immediate precautions, owner checks and work that requires a suitably competent Gas Safe registered engineer.",
   },
 ] as const;
 
