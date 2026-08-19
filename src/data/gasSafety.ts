@@ -99,12 +99,18 @@ export const gasSafetyTopics: readonly GasSafetyTopic[] = [
     id: "detector-placement",
     title: "Detector Placement",
     content:
-      "Fit a certified audible CO alarm suitable for boats and meeting BS EN 50291-2, following its manufacturer installation and location instructions. Place alarms to protect living and sleeping areas and ensure they can be heard where people sleep. Avoid positions affected by heat or steam. Use a sleeping breathing-zone position only when the alarm manufacturer specifically instructs it: there is no universal mounting height. Test routinely with the test button, check and replace batteries as instructed, note the expiry or end-of-life indication, replace the unit when due and never disable it. If it alarms, follow the fresh-air and emergency response rather than merely silencing it. LPG detectors have different requirements and must follow their own instructions. Alarms supplement rather than replace competent installation, servicing and fixed ventilation.",
+      "Fit a certified audible CO alarm suitable for boats and meeting BS EN 50291-2, following its manufacturer installation and location instructions. Place CO alarms to protect living and sleeping areas and ensure they can be heard where people sleep. Avoid positions affected by heat or steam. Use a sleeping breathing-zone position only when the alarm manufacturer specifically instructs it: there is no universal mounting height. Test a CO alarm routinely with its test button and maintain it as instructed. An LPG detector is a separate aid, not a universal mandate for every craft: establish whether one is required or recommended for the vessel, its use and the applicable regime, then choose marine-suitable equipment for that installation. A competent installer must follow the detector and vessel manufacturers' instructions when locating each LPG sensor in a low space where leaked vapour could collect. The head must remain clear of bilge water, oil, cleaning chemicals, mechanical damage and other contaminants, and any equipment in an ignition-hazard area must have the certification required for that location. Do not drill, cable through or mount equipment in a way that compromises the cylinder locker's vapour-tight separation from the vessel interior, and do not introduce uncertified electrical equipment into the locker. Arrange audible and, where provided, visible indication so an alarm reaches the helm, accommodation and sleeping occupants as applicable to the vessel. Where the installation includes a solenoid interlock, an alarm may automatically isolate the LPG supply; which supply or branch it isolates, its alarm response and its reset procedure must follow the vessel and detector manufacturers' instructions. Test the complete installed LPG detector chain only by the detector manufacturer's approved method—including each sensor, wiring, sounder/indicator and any linked solenoid—not merely the control-panel button. Follow the specified test and calibration intervals, keep its power supply and fault indication serviceable, and replace sensors, batteries or the whole unit at the stated expiry or end-of-life. Never expose a sensor to lighter gas or another improvised test source. If either alarm operates, follow the relevant emergency response rather than merely silencing it. Detection supplements rather than replaces competent installation, servicing, isolation and fixed ventilation.",
     keyPoints: [
       "Choose a certified audible boat-suitable CO alarm meeting BS EN 50291-2",
       "Follow the manufacturer's exact placement instructions; protect living and sleeping areas and confirm audibility",
       "Avoid heat and steam; use sleeping breathing-zone placement only where instructed—there is no universal height",
-      "Use the test button routinely, maintain batteries, heed expiry and end-of-life indications, replace when due and never disable the alarm",
+      "Establish the vessel and regime-specific need for an LPG detector; choose marine-suitable equipment rather than assuming a universal mandate or generic standard",
+      "Put LPG sensor heads where gas could collect low down, while protecting them from bilge water, oil, chemicals, contamination and damage",
+      "Preserve locker vapour-tightness and use only electrical equipment appropriately certified for any ignition-hazard location",
+      "Confirm audible/visible indication reaches the helm, accommodation and sleeping occupants as applicable",
+      "A fitted solenoid interlock may automatically isolate the LPG supply; what it isolates, alarm response and reset follow the vessel and detector manufacturers' instructions",
+      "Test the complete sensor-to-alarm and linked-solenoid chain by the manufacturer's approved method—not just the panel button",
+      "Maintain power and fault indication; test, calibrate and replace sensors, batteries or units at manufacturer-specified intervals and end-of-life—never disable an alarm",
       "Treat an alarm as an emergency requiring fresh air and help, not as a device to silence",
       "Detection supplements rather than replaces ventilation, isolation and inspection",
     ],
@@ -176,4 +182,25 @@ export const gasWorkBoundaries = {
 export const carbonMonoxideSources = [
   { id: "gov-uk-fire-boats", label: "UK government: Fire safety on boats", href: "https://www.gov.uk/government/publications/fire-safety-on-boats/fire-safety-on-boats-accessible-version", scope: "Accessible official boat guidance covering CO alarms, escape and routine safety checks." },
   { id: "boatsafety-co", label: "Boat Safety Scheme: Carbon monoxide", href: "https://www.boatsafetyscheme.org/stay-safe-advice/carbon-monoxide-co/", scope: "Marine alarm, installation, maintenance, symptoms and combustion warning signs." },
+] as const;
+
+export const lpgDetectorSources = [
+  {
+    id: "bss-lpg-safety",
+    label: "Boat Safety Scheme: LPG safety aboard",
+    href: "https://www.boatsafetyscheme.org/stay-safe-advice/lpg/",
+    scope: "Official scheme safety advice: LPG alarms are an additional precaution, not a substitute for sound installation, ventilation, inspection and safe operation.",
+  },
+  {
+    id: "mca-mgn-280",
+    label: "MCA MGN 280: Small vessels in commercial use",
+    href: "https://assets.publishing.service.gov.uk/government/uploads/system/uploads/attachment_data/file/282245/mgn280.pdf",
+    scope: "Code requirements apply only to vessels within its stated commercial-use scope; they must not be presented as a universal leisure-craft detector mandate.",
+  },
+  {
+    id: "rya-gas-safety",
+    label: "RYA: Gas safety on boats",
+    href: "https://www.rya.org.uk/water-safety/gas-safety/gas-safety-on-boats/",
+    scope: "Current recreational gas-safety context; vessel documentation, detector instructions and applicable requirements control selection, installation and maintenance.",
+  },
 ] as const;
