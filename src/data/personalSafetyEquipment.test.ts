@@ -437,6 +437,46 @@ describe("safetyEquipmentTopics data", () => {
   });
 });
 
+describe("lifejacket emergency and recovery guidance", () => {
+  it("covers purpose, checks, and use of all four emergency features", async () => {
+    const { lifejacketEmergencyFeatures } = await import("./personalSafetyEquipment");
+    expect(lifejacketEmergencyFeatures.map(({ id }) => id)).toEqual(["whistle", "light", "retroreflective", "sprayhood"]);
+    const guidance = lifejacketEmergencyFeatures.map((feature) => `${feature.purpose} ${feature.preUse} ${feature.emergencyUse}`).join(" ");
+    expect(guidance).toMatch(/repeated blasts/i);
+    expect(guidance).toMatch(/battery expiry/i);
+    expect(guidance).toMatch(/does not generate light/i);
+    expect(guidance).toMatch(/reduces inhalation of spray/i);
+  });
+
+  it("separates tether and manufacturer-approved recovery points", async () => {
+    const { lifejacketAttachmentGuidance } = await import("./personalSafetyEquipment");
+    expect(lifejacketAttachmentGuidance.harness).toMatch(/safety tether.*not automatically a lifting point/i);
+    expect(lifejacketAttachmentGuidance.recovery).toMatch(/separate, manufacturer-identified point/i);
+    expect(lifejacketAttachmentGuidance.warning).toMatch(/Never lift by the bladder.*ordinary harness\/tether point/i);
+  });
+
+  it("makes beacon selection capability- and vessel-specific", async () => {
+    const { personalBeaconChecks, personalBeaconScenarios } = await import("./personalSafetyEquipment");
+    const guidance = `${personalBeaconScenarios.map(({ choice }) => choice).join(" ")} ${personalBeaconChecks.join(" ")}`;
+    expect(guidance).toMatch(/AIS-MOB.*own boat.*nearby AIS-equipped vessels/i);
+    expect(guidance).toMatch(/406 MHz PLB with GNSS.*search-and-rescue.*satellites/i);
+    expect(guidance).toMatch(/registered and\/or programmed/i);
+    expect(guidance).toMatch(/self-test.*never transmit a live distress alert/i);
+    expect(guidance).toMatch(/battery or service expiry/i);
+    expect(guidance).toMatch(/without.*impairing lifejacket inflation/i);
+  });
+
+  it("records authoritative scope without fabricating practitioner approval", async () => {
+    const { lifejacketEmergencyReview, lifejacketEmergencySources } = await import("./personalSafetyEquipment");
+    expect(lifejacketEmergencySources.map(({ id }) => id)).toEqual(expect.arrayContaining(["rya-lifejacket-guidance", "mca-personal-emergency-radio-devices", "mca-register-406-beacons", "mca-mgn-665-amendment-1", "cospas-sarsat-system-documents", "maib-safety-digest-2012-1-case-26", "world-sailing-osr-2026-2027-5-01"]));
+    expect(lifejacketEmergencySources.find(({ id }) => id === "world-sailing-osr-2026-2027-5-01")!.scope).toMatch(/Offshore-racing.*not universal law/i);
+    expect(lifejacketEmergencyReview.sourceIds).toEqual(lifejacketEmergencySources.map(({ id }) => id));
+    expect(lifejacketEmergencyReview.qualifiedReview.status).toBe("pending");
+    expect(lifejacketEmergencyReview.qualifiedReview.reviewerName).toBeNull();
+    expect(lifejacketEmergencyReview.releaseNote).toMatch(/No qualified practitioner approval is recorded/i);
+  });
+});
+
 describe("LIFE_JACKET_IDS constants", () => {
   it("should export LIFE_JACKET_IDS object with all 4 buoyancy level IDs", async () => {
     // given

@@ -26,13 +26,19 @@ import {
 import { useProgress } from "@/hooks/useProgress";
 import { TOPIC_IDS } from "@/constants/topicRegistry";
 import { getQueuedProgress } from "@/features/offline/progressQueue";
-import { isCurrentPersonalSafetyMastery } from "@/components/safety/personalSafetyMastery";
+import { isCurrentPersonalSafetyMastery, type PersonalSafetyMastery } from "@/components/safety/personalSafetyMastery";
 import {
   lifeJacketTypes,
   inflationMethods,
   oralInflationGuidance,
   lifejacketServicingGuidance,
   lifejacketServiceSources,
+  lifejacketEmergencyFeatures,
+  lifejacketAttachmentGuidance,
+  personalBeaconScenarios,
+  personalBeaconChecks,
+  lifejacketEmergencyReview,
+  lifejacketEmergencySources,
   tetherJackstayReview,
   tetherJackstaySources,
   safetyEquipmentTopics,
@@ -57,14 +63,19 @@ const PersonalSafetyTheory = () => {
   const [loadState, setLoadState] = useState<"loading" | "ready" | "anonymous" | "failed">("loading");
   const [saveState, setSaveState] = useState<"idle" | "saving" | "failed">("idle");
   const [practicalMastered, setPracticalMastered] = useState(false);
+  const [practicalEvidence, setPracticalEvidence] = useState<PersonalSafetyMastery | null>(null);
+  const practicalEvidenceRef = useRef<PersonalSafetyMastery | null>(null);
+  practicalEvidenceRef.current = practicalEvidence;
   const [loadAttempt, setLoadAttempt] = useState(0);
   const activeSaveRef = useRef<symbol | null>(null);
   const ownerRef = useRef(ownerId);
   ownerRef.current = ownerId;
-  const queuedMarkerKey = ownerId ? `personal-safety-completion-queued:${ownerId}` : null;
+  const queuedMarkerKey = ownerId ? `personal-safety-completion-queued:personal-safety-practical-v2:${ownerId}` : null;
 
   useEffect(() => {
     setPracticalMastered(false);
+    setPracticalEvidence(null);
+    practicalEvidenceRef.current = null;
   }, [ownerId]);
 
   useEffect(() => {
@@ -114,7 +125,12 @@ const PersonalSafetyTheory = () => {
         } else setLoadState("failed");
         return;
       }
-      const remotelyCompleted = result.status === "remote" && Boolean(result.record.completed);
+      const savedEvidence = result.status === "remote" ? result.record.answers_history?.personalSafetyMastery : null;
+      const currentEvidence = isCurrentPersonalSafetyMastery(savedEvidence) ? savedEvidence : null;
+      const remotelyCompleted = result.status === "remote" && Boolean(result.record.completed) && currentEvidence !== null;
+      const effectiveEvidence = practicalEvidenceRef.current ?? currentEvidence;
+      setPracticalEvidence(effectiveEvidence);
+      setPracticalMastered(effectiveEvidence !== null);
       setTheoryCompleted(remotelyCompleted || locallyQueued);
       setQueuedOffline(!remotelyCompleted && locallyQueued);
       if (remotelyCompleted) bestEffortRemoveQueuedMarker(queuedMarkerKey);
@@ -132,7 +148,7 @@ const PersonalSafetyTheory = () => {
     setSaveState("saving");
     let result: Awaited<ReturnType<typeof saveProgressDetailed>> = "failed";
     try {
-      result = await saveProgressDetailed(TOPIC_IDS.SAFETY_PERSONAL, true, 100, 10);
+      result = await saveProgressDetailed(TOPIC_IDS.SAFETY_PERSONAL, true, 100, 10, { personalSafetyMastery: practicalEvidence });
     } catch {
       result = "failed";
     } finally {
@@ -148,7 +164,7 @@ const PersonalSafetyTheory = () => {
         else bestEffortRemoveQueuedMarker(queuedMarkerKey);
       }
     } else setSaveState("failed");
-  }, [loadState, ownerId, practicalMastered, queuedMarkerKey, saveProgressDetailed, theoryCompleted]);
+  }, [loadState, ownerId, practicalEvidence, practicalMastered, queuedMarkerKey, saveProgressDetailed, theoryCompleted]);
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-background via-ocean-light/10 to-background pb-20">
@@ -260,6 +276,53 @@ const PersonalSafetyTheory = () => {
                   before conditions deteriorate, and always attach the kill
                   cord when at the helm.
                 </p>
+              </CardContent>
+            </Card>
+
+            <Card>
+              <CardHeader>
+                <CardTitle>Emergency features: find and check them before use</CardTitle>
+                <CardDescription>Locations and operation vary by model. Open only what the maker permits, and practise with the actual lifejacket instructions.</CardDescription>
+              </CardHeader>
+              <CardContent className="space-y-5">
+                <figure className="rounded-lg border bg-muted/30 p-4" aria-labelledby="lifejacket-features-caption">
+                  <svg viewBox="0 0 760 480" role="img" aria-labelledby="lifejacket-diagram-title lifejacket-diagram-desc" aria-describedby="lifejacket-feature-key" className="h-auto w-full" preserveAspectRatio="xMidYMid meet">
+                    <title id="lifejacket-diagram-title">Inflated lifejacket emergency-feature positions</title>
+                    <desc id="lifejacket-diagram-desc">Front view of an inflated horseshoe lifejacket. Numbered positional leader lines identify the sprayhood over the head, emergency light high on the wearer's left lobe, retroreflective patches on both upper lobes, and whistle low on the wearer's right lobe. Exact positions vary by manufacturer.</desc>
+                    <g fill="none" stroke="currentColor" strokeWidth="5" strokeLinejoin="round">
+                      <circle cx="380" cy="105" r="42" />
+                      <path d="M315 95 Q380 28 445 95 L432 150 Q420 190 456 350 Q420 405 380 425 Q340 405 304 350 Q340 190 328 150Z" fill="hsl(var(--muted))" />
+                      <path d="M333 105 Q380 52 427 105 L420 145 Q380 120 340 145Z" fill="hsl(var(--background))" />
+                      <path d="M330 76 Q380 34 430 76 L445 120 Q380 88 315 120Z" strokeDasharray="8 6" />
+                      <path d="M326 140l45 36M434 140l-45 36" strokeWidth="12" />
+                      <rect x="407" y="172" width="25" height="32" rx="5" fill="hsl(var(--background))" />
+                      <circle cx="330" cy="298" r="13" fill="hsl(var(--background))" />
+                    </g>
+                    <g aria-hidden="true" fill="currentColor" fontSize="28" fontWeight="700" textAnchor="middle">
+                      <path d="M315 82H115" stroke="currentColor" strokeWidth="4" /><circle cx="315" cy="82" r="7" /><circle cx="82" cy="82" r="27" fill="hsl(var(--background))" stroke="currentColor" strokeWidth="4" /><text x="82" y="92">1</text>
+                      <path d="M420 187H645" stroke="currentColor" strokeWidth="4" /><circle cx="420" cy="187" r="7" /><circle cx="678" cy="187" r="27" fill="hsl(var(--background))" stroke="currentColor" strokeWidth="4" /><text x="678" y="197">2</text>
+                      <path d="M345 158H115" stroke="currentColor" strokeWidth="4" /><circle cx="345" cy="158" r="7" /><circle cx="82" cy="158" r="27" fill="hsl(var(--background))" stroke="currentColor" strokeWidth="4" /><text x="82" y="168">3</text>
+                      <path d="M330 298H115" stroke="currentColor" strokeWidth="4" /><circle cx="330" cy="298" r="7" /><circle cx="82" cy="298" r="27" fill="hsl(var(--background))" stroke="currentColor" strokeWidth="4" /><text x="82" y="308">4</text>
+                    </g>
+                  </svg>
+                  <ol id="lifejacket-feature-key" className="mt-4 grid list-none gap-2 p-0 text-sm sm:grid-cols-2" aria-label="Lifejacket diagram callout key">
+                    <li className="rounded-md border bg-background p-3"><strong>1 — Sprayhood:</strong> over the head and inflated lobes.</li>
+                    <li className="rounded-md border bg-background p-3"><strong>2 — Emergency light:</strong> high on the illustrated wearer&apos;s left lobe.</li>
+                    <li className="rounded-md border bg-background p-3"><strong>3 — Retroreflective material:</strong> patches on both upper lobes.</li>
+                    <li className="rounded-md border bg-background p-3"><strong>4 — Whistle:</strong> reachable low on the illustrated wearer&apos;s right lobe.</li>
+                  </ol>
+                  <figcaption id="lifejacket-features-caption" className="mt-3 text-sm text-muted-foreground">Labelled feature map for the inflated lifejacket: whistle and emergency light must be reachable and exposed; retroreflective patches face searchers; the sprayhood covers the head and inflated lobes without obscuring the airway or light. Exact positions are manufacturer-specific.</figcaption>
+                </figure>
+                <div className="grid gap-4 md:grid-cols-2">
+                  {lifejacketEmergencyFeatures.map((feature) => (
+                    <section key={feature.id} aria-labelledby={`feature-${feature.id}`} className="rounded-lg border p-4">
+                      <h3 id={`feature-${feature.id}`} className="font-semibold">{feature.name}</h3>
+                      <p className="mt-2 text-sm text-muted-foreground">{feature.purpose}</p>
+                      <p className="mt-2 text-sm"><strong>Before use:</strong> {feature.preUse}</p>
+                      <p className="mt-2 text-sm"><strong>In the water:</strong> {feature.emergencyUse}</p>
+                    </section>
+                  ))}
+                </div>
               </CardContent>
             </Card>
           </TabsContent>
@@ -418,6 +481,33 @@ const PersonalSafetyTheory = () => {
               ))}
 
             <Card>
+              <CardHeader><CardTitle>Attachment points: stay attached versus recover</CardTitle></CardHeader>
+              <CardContent className="space-y-3 text-sm">
+                <p><strong>Harness / tether attachment:</strong> {lifejacketAttachmentGuidance.harness}</p>
+                <p><strong>Lifting / recovery loop:</strong> {lifejacketAttachmentGuidance.recovery}</p>
+                <p className="rounded-md border border-destructive/30 bg-destructive/5 p-3"><strong>Do not improvise:</strong> {lifejacketAttachmentGuidance.warning}</p>
+              </CardContent>
+            </Card>
+
+            <Card>
+              <CardHeader><CardTitle>PLB or AIS-MOB? Match the alert path to the passage</CardTitle><CardDescription>Names do not guarantee capabilities. Read the current model specification and confirm fit with the activity, vessel, radios, displays, and rescue plan.</CardDescription></CardHeader>
+              <CardContent className="space-y-4 text-sm">
+                <div className="grid gap-3 md:grid-cols-3">
+                  {personalBeaconScenarios.map((scenario) => <section key={scenario.title} className="rounded-lg border p-3"><h3 className="font-semibold">{scenario.title}</h3><p className="mt-2 text-muted-foreground">{scenario.choice}</p></section>)}
+                </div>
+                <ul className="list-disc space-y-2 pl-5">{personalBeaconChecks.map((check) => <li key={check}>{check}</li>)}</ul>
+              </CardContent>
+            </Card>
+
+            <Card>
+              <CardHeader><CardTitle>Lifejacket emergency-feature evidence boundaries</CardTitle></CardHeader>
+              <CardContent className="space-y-3 text-sm">
+                <p className="text-muted-foreground">Sources checked {lifejacketEmergencyReview.sourceCheckedOn}. World Sailing OSR section 5.01 is an offshore-racing requirement within its categories, not universal law. For an ordinary Day Skipper passage, use it proportionately alongside the passage risk assessment, RYA guidance, actual equipment instructions, vessel fit, and applicable law. {lifejacketEmergencyReview.releaseNote}</p>
+                <ul className="list-disc space-y-2 pl-5">{lifejacketEmergencySources.map((source) => <li key={source.id}><a className="text-primary underline underline-offset-4" href={source.href} target="_blank" rel="noreferrer">{source.label}</a><span className="text-muted-foreground"> — {source.scope}</span></li>)}</ul>
+              </CardContent>
+            </Card>
+
+            <Card>
               <CardHeader><CardTitle>Tether and jackstay evidence boundaries</CardTitle></CardHeader>
               <CardContent className="space-y-3 text-sm">
                 <p className="text-muted-foreground">
@@ -538,7 +628,7 @@ const PersonalSafetyTheory = () => {
         </Tabs>
 
         <div className="pt-10">
-          <PersonalSafetyCheck key={ownerId ?? "anonymous"} onMastery={(evidence) => setPracticalMastered(evidence !== null)} />
+          <PersonalSafetyCheck key={`${ownerId ?? "anonymous"}:${practicalEvidence?.revision ?? "new"}`} initialEvidence={practicalEvidence} onMastery={(evidence) => { practicalEvidenceRef.current = evidence; setPracticalEvidence(evidence); setPracticalMastered(evidence !== null); }} />
         </div>
 
         {/* Completion button + back navigation */}

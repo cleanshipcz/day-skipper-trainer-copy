@@ -1,16 +1,10 @@
 import { useId, useRef, useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-
-export const PERSONAL_SAFETY_CHECK_REVISION = "personal-safety-practical-v1";
+import { isCurrentPersonalSafetyMastery, PERSONAL_SAFETY_CHECK_REVISION, type PersonalSafetyMastery } from "./personalSafetyMastery";
 
 type Answer = { id: string; label: string; correct?: boolean; feedback: string };
 type Scenario = { id: string; title: string; prompt: string; answers: Answer[] };
-
-export type PersonalSafetyMastery = {
-  revision: typeof PERSONAL_SAFETY_CHECK_REVISION;
-  masteredScenarioIds: string[];
-};
 
 const scenarios: Scenario[] = [
   { id: "pfd", title: "Choose the PFD", prompt: "A crew member in waterproof clothing will sail offshore in rough weather. What is the safest selection process?", answers: [
@@ -33,13 +27,18 @@ const scenarios: Scenario[] = [
     { id: "operator", label: "Test the cut-off system as instructed, attach the serviceable cord to the operator at the specified point, and carry the correct spare.", correct: true, feedback: "Correct. Reattach it whenever the operator changes; it should stop the engine if the operator is thrown clear, reducing risk rather than guaranteeing safety." },
     { id: "pocket", label: "Keep it in a pocket and pull it manually after an emergency begins.", feedback: "Not safe. The system depends on the cord already being attached while the engine is operated." },
   ]},
+  { id: "beacon", title: "Personal beacon", prompt: "A coastal yacht carries AIS displays and compatible DSC radio, but the crew may also sail remotely. How should personal alerting equipment be selected and fitted?", answers: [
+    { id: "ais-all", label: "Choose any AIS-MOB; the name guarantees GNSS, DSC, satellite alerting, and automatic safe deployment on every lifejacket.", feedback: "Not safe. Capabilities and compatibility are model-specific, AIS-MOB is not a 406 MHz satellite PLB, and installation must be approved for the lifejacket." },
+    { id: "fit", label: "Match PLB and/or AIS-MOB alert paths and stated GNSS/AIS/DSC capabilities to the activity, vessel, receivers and rescue plan; register or program, test and fit each exactly as approved.", correct: true, feedback: "Correct. Also check battery and service expiry, and verify the installation cannot impair inflation or obscure other emergency features." },
+    { id: "plb-display", label: "Choose any PLB because every PLB automatically appears as an AIS target on the yacht's display.", feedback: "Not safe. A 406 MHz GNSS PLB alerts search and rescue through satellites; it does not inherently transmit an AIS-MOB target." },
+  ]},
 ];
 
 const SafetyDiagram = () => (
   <figure className="min-w-0 rounded-lg border bg-muted/30 p-3 forced-colors:border-[CanvasText]">
     <svg viewBox="0 0 640 210" role="img" aria-labelledby="personal-safety-diagram-title personal-safety-diagram-desc" className="h-auto w-full max-w-full">
       <title id="personal-safety-diagram-title">Personal safety equipment decision sequence</title>
-      <desc id="personal-safety-diagram-desc">Four panels show selecting and fitting a lifejacket, inspecting its mechanism and straps, clipping a short tether to a deck jackline, and attaching a kill cord to the helm operator.</desc>
+      <desc id="personal-safety-diagram-desc">Four illustrated panels show selecting and fitting a lifejacket, inspecting its mechanism and straps, clipping a short tether to a deck jackline, and attaching a kill cord to the helm operator; the caption adds the personal-beacon decision.</desc>
       <g fill="none" stroke="currentColor" strokeWidth="4" strokeLinecap="round" strokeLinejoin="round">
         <path d="M25 180h125M185 180h125M345 180h125M505 180h110" />
         <path d="M65 58c20-17 42-17 62 0l-8 75H73zM85 58l11 25 11-25M96 83v70" />
@@ -50,21 +49,24 @@ const SafetyDiagram = () => (
     </svg>
     <figcaption className="mt-3 text-sm text-muted-foreground">
       <span>A practical sequence:</span>
-      <ol className="mt-2 grid min-w-0 list-decimal gap-2 pl-5 sm:grid-cols-2 lg:grid-cols-4">
+      <ol className="mt-2 grid min-w-0 list-decimal gap-2 pl-5 sm:grid-cols-2 lg:grid-cols-5">
         <li className="break-words">Select and fit the right PFD.</li>
         <li className="break-words">Inspect its serviceable parts.</li>
         <li className="break-words">Clip on early to suitable points.</li>
         <li className="break-words">Attach the kill cord before starting.</li>
+        <li className="break-words">Match and check the personal alert path.</li>
       </ol>
     </figcaption>
   </figure>
 );
 
-export function PersonalSafetyCheck({ onMastery }: { onMastery: (evidence: PersonalSafetyMastery | null) => void }) {
+export function PersonalSafetyCheck({ onMastery, initialEvidence = null }: { onMastery: (evidence: PersonalSafetyMastery | null) => void; initialEvidence?: PersonalSafetyMastery | null }) {
   const groupPrefix = useId();
   const masteryEmitted = useRef(false);
-  const [answers, setAnswers] = useState<Record<string, string>>({});
-  const [submitted, setSubmitted] = useState<Record<string, boolean>>({});
+  const restored = isCurrentPersonalSafetyMastery(initialEvidence);
+  const [answers, setAnswers] = useState<Record<string, string>>(() => restored ? Object.fromEntries(scenarios.map((scenario) => [scenario.id, scenario.answers.find((answer) => answer.correct)!.id])) : {});
+  const [submitted, setSubmitted] = useState<Record<string, boolean>>(() => restored ? Object.fromEntries(scenarios.map((scenario) => [scenario.id, true])) : {});
+  masteryEmitted.current = masteryEmitted.current || restored;
   const mastered = scenarios.filter((scenario) => scenario.answers.find((answer) => answer.id === answers[scenario.id])?.correct && submitted[scenario.id]).map((scenario) => scenario.id);
 
   const check = (scenario: Scenario) => {

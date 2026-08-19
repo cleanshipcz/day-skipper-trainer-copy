@@ -142,6 +142,39 @@ export type Database = {
         }
         Relationships: []
       }
+      personal_safety_legacy_progress: {
+        Row: {
+          archived_at: string
+          award_receipt_preserved: boolean
+          previous_answers_history: Json | null
+          previous_completed: boolean
+          previous_last_accessed: string | null
+          previous_score: number
+          schema_version: number
+          user_id: string
+        }
+        Insert: {
+          archived_at?: string
+          award_receipt_preserved: boolean
+          previous_answers_history?: Json | null
+          previous_completed: boolean
+          previous_last_accessed?: string | null
+          previous_score: number
+          schema_version?: number
+          user_id: string
+        }
+        Update: {
+          archived_at?: string
+          award_receipt_preserved?: boolean
+          previous_answers_history?: Json | null
+          previous_completed?: boolean
+          previous_last_accessed?: string | null
+          previous_score?: number
+          schema_version?: number
+          user_id?: string
+        }
+        Relationships: []
+      }
       profiles: {
         Row: {
           avatar_url: string | null

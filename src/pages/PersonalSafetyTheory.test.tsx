@@ -16,7 +16,8 @@ vi.mock("@/hooks/useProgress", () => ({
 vi.mock("@/features/offline/progressQueue", () => ({ getQueuedProgress: offlineQueue.get }));
 
 vi.mock("@/components/safety/PersonalSafetyCheck", () => ({
-  PersonalSafetyCheck: ({ onMastery }: { onMastery: (value: object | null) => void }) => <div><button onClick={() => onMastery({ revision: "test", masteredScenarioIds: [] })}>Complete practical safety check</button><button onClick={() => onMastery(null)}>Change mastered answer</button></div>,
+  isCurrentPersonalSafetyMastery: (value: unknown) => Boolean(value && typeof value === "object" && (value as { revision?: string }).revision === "personal-safety-practical-v2" && (value as { masteredScenarioIds?: string[] }).masteredScenarioIds?.length === 5),
+  PersonalSafetyCheck: ({ onMastery }: { onMastery: (value: object | null) => void }) => <div><button onClick={() => onMastery({ revision: "personal-safety-practical-v2", masteredScenarioIds: ["pfd", "fit", "tether", "kill-cord", "beacon"] })}>Complete practical safety check</button><button onClick={() => onMastery(null)}>Change mastered answer</button></div>,
 }));
 
 import PersonalSafetyTheory from "./PersonalSafetyTheory";
@@ -89,12 +90,40 @@ describe("PersonalSafetyTheory lifejacket guidance", () => {
     expect(screen.getByText(/clip the free working hook.*physically tug.*then release the previous hook/i)).toBeTruthy();
     expect(screen.getByText(/can be dragged alongside.*drown before recovery succeeds/i)).toBeTruthy();
     expect(screen.getByText(/practise a vessel-specific tethered-MOB recovery/i)).toBeTruthy();
-    expect(screen.getByText(/No qualified practitioner approval is recorded/i)).toBeTruthy();
+    expect(screen.getAllByText(/No qualified practitioner approval is recorded/i)).toHaveLength(2);
     expect(screen.getByRole("link", { name: /PFD harness attachment-point context/i })).toBeTruthy();
-    expect(screen.getByRole("link", { name: /World Sailing Offshore Special Regulations/i }).getAttribute("href")).toMatch(/^https:\/\/media\.sailing\.org\//);
+    expect(screen.getAllByRole("link", { name: /World Sailing Offshore Special Regulations/i }).every((link) => link.getAttribute("href")?.startsWith("https://media.sailing.org/"))).toBe(true);
     expect(screen.getByRole("link", { name: /World Sailing.*sections 4\.04 and 5\.02/i })).toBeTruthy();
     expect(screen.getByText(/not a source for jackstay design, tether transfer, hook loading, or tethered-MOB recovery/i)).toBeTruthy();
     expect(screen.getByRole("link", { name: /MAIB Annual Report 2019/i }).getAttribute("href")).toMatch(/^https:\/\/assets\.publishing\.service\.gov\.uk\//);
+  });
+
+  it("teaches emergency features, recovery points, and beacon selection with scoped sources", async () => {
+    const user = userEvent.setup();
+    render(<MemoryRouter><PersonalSafetyTheory /></MemoryRouter>);
+
+    expect(screen.getByRole("heading", { name: /Emergency features/i })).toBeTruthy();
+    const diagram = screen.getByRole("img", { name: /Inflated lifejacket emergency-feature positions/i });
+    expect(diagram.getAttribute("viewBox")).toBe("0 0 760 480");
+    expect(diagram.querySelectorAll("path").length).toBeGreaterThanOrEqual(8);
+    expect(screen.getByText(/Front view of an inflated horseshoe lifejacket.*Positional leader lines/i, { selector: "desc" })).toBeTruthy();
+    expect(diagram.getAttribute("aria-describedby")).toBe("lifejacket-feature-key");
+    const calloutKey = screen.getByRole("list", { name: /Lifejacket diagram callout key/i });
+    expect(calloutKey.querySelectorAll("li")).toHaveLength(4);
+    expect(calloutKey.textContent).toMatch(/2 — Emergency light:.*wearer's left lobe/i);
+    expect(calloutKey.textContent).toMatch(/4 — Whistle:.*wearer's right lobe/i);
+    expect(screen.getByText(/Labelled feature map.*whistle and emergency light/i)).toBeTruthy();
+    expect(screen.getByText(/Returns a searchlight beam.*does not generate light/i)).toBeTruthy();
+    expect(screen.getByText(/Reduces inhalation of spray/i)).toBeTruthy();
+
+    await user.click(screen.getByRole("tab", { name: "Equipment" }));
+    expect(screen.getByText(/harness point is for attaching the safety tether.*not automatically a lifting point/i)).toBeTruthy();
+    expect(screen.getByText(/lifting or recovery loop is a separate, manufacturer-identified point/i)).toBeTruthy();
+    expect(screen.getByText(/406 MHz PLB with GNSS.*satellites/i)).toBeTruthy();
+    expect(screen.getByText(/Use only the maker's self-test.*never transmit a live distress alert/i)).toBeTruthy();
+    expect(screen.getByText(/World Sailing OSR section 5\.01 is an offshore-racing requirement.*not universal law/i)).toBeTruthy();
+    expect(screen.getAllByText(/No qualified practitioner approval is recorded/i)).toHaveLength(2);
+    expect(screen.getByRole("link", { name: /MAIB Safety Digest 1\/2012, case 26/i })).toBeTruthy();
   });
 });
 
@@ -123,7 +152,7 @@ describe("PersonalSafetyTheory completion", () => {
     expect(progress.save).not.toHaveBeenCalled();
   });
   it("hydrates an existing signed-in completion and prevents another award", async () => {
-    progress.load.mockResolvedValue({ status: "remote", record: { completed: true } });
+    progress.load.mockResolvedValue({ status: "remote", record: { completed: true, answers_history: { personalSafetyMastery: { revision: "personal-safety-practical-v2", masteredScenarioIds: ["pfd", "fit", "tether", "kill-cord", "beacon"] } } } });
     render(<MemoryRouter><PersonalSafetyTheory /></MemoryRouter>);
 
     const button = await screen.findByRole("button", { name: "Completed" });
@@ -145,7 +174,21 @@ describe("PersonalSafetyTheory completion", () => {
     expect(progress.save).toHaveBeenCalledTimes(1);
     resolveSave("remote");
     expect(((await screen.findByRole("button", { name: "Completed" })) as HTMLButtonElement).disabled).toBe(true);
-    expect(progress.save).toHaveBeenCalledWith("safety-personal", true, 100, 10);
+    expect(progress.save).toHaveBeenCalledWith("safety-personal", true, 100, 10, { personalSafetyMastery: { revision: "personal-safety-practical-v2", masteredScenarioIds: ["pfd", "fit", "tether", "kill-cord", "beacon"] } });
+  });
+
+  it("does not restore a legacy v1 completion or bypass v2 beacon mastery", async () => {
+    progress.load.mockResolvedValue({ status: "remote", record: { completed: true, answers_history: { personalSafetyMastery: { revision: "personal-safety-practical-v1", masteredScenarioIds: ["pfd", "fit", "tether", "kill-cord"] } } } });
+    render(<MemoryRouter><PersonalSafetyTheory /></MemoryRouter>);
+    expect((await screen.findByRole("button", { name: "Complete the practical safety check" }) as HTMLButtonElement).disabled).toBe(true);
+    expect(screen.queryByRole("button", { name: "Completed" })).toBeNull();
+  });
+
+  it("restores auditable v2 mastery evidence and completed state", async () => {
+    progress.load.mockResolvedValue({ status: "remote", record: { completed: true, answers_history: { personalSafetyMastery: { revision: "personal-safety-practical-v2", masteredScenarioIds: ["pfd", "fit", "tether", "kill-cord", "beacon"] } } } });
+    render(<MemoryRouter><PersonalSafetyTheory /></MemoryRouter>);
+    expect(((await screen.findByRole("button", { name: "Completed" })) as HTMLButtonElement).disabled).toBe(true);
+    expect(progress.save).not.toHaveBeenCalled();
   });
 
   it("offers an actionable sign-in path without attempting a write", async () => {
@@ -209,12 +252,12 @@ describe("PersonalSafetyTheory completion", () => {
   });
 
   it("rejects and clears a stale or forged queued marker without a matching durable entry", async () => {
-    localStorage.setItem("personal-safety-completion-queued:learner-a", "true");
+    localStorage.setItem("personal-safety-completion-queued:personal-safety-practical-v2:learner-a", "true");
     render(<MemoryRouter><PersonalSafetyTheory /></MemoryRouter>);
 
     expect((await screen.findByRole("button", { name: "Complete the practical safety check" }) as HTMLButtonElement).disabled).toBe(true);
     expect(screen.queryByText(/queued offline/i)).toBeNull();
-    expect(localStorage.getItem("personal-safety-completion-queued:learner-a")).toBeNull();
+    expect(localStorage.getItem("personal-safety-completion-queued:personal-safety-practical-v2:learner-a")).toBeNull();
     expect(offlineQueue.get).toHaveBeenCalledWith("learner-a");
   });
 
@@ -230,12 +273,12 @@ describe("PersonalSafetyTheory completion", () => {
       completed: true, score: 100, pointsEarned: 10, updatedAt: 1, revision: 1,
       attempts: 0, status: "pending", answersHistory: personalSafetyMastery ? { personalSafetyMastery } : undefined,
     }]);
-    localStorage.setItem("personal-safety-completion-queued:learner-a", "true");
+    localStorage.setItem("personal-safety-completion-queued:personal-safety-practical-v2:learner-a", "true");
     render(<MemoryRouter><PersonalSafetyTheory /></MemoryRouter>);
 
     expect((await screen.findByRole("button", { name: "Complete the practical safety check" }) as HTMLButtonElement).disabled).toBe(true);
     expect(screen.queryByText(/queued offline/i)).toBeNull();
-    expect(localStorage.getItem("personal-safety-completion-queued:learner-a")).toBeNull();
+    expect(localStorage.getItem("personal-safety-completion-queued:personal-safety-practical-v2:learner-a")).toBeNull();
   });
 
   it("continues safely when localStorage access is denied", async () => {

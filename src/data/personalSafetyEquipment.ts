@@ -216,6 +216,121 @@ export const tetherJackstayReview = {
     "No qualified practitioner approval is recorded. This lesson supports learning only and does not certify a tether system, installation, recovery plan, or crew competence.",
 } as const;
 
+export const lifejacketEmergencyFeatures = [
+  {
+    id: "whistle",
+    name: "Whistle",
+    purpose: "Attracts nearby attention when voice alone may be lost in wind, waves, darkness, or exhaustion.",
+    preUse: "Confirm it is present, secured where the wearer can reach it after inflation, unobstructed, and works by the maker's permitted check.",
+    emergencyUse: "Give repeated blasts when rescuers may be within hearing; conserve effort and combine it with visual and radio distress signals.",
+  },
+  {
+    id: "light",
+    name: "Emergency light",
+    purpose: "Helps searchers locate the wearer at night or in poor visibility; it does not replace an alerting beacon.",
+    preUse: "Check secure positioning, status indicator or maker-approved test, battery expiry, lens condition, and that inflation will leave it visible above water.",
+    emergencyUse: "Ensure the light has activated or switch it on as its instructions require, then keep it clear of the sprayhood and clothing.",
+  },
+  {
+    id: "retroreflective",
+    name: "Retroreflective material",
+    purpose: "Returns a searchlight beam towards its source, making the inflated lifejacket easier to pick out; it does not generate light.",
+    preUse: "Check the patches are present, clean, securely bonded, and not covered or badly degraded.",
+    emergencyUse: "Keep the patches exposed towards likely searchers and use them alongside the whistle, light, beacon, and other available signals.",
+  },
+  {
+    id: "sprayhood",
+    name: "Sprayhood",
+    purpose: "Reduces inhalation of spray and breaking water, which can threaten a casualty even when the lifejacket supports the airway.",
+    preUse: "Confirm the hood is fitted, undamaged, accessible after inflation, correctly packed, and that the wearer has practised deploying it safely.",
+    emergencyUse: "After inflation and once breathing is stable, pull it over the head and inflated lobes as instructed, keeping the airway, light, and visibility clear.",
+  },
+] as const;
+
+export const lifejacketAttachmentGuidance = {
+  harness:
+    "The harness D-ring or other manufacturer-identified harness point is for attaching the safety tether to keep the wearer connected to the vessel. It is not automatically a lifting point.",
+  recovery:
+    "A lifting or recovery loop is a separate, manufacturer-identified point intended to help recover an inflated casualty. Its position, load direction, compatible lifting strop, and whether it may lift the person are product-specific: rescuers must use only the method approved for that exact lifejacket.",
+  warning:
+    "Never lift by the bladder, cover, oral tube, whistle cord, light, sprayhood, crotch strap, or an ordinary harness/tether point unless the manufacturer expressly identifies that component for recovery. Brief and practise the vessel's recovery system before departure.",
+} as const;
+
+export const personalBeaconScenarios = [
+  {
+    title: "Coastal crew on an AIS-equipped yacht",
+    choice: "An AIS-MOB device compatible with the vessel's receivers can rapidly alert the own boat and nearby AIS-equipped vessels; some units also initiate DSC, but only with the stated compatible equipment and programming.",
+  },
+  {
+    title: "Solo or remote activity beyond immediate vessel recovery",
+    choice: "A 406 MHz PLB with GNSS can alert the international search-and-rescue system through satellites. It must be correctly registered to the user or authority required for the operating area; it does not by itself put an AIS target on the yacht's display.",
+  },
+  {
+    title: "Mixed crew, charter boat, or changing waters",
+    choice: "Select from the whole activity and vessel plan: operating area, likely rescuers, time to detection, carriage and activation method, GNSS position capability, AIS/DSC compatibility where applicable, and local registration or programming rules. Carrying both types may address different alert paths, but one device should never be assumed to provide every function.",
+  },
+] as const;
+
+export const personalBeaconChecks = [
+  "Before departure, confirm the device is registered and/or programmed as required, identity and emergency-contact data are current, and vessel displays/radios support the advertised AIS or DSC function.",
+  "Use only the maker's self-test procedure and interval—never transmit a live distress alert as a test. Check test result, battery or service expiry, seals, antenna, attachment, and any stated replacement after activation or excessive testing.",
+  "Install or attach the beacon exactly as approved for the combined beacon and lifejacket. It must remain retained and deploy or activate as intended without puncturing, snagging, obstructing, or otherwise impairing lifejacket inflation, oral inflation, light, sprayhood, or recovery fittings.",
+] as const;
+
+export const lifejacketEmergencySources = [
+  {
+    id: "rya-lifejacket-guidance",
+    label: "RYA: Life Jackets and Buoyancy Aids",
+    href: "https://www.rya.org.uk/water-safety/lifejacket-safety/lifejackets-and-buoyancy-aids/",
+    scope: "Current recreational guidance on lifejacket selection, fit, features, harness points, care, and compatible personal location equipment.",
+  },
+  {
+    id: "mca-personal-emergency-radio-devices",
+    label: "MCA: Personal Emergency Radio Devices",
+    href: "https://assets.publishing.service.gov.uk/media/5a81dea8ed915d74e34007fb/10672-MCGA-Personal-Emergency-Radio-Devices.pdf",
+    scope: "Official comparison of 406 MHz Cospas-Sarsat, AIS, DSC, and homing alert paths; activity selection, manufacturer setup/attachment instructions, and manufacturer-prescribed testing only. It does not establish a particular model's capabilities or battery life.",
+  },
+  {
+    id: "mca-register-406-beacons",
+    label: "MCA: Register a UK 406 MHz beacon",
+    href: "https://www.gov.uk/register-406-beacons",
+    scope: "Current UK registration and update service, required identity, emergency-contact, and vessel/radio details; not a source for AIS-MOB registration or product installation.",
+  },
+  {
+    id: "mca-mgn-665-amendment-1",
+    label: "MCA MGN 665 (M+F) Amendment 1: EPIRB and PLB registration",
+    href: "https://www.gov.uk/government/publications/mgn-665-mf-amendment-1-mandatory-registration-of-epirbs-and-plbs/mgn-665-mf-amendment-1-mandatory-registration-of-epirbs-and-plbs-used-on-uk-registered-ships-hovercraft-and-watercraft",
+    scope: "Current UK legal scope for registering carried 406 MHz PLBs, 406 MHz satellite alerting, GNSS coding context, and keeping details current; not evidence of AIS or DSC capability.",
+  },
+  {
+    id: "cospas-sarsat-system-documents",
+    label: "Cospas-Sarsat: official system documents",
+    href: "https://www.cospas-sarsat.int/en/documents-pro/system-documents",
+    scope: "Primary system specifications and beacon-regulation handbook for compliant 406 MHz distress beacons; technical reference, not consumer installation instructions for a lifejacket.",
+  },
+  {
+    id: "maib-safety-digest-2012-1-case-26",
+    label: "MAIB Safety Digest 1/2012, case 26",
+    href: "https://assets.publishing.service.gov.uk/media/547c6f8ce5274a428d0000b7/Safety_Digest_1-2012.pdf",
+    scope: "Accident lesson on recovery difficulty and the importance of knowing and using the lifejacket's intended lifting arrangement.",
+  },
+  {
+    id: "world-sailing-osr-2026-2027-5-01",
+    label: "World Sailing Offshore Special Regulations 2026–2027, section 5.01",
+    href: "https://media.sailing.org/sailing/wp-content/uploads/2025/12/05110802/WS_Offshore_Special-Regulations_2026-2027_v1_wcover.pdf",
+    scope: "Offshore-racing personal-flotation requirements within stated race categories; a useful benchmark, not universal law for leisure Day Skipper passages.",
+  },
+] as const;
+
+export const lifejacketEmergencyReview = {
+  contentVersion: "2026-08-12",
+  sourceCheckedOn: "2026-08-12",
+  sourceIds: lifejacketEmergencySources.map((source) => source.id),
+  reviewScope: "Emergency-feature and recovery claims were compared with the listed RYA guidance and MAIB accident lesson; racing scope with World Sailing OSR; beacon alert-path, registration, and testing claims with the listed Cospas-Sarsat and MCA material. No individual beacon manual or lifejacket/beacon pairing was reviewed, so model capability, battery/expiry limits, programming, and installation remain manufacturer- and vessel-specific.",
+  qualifiedReview: { status: "pending", reviewerName: null, qualification: null, approvedOn: null, reviewedCommit: null },
+  releaseNote: "No qualified practitioner approval is recorded. This is proportionate Day Skipper learning guidance, not certification of a lifejacket, beacon installation, or recovery system.",
+} as const;
+
 // ── Safety Equipment Topics ────────────────────────────────────────────────
 
 export interface SafetyEquipmentTopic {
