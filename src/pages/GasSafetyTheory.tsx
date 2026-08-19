@@ -28,6 +28,7 @@ import { TOPIC_IDS } from "@/constants/topicRegistry";
 import { carbonMonoxideSources, gasLockerReview, gasLockerSources, gasSafetyTopics } from "@/data/gasSafety";
 
 import { GasLockerDrainDiagram } from "@/components/safety/GasLockerDrainDiagram";
+import { MarineLpgInstallationGuide } from "@/components/safety/MarineLpgInstallationGuide";
 import { GasSafetyPractice } from "@/components/safety/GasSafetyPractice";
 import { isCurrentGasSafetyMastery, type GasSafetyMastery } from "@/components/safety/gasSafetyMastery";
 import { getQueuedProgress } from "@/features/offline/progressQueue";
@@ -243,6 +244,7 @@ const GasSafetyTheory = () => {
                   </ul>
                 </CardContent>
               </Card>
+              {topic.id === "isolation-valves" && <MarineLpgInstallationGuide />}
               {topic.id === "gas-locker-requirements" && (
                 <>
                   <GasLockerDrainDiagram />

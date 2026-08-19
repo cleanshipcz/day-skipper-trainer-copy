@@ -179,8 +179,8 @@ describe("gasSafety data", () => {
 
   it("records source scope without claiming universal law or practitioner approval", async () => {
     const { gasLockerReview, gasLockerSources } = await import("./gasSafety");
-    expect(gasLockerSources.map(({ id }) => id)).toEqual(["mca-mgn-280", "rya-gas-safety", "gas-safe-boats"]);
-    expect(gasLockerSources[0].scope).toMatch(/governed by the Code.*not stated as universal law/i);
+    expect(gasLockerSources.map(({ id }) => id)).toEqual(["rya-rcr-gas", "rya-installation-maintenance", "mca-mgn-280", "rya-gas-safety", "gas-safe-boats"]);
+    expect(gasLockerSources.find(({ id }) => id === "mca-mgn-280")?.scope).toMatch(/governed by the Code.*not stated as universal law/i);
     expect(gasLockerSources.find(({ id }) => id === "gas-safe-boats")?.href).toBe(
       "https://www.gassaferegister.co.uk/media/drxliecz/gas-on-boats-factsheet.pdf",
     );
@@ -222,5 +222,35 @@ describe("gasSafety data", () => {
     expect(guidance).toMatch(/bubble tester.*manufacturer/i);
     expect(guidance).toMatch(/competent boat-LPG.*pressure.*leak testing/i);
     expect(guidance).toMatch(/diagnosis.*repair/i);
+  });
+
+  it("teaches RCR and ISO 10239-oriented installation and appliance controls", async () => {
+    const { gasSafetyTopics } = await import("./gasSafety");
+    const guidance = gasSafetyTopics.map(({ content, keyPoints }) => `${content} ${keyPoints.join(" ")}`).join(" ");
+    expect(guidance).toMatch(/vapour-withdrawal system/i);
+    expect(guidance).toMatch(/upright.*secured.*rough weather/i);
+    expect(guidance).toMatch(/each appliance.*(?:distribution )?branch and closing device/i);
+    expect(guidance).toMatch(/cylinder\/main supply valve.*appliance branch closing device.*installation-specific secondary tap/i);
+    expect(guidance).toMatch(/flame supervision/i);
+    expect(guidance).toMatch(/fixed ventilation/i);
+    expect(guidance).toMatch(/intended for LPG and the marine environment.*manufacturer/i);
+    expect(guidance).toMatch(/RYA RCR\/ISO overview.*ISO 10239:2014.*EN 16129 Annex M.*marked.*Marine/i);
+    expect(guidance).toMatch(/not verified.*ISO 10239:2025/i);
+    expect(guidance).not.toMatch(/current ISO 10239 guidance/i);
+  });
+
+  it("scopes user maintenance, competent work and rented-boat obligations", async () => {
+    const { gasUserRoutine, gasWorkBoundaries } = await import("./gasSafety");
+    const routine = [...gasUserRoutine.preUse, ...gasUserRoutine.shutdown].join(" ");
+    const boundaries = Object.values(gasWorkBoundaries).join(" ");
+    expect(routine).toMatch(/bubble tester.*manufacturer/i);
+    expect(routine).toMatch(/leak-detection fluid/i);
+    expect(routine).toMatch(/rough weather.*isolate at the cylinder/i);
+    expect(routine).toMatch(/any secondary or master control the installation provides.*cylinder or designated main supply valve.*vessel and manufacturer procedure/i);
+    expect(boundaries).toMatch(/pressure\/tightness testing.*servicing.*diagnosis.*repair/i);
+    expect(boundaries).toMatch(/not a blanket rule for every private pleasure craft/i);
+    expect(boundaries).toMatch(/hired out as a business.*Gas Safe registered engineer/i);
+    expect(boundaries).toMatch(/rented boat.*Gas Safety Record/i);
+    expect(`${routine} ${boundaries}`).not.toMatch(/annual DIY|DIY joint test/i);
   });
 });
