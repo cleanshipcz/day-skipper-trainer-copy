@@ -6,7 +6,8 @@ import { Label } from "@/components/ui/label";
 import { Button } from "@/components/ui/button";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Ship, Mail, Lock, User } from "lucide-react";
-import { supabase } from "@/integrations/supabase/client";
+import { SUPABASE_URL, supabase } from "@/integrations/supabase/client";
+import { reportAuthFailure } from "@/features/auth/authFailure";
 import { toast } from "sonner";
 import { z } from "zod";
 import { useAuth } from "@/contexts/AuthHooks";
@@ -77,8 +78,8 @@ const Auth = () => {
     } catch (error) {
       if (error instanceof z.ZodError) {
         toast.error(error.issues[0].message);
-      } else if (error instanceof Error) {
-        toast.error(error.message);
+      } else {
+        toast.error(reportAuthFailure(error, SUPABASE_URL));
       }
     } finally {
       setIsLoading(false);
@@ -106,8 +107,8 @@ const Auth = () => {
     } catch (error) {
       if (error instanceof z.ZodError) {
         toast.error(error.issues[0].message);
-      } else if (error instanceof Error) {
-        toast.error(error.message);
+      } else {
+        toast.error(reportAuthFailure(error, SUPABASE_URL));
       }
     } finally {
       setIsLoading(false);
