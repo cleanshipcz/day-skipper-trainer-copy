@@ -230,9 +230,10 @@ describe("FLARE_IDS constants", () => {
 });
 
 describe("flare qualified-review release contract", () => {
-  it("keeps pending and every partial evidence record blocked", async () => {
+  it("releases under the waiver while rejecting incomplete review evidence", async () => {
     const { flareQualifiedReview, flareReview, isFlareContentReleased, isFlareQualifiedReviewComplete } = await import("./flareTypes");
-    expect(isFlareContentReleased).toBe(false);
+    expect(isFlareContentReleased).toBe(true);
+    expect(flareReview.practitionerReviewWaived).toBe(true);
     expect(isFlareQualifiedReviewComplete(flareQualifiedReview, flareReview.contentVersion)).toBe(false);
     const almostComplete = { reviewerName: "Qualified reviewer", qualification: "Relevant maritime qualification", reviewedOn: "2026-08-12", reviewedCommit: "abc123", approvedContentVersion: flareReview.contentVersion, status: "approved" as const, sourceIds: [] };
     for (const key of ["reviewerName", "qualification", "reviewedOn", "reviewedCommit", "approvedContentVersion"] as const) {

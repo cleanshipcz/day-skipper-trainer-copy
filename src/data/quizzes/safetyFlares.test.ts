@@ -1,7 +1,7 @@
 import { describe, expect, it } from "vitest";
 import questions, { FLARE_QUIZ_CATALOGUE_REVISION, FLARE_QUIZ_OUTCOME_MAP, FLARE_QUIZ_REVIEW_METADATA } from "./safetyFlares";
 
-describe("review-gated flares quiz", () => {
+describe("sourced flares quiz", () => {
   it("uses stable versioned identities with complete objective traceability", () => {
     expect(FLARE_QUIZ_CATALOGUE_REVISION).toBe("safety-flares-applied-v2");
     expect(new Set(questions.map(({ id }) => id)).size).toBe(questions.length);
@@ -14,10 +14,12 @@ describe("review-gated flares quiz", () => {
     }
   });
 
-  it("keeps release approval fail-closed and cites the inherited source model", () => {
-    expect(FLARE_QUIZ_REVIEW_METADATA.status).toBe("release-blocked-pending-qualified-maritime-review");
+  it("records the explicit review waiver and cites the inherited source model", () => {
+    expect(FLARE_QUIZ_REVIEW_METADATA.status).toBe("released-under-explicit-practitioner-review-waiver");
     expect(FLARE_QUIZ_REVIEW_METADATA.sourceBasis.length).toBeGreaterThan(0);
-    expect(questions.every(({ explanation }) => /qualified maritime approval remains pending/i.test(explanation))).toBe(true);
+    expect(questions.every(({ prerequisite }) => /sourced Flares lesson/i.test(prerequisite))).toBe(true);
+    expect(questions.every(({ explanation }) => /practitioner review was explicitly waived/i.test(explanation))).toBe(true);
+    expect(questions.every(({ explanation }) => /no practitioner approval is claimed/i.test(explanation))).toBe(true);
   });
 
   it("removes universal duration and launch-angle claims and supplies a non-colour recognition equivalent", () => {

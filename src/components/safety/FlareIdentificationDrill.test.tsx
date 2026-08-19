@@ -77,7 +77,7 @@ describe("FlareIdentificationDrill", () => {
     await user.click(screen.getByRole("button", { name: /retry completion save/i }));
     expect((await screen.findByRole("button", { name: /completion queued/i }) as HTMLButtonElement).disabled).toBe(true);
     expect(complete).toHaveBeenCalledTimes(1);
-    expect(progress.saveProgressDetailed).toHaveBeenLastCalledWith("safety-flares-drill", true, 100, 10, expect.objectContaining({ revision: FLARE_DRILL_REVISION, mastered: true }));
+    expect(progress.saveProgressDetailed).toHaveBeenLastCalledWith("safety-flares-drill", true, 100, 10, expect.objectContaining({ revision: FLARE_DRILL_REVISION, mastered: true, qualifiedReview: "waived; no practitioner approval claimed" }));
   });
 
   it("restores owner-scoped, revisioned remote evidence without saving or callback", async () => {
@@ -91,7 +91,7 @@ describe("FlareIdentificationDrill", () => {
 
   it("fails release closed without loading, storage access, save or award", async () => {
     const getItem = vi.spyOn(Storage.prototype, "getItem"); const complete = vi.fn();
-    render(<FlareIdentificationDrill onComplete={complete} />);
+    render(<FlareIdentificationDrill reviewApproved={false} onComplete={complete} />);
     expect(screen.getByRole("status").textContent).toMatch(/release blocked/i);
     expect(progress.loadProgressDetailed).not.toHaveBeenCalled(); expect(progress.saveProgressDetailed).not.toHaveBeenCalled();
     expect(getItem).not.toHaveBeenCalled(); expect(complete).not.toHaveBeenCalled();
