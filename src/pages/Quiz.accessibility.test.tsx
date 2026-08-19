@@ -22,7 +22,7 @@ vi.mock("@/hooks/useProgress", () => ({ useProgress: () => mocks }));
 vi.mock("@/integrations/supabase/client", () => ({ supabase: { rpc: mocks.rpc } }));
 vi.mock("sonner", () => ({ toast: { success: mocks.toastSuccess, error: vi.fn() } }));
 vi.mock("@/data/quizzes", () => ({
-  isQuizTopicId: (topic: string) => ["test", "anchorwork", "engine", "nautical-terms-quiz", "ropework", "lights-signals", "colregs", "weather", "safety-mob-quiz", "safety"].includes(topic),
+  isQuizTopicId: (topic: string) => ["test", "anchorwork", "engine", "nautical-terms-quiz", "ropework", "lights-signals", "colregs", "weather", "safety-mob-quiz", "safety-flares-quiz", "safety"].includes(topic),
   topicMeta: {
     test: { title: "A very long localized quiz title that must reflow", subtitle: "Long localized supporting text" },
     "nautical-terms-quiz": { title: "Full Nautical Terms Quiz", subtitle: "Terms" },
@@ -33,6 +33,7 @@ vi.mock("@/data/quizzes", () => ({
     colregs: { title: "Combined Rules Diagnostic", subtitle: "Rules" },
     weather: { title: "Meteorology Quiz", subtitle: "Weather" },
     "safety-mob-quiz": { title: "Man Overboard Applied Recovery Check", subtitle: "12 applied scenarios" },
+    "safety-flares-quiz": { title: "Flares Applied Assessment", subtitle: "Recognition and selection" },
     safety: { title: "Comprehensive Safety Quiz", subtitle: "24 objectives" },
   },
   loadQuizTopic: mocks.loadQuizTopic,
@@ -97,18 +98,20 @@ describe("Quiz accessible interaction and reflow", () => {
     expect(screen.getByRole("button", { name: "Back to Life Raft lesson" })).toBeTruthy();
   });
 
-  it("withholds corrected flare questions and all progress work pending qualified maritime review", async () => {
+  it("releases corrected flare questions under the waiver without claiming practitioner approval", async () => {
     mocks.user = { id: "flare-gate-user" };
+    mocks.loadQuizTopic.mockResolvedValue([{ id: "flare-waiver-q1", question: "Which flare-learning claim is supportable?", options: ["This written quiz proves practical competence", "It assesses written recognition and selection only"], correctAnswer: 1, explanation: "Practitioner review was explicitly waived for this delivery; no practitioner approval is claimed.", learningObjective: "State the written assessment limit", prerequisite: "Review the sourced Flares lesson", remediationRoute: "/safety/flares" }]);
+    const user = userEvent.setup();
     renderQuiz("/quiz/safety-flares-quiz");
-    expect(screen.getByTestId("flare-quiz-release-gate")).toBeTruthy();
-    expect(screen.getByText(/reviewed commit and complete source evidence/i)).toBeTruthy();
-    expect(screen.queryByText(questions[0].question)).toBeNull();
-    expect(screen.getByRole("button", { name: "Back to Flares lesson" })).toBeTruthy();
-    await new Promise((resolve) => setTimeout(resolve, 0));
-    expect(mocks.loadQuizTopic).not.toHaveBeenCalled();
-    expect(mocks.loadProgress).not.toHaveBeenCalled();
-    expect(mocks.saveProgress).not.toHaveBeenCalled();
-    expect(mocks.rpc).not.toHaveBeenCalled();
+    expect(await screen.findByText("Which flare-learning claim is supportable?")).toBeTruthy();
+    expect(screen.queryByTestId("flare-quiz-release-gate")).toBeNull();
+    expect(screen.getByText(/Prerequisite: Review the sourced Flares lesson/i)).toBeTruthy();
+    await waitFor(() => expect(mocks.loadProgress).toHaveBeenCalled());
+    await user.click(screen.getByRole("radio", { name: "It assesses written recognition and selection only" }));
+    await user.click(screen.getByRole("button", { name: "Submit Answer" }));
+    expect(screen.getByText(/practitioner review was explicitly waived/i)).toBeTruthy();
+    expect(screen.getByText(/no practitioner approval is claimed/i)).toBeTruthy();
+    expect(mocks.loadQuizTopic).toHaveBeenCalledWith("safety-flares-quiz");
   });
 
   it("does not start, hydrate, seed or persist an authenticated gated Life Raft attempt", async () => {

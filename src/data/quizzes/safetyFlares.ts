@@ -24,13 +24,13 @@ export const FLARE_QUIZ_PASS_POLICY = {
 
 export const FLARE_QUIZ_REVIEW_METADATA = {
   model: "src/data/flareTypes.ts",
-  status: "release-blocked-pending-qualified-maritime-review",
+  status: "released-under-explicit-practitioner-review-waiver",
   sourceBasis: FLARE_QUIZ_REVIEW_BASIS,
 } as const;
 
-const prerequisite = "Review the qualified-review-gated Flares lesson, the exact products carried and the vessel's distress plan first.";
+const prerequisite = "Review the sourced Flares lesson, the exact products carried and the vessel's distress plan first.";
 const remediationRoute = "/safety/flares";
-const sourceNote = "Source/review basis: flareTypes reviewed model and FLARE_QUIZ_REVIEW_BASIS; qualified maritime approval remains pending.";
+const sourceNote = "Source/review basis: flareTypes reviewed model and FLARE_QUIZ_REVIEW_BASIS; practitioner review was explicitly waived for this delivery and no practitioner approval is claimed.";
 const answerPositions: Readonly<Record<string, number>> = {
   "flare-applied-white-warning-v2": 2,
   "flare-applied-long-range-v2": 1,

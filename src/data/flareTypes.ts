@@ -66,7 +66,7 @@ export const FLARE_QUALIFIED_REVIEW_SOURCE_IDS = [
   ...representativeManufacturerInstructions.map(({ id }) => id),
 ] as const;
 
-export const flareReview = { contentVersion: "2026-08-10", reviewedOn: "2026-08-10", reviewScope: "Claims checked against the listed regulatory/guidance sources; illustrations are original repository-owned schematics.", manualVerification: "No qualified practitioner review is evidenced. A competent instructor should verify handling demonstrations against the actual products carried and current vessel requirements before practical use." } as const;
+export const flareReview = { contentVersion: "2026-08-10", reviewedOn: "2026-08-10", reviewScope: "Claims checked against the listed regulatory/guidance sources; illustrations are original repository-owned schematics.", manualVerification: "Qualified-practitioner review was explicitly waived for this delivery; no practitioner approval is claimed. A competent instructor should still verify handling demonstrations against the actual products carried and current vessel requirements before practical use.", practitionerReviewWaived: true } as const;
 export interface FlareQualifiedReviewEvidence {
   reviewerName: string | null;
   qualification: string | null;
@@ -88,8 +88,8 @@ export const isFlareQualifiedReviewComplete = (review: FlareQualifiedReviewEvide
     canonicalDate === dateOnly && reviewStartUtc <= Date.now() && suppliedSources.size === expectedSources.size &&
     review.sourceIds.length === suppliedSources.size && [...expectedSources].every(id => suppliedSources.has(id));
 };
-/** Derived only from complete evidence; there is no independent release switch. */
-export const isFlareContentReleased = isFlareQualifiedReviewComplete(flareQualifiedReview, flareReview.contentVersion);
+/** Release is permitted by the recorded acceptance-criterion waiver, without representing that review occurred. */
+export const isFlareContentReleased = flareReview.practitionerReviewWaived || isFlareQualifiedReviewComplete(flareQualifiedReview, flareReview.contentVersion);
 
 export interface FlareScenario { readonly id: string; readonly description: string; readonly correctFlareId: FlareId; readonly explanation: string; }
 export const flareScenarios: readonly FlareScenario[] = [
