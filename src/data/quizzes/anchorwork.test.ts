@@ -39,6 +39,10 @@ describe("Anchorwork question quality", () => {
 
     expect(scope.question).toMatch(/6 m.*1 m.*35 m/);
     expect(scope.explanation).toMatch(/7 m.*35 m.*5:1/);
+    expect(scope.explanation).toMatch(/maximum anticipated bow-roller\/chock-to-seabed distance/i);
+    expect(scope.explanation).toMatch(/add only any further expected rise, not the tide twice/i);
+    expect(scope.explanation).toMatch(/rode lead height/i);
+    expect(scope.explanation).not.toMatch(/attachment|securing point/i);
     expect(clearance.question).toMatch(/Assume.*35 m.*7 m.*10 m.*40 m/);
     expect(clearance.explanation).toMatch(/44\.3 m.*exceeds.*40 m.*uncertainty/i);
   });
@@ -57,5 +61,17 @@ describe("Anchorwork question quality", () => {
     const learnerGuidance = questions.map(({ explanation }) => explanation).join(" ");
     expect(learnerGuidance).not.toMatch(/minimum (?:scope|ratio)|guarantees? holding|chain.*absorbs shock loads/i);
     expect(learnerGuidance).toMatch(/not proof.*safe|No single|catenary reduces|More rode is an option only/i);
+  });
+
+  it("protects qualified equipment, approach, kedge and securing guidance", () => {
+    expect(questions.find(({ id }) => id === "a5")!.explanation).toMatch(/Anchor\/rode suitability/);
+    expect(questions.find(({ id }) => id === "a6")!.explanation).toMatch(/fouling and traffic hazards/);
+    expect(questions.find(({ id }) => id === "a10")!.options[1]).toMatch(/dominant wind\/current.*abort route/);
+    expect(questions.find(({ id }) => id === "a11")!.explanation).toMatch(/tender stability.*loaded-line hazards/);
+
+    const securing = questions.find(({ id }) => id === "a12")!;
+    expect(securing.options[securing.correctAnswer]).toMatch(/engineered strong point.*snubber\/bridle/);
+    expect(securing.explanation).toMatch(/roller or chock guides the rode but is not automatically its securing point/);
+    expect(securing.explanation).toMatch(/chafe protection.*vessel, windlass and rode manufacturers/);
   });
 });
