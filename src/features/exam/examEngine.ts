@@ -1,4 +1,6 @@
 import type { Question } from "@/data/quizzes";
+import canonicalSafetyQuestions from "@/data/quizzes/safety";
+import { safetyQuizCompletionOutcome } from "@/features/quiz/safetyAssessment";
 
 export interface ExamQuestion extends Question {
   topicId: string;
@@ -9,6 +11,18 @@ export interface TopicResult {
   total: number;
   percentage: number;
 }
+
+export const classifyExamSafetyEvidence = (questions: readonly ExamQuestion[], answers: readonly (number | null)[]) => {
+  const positions = questions.map((question, index) => ({ question, answer: answers[index] })).filter(({ question }) => question.topicId === "safety");
+  const answerById = new Map(positions.map(({ question, answer }) => [question.id, answer]));
+  const canonicalIds = canonicalSafetyQuestions.map(({ id }) => id);
+  if (positions.length !== canonicalIds.length || answerById.size !== canonicalIds.length
+    || canonicalIds.some((id) => !answerById.has(id))) {
+    return { status: "sampled" as const, masteryEligible: false, passed: false, failedLeaves: [], missedCriticalIds: [] };
+  }
+  const outcome = safetyQuizCompletionOutcome(canonicalIds.map((id) => answerById.get(id) ?? null), canonicalSafetyQuestions);
+  return { status: "full-bank" as const, masteryEligible: outcome.passed, passed: outcome.passed, failedLeaves: outcome.failedLeaves, missedCriticalIds: [...outcome.missedCriticalIds] };
+};
 
 const DEFAULT_WEIGHTS: Record<string, number> = {
   colregs: 4,
@@ -65,7 +79,7 @@ export function scoreExam(questions: readonly ExamQuestion[], answers: readonly 
     topicBreakdown[question.topicId] = topic;
   });
   const percentage = questions.length ? Math.round((score / questions.length) * 100) : 0;
-  return { score, percentage, passed: percentage >= passMark, topicBreakdown };
+  return { score, percentage, passed: percentage >= passMark, topicBreakdown, safetyEvidence: classifyExamSafetyEvidence(questions, answers) };
 }
 
 export const remainingSeconds = (startedAt: number, durationSeconds: number, now = Date.now()) =>

@@ -9,21 +9,21 @@ import type { Question } from "./types";
  * Question IDs use the "safety-<subtopic><n>" namespace to avoid collisions with
  * the dedicated sub-quiz files (safetyMob.ts, safetyFire.ts, etc.).
  */
-const safetyQuestions: readonly Question[] = [
+const authoredSafetyQuestions: readonly Question[] = [
   // ── MOB (Man Overboard) ──────────────────────────────────────────────
   {
     id: "safety-mob1",
     question:
-      "Under sail, you witness a crew member fall overboard. After shouting 'Man Overboard', what is the helmsman's immediate action?",
+      "Under sail, you witness a crew member fall overboard. Which immediate sequence preserves the best recovery options?",
     options: [
-      "Tack immediately towards the casualty",
-      "Bear away to a broad reach to maintain speed and control",
-      "Heave-to and deploy the life raft",
-      "Start the engine and motor directly back",
+      "Shout the alarm, keep a pointer and lookout, throw buoyancy, mark the position, and control the vessel using its practised return plan",
+      "Apply one universal broad-reach manoeuvre before alerting anyone",
+      "Send another person into the water",
+      "Start the engine immediately without checking lines or the casualty",
     ],
-    correctAnswer: 1,
+    correctAnswer: 0,
     explanation:
-      "The helmsman should bear away onto a broad reach. This maintains boat speed for manoeuvrability and sets up for a controlled return using the reach-tack-reach method.",
+      "Alarm, continuous pointing/lookout, flotation and a position reference run alongside prompt vessel control. The return manoeuvre depends on vessel, sail plan, crew and conditions; use the practised plan and manage engine/line/propeller hazards rather than imposing one turn.",
   },
   {
     id: "safety-mob2",
@@ -31,26 +31,26 @@ const safetyQuestions: readonly Question[] = [
       "What is the primary purpose of pressing the MOB button on the GPS/chartplotter?",
     options: [
       "It sends an automatic MAYDAY on VHF Channel 16",
-      "It records the position where the person entered the water",
+      "It records a position reference near where the person entered the water",
       "It activates the EPIRB",
       "It sounds the fog horn automatically",
     ],
     correctAnswer: 1,
     explanation:
-      "The MOB button marks the exact GPS position where the person went overboard, allowing the crew to navigate back to that point even if visual contact is lost.",
+      "The MOB function records an important position and time reference, but it is not the person's live position: both casualty and vessel drift. Keep visual pointing and lookout, deploy buoyancy and use all available references.",
   },
   {
     id: "safety-mob3",
-    question: "What is 'Reflow Syndrome' in the context of recovering a hypothermic casualty?",
+    question: "How should a cold or hypothermic person normally be brought from the water when the recovery equipment and conditions permit?",
     options: [
-      "Water entering the lungs when the casualty is pulled from the sea",
-      "Cold blood from the extremities rushing to the heart when the casualty is lifted vertically",
-      "The casualty vomiting sea water after rescue",
-      "Loss of consciousness due to sudden warmth",
+      "Vertically by the arms to drain water",
+      "As horizontally or near-horizontally as practicable, supporting the body and handling gently",
+      "Head-down over the guardrail",
+      "By asking them to climb unaided",
     ],
     correctAnswer: 1,
     explanation:
-      "Reflow Syndrome (also called circum-rescue collapse) occurs when a hypothermic person is lifted vertically — cold, acidic blood from the legs rushes to the core and can cause cardiac arrest. Always lift horizontally.",
+      "Cold casualties are vulnerable to collapse and cardiac arrest around rescue. Recover as horizontally or near-horizontally as the vessel, equipment and immediate danger permit, support the body, handle gently, monitor breathing and follow current first-aid and rescue-service advice. Do not delay an essential rescue to achieve a perfect angle.",
   },
   {
     id: "safety-mob4",
@@ -59,41 +59,41 @@ const safetyQuestions: readonly Question[] = [
     options: [
       "Immediately after the person falls overboard",
       "Only after the person is back on board",
-      "When the casualty is alongside, before making contact",
+      "Before the final close approach or contact, in time to remove propeller risk",
       "Neutral is never needed — keep steerage at all times",
     ],
     correctAnswer: 2,
     explanation:
-      "The engine must be in neutral before the casualty is alongside to prevent propeller injuries. Final positioning is done using the boat's remaining momentum.",
+      "Remove propeller risk before the final approach or contact: neutral early enough for the conditions, and stop the engine where the vessel plan and risk require it. Account for ropes in the water and confirm propulsion status aloud; exact handling is vessel-specific.",
   },
 
   // ── Fire Safety ──────────────────────────────────────────────────────
   {
     id: "safety-fire1",
     question:
-      "What is the recommended sequence for fighting a fire on board using the FIRE mnemonic?",
+      "Smoke is discovered below. Which sequence takes priority before any limited attempt to fight the fire?",
     options: [
-      "Find, Inform, Restrict, Extinguish",
-      "Fight, Isolate, Retreat, Evacuate",
-      "Flood, Insulate, Remove, Escape",
-      "Find, Ignite, Run, Exit",
+      "Raise the alarm, account for and move crew toward safe escape, communicate early, isolate fuel/power/ventilation only if safe, then consider a limited attack without sacrificing escape",
+      "Find the seat alone before waking the crew",
+      "Select an extinguisher before accounting for people",
+      "Open every boundary to improve visibility",
     ],
     correctAnswer: 0,
     explanation:
-      "The FIRE mnemonic stands for Find the fire, Inform the crew, Restrict air supply and fuel, Extinguish the fire. This structured approach prevents panic.",
+      "People, alarm, accounting and escape come first. Communicate early and perform only safe, vessel-specific shutdowns; a limited attack is optional and ends when smoke, fire or escape conditions worsen. A mnemonic must not delay those priorities.",
   },
   {
     id: "safety-fire2",
-    question: "Which fire extinguisher type is safe to use on live electrical equipment?",
+    question: "An energised panel is burning and safe isolation is not yet confirmed. What controls extinguisher selection?",
     options: [
-      "Water",
-      "Foam (AFFF)",
-      "CO2",
-      "Wet chemical",
+      "The unit's actual marking and instructions for the voltage and distance, with isolation first if safe",
+      "Its colour band alone",
+      "Any extinguisher described as marine",
+      "Water because it cools",
     ],
-    correctAnswer: 2,
+    correctAnswer: 0,
     explanation:
-      "CO2 extinguishers are non-conductive and leave no residue, making them safe for electrical fires. Water, foam, and wet chemical extinguishers all conduct electricity.",
+      "Electricity is a hazard, not a fire class. Isolate first if safe; otherwise only equipment whose exact marking and instructions permit the voltage, distance and use is supportable. Colour or a generic product type does not establish suitability.",
   },
   {
     id: "safety-fire3",
@@ -101,26 +101,26 @@ const safetyQuestions: readonly Question[] = [
       "A fire breaks out in the engine compartment. After stopping the engine, how should you apply the extinguisher?",
     options: [
       "Open the hatch fully and aim directly at the base of the fire",
-      "Crack the hatch just enough to insert the nozzle and discharge",
+      "Keep the enclosure closed; use only the fitted fire port or fixed system and shutdown sequence exactly as instructed",
       "Remove the engine cover completely for access",
       "Wait until the fire burns down, then spray",
     ],
     correctAnswer: 1,
     explanation:
-      "Only crack the hatch enough to insert the extinguisher nozzle. Opening it fully feeds the fire with oxygen. In an enclosed space the CO2 or powder is most effective with minimal ventilation.",
+      "Alarm and account for crew, stop engine, fuel and ventilation by the vessel procedure, keep the enclosure closed, and use only its approved fire port or fixed system instructions. Do not improvise a hatch gap or assume a generic agent.",
   },
   {
     id: "safety-fire4",
-    question: "What colour band identifies a foam (AFFF) fire extinguisher?",
+    question: "What evidence establishes whether a portable extinguisher is suitable for a particular onboard fire?",
     options: [
-      "Blue",
-      "Black",
-      "Cream / Pale yellow",
-      "Red",
+      "The label, fire rating, electrical limitations, instructions and the actual fire and escape conditions",
+      "The colour band alone",
+      "The cylinder size alone",
+      "Whether another boat carries the same type",
     ],
-    correctAnswer: 2,
+    correctAnswer: 0,
     explanation:
-      "Foam (AFFF) extinguishers are identified by a cream or pale yellow colour band. Blue = dry powder, black = CO2, red body = water.",
+      "Colour can aid recognition but cannot prove fire rating, electrical suitability, range or safe use. Read the exact unit markings and instructions, protect escape, and withdraw when conditions exceed a limited safe attack.",
   },
 
   // ── Life Raft & Abandon Ship ─────────────────────────────────────────
@@ -130,53 +130,53 @@ const safetyQuestions: readonly Question[] = [
       "What essential item should the skipper grab before stepping into the life raft?",
     options: [
       "The ship's log book",
-      "The grab bag (ditch bag) with survival equipment",
+      "The vessel's prepared grab bag, only if it is safely accessible without delaying escape",
       "Personal belongings",
       "The anchor chain",
     ],
     correctAnswer: 1,
     explanation:
-      "The grab bag (ditch bag) is pre-packed with essential survival items: flares, water, handheld VHF, torch, first aid kit, knife, and SART/PLB. It is the single most important item to bring.",
+      "Take the prepared grab bag and additional equipment only when safely accessible. Its contents must be reconciled with the exact raft pack and vessel plan before departure; no item justifies delaying abandonment or crossing fire or smoke.",
   },
   {
     id: "safety-raft2",
-    question: "Why is it important to keep the life raft's canopy closed once everyone is aboard?",
+    question: "How should a life raft canopy be managed after boarding?",
     options: [
-      "To keep the raft inflated",
-      "To reduce heat loss, protect from spray, and improve morale",
-      "To prevent the raft from capsizing",
-      "To make the raft invisible to rescuers",
+      "Use the exact raft instructions and conditions to balance shelter, ventilation, lookout and signalling",
+      "Keep every opening sealed in all climates and medical conditions",
+      "Leave it fully open in all weather",
+      "The canopy controls inflation pressure",
     ],
-    correctAnswer: 1,
+    correctAnswer: 0,
     explanation:
-      "Closing the canopy protects occupants from wind, spray, sun, and cold. Maintaining body heat is critical for survival, and shelter greatly improves morale and reduces panic.",
+      "The canopy can reduce exposure, but ventilation, heat, sickness, lookout and signalling needs vary. Rig and adjust it using the exact raft instructions and current conditions rather than applying an always-closed rule.",
   },
   {
     id: "safety-raft3",
-    question: "How often must a life raft be serviced to remain in date?",
+    question: "What determines when a life raft must next be serviced?",
     options: [
-      "Every 6 months",
-      "Every year",
-      "Every 3 years",
-      "Every 5 years",
+      "A universal annual interval",
+      "The exact raft manufacturer's schedule and current service label/certificate, accounting for pack, vessel regime and service history",
+      "A universal three-year interval",
+      "Only whether the canister looks unopened",
     ],
-    correctAnswer: 2,
+    correctAnswer: 1,
     explanation:
-      "Life rafts must be professionally serviced every 3 years (some manufacturers specify annually for older rafts). A service checks inflation, repairs fabric, and replaces expired supplies.",
+      "Intervals differ by raft model, package, age/history, operating conditions and applicable vessel regime. Follow the exact manufacturer's schedule and authorised service documentation; an unopened case or a generic interval does not establish currency.",
   },
   {
     id: "safety-raft4",
     question:
-      "After boarding the life raft, what is the first maintenance action to perform?",
+      "After boarding and accounting for everyone, how should occupants stabilise the raft?",
     options: [
-      "Deploy a flare to attract attention",
-      "Check for leaks, deploy the sea anchor, and bail out water",
-      "Ration the food supplies immediately",
-      "Try to paddle towards shore",
+      "Follow the raft checklist: manage attachment or release hazards, stream the sea anchor as instructed, close entrances/insulate as conditions require, bail and inspect for damage",
+      "Fire every signal immediately",
+      "Use one universal ration rule before treating casualties",
+      "Cut every line before checking whether the vessel is still the safer reference",
     ],
-    correctAnswer: 1,
+    correctAnswer: 0,
     explanation:
-      "Immediate priorities are: check for and repair leaks, deploy the sea anchor to control drift and reduce capsize risk, and bail out any water that entered during boarding.",
+      "After accounting and immediate casualty care, use the exact checklist and allocate roles. Attachment/release, sea-anchor deployment, entrances, bailing and inspection depend on the raft, vessel and hazards; distress communications and exposure control continue throughout.",
   },
 
   // ── Flares & Pyrotechnics ────────────────────────────────────────────
@@ -192,47 +192,47 @@ const safetyQuestions: readonly Question[] = [
     ],
     correctAnswer: 2,
     explanation:
-      "A red parachute rocket reaches ~300 m and is visible up to 40 km at night. It is the best long-range signal to attract distant vessels. Save hand flares for when rescuers are closer.",
+      "A labelled red rocket-parachute flare is intended for long-range distress attraction. Actual trajectory, visibility and duration vary with the product and conditions; follow rescue coordination and the exact instructions.",
   },
   {
     id: "safety-flare2",
     question:
-      "What is the minimum number of flares recommended for a coastal passage within 7 miles of shore?",
+      "How should the skipper determine the pyrotechnic signals to carry for a coastal passage?",
     options: [
-      "2 red hand flares only",
-      "2 red parachute rockets, 2 red hand flares, 2 orange smoke signals",
-      "4 red parachute rockets and 2 orange smoke",
-      "None — a VHF radio is sufficient",
-    ],
-    correctAnswer: 1,
-    explanation:
-      "The recommended minimum coastal pack is: 2 red parachute rockets (long range), 2 red hand flares (close range night), and 2 orange smoke signals (close range day).",
-  },
-  {
-    id: "safety-flare3",
-    question: "How should you hold a hand flare when firing it?",
-    options: [
-      "At arm's length downwind, angled slightly away from the body",
-      "Close to your body for stability",
-      "Above your head pointing straight up",
-      "Pointing directly at the approaching vessel",
+      "Apply the vessel's use, jurisdiction, operating area and applicable rules or guidance, then verify each exact product and the distress plan",
+      "Use one universal six-flare leisure pack",
+      "Copy the nearest yacht regardless of its regime",
+      "Carry none whenever a VHF is fitted",
     ],
     correctAnswer: 0,
     explanation:
-      "Hold hand flares at arm's length, downwind, angled slightly away from you and the vessel. This prevents drips of burning composition falling onto you or the deck.",
+      "Carriage requirements and guidance depend on vessel type/use, jurisdiction and operating area. Communications do not automatically replace visual distress signals. Confirm the applicable regime and inspect the exact carried products; the quiz does not impose a universal pack.",
+  },
+  {
+    id: "safety-flare3",
+    question: "An unfamiliar hand flare is required during distress. What operating method should be used?",
+    options: [
+      "Follow that exact product's printed instructions, maintain the specified safe direction and account for wind and vessel hazards",
+      "Use a memorised universal arm angle",
+      "Copy a different manufacturer's product",
+      "Point it toward the rescue craft",
+    ],
+    correctAnswer: 0,
+    explanation:
+      "Designs and activation methods differ. The exact label controls handling, orientation, wind allowance and misfire action; keep it directed safely away from people, vessel and rescuers and do not improvise.",
   },
   {
     id: "safety-flare4",
-    question: "What is the approximate burn time of a standard red hand flare?",
+    question: "How do you establish whether a red hand flare remains serviceable and what performance to expect?",
     options: [
-      "15 seconds",
-      "60 seconds",
-      "3 minutes",
-      "5 minutes",
+      "Use its exact expiry/service-life marking, label and instructions",
+      "Assume every red hand flare burns for 60 seconds",
+      "Use casing colour as the serviceability test",
+      "Keep expired units as equivalent backups",
     ],
-    correctAnswer: 1,
+    correctAnswer: 0,
     explanation:
-      "A standard red hand flare burns for approximately 60 seconds. This is enough time for a nearby rescue vessel to take a bearing on your position.",
+      "Service life and performance vary by product. Use the exact markings and instructions, replace by the stated date and arrange authorised disposal; do not teach a generic duration as an operating guarantee.",
   },
 
   // ── Personal Safety ──────────────────────────────────────────────────
@@ -242,12 +242,12 @@ const safetyQuestions: readonly Question[] = [
     options: [
       "Only in rough weather above Force 6",
       "Only when instructed by the Coastguard",
-      "At all times on deck, and whenever the skipper directs",
+      "Under the vessel's wear policy and skipper/risk assessment, including whenever conditions or the task require it",
       "Only when leaving harbour",
     ],
     correctAnswer: 2,
     explanation:
-      "Best practice is to wear a lifejacket at all times when on deck. The skipper may mandate wearing them below in heavy weather too. Most drownings occur because lifejackets were not worn.",
+      "Wear policy must reflect the vessel, crew, conditions and task, with the skipper setting clear requirements. A correctly selected, fitted and maintained lifejacket must be worn whenever the policy or risk assessment requires it; merely carrying one is ineffective.",
   },
   {
     id: "safety-personal2",
@@ -281,13 +281,13 @@ const safetyQuestions: readonly Question[] = [
       "What is the correct attachment point for a safety harness tether when going on deck at night?",
     options: [
       "The guardrail wires",
-      "A jackstay (strong line or webbing running fore-and-aft along the deck)",
+      "The designated approved jackstay or strong point in the vessel's tether plan",
       "The boom vang",
       "A neighbouring crew member's harness",
     ],
     correctAnswer: 1,
     explanation:
-      "Jackstays are strong webbing straps or wire running fore-and-aft. They allow the wearer to move along the deck while remaining clipped on. Guardrails are not strong enough to arrest a fall.",
+      "Use only the vessel's inspected, approved attachment route and compatible tether, rigged to reduce going over the side and avoid entrapment. Do not assume every rail, line or fitting is an arrest point; inspect and practise transitions for the actual vessel.",
   },
 
   // ── Gas Safety ───────────────────────────────────────────────────────
@@ -302,7 +302,7 @@ const safetyQuestions: readonly Question[] = [
     ],
     correctAnswer: 2,
     explanation:
-      "Propane is heavier than air (relative density ~1.5). Leaked gas sinks to the bilge and other low points, creating an explosive concentration that is very difficult to ventilate.",
+      "LPG vapour is heavier than air and can collect in bilges and other low spaces, where it may form a flammable atmosphere. Treat smell or an alarm as a warning, avoid ignition and follow the vessel's emergency procedure; absence of smell does not prove safety.",
   },
   {
     id: "safety-gas2",
@@ -310,12 +310,12 @@ const safetyQuestions: readonly Question[] = [
     options: [
       "In the engine compartment for warmth",
       "Below the cabin sole for easy access",
-      "In a sealed locker that drains overboard, not into the bilge",
+      "In the vessel's approved enclosure, separated from accommodation and drained overboard as its design and applicable rules require",
       "Anywhere that is convenient and out of the way",
     ],
     correctAnswer: 2,
     explanation:
-      "Gas bottles must be in a dedicated locker that is sealed from the accommodation and has a drain overboard at the lowest point. Any leak drains safely overboard rather than into the bilge.",
+      "Use only the approved cylinder enclosure and applicable vessel design: it must prevent vapour entering accommodation and drain outside as specified. Exact construction and dimensions depend on the vessel and governing regime; never improvise storage.",
   },
   {
     id: "safety-gas3",
@@ -337,13 +337,44 @@ const safetyQuestions: readonly Question[] = [
     options: [
       "Leave the bottle valve open so gas is available quickly",
       "Turn off the appliance tap only",
-      "Turn off the gas at the bottle (or use a remote shut-off valve) in addition to the appliance tap",
+      "Follow the vessel shutdown order for appliance controls, branch devices, any fitted secondary control, and the cylinder/designated main valve",
       "Disconnect the regulator from the bottle each time",
     ],
     correctAnswer: 2,
     explanation:
-      "Best practice is to shut off the gas at the bottle or remote shut-off valve when not in use, in addition to closing the appliance tap. This provides double protection against leaks in the supply line.",
+      "Controls differ. Follow the documented vessel and manufacturer shutdown sequence; a remote solenoid or secondary tap exists only where fitted and does not automatically replace the designated main/cylinder isolation routine.",
   },
 ] as const;
+
+export const SAFETY_LEAF_ROUTES = {
+  mob: "/safety/mob", fire: "/safety/fire", raft: "/safety/life-raft",
+  flare: "/safety/flares", personal: "/safety/personal", gas: "/safety/gas",
+} as const;
+export type SafetyLeaf = keyof typeof SAFETY_LEAF_ROUTES;
+const leafFor = (id: string): SafetyLeaf => id.match(/^safety-([a-z]+)\d$/)?.[1] as SafetyLeaf;
+export const SAFETY_QUIZ_CRITICAL_IDS = ["safety-mob3", "safety-fire3", "safety-raft3", "safety-flare3", "safety-personal4", "safety-gas3"] as const;
+export const SAFETY_QUIZ_REVIEW_METADATA = {
+  revision: "comprehensive-safety-v2",
+  status: "educational-cross-check-complete-qualified-review-not-recorded",
+  assumptions: "Questions inherit the corrected leaf models and their source/review limits. Vessel, product, manufacturer, jurisdiction and operating-regime instructions remain controlling; a written result does not establish practical competence or equipment readiness.",
+  sharedModels: ["safetyMob", "safetyFire", "safetyLifeRaft", "safetyFlares", "personalSafety", "gasSafety"],
+} as const;
+const SAFETY_OBJECTIVE_IDS: Readonly<Record<string, string>> = {
+  "safety-mob1": "mob-immediate-return-sequence", "safety-mob2": "mob-position-marking", "safety-mob3": "mob-recovery-medical-boundary", "safety-mob4": "mob-propeller-stop-boundary",
+  "safety-fire1": "fire-alarm-restrict-response-sequence", "safety-fire2": "fire-equipment-marking-boundary", "safety-fire3": "fire-enclosure-shutdown-boundary", "safety-fire4": "fire-attack-stop-boundary",
+  "safety-raft1": "raft-grab-bag-escape-sequence", "safety-raft2": "raft-exposure-control", "safety-raft3": "raft-manufacturer-service-boundary", "safety-raft4": "raft-stabilisation-sequence",
+  "safety-flare1": "flare-long-range-selection", "safety-flare2": "flare-vessel-regime-boundary", "safety-flare3": "flare-manufacturer-operation-boundary", "safety-flare4": "flare-service-life-boundary",
+  "safety-personal1": "personal-wear-policy-boundary", "safety-personal2": "personal-lifejacket-fit", "safety-personal3": "personal-safe-movement", "safety-personal4": "personal-tether-attachment-boundary",
+  "safety-gas1": "gas-low-space-collection", "safety-gas2": "gas-locker-design-boundary", "safety-gas3": "gas-emergency-stop-escalate-sequence", "safety-gas4": "gas-manufacturer-shutdown-sequence",
+};
+export const SAFETY_QUIZ_OBJECTIVE_MATRIX = authoredSafetyQuestions.map((question) => {
+  const leaf = leafFor(question.id);
+  return { questionId: question.id, leaf, objectiveId: SAFETY_OBJECTIVE_IDS[question.id], remediationRoute: SAFETY_LEAF_ROUTES[leaf] };
+});
+
+const safetyQuestions: readonly Question[] = authoredSafetyQuestions.map((question) => {
+  const matrix = SAFETY_QUIZ_OBJECTIVE_MATRIX.find(({ questionId }) => questionId === question.id)!;
+  return { ...question, leaf: matrix.leaf, learningObjective: matrix.objectiveId, prerequisite: "Review the corresponding corrected Safety lesson and the vessel/equipment instructions first.", remediationRoute: matrix.remediationRoute };
+});
 
 export default safetyQuestions;
