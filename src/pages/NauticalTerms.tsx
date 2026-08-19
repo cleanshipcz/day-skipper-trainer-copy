@@ -318,7 +318,6 @@ function shuffleArray<T>(array: T[]): T[] {
 // SVG Side View Boat Diagram Component
 const SideViewBoat = () => (
   <g>
-    {/* Sky gradient */}
     <defs>
       <linearGradient id="skyGradient" x1="0%" y1="0%" x2="0%" y2="100%">
         <stop offset="0%" stopColor="#7dd3fc" />
@@ -330,12 +329,22 @@ const SideViewBoat = () => (
       </linearGradient>
       <linearGradient id="hullGradient" x1="0%" y1="0%" x2="0%" y2="100%">
         <stop offset="0%" stopColor="#ffffff" />
-        <stop offset="100%" stopColor="#e2e8f0" />
+        <stop offset="55%" stopColor="#f8fafc" />
+        <stop offset="100%" stopColor="#cbd5e1" />
       </linearGradient>
       <linearGradient id="sailGradient" x1="0%" y1="0%" x2="100%" y2="0%">
-        <stop offset="0%" stopColor="#fefce8" />
-        <stop offset="100%" stopColor="#fef9c3" />
+        <stop offset="0%" stopColor="#fffef5" />
+        <stop offset="72%" stopColor="#f8f2d8" />
+        <stop offset="100%" stopColor="#d8cfaa" />
       </linearGradient>
+      <linearGradient id="sideKeelGradient" x1="0%" y1="0%" x2="100%" y2="0%">
+        <stop offset="0%" stopColor="#172c46" />
+        <stop offset="55%" stopColor="#355d7d" />
+        <stop offset="100%" stopColor="#10243a" />
+      </linearGradient>
+      <filter id="sideBoatShadow" x="-20%" y="-20%" width="140%" height="160%">
+        <feDropShadow dx="0" dy="4" stdDeviation="4" floodColor="#0f172a" floodOpacity="0.22" />
+      </filter>
     </defs>
 
     {/* Sky */}
@@ -344,67 +353,68 @@ const SideViewBoat = () => (
     {/* Water */}
     <rect x="0" y="220" width="600" height="180" fill="url(#waterGradient)" />
 
-    {/* Water line waves */}
+    {/* Layered water gives the boat a waterline without obscuring underwater parts. */}
     <path
       d="M0,220 Q30,215 60,220 T120,220 T180,220 T240,220 T300,220 T360,220 T420,220 T480,220 T540,220 T600,220"
       stroke="#0ea5e9"
       strokeWidth="2"
       fill="none"
     />
+    <path d="M0,270 Q45,263 90,270 T180,270 T270,270 T360,270 T450,270 T540,270 T630,270" stroke="#38bdf8" strokeWidth="1.5" fill="none" opacity="0.45" />
+    <path d="M0,315 Q35,309 70,315 T140,315 T210,315 T280,315 T350,315 T420,315 T490,315 T560,315 T630,315" stroke="#0369a1" strokeWidth="1" fill="none" opacity="0.25" />
 
-    {/* Keel - centered under hull */}
-    <path d="M280,255 L300,355 L320,255" fill="#1e3a5f" stroke="#0f172a" strokeWidth="2" />
+    {/* Fin keel and ballast bulb are visibly separate from the hull. */}
+    <path d="M275,250 C280,278 287,326 294,350 L310,350 C317,315 320,278 322,250 Z" fill="url(#sideKeelGradient)" stroke="#0f172a" strokeWidth="2" />
+    <ellipse cx="302" cy="350" rx="21" ry="7" fill="#172c46" stroke="#0f172a" strokeWidth="2" />
 
-    {/* Rudder - clearly separate from hull */}
-    <path d="M75,235 L65,310 L90,310 L80,235" fill="#1e3a5f" stroke="#0f172a" strokeWidth="2" />
+    {/* Rudder stock and balanced blade remain clearly separate from the hull. */}
+    <line x1="79" y1="218" x2="77" y2="243" stroke="#0f172a" strokeWidth="4" />
+    <path d="M77,238 C70,255 66,285 66,309 Q80,315 92,305 L85,239 Z" fill="url(#sideKeelGradient)" stroke="#0f172a" strokeWidth="2" />
 
-    {/* Hull - sleek sailboat shape */}
+    <g filter="url(#sideBoatShadow)">
+    {/* A conventional cruising-yacht sheer, near-vertical transom and raked bow. */}
     <path
-      d="M90,220 
-         C85,230 85,245 95,255 
-         L505,255 
-         C515,245 520,235 525,220 
-         L480,195 
-         L120,195 
-         Z"
+      d="M88,215 C86,229 90,247 104,257 C226,267 395,266 478,255 C501,251 516,237 527,214 L480,194 C359,190 229,190 119,196 Z"
       fill="url(#hullGradient)"
       stroke="#1e3a5f"
       strokeWidth="2.5"
     />
 
-    {/* Hull stripe */}
-    <path d="M100,238 L510,238" stroke="#1e3a5f" strokeWidth="1" opacity="0.3" />
+    {/* Boot stripe follows the hull instead of floating across it. */}
+    <path d="M94,239 C218,250 399,250 500,239" stroke="#174d72" strokeWidth="5" fill="none" opacity="0.9" />
+    <path d="M99,246 C226,257 394,257 488,247" stroke="#fff" strokeWidth="1.5" fill="none" opacity="0.8" />
 
     {/* Deck surface */}
     <path
-      d="M120,195 L480,195 Q490,195 495,200 L525,220 L90,220 L120,195"
+      d="M112,198 C226,187 361,187 478,194 Q497,199 527,214 L88,215 Z"
       fill="#f1f5f9"
       stroke="#1e3a5f"
       strokeWidth="1.5"
     />
 
     {/* Cockpit well - more distinct, deeper */}
-    <rect x="155" y="198" width="90" height="22" rx="3" fill="#94a3b8" stroke="#1e3a5f" strokeWidth="1.5" />
-    <rect x="160" y="202" width="80" height="14" rx="2" fill="#64748b" stroke="none" />
+    <path d="M149,198 L244,196 L237,218 L154,218 Z" fill="#94a3b8" stroke="#1e3a5f" strokeWidth="1.5" />
+    <path d="M158,202 L235,200 L230,214 L160,215 Z" fill="#475569" />
     {/* Cockpit seats */}
     <line x1="175" y1="198" x2="175" y2="220" stroke="#1e3a5f" strokeWidth="1" opacity="0.5" />
     <line x1="225" y1="198" x2="225" y2="220" stroke="#1e3a5f" strokeWidth="1" opacity="0.5" />
-    <text x="200" y="213" textAnchor="middle" fill="#1e3a5f" fontSize="8" opacity="0.6">
-      COCKPIT
-    </text>
+    <circle cx="179" cy="201" r="8" fill="none" stroke="#334155" strokeWidth="2" />
+    <line x1="179" y1="193" x2="179" y2="209" stroke="#334155" strokeWidth="1" />
+    <line x1="171" y1="201" x2="187" y2="201" stroke="#334155" strokeWidth="1" />
 
     {/* Cabin/Coach roof */}
     <path
-      d="M260,170 Q265,165 275,165 L420,165 Q430,165 435,170 L450,195 L250,195 Z"
+      d="M250,194 L261,171 Q267,164 278,164 L414,165 Q428,168 438,192 Z"
       fill="#f8fafc"
       stroke="#1e3a5f"
       strokeWidth="2"
     />
 
     {/* Cabin windows */}
-    <rect x="285" y="172" width="25" height="18" rx="3" fill="#7dd3fc" stroke="#1e3a5f" strokeWidth="1.5" />
-    <rect x="325" y="172" width="25" height="18" rx="3" fill="#7dd3fc" stroke="#1e3a5f" strokeWidth="1.5" />
-    <rect x="365" y="172" width="25" height="18" rx="3" fill="#7dd3fc" stroke="#1e3a5f" strokeWidth="1.5" />
+    <path d="M281,170 L314,170 L310,187 L277,188 Z" fill="#609bc1" stroke="#1e3a5f" strokeWidth="1.2" />
+    <path d="M322,170 L355,170 L354,187 L319,187 Z" fill="#609bc1" stroke="#1e3a5f" strokeWidth="1.2" />
+    <path d="M364,170 L405,171 L414,188 L364,187 Z" fill="#609bc1" stroke="#1e3a5f" strokeWidth="1.2" />
+    </g>
 
     {/* Mast - raised higher with clear deck gap */}
     <line x1="270" y1="30" x2="270" y2="175" stroke="#374151" strokeWidth="7" strokeLinecap="round" />
@@ -419,8 +429,8 @@ const SideViewBoat = () => (
     {/* Forestay remains exposed between the jib tack and bow so it can be identified independently. */}
     <line data-geometry="forestay" x1="270" y1="35" x2="520" y2="210" stroke="#64748b" strokeWidth="2" />
 
-    {/* Mainsail - smaller, doesn't cover backstay */}
-    <path d="M268,45 L268,157 L175,157 Z" fill="url(#sailGradient)" stroke="#1e3a5f" strokeWidth="2" />
+    {/* Curved leeches and panel seams suggest loaded cloth while preserving silhouettes. */}
+    <path d="M267,45 L267,157 L175,157 Q205,142 222,113 Q248,77 267,45 Z" fill="url(#sailGradient)" stroke="#1e3a5f" strokeWidth="2" />
     {/* Mainsail battens */}
     <line x1="268" y1="70" x2="220" y2="82" stroke="#d4d4d8" strokeWidth="1" />
     <line x1="268" y1="100" x2="205" y2="110" stroke="#d4d4d8" strokeWidth="1" />
@@ -429,8 +439,8 @@ const SideViewBoat = () => (
     {/* Jib: its luff follows the forestay, with the clew aft and the tack near the bow. */}
     <path
       data-geometry="jib"
-      d="M278,46 L490,190 L355,176 Z"
-      fill="#fef9c3"
+      d="M278,46 L490,190 Q430,186 355,176 Q390,136 278,46 Z"
+      fill="url(#sailGradient)"
       stroke="#1e3a5f"
       strokeWidth="2"
       opacity="0.95"
@@ -438,9 +448,12 @@ const SideViewBoat = () => (
     {/* Jib telltales */}
     <line x1="350" y1="105" x2="365" y2="108" stroke="#ef4444" strokeWidth="2" />
     <line x1="385" y1="132" x2="400" y2="135" stroke="#ef4444" strokeWidth="2" />
+    <path d="M278,84 Q355,120 447,174" stroke="#d6cda9" strokeWidth="1" fill="none" />
+    <path d="M278,124 Q341,145 406,181" stroke="#d6cda9" strokeWidth="1" fill="none" />
 
     {/* Tiller - clearly extending from rudder into cockpit */}
-    <line x1="80" y1="220" x2="175" y2="200" stroke="#92400e" strokeWidth="6" strokeLinecap="round" />
+    <line x1="80" y1="220" x2="175" y2="200" stroke="#78350f" strokeWidth="7" strokeLinecap="round" />
+    <line x1="83" y1="218" x2="174" y2="199" stroke="#d6a56a" strokeWidth="2" strokeLinecap="round" />
     <circle cx="175" cy="200" r="5" fill="#78350f" />
 
     {/* Mast top fitting */}
@@ -468,6 +481,19 @@ const BackViewBoat = () => (
         <stop offset="0%" stopColor="#38bdf8" stopOpacity="0.3" />
         <stop offset="100%" stopColor="#0284c7" stopOpacity="0.5" />
       </linearGradient>
+      <radialGradient id="sternHullGradient" cx="50%" cy="8%" r="90%">
+        <stop offset="0%" stopColor="#ffffff" />
+        <stop offset="58%" stopColor="#f8fafc" />
+        <stop offset="100%" stopColor="#bccbd8" />
+      </radialGradient>
+      <linearGradient id="sternKeelGradient" x1="0%" y1="0%" x2="100%" y2="0%">
+        <stop offset="0%" stopColor="#142b43" />
+        <stop offset="50%" stopColor="#3b6585" />
+        <stop offset="100%" stopColor="#142b43" />
+      </linearGradient>
+      <filter id="sternBoatShadow" x="-20%" y="-20%" width="140%" height="160%">
+        <feDropShadow dx="0" dy="5" stdDeviation="5" floodColor="#0f172a" floodOpacity="0.24" />
+      </filter>
     </defs>
 
     {/* Sky */}
@@ -478,35 +504,35 @@ const BackViewBoat = () => (
 
     {/* Water line waves */}
     <path d="M0,225 Q50,220 100,225 T200,225 T300,225 T400,225" stroke="#0ea5e9" strokeWidth="2" fill="none" />
+    <path d="M0,278 Q35,272 70,278 T140,278 T210,278 T280,278 T350,278 T420,278" stroke="#38bdf8" strokeWidth="1.5" fill="none" opacity="0.5" />
+    <path d="M0,325 Q45,319 90,325 T180,325 T270,325 T360,325 T450,325" stroke="#0369a1" strokeWidth="1" fill="none" opacity="0.25" />
 
-    {/* Keel */}
-    <path d="M185,260 L200,350 L215,260" fill="#1e3a5f" stroke="#0f172a" strokeWidth="2" />
+    {/* Foreshortened fin and bulb make the stern-on orientation legible. */}
+    <path d="M183,254 Q187,310 192,345 L208,345 Q213,310 217,254 Z" fill="url(#sternKeelGradient)" stroke="#0f172a" strokeWidth="2" />
+    <ellipse cx="200" cy="347" rx="19" ry="7" fill="#142b43" stroke="#0f172a" strokeWidth="2" />
 
-    {/* Hull - rounded bottom */}
+    <g filter="url(#sternBoatShadow)">
+    {/* Broad transom above a rounded underwater body, viewed squarely from astern. */}
     <path
-      d="M80,225 
-         Q70,240 80,260 
-         L320,260 
-         Q330,240 320,225
-         Q280,195 200,195
-         Q120,195 80,225"
-      fill="#f8fafc"
+      d="M79,218 Q70,236 84,259 Q126,276 200,279 Q274,276 316,259 Q330,236 321,218 Q276,194 200,191 Q124,194 79,218 Z"
+      fill="url(#sternHullGradient)"
       stroke="#1e3a5f"
       strokeWidth="2.5"
     />
 
-    {/* Hull shading for 3D effect */}
-    <path d="M90,235 Q200,255 310,235" fill="none" stroke="#cbd5e1" strokeWidth="15" opacity="0.5" />
+    {/* Transom edge, boot stripe, and cockpit opening show depth rather than a flat oval. */}
+    <path d="M84,226 Q200,248 316,226" fill="none" stroke="#d8e2ea" strokeWidth="18" opacity="0.75" />
+    <path d="M82,249 Q200,274 318,249" fill="none" stroke="#174d72" strokeWidth="5" opacity="0.9" />
 
     {/* Deck */}
-    <ellipse cx="200" cy="195" rx="85" ry="20" fill="#f1f5f9" stroke="#1e3a5f" strokeWidth="2" />
+    <path d="M91,218 Q124,181 200,178 Q276,181 309,218 Q249,235 200,236 Q151,235 91,218 Z" fill="#f1f5f9" stroke="#1e3a5f" strokeWidth="2" />
+    <path d="M128,211 Q151,191 200,189 Q249,191 272,211 Q237,221 200,222 Q163,221 128,211 Z" fill="#475569" stroke="#1e3a5f" strokeWidth="2" />
+    <path d="M139,208 Q161,196 200,195 Q239,196 261,208" fill="none" stroke="#94a3b8" strokeWidth="4" />
 
     {/* Cabin back (companionway) */}
-    <rect x="160" y="160" width="80" height="40" rx="8" fill="#f8fafc" stroke="#1e3a5f" strokeWidth="2" />
-    <rect x="180" y="170" width="40" height="28" rx="3" fill="#475569" stroke="#1e3a5f" strokeWidth="1.5" />
-    <text x="200" y="188" textAnchor="middle" fill="#94a3b8" fontSize="8">
-      HATCH
-    </text>
+    <path d="M157,190 L165,157 Q200,147 235,157 L243,190 Q200,181 157,190 Z" fill="#f8fafc" stroke="#1e3a5f" strokeWidth="2" />
+    <path d="M178,183 L182,162 Q200,157 218,162 L222,183 Q200,178 178,183 Z" fill="#36566d" stroke="#1e3a5f" strokeWidth="1.5" />
+    </g>
 
     {/* Mast */}
     <line x1="200" y1="30" x2="200" y2="165" stroke="#374151" strokeWidth="8" strokeLinecap="round" />
@@ -514,25 +540,20 @@ const BackViewBoat = () => (
     {/* Spreaders */}
     <line x1="120" y1="90" x2="280" y2="90" stroke="#374151" strokeWidth="4" strokeLinecap="round" />
 
-    {/* Shrouds - port side (now on RIGHT when looking from behind, but visually on left of screen) */}
+    {/* Starboard shrouds land on the viewer's right when looking forward from astern. */}
     <line x1="200" y1="35" x2="305" y2="225" stroke="#64748b" strokeWidth="2" />
     <line x1="280" y1="90" x2="305" y2="225" stroke="#64748b" strokeWidth="2" />
 
-    {/* Shrouds - starboard side (now on LEFT when looking from behind, but visually on right of screen) */}
+    {/* Port shrouds land on the viewer's left. */}
     <line x1="200" y1="35" x2="95" y2="225" stroke="#64748b" strokeWidth="2" />
     <line x1="120" y1="90" x2="95" y2="225" stroke="#64748b" strokeWidth="2" />
 
-    {/* Port side marker (red navigation light) - on LEFT of screen = YOUR left when looking from behind */}
-    <circle cx="95" cy="210" r="10" fill="#ef4444" stroke="#1e3a5f" strokeWidth="2" />
-    <text x="95" y="214" textAnchor="middle" fill="#fff" fontSize="10" fontWeight="bold">
-      P
-    </text>
+    {/* Navigation-light housings reinforce port/starboard without spelling out the answer. */}
+    <path d="M87,203 Q95,198 103,203 L103,214 Q95,219 87,214 Z" fill="#7f1d1d" stroke="#1e3a5f" strokeWidth="2" />
+    <circle cx="95" cy="210" r="6" fill="#ef4444" stroke="#fecaca" strokeWidth="1.5" />
 
-    {/* Starboard side marker (green navigation light) - on RIGHT of screen = YOUR right when looking from behind */}
-    <circle cx="305" cy="210" r="10" fill="#22c55e" stroke="#1e3a5f" strokeWidth="2" />
-    <text x="305" y="214" textAnchor="middle" fill="#fff" fontSize="10" fontWeight="bold">
-      S
-    </text>
+    <path d="M297,203 Q305,198 313,203 L313,214 Q305,219 297,214 Z" fill="#14532d" stroke="#1e3a5f" strokeWidth="2" />
+    <circle cx="305" cy="210" r="6" fill="#22c55e" stroke="#bbf7d0" strokeWidth="1.5" />
 
     {/* Backstay - visible from behind */}
     <line x1="200" y1="35" x2="200" y2="195" stroke="#64748b" strokeWidth="2" strokeDasharray="4,4" />
@@ -541,13 +562,13 @@ const BackViewBoat = () => (
     <circle cx="200" cy="28" r="6" fill="#374151" />
 
     {/* Beam indicator */}
-    <line x1="85" y1="250" x2="315" y2="250" stroke="#64748b" strokeWidth="1" strokeDasharray="5,5" />
-    <path d="M90,245 L85,250 L90,255" stroke="#64748b" strokeWidth="1.5" fill="none" />
-    <path d="M310,245 L315,250 L310,255" stroke="#64748b" strokeWidth="1.5" fill="none" />
+    <line x1="85" y1="235" x2="315" y2="235" stroke="#475569" strokeWidth="1.5" strokeDasharray="5,5" />
+    <path d="M91,230 L85,235 L91,240" stroke="#475569" strokeWidth="1.5" fill="none" />
+    <path d="M309,230 L315,235 L309,240" stroke="#475569" strokeWidth="1.5" fill="none" />
 
     {/* Label to clarify view */}
     <text x="200" y="385" textAnchor="middle" fill="#64748b" fontSize="11" fontStyle="italic">
-      (View from behind - as if you're at the helm)
+      Looking forward from astern (stern view)
     </text>
   </g>
 );

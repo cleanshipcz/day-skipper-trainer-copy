@@ -353,10 +353,20 @@ describe("NauticalTerms progress writes", () => {
     const jibMarker = container.querySelector('[data-marker-id="jib"]');
     const forestayMarker = container.querySelector('[data-marker-id="forestay"]');
     const sideView = jibMarker?.closest("svg");
+    const jibPath = sideView?.querySelector('[data-geometry="jib"]')?.getAttribute("d") ?? "";
+    const forestay = sideView?.querySelector('[data-geometry="forestay"]');
+    const luffMatch = jibPath.match(/^M(\d+),(\d+) L(\d+),(\d+)/);
 
-    expect(sideView?.querySelector('[data-geometry="jib"]')?.getAttribute("d")).toBe("M278,46 L490,190 L355,176 Z");
-    expect(sideView?.querySelector('[data-geometry="forestay"]')).not.toBeNull();
-    expect(sideView?.querySelector('[data-geometry="forestay"]')?.getAttribute("x2")).toBe("520");
+    expect(luffMatch).not.toBeNull();
+    const [, headX, headY, tackX, tackY] = luffMatch!.map(Number);
+    const stayStart = [Number(forestay?.getAttribute("x1")), Number(forestay?.getAttribute("y1"))];
+    const stayEnd = [Number(forestay?.getAttribute("x2")), Number(forestay?.getAttribute("y2"))];
+    const distanceFromForestay = (x: number, y: number) =>
+      Math.abs((stayEnd[1] - stayStart[1]) * x - (stayEnd[0] - stayStart[0]) * y + stayEnd[0] * stayStart[1] - stayEnd[1] * stayStart[0]) /
+      Math.hypot(stayEnd[1] - stayStart[1], stayEnd[0] - stayStart[0]);
+
+    expect(distanceFromForestay(headX, headY)).toBeLessThan(7);
+    expect(distanceFromForestay(tackX, tackY)).toBeLessThan(7);
     expect(jibMarker?.querySelector("line")?.getAttribute("x2")).toBe("385");
     expect(jibMarker?.querySelector("line")?.getAttribute("y2")).toBe("145");
     expect(forestayMarker?.querySelector("line")?.getAttribute("x2")).toBe("505");
