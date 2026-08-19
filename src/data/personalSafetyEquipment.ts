@@ -178,6 +178,44 @@ export const lifejacketServiceSources = [
   },
 ] as const;
 
+export const tetherJackstaySources = [
+  {
+    id: "rya-lifejackets-harnesses",
+    label: "RYA: Life Jackets and Buoyancy Aids — PFD harness attachment-point context",
+    href: "https://www.rya.org.uk/water-safety/lifejacket-safety/lifejackets-and-buoyancy-aids/",
+    scope: "Recreational PFD context only, including whether a lifejacket incorporates a harness attachment point; not a source for jackstay design, tether transfer, hook loading, or tethered-MOB recovery.",
+  },
+  {
+    id: "world-sailing-osr-2026-2027",
+    label: "World Sailing Offshore Special Regulations 2026–2027, sections 4.04 and 5.02",
+    href: "https://media.sailing.org/sailing/wp-content/uploads/2025/12/05110802/WS_Offshore_Special-Regulations_2026-2027_v1_wcover.pdf",
+    scope: "Offshore-racing requirements for boats and competitors within the rules' scope; not presented as universal recreational law.",
+  },
+  {
+    id: "maib-annual-report-2019-cv30",
+    label: "MAIB Annual Report 2019 — CV30 tethered-overboard safety recommendations",
+    href: "https://assets.publishing.service.gov.uk/media/5efadd12e90e075c5492d593/MAIBAnnualReport2019.pdf",
+    scope: "Accident evidence concerning securing points, lateral hook loading, jackstay termination, and tethered-casualty recovery drills.",
+  },
+] as const;
+
+export const tetherJackstayReview = {
+  contentVersion: "2026-08-12",
+  sourceCheckedOn: "2026-08-12",
+  sourceIds: tetherJackstaySources.map((source) => source.id),
+  reviewScope:
+    "PFD attachment-point context checked against the listed RYA page. Tether and jackstay claims checked against the listed World Sailing offshore-racing rules and MAIB accident evidence; manufacturer instructions and vessel-specific competent assessment remain necessary for recreational use.",
+  qualifiedReview: {
+    status: "pending",
+    reviewerName: null,
+    qualification: null,
+    approvedOn: null,
+    reviewedCommit: null,
+  },
+  releaseNote:
+    "No qualified practitioner approval is recorded. This lesson supports learning only and does not certify a tether system, installation, recovery plan, or crew competence.",
+} as const;
+
 // ── Safety Equipment Topics ────────────────────────────────────────────────
 
 export interface SafetyEquipmentTopic {
@@ -216,29 +254,32 @@ export const safetyEquipmentTopics: readonly SafetyEquipmentTopic[] = [
     id: "harnesses-tethers",
     name: "Harnesses & Tethers",
     description:
-      "A safety harness keeps the wearer attached to the vessel via a tether clipped to a strong point or jackline. The goal is to prevent the crew member from going overboard in the first place — recovery of a person from the water is difficult, slow, and often fatal in heavy weather or cold water.",
+      "A correctly selected harness and tether attach the wearer to the boat's verified, purpose-designed strongpoints or jackstays. Arrange the whole system to keep the wearer aboard wherever practicable: a person who passes the deck edge can be dragged alongside, unable to breathe, and drown before recovery succeeds.",
     keyPoints: [
-      "Many modern life jackets have an integrated harness — check that the harness meets ISO 12401.",
-      "A tether is a short lanyard (typically 1 m or 2 m) with a carbine hook at each end that connects the harness to the vessel.",
-      "Use a short tether (1 m) whenever possible — it keeps you closer to the vessel and reduces the risk of being dragged through the water.",
-      "Double-action safety hooks are required — they prevent accidental opening under load.",
+      "For recreational sailing, follow the harness, tether, lifejacket, and boat manufacturers' instructions and the skipper's passage-specific plan. ISO 12401 is a product standard for deck safety harnesses and safety lines; a product marking does not verify the boat's strongpoints or make every arrangement safe.",
+      "A two-ended tether has a harness attachment and one working attachment to the boat. It cannot provide continuous attachment while moving past an obstruction: transfer only at a place and by a method in the boat's plan that does not require momentary unclipping.",
+      "A three-point tether adds a second working leg or intermediate hook. For continuous transfer, clip the free working hook to the next verified point, close and physically tug it to confirm engagement, then release the previous hook; never describe this as 'one hook at a time' unless the tether actually has two working hooks.",
+      "Choose the shortest suitable working leg and inboard route that still permits the task. Plan movement and attachment so a fall is arrested on deck wherever practicable, rather than merely shortening the distance a person is dragged in the water.",
+      "Use compatible self-closing hooks as the product instructions specify. After clipping, look at the connection and tug it; keep the hook gate clear, aligned to load through its intended axis, and away from fittings or webbing that could snag, lever it open, or side-load it.",
       "Clip on before leaving the companionway at night, in rough weather, or whenever the skipper calls for harnesses.",
-      "Never clip a tether to the guardrails or stanchions — they are not designed to take the shock load of a falling body.",
-      "When moving along the deck, always maintain at least one point of attachment — unclip and re-clip one hook at a time.",
+      "Attach only to purpose-designed strongpoints or jackstays verified for the boat and oriented for the expected load. Do not improvise with guardrails, stanchions, ordinary cleats, or other convenient fittings unless the boat manufacturer or a competent documented assessment identifies that exact point for tether loads.",
+      "Before use, inspect webbing, stitching, hooks, gates, corrosion, deformation, labels, and any overload indicator. Retire the tether immediately after it arrests a fall or takes a significant load, when an indicator deploys, or whenever damage or loading history is in doubt; replace or return it for manufacturer-authorised assessment rather than resetting an indicator.",
+      "Brief and practise a vessel-specific tethered-MOB recovery: stop and control the boat, prevent propeller exposure and continued dragging, support the casualty's airway, and use a prepared retrieval method. The tether keeps attachment; it does not by itself recover a person aboard.",
+      "World Sailing Offshore Special Regulations add requirements for offshore racing within their stated categories, including safety-line hook, intermediate-attachment, and overload provisions. Treat those as racing rules in scope, not as universal law for every recreational passage.",
     ],
   },
   {
     id: "jacklines",
     name: "Jacklines",
     description:
-      "Jacklines (also called jack stays) are strong lines or webbing straps rigged fore-and-aft along the deck to provide a continuous attachment point for safety tethers. They allow crew to move between the cockpit and foredeck while remaining clipped on at all times.",
+      "Jacklines (also called jackstays) are purpose-designed lines or webbing and terminations forming part of the boat's tether system. Their route, strength, stretch, end attachments, and compatibility with the tether must be verified for the boat; the aim is to keep a falling wearer aboard wherever practicable.",
     keyPoints: [
-      "Jacklines should be rigged before departure and left in place for the duration of the passage.",
-      "Flat webbing jacklines are preferred over wire because they lie flat on deck and are less of a trip hazard.",
-      "Rig jacklines inboard of the shrouds so that a crew member who falls will land on deck, not over the side.",
-      "Attach jacklines to strong points at bow and stern — pad eyes, cleats, or dedicated jackline anchorage points.",
-      "Inspect jacklines for UV degradation, chafe, and stitching failure before each passage — replace if in doubt.",
-      "Jacklines should be long enough to reach from cockpit to foredeck but not so slack that a tethered person could reach the water.",
+      "Rig and use only the purpose-designed jackstay arrangement identified by the boat manufacturer or a competent documented design, including its dedicated end strongpoints, fastenings, material, tension, replacement limits, and any separate cockpit working points.",
+      "Route jackstays as far inboard or centrally as the verified design permits. Check the combined jackstay deflection, tether length, body position, and task at every working area; an inboard route alone does not prove the wearer cannot pass the deck edge.",
+      "Do not treat a bow or stern cleat as a jackstay anchorage merely because it is strong for mooring. Loading direction, structure, termination geometry, and interaction with the tether hook must all be suitable for the specified fall load.",
+      "Flat webbing can reduce rolling underfoot compared with wire, but material choice is installation-specific. Avoid routes where webbing twists, hooks snag or bear sideways, and protect against chafe, heat, chemicals, UV exposure, and sharp edges.",
+      "Inspect the complete system before use and after severe weather or any load: jackstay, stitching or splices, knots only where specified, end fittings, backing structure, tension, chafe, deterioration, and labels. Withdraw it after overload, damage, expired life, or doubt according to its instructions.",
+      "Rig the verified system before it is needed and brief where crew clip on before leaving shelter, where transfers occur, which tether leg to use, and how the tethered-casualty recovery plan works.",
     ],
   },
   {

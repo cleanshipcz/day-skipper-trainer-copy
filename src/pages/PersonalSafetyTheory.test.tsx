@@ -78,6 +78,24 @@ describe("PersonalSafetyTheory lifejacket guidance", () => {
     expect(screen.getByRole("link", { name: /MCA MGN 548/i }).getAttribute("href")).toMatch(/^https:\/\/www\.gov\.uk\//);
     expect(screen.queryByText(/Annual professional servicing is the standard/i)).toBeNull();
   });
+
+  it("shows continuous-transfer, tethered-overboard, and source-scope guidance to learners", async () => {
+    const user = userEvent.setup();
+    render(<MemoryRouter><PersonalSafetyTheory /></MemoryRouter>);
+
+    await user.click(screen.getByRole("tab", { name: "Equipment" }));
+    expect(screen.getByText(/A two-ended tether has a harness attachment and one working attachment/i)).toBeTruthy();
+    expect(screen.getByText(/A three-point tether adds a second working leg or intermediate hook/i)).toBeTruthy();
+    expect(screen.getByText(/clip the free working hook.*physically tug.*then release the previous hook/i)).toBeTruthy();
+    expect(screen.getByText(/can be dragged alongside.*drown before recovery succeeds/i)).toBeTruthy();
+    expect(screen.getByText(/practise a vessel-specific tethered-MOB recovery/i)).toBeTruthy();
+    expect(screen.getByText(/No qualified practitioner approval is recorded/i)).toBeTruthy();
+    expect(screen.getByRole("link", { name: /PFD harness attachment-point context/i })).toBeTruthy();
+    expect(screen.getByRole("link", { name: /World Sailing Offshore Special Regulations/i }).getAttribute("href")).toMatch(/^https:\/\/media\.sailing\.org\//);
+    expect(screen.getByRole("link", { name: /World Sailing.*sections 4\.04 and 5\.02/i })).toBeTruthy();
+    expect(screen.getByText(/not a source for jackstay design, tether transfer, hook loading, or tethered-MOB recovery/i)).toBeTruthy();
+    expect(screen.getByRole("link", { name: /MAIB Annual Report 2019/i }).getAttribute("href")).toMatch(/^https:\/\/assets\.publishing\.service\.gov\.uk\//);
+  });
 });
 
 describe("PersonalSafetyTheory completion", () => {
