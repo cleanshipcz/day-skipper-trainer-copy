@@ -458,6 +458,25 @@ export type Database = {
         Args: { p_increment: number; p_user_id: string }
         Returns: undefined
       }
+      load_sail_controls_progress: {
+        Args: never
+        Returns: {
+          answers_history: Json | null
+          completed: boolean | null
+          created_at: string
+          id: string
+          last_accessed: string | null
+          score: number | null
+          topic_id: string
+          user_id: string
+        }[]
+        SetofOptions: {
+          from: "*"
+          to: "user_progress"
+          isOneToOne: false
+          isSetofReturn: true
+        }
+      }
       quarantine_readiness_record_progress: { Args: never; Returns: boolean }
       record_active_question_review_internal: {
         Args: {
@@ -587,6 +606,14 @@ export type Database = {
       }
       save_readiness_record_progress_v2: {
         Args: { p_answers_history: Json; p_completed: boolean }
+        Returns: {
+          awarded_points: number
+          completion_awarded: boolean
+          points_awarded: boolean
+        }[]
+      }
+      save_sail_controls_progress: {
+        Args: { p_answers_history: Json; p_completed: boolean; p_score: number }
         Returns: {
           awarded_points: number
           completion_awarded: boolean

@@ -36,5 +36,6 @@
   "20260812100000_align_life_raft_quiz_attempts.sql": "fb4858db3f4891a471f58d85ed57aa9a056e9359d2179dbcf4636b646d4e24d8",
   "20260812110000_version_life_raft_quiz_attempts.sql": "418c83cbcb887ce86f04eb9a848ad762077f8f813bdbd7a305106ac4eec868f5",
   "20260812152000_version_personal_safety_mastery.sql": "6d0b930537f03d9d672bea7fa72a9e34301025d11f3b9759dd11d1aa188725e4",
-  "20260819170500_nautical_terms_quiz_progress.sql": "447fc9bea0972e94454b2d390749e0dcbad8b60eb46dcfb0c1dbc35acedfeb03"
+  "20260819170500_nautical_terms_quiz_progress.sql": "447fc9bea0972e94454b2d390749e0dcbad8b60eb46dcfb0c1dbc35acedfeb03",
+  "20260819193000_sail_controls_progress.sql": "57377da415e65f0082083c89bc416b9ac5c776196ea7b90677cc5311b398ff9c"
 }
