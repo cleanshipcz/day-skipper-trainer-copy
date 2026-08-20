@@ -1,5 +1,7 @@
 ---
-applyTo: "**/*"
+name: docs-write-readme
+description: Create a comprehensive README.md for a project
+argument-hint: <project_name> <project_description> [tech_stack] [installation_steps] [usage_examples]
 ---
 
 # docs-write-readme
@@ -8,11 +10,11 @@ Create a comprehensive README.md for a project
 
 ## Variables
 
-- `{{project_name}}` (required): Name of the project
-- `{{project_description}}` (required): What the project does
-- `{{tech_stack}}`: Technologies used
-- `{{installation_steps}}`: How to install/setup
-- `{{usage_examples}}`: How to use the project
+- `${input:project_name:Name of the project}` (required): Name of the project
+- `${input:project_description:What the project does}` (required): What the project does
+- `${input:tech_stack:Technologies used}`: Technologies used
+- `${input:installation_steps:How to install/setup}`: How to install/setup
+- `${input:usage_examples:How to use the project}`: How to use the project
 
 ## Rules
 
@@ -24,20 +26,20 @@ Create a comprehensive README.md for a project
 
 ## Prompt
 
-Create a README.md for the project "{{project_name}}":
+Create a README.md for the project "${input:project_name:Name of the project}":
 
-Description: {{project_description}}
+Description: ${input:project_description:What the project does}
 
 {{#tech_stack}}
-Tech stack: {{tech_stack}}
+Tech stack: ${input:tech_stack:Technologies used}
 {{/tech_stack}}
 
 {{#installation_steps}}
-Installation: {{installation_steps}}
+Installation: ${input:installation_steps:How to install/setup}
 {{/installation_steps}}
 
 {{#usage_examples}}
-Usage: {{usage_examples}}
+Usage: ${input:usage_examples:How to use the project}
 {{/usage_examples}}
 
 Include these sections:

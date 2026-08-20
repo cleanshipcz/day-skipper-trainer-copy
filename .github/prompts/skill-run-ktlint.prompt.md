@@ -1,5 +1,6 @@
 ---
-applyTo: "**/*"
+name: run-ktlint
+description: Run ktlint for Kotlin code formatting. Use when user asks to run ktlint or requests a Kotlin formatting check.
 ---
 
 # run-ktlint

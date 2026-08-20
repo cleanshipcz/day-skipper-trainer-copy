@@ -1,5 +1,6 @@
 ---
-applyTo: "**/*"
+name: search-repo
+description: Search repository for code patterns or text. Use when user asks to search the codebase or find code patterns.
 ---
 
 # search-repo

@@ -1,5 +1,6 @@
 ---
-applyTo: "**/*"
+name: run-gradle-tests
+description: Run unit tests with Gradle. Use when user asks to run tests, run Gradle tests, or verify code changes.
 ---
 
 # run-gradle-tests

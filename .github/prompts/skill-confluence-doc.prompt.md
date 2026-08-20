@@ -1,5 +1,6 @@
 ---
-applyTo: "**/*"
+name: confluence-doc
+description: Create and update Confluence documentation — Use when creating or updating pages in Confluence.
 ---
 
 # confluence-doc

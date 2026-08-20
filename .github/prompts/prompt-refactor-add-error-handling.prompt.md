@@ -1,5 +1,7 @@
 ---
-applyTo: "**/*"
+name: refactor-add-error-handling
+description: Add comprehensive error handling and validation
+argument-hint: <code> <language>
 ---
 
 # refactor-add-error-handling
@@ -8,8 +10,8 @@ Add comprehensive error handling and validation
 
 ## Variables
 
-- `{{code}}` (required): The code needing error handling
-- `{{language}}` (required): Programming language of the code
+- `${input:code:The code needing error handling}` (required): The code needing error handling
+- `${input:language:Programming language of the code}` (required): Programming language of the code
 
 ## Rules
 
@@ -21,10 +23,10 @@ Add comprehensive error handling and validation
 
 ## Prompt
 
-Add proper error handling to this {{language}} code:
+Add proper error handling to this ${input:language:Programming language of the code} code:
 
-```{{language}}
-{{code}}
+```${input:language:Programming language of the code}
+${input:code:The code needing error handling}
 ```
 
 Consider these error scenarios:

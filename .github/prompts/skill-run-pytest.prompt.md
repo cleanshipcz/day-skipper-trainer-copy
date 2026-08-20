@@ -1,5 +1,6 @@
 ---
-applyTo: "**/*"
+name: run-pytest
+description: Run Python tests with pytest. Use when user asks to run Python tests or run pytest.
 ---
 
 # run-pytest

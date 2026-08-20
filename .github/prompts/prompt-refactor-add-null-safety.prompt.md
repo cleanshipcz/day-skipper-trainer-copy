@@ -1,5 +1,7 @@
 ---
-applyTo: "**/*"
+name: refactor-add-null-safety
+description: Add null safety checks to code that may have null pointer issues
+argument-hint: <code> <language>
 ---
 
 # refactor-add-null-safety
@@ -8,8 +10,8 @@ Add null safety checks to code that may have null pointer issues
 
 ## Variables
 
-- `{{code}}` (required): The code to make null-safe
-- `{{language}}` (required): Programming language
+- `${input:code:The code to make null-safe}` (required): The code to make null-safe
+- `${input:language:Programming language}` (required): Programming language
 
 ## Rules
 
@@ -20,10 +22,10 @@ Add null safety checks to code that may have null pointer issues
 
 ## Prompt
 
-Analyze the following {{language}} code for potential null pointer issues and add appropriate null safety:
+Analyze the following ${input:language:Programming language} code for potential null pointer issues and add appropriate null safety:
 
-```{{language}}
-{{code}}
+```${input:language:Programming language}
+${input:code:The code to make null-safe}
 ```
 
 Tasks:

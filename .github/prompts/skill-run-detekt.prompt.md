@@ -1,5 +1,6 @@
 ---
-applyTo: "**/*"
+name: run-detekt
+description: Run Detekt static analysis for Kotlin. Use when user asks to run detekt or requests static analysis on Kotlin code.
 ---
 
 # run-detekt

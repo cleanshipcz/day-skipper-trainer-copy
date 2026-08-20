@@ -1,5 +1,7 @@
 ---
-applyTo: "**/*"
+name: docs-document-api
+description: Generate comprehensive API documentation
+argument-hint: <code> <language> [doc_style]
 ---
 
 # docs-document-api
@@ -8,9 +10,9 @@ Generate comprehensive API documentation
 
 ## Variables
 
-- `{{code}}` (required): The API code to document
-- `{{language}}` (required): Programming language
-- `{{doc_style}}`: Documentation style (javadoc, sphinx, jsdoc, etc.)
+- `${input:code:The API code to document}` (required): The API code to document
+- `${input:language:Programming language}` (required): Programming language
+- `${input:doc_style:Documentation style (javadoc, sphinx, jsdoc, etc.)}`: Documentation style (javadoc, sphinx, jsdoc, etc.)
 
 ## Rules
 
@@ -22,14 +24,14 @@ Generate comprehensive API documentation
 
 ## Prompt
 
-Generate API documentation for this {{language}} code:
+Generate API documentation for this ${input:language:Programming language} code:
 
-```{{language}}
-{{code}}
+```${input:language:Programming language}
+${input:code:The API code to document}
 ```
 
 {{#doc_style}}
-Use {{doc_style}} format.
+Use ${input:doc_style:Documentation style (javadoc, sphinx, jsdoc, etc.)} format.
 {{/doc_style}}
 
 Include:

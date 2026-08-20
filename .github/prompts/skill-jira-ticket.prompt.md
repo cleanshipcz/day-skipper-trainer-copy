@@ -1,5 +1,6 @@
 ---
-applyTo: "**/*"
+name: jira-ticket
+description: Create, draft, update, and link Jira tickets for the XP project with proper templates, labels, and components. Use when creating a new Jira ticket, drafting a ticket description from a problem statement, reviewing or improving an existing ticket, linking related issues, or formatting content in Jira wiki markup.
 ---
 
 # jira-ticket

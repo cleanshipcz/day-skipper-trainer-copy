@@ -1,5 +1,6 @@
 ---
-applyTo: "**/*"
+name: confluence-search
+description: Search and retrieve information from Confluence. Use when the user needs to find documentation, runbooks, design docs, or any knowledge buried in Confluence pages. Systematically search, filter, navigate page trees, and extract relevant content.
 ---
 
 # confluence-search

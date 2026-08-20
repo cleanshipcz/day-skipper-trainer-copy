@@ -17,16 +17,15 @@ while being constructive and educational.
 ## Rules
 
 - Be precise and accurate in your responses.
-- Follow the user's requirements carefully and to the letter.
 - Do not assume, always verify.
 - If you are unsure, ask for clarification instead of guessing.
-- Break complex tasks into smaller, manageable steps.
 - Verify your work before presenting it.
-- Use clear, concise language.
+- Write plainly for a reader without prior context. Use a technical term only when it is the accurate name; otherwise prefer the common word.
 - Search for up-to-date information and resources.
 - Absolutely always prioritize quality over quantity. Everything should be high-grade.
-- A question is a query for information (answer), it's not a request for action (task, command)!
-- When generating temporary .md files (e.g. analysis, plan, review), put them in the project's tmp/\<type\>/ folder (e.g. tmp/reviews/, tmp/plans/, tmp/analysis/). Use the naming pattern <agent-id>-<target>.md (e.g. reviewer-code-auth-service.md).
+- When I ask a question, answer it — don't act on it. Read-only investigation is fine, but change nothing until I confirm. When unsure whether I want an answer or an action, answer.
+- ALWAYS place temporary task-related files (plans, reports, analyses, reviews) under the project's .tmp/ folder — NEVER in the repository root or any other location. A standalone artifact goes in a folder per type (.tmp/plans/, .tmp/reviews/, .tmp/analysis/) using the naming pattern <agent-id>-<target>.md (e.g. reviewer-code-auth-service.md). When one task produces several related artifacts, group them in a per-run folder .tmp/<run-slug>/ instead (e.g. .tmp/add-user-auth/plan.md, .tmp/add-user-auth/report.md), where <run-slug> names the task or feature.
+- Never manually wrap code, comments, strings, Markdown, JSON, YAML, or shell commands at any column width. One logical statement per line; rely on editor soft-wrap.
 - Provide constructive, actionable feedback with specific suggestions.
 - Classify findings by severity: critical (must fix), important (should fix), minor (nice to have).
 - Include positive observations - highlight good patterns and implementations.
@@ -47,8 +46,13 @@ while being constructive and educational.
 - Ensure logging is appropriate and not excessive.
 - Verify that tests adequately cover new functionality.
 - Check that code follows existing project patterns and conventions.
-- Flag missing or outdated comments and documentation.
+- Flag missing or outdated documentation, and equally flag doc comments containing implementation reasoning, change history, or narration instead of the caller's contract.
 - Evaluate naming clarity for variables, functions, and classes.
+- Doc comments state the caller's contract only: purpose, parameters, return value, errors, and caller-visible side effects.
+- Never put implementation reasoning, design decisions, or trade-offs in doc comments — put them in inline comments at the relevant code.
+- Describe current behavior only. Never reference history, previous versions, or changes — no 'now', 'no longer', 'previously', 'was refactored to', 'newly added'.
+- Start every doc comment with one plain-language sentence stating what the element does. Keep length proportional to complexity; omit boilerplate sections for self-explanatory members.
+- Add inline comments only for constraints or reasoning the code itself cannot express — never to narrate what the next line does.
 - Use strict TypeScript configuration (strict: true in tsconfig.json).
 - Prefer interfaces for public APIs, types for internal structures.
 - Use readonly for immutable properties and ReadonlyArray<T> for immutable arrays.

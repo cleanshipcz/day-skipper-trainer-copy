@@ -1,5 +1,7 @@
 ---
-applyTo: "**/*"
+name: planning-create-implementation-plan
+description: Break down a project into phases with tasks and timeline
+argument-hint: <project> [team_size] [timeline] [priorities]
 ---
 
 # planning-create-implementation-plan
@@ -8,10 +10,10 @@ Break down a project into phases with tasks and timeline
 
 ## Variables
 
-- `{{project}}` (required): Project description
-- `{{team_size}}`: Number of developers
-- `{{timeline}}`: Desired completion timeline
-- `{{priorities}}`: Must-have vs nice-to-have features
+- `${input:project:Project description}` (required): Project description
+- `${input:team_size:Number of developers}`: Number of developers
+- `${input:timeline:Desired completion timeline}`: Desired completion timeline
+- `${input:priorities:Must-have vs nice-to-have features}`: Must-have vs nice-to-have features
 
 ## Rules
 
@@ -24,18 +26,18 @@ Break down a project into phases with tasks and timeline
 
 Create implementation plan for:
 
-Project: {{project}}
+Project: ${input:project:Project description}
 
 {{#team_size}}
-Team size: {{team_size}} developers
+Team size: ${input:team_size:Number of developers} developers
 {{/team_size}}
 
 {{#timeline}}
-Timeline: {{timeline}}
+Timeline: ${input:timeline:Desired completion timeline}
 {{/timeline}}
 
 {{#priorities}}
-Priorities: {{priorities}}
+Priorities: ${input:priorities:Must-have vs nice-to-have features}
 {{/priorities}}
 
 Provide:

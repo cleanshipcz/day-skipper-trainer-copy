@@ -1,5 +1,7 @@
 ---
-applyTo: "**/*"
+name: docs-summarize-pr
+description: Generate a concise summary of a pull request
+argument-hint: <diff> [context]
 ---
 
 # docs-summarize-pr
@@ -8,8 +10,8 @@ Generate a concise summary of a pull request
 
 ## Variables
 
-- `{{diff}}` (required): The git diff to summarize
-- `{{context}}`: Additional context about the PR
+- `${input:diff:The git diff to summarize}` (required): The git diff to summarize
+- `${input:context:Additional context about the PR}`: Additional context about the PR
 
 ## Rules
 
@@ -23,11 +25,11 @@ Generate a concise summary of a pull request
 Analyze this pull request and provide a clear summary:
 
 ```diff
-{{diff}}
+${input:diff:The git diff to summarize}
 ```
 
 {{#context}}
-Context: {{context}}
+Context: ${input:context:Additional context about the PR}
 {{/context}}
 
 Provide:

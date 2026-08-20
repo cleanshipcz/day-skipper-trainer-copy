@@ -1,8 +1,3 @@
-# Copilot Instructions for this project
-
-## Description
-
-A Day Skipper sailing certification training application                
 # day-skipper-trainer
 
 A Day Skipper sailing certification training application

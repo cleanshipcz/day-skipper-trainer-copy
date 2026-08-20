@@ -9,6 +9,5 @@ A web application for Day Skipper sailing certification training, built with Vit
 
 ## Documentation files
 
-- `README.md` — supported setup and quality workflow
-- `docs/README.md` — documentation index and normative/historical classification
-- `docs/QUALITY_BASELINE.md` — enforced quality and migration constraints
+- README.md
+

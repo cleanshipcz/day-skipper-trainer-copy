@@ -1,5 +1,7 @@
 ---
-applyTo: "**/*"
+name: qa-write-tests
+description: Generate comprehensive unit tests for given code
+argument-hint: <code> <language> [test_framework]
 ---
 
 # qa-write-tests
@@ -8,9 +10,9 @@ Generate comprehensive unit tests for given code
 
 ## Variables
 
-- `{{code}}` (required): The code to test
-- `{{language}}` (required): Programming language
-- `{{test_framework}}`: Testing framework to use (e.g., pytest, junit, jest)
+- `${input:code:The code to test}` (required): The code to test
+- `${input:language:Programming language}` (required): Programming language
+- `${input:test_framework:Testing framework to use (e.g., pytest, junit, jest)}`: Testing framework to use (e.g., pytest, junit, jest)
 
 ## Rules
 
@@ -22,14 +24,14 @@ Generate comprehensive unit tests for given code
 
 ## Prompt
 
-Write comprehensive unit tests for the following {{language}} code:
+Write comprehensive unit tests for the following ${input:language:Programming language} code:
 
-```{{language}}
-{{code}}
+```${input:language:Programming language}
+${input:code:The code to test}
 ```
 
 {{#test_framework}}
-Use {{test_framework}} as the testing framework.
+Use ${input:test_framework:Testing framework to use (e.g., pytest, junit, jest)} as the testing framework.
 {{/test_framework}}
 
 Requirements:

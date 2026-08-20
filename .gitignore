@@ -29,3 +29,7 @@ dist-ssr
 docs/review/
 docs/personas/
 tasks/
+
+.bin/
+.env
+.playwright-mcp/
