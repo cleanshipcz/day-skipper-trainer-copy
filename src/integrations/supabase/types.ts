@@ -556,6 +556,14 @@ export type Database = {
           points_awarded: boolean
         }[]
       }
+      save_nautical_terms_quiz_progress: {
+        Args: { p_answers_history: Json; p_completed: boolean; p_score: number }
+        Returns: {
+          awarded_points: number
+          completion_awarded: boolean
+          points_awarded: boolean
+        }[]
+      }
       save_passage_plan_progress: {
         Args: {
           p_answers_history: Json

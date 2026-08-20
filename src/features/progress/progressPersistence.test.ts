@@ -36,6 +36,25 @@ const buildSupabaseMock = () => {
 };
 
 describe("saveProgressRecord", () => {
+  it("routes nautical terms quiz snapshots through its dedicated RPC", async () => {
+    const { client, rpc } = buildSupabaseMock();
+    const answersHistory = { version: 2, currentQuestion: 1, answers: ["bow", null] };
+    await saveProgressRecord({
+      supabaseClient: client as never,
+      userId: "user-1",
+      topicId: "quiz-nautical-terms-quiz",
+      completed: false,
+      score: 3,
+      answersHistory,
+    });
+    expect(rpc).toHaveBeenCalledWith("save_nautical_terms_quiz_progress", {
+      p_completed: false,
+      p_score: 3,
+      p_answers_history: answersHistory,
+    });
+    expect(rpc).not.toHaveBeenCalledWith("save_topic_progress", expect.anything());
+  });
+
   it("routes readiness corrections through the revocable evidence RPC",async()=>{
     const {client,rpc}=buildSupabaseMock();
     const answersHistory={readinessRecord:{version:2,sessionId:"session-1",catalogueFingerprint:"fnv1a-current",context:{vessel:"Aster",voyage:"Cowes",conditions:"F4"},entries:{},createdAt:"2026-08-11T15:00:00Z",updatedAt:"2026-08-11T16:00:00Z",expiresAt:"2026-09-10T16:00:00Z"}};
