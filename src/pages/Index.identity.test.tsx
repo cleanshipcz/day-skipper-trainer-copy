@@ -4,10 +4,14 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
 
 const state = vi.hoisted(() => ({
   user: { id: "account-a", email: "a@example.test" } as { id: string; email: string } | null,
-  pendingA: [] as Array<{ table: string; resolve: (value: { data: unknown; error: null }) => void }>,
+  pendingA: [] as Array<{ table: string; owner: string; resolve: (value: { data: unknown; error: unknown }) => void }>,
   deferredOwners: new Set(["account-a"]),
   profilePoints: new Map<string, number>([["account-a", 999], ["account-b", 2]]),
   download: vi.fn(),
+  retryEngagement: vi.fn().mockResolvedValue([]),
+  badges: new Map<string, string[]>(),
+  loadErrors: new Map<string, Error>(),
+  fetchStreaks: vi.fn().mockResolvedValue([]),
 }));
 
 vi.mock("@/contexts/AuthHooks", () => ({
@@ -15,11 +19,11 @@ vi.mock("@/contexts/AuthHooks", () => ({
 }));
 vi.mock("@/features/spaced-repetition/useDueReviewCount", () => ({ useDueReviewCount: () => 0 }));
 vi.mock("@/features/engagement/engagementService", () => ({
-  retryEngagementOutbox: vi.fn().mockResolvedValue([]),
+  retryEngagementOutbox: (...args: unknown[]) => state.retryEngagement(...args),
 }));
 vi.mock("@/features/engagement/streaks", () => ({
   calculateStreak: () => 0,
-  fetchAllStreakTimestamps: vi.fn().mockResolvedValue([]),
+  fetchAllStreakTimestamps: (...args: unknown[]) => state.fetchStreaks(...args),
 }));
 vi.mock("@/features/export/progressReport", async (importOriginal) => {
   const original = await importOriginal<typeof import("@/features/export/progressReport")>();
@@ -36,7 +40,7 @@ const responseFor = (table: string, owner: string) => {
     : [], error: null };
   if (table === "quiz_scores") return { data: [], error: null };
   if (table === "exam_results") return { data: [], error: null };
-  if (table === "user_badges") return { data: [], error: null };
+  if (table === "user_badges") return { data: (state.badges.get(owner) ?? []).map((badge_id) => ({ badge_id })), error: state.loadErrors.get(owner) ?? null };
   return { data: [], error: null };
 };
 
@@ -50,11 +54,11 @@ vi.mock("@/integrations/supabase/client", () => ({
         order: () => query,
         range: () => query,
         single: () => new Promise((resolve) => {
-          if (state.deferredOwners.has(owner)) state.pendingA.push({ table, resolve });
+          if (state.deferredOwners.has(owner)) state.pendingA.push({ table, owner, resolve });
           else resolve(responseFor(table, owner));
         }),
         then: (resolve: (value: unknown) => void) => {
-          if (state.deferredOwners.has(owner)) state.pendingA.push({ table, resolve: resolve as never });
+          if (state.deferredOwners.has(owner)) state.pendingA.push({ table, owner, resolve: resolve as never });
           else resolve(responseFor(table, owner));
         },
       };
@@ -72,6 +76,66 @@ describe("dashboard identity isolation", () => {
     state.deferredOwners = new Set(["account-a"]);
     state.profilePoints = new Map([["account-a", 999], ["account-b", 2]]);
     state.download.mockReset();
+    state.retryEngagement.mockReset().mockResolvedValue([]);
+    state.badges = new Map();
+    state.loadErrors = new Map();
+    state.fetchStreaks.mockReset().mockResolvedValue([]);
+  });
+
+  it("shows authoritative badges when a background engagement replay remains pending", async () => {
+    state.deferredOwners.clear();
+    state.retryEngagement.mockRejectedValueOnce(new Error("offline"));
+    state.badges.set("account-a", ["first-quiz"]);
+
+    render(<MemoryRouter><Index /></MemoryRouter>);
+
+    await waitFor(() => expect(screen.getByText(/First Quiz/)).toBeTruthy());
+    expect(screen.getByText("Recent activity will sync automatically on your next visit.")).toBeTruthy();
+    expect(screen.queryByRole("alert")).toBeNull();
+    expect(screen.getByRole("heading", { name: "Badges (1)" })).toBeTruthy();
+  });
+
+  it("does not expose owner A badges when owner B engagement loading fails", async () => {
+    state.deferredOwners.clear();
+    state.badges.set("account-a", ["first-quiz"]);
+    const view = render(<MemoryRouter><Index /></MemoryRouter>);
+    await waitFor(() => expect(screen.getByText(/First Quiz/)).toBeTruthy());
+
+    state.user = { id: "account-b", email: "b@example.test" };
+    state.loadErrors.set("account-b", new Error("badges unavailable"));
+    view.rerender(<MemoryRouter><Index /></MemoryRouter>);
+
+    await waitFor(() => expect(screen.getByRole("alert").textContent).toContain("Badges could not be loaded"));
+    expect(screen.queryByText(/First Quiz/)).toBeNull();
+    expect(screen.getByRole("heading", { name: "Badges (0)" })).toBeTruthy();
+    expect(screen.getByText("Loading streak…")).toBeTruthy();
+  });
+
+  it("keeps owner B badges after a delayed owner A engagement result completes", async () => {
+    state.badges.set("account-a", ["first-quiz"]);
+    state.badges.set("account-b", ["perfect-score"]);
+    const view = render(<MemoryRouter><Index /></MemoryRouter>);
+    await waitFor(() => expect(state.pendingA.some(({ table }) => table === "user_badges")).toBe(true));
+
+    state.user = { id: "account-b", email: "b@example.test" };
+    view.rerender(<MemoryRouter><Index /></MemoryRouter>);
+    await waitFor(() => expect(screen.getByText(/Perfect Score/)).toBeTruthy());
+
+    state.pendingA.splice(0).forEach(({ table, owner, resolve }) => resolve(responseFor(table, owner)));
+    await Promise.resolve();
+    expect(screen.getByText(/Perfect Score/)).toBeTruthy();
+    expect(screen.queryByText(/First Quiz/)).toBeNull();
+    expect(screen.getByRole("heading", { name: "Badges (1)" })).toBeTruthy();
+  });
+
+  it("reports an authoritative activity load failure as an alert", async () => {
+    state.deferredOwners.clear();
+    state.fetchStreaks.mockRejectedValueOnce(new Error("activity unavailable"));
+
+    render(<MemoryRouter><Index /></MemoryRouter>);
+
+    await waitFor(() => expect(screen.getByRole("alert").textContent).toContain("Badges could not be loaded"));
+    expect(screen.getByText("Loading streak…")).toBeTruthy();
   });
 
   it("hides stale owner data, ignores delayed responses, and exports only after the current owner loads", async () => {
@@ -112,13 +176,16 @@ describe("dashboard identity isolation", () => {
     ]));
 
     state.profilePoints.set("account-b", 22);
+    state.badges.set("account-b", ["perfect-score"]);
     const newer = state.pendingA.splice(3, 3);
     newer.forEach(({ table, resolve }) => resolve(responseFor(table, "account-b")));
     await waitFor(() => expect(state.pendingA.some(({ table }) => table === "quiz_scores")).toBe(true));
     state.pendingA.splice(3).forEach(({ table, resolve }) => resolve(responseFor(table, "account-b")));
     await waitFor(() => expect(screen.getAllByText("22")).toHaveLength(2));
+    await waitFor(() => expect(screen.getByText(/Perfect Score/)).toBeTruthy());
 
     state.profilePoints.set("account-b", 11);
+    state.badges.set("account-b", ["first-quiz"]);
     const older = state.pendingA.splice(0, 3);
     older.forEach(({ table, resolve }) => resolve(responseFor(table, "account-b")));
     await Promise.resolve();
@@ -127,6 +194,8 @@ describe("dashboard identity isolation", () => {
 
     expect(screen.getAllByText("22")).toHaveLength(2);
     expect(screen.queryByText("11")).toBeNull();
+    expect(screen.getByText(/Perfect Score/)).toBeTruthy();
+    expect(screen.queryByText(/First Quiz/)).toBeNull();
     expect((screen.getByRole("button", { name: /export progress report/i }) as HTMLButtonElement).disabled).toBe(false);
   });
 });

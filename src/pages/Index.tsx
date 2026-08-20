@@ -194,6 +194,7 @@ const Index = () => {
   const [engagementOwner, setEngagementOwner] = useState<string | null>(null);
   const [engagementLoading, setEngagementLoading] = useState(false);
   const [engagementError, setEngagementError] = useState(false);
+  const [engagementSyncPending, setEngagementSyncPending] = useState(false);
   const currentUserId = user?.id ?? null;
   const dashboardOwnerRef = React.useRef(currentUserId);
   const dashboardGenerationRef = React.useRef(0);
@@ -206,7 +207,10 @@ const Index = () => {
   const visibleProfile = dashboardReady ? profile : null;
   const visibleUserProgress = dashboardReady ? userProgress : {};
   const engagementOwnerRef = React.useRef(currentUserId);
+  const engagementGenerationRef = React.useRef(0);
   engagementOwnerRef.current = currentUserId;
+  const engagementReady = Boolean(currentUserId && engagementOwner === currentUserId && !engagementLoading && !engagementError);
+  const visibleEarnedBadges = engagementReady ? earnedBadges : [];
   const visibleDueReviews = useDueReviewCount(currentUserId);
 
   const fetchProfile = React.useCallback(async (owner: string, generation: number) => {
@@ -288,16 +292,20 @@ const Index = () => {
   const fetchEngagement = React.useCallback(async () => {
     if (!user) return;
     const owner = user.id;
+    const generation = ++engagementGenerationRef.current;
     setEngagementLoading(true);
     setEngagementError(false);
+    setEngagementSyncPending(false);
     setEngagementOwner(owner);
+    setEarnedBadges([]);
+    setCurrentStreak(0);
     try {
       const retryResults = await retryEngagementOutbox(supabase, owner);
-      if (engagementOwnerRef.current !== owner) return;
+      if (engagementOwnerRef.current !== owner || engagementGenerationRef.current !== generation) return;
       retryResults.flatMap(({ unlockedBadges }) => unlockedBadges)
         .forEach((badge) => toast.success(`${badge.icon} Badge unlocked: ${badge.name}`));
     } catch {
-      if (engagementOwnerRef.current === owner) setEngagementError(true);
+      if (engagementOwnerRef.current === owner && engagementGenerationRef.current === generation) setEngagementSyncPending(true);
     }
     const [{ data: badgeRows, error: badgeError }, activityResult] = await Promise.all([
       supabase.from("user_badges").select("badge_id").eq("user_id", owner).order("earned_at", { ascending: false }),
@@ -312,7 +320,7 @@ const Index = () => {
       }).then((timestamps) => ({ timestamps, error: null }))
         .catch((error: unknown) => ({ timestamps: [] as readonly string[], error })),
     ]);
-    if (engagementOwnerRef.current !== owner) return;
+    if (engagementOwnerRef.current !== owner || engagementGenerationRef.current !== generation) return;
     if (badgeError || activityResult.error) {
       setEngagementError(true);
       setEngagementLoading(false);
@@ -347,6 +355,7 @@ const Index = () => {
       fetchEngagement();
     } else {
       dashboardGenerationRef.current += 1;
+      engagementGenerationRef.current += 1;
       setDashboardOwner(null);
       setDashboardLoading(false);
       setProfile(null);
@@ -361,6 +370,7 @@ const Index = () => {
       setEngagementOwner(null);
       setEngagementLoading(false);
       setEngagementError(false);
+      setEngagementSyncPending(false);
     }
   }, [user, fetchProfile, fetchProgress, fetchEngagement]);
 
@@ -437,19 +447,20 @@ const Index = () => {
         {user && <div className="grid gap-4 md:grid-cols-2 mb-8">
           <Card className="border-2 border-orange-500/20"><CardContent className="pt-6 flex items-center gap-3">
             <Flame className="w-9 h-9 text-orange-500" />
-            <div><h2 className="font-bold text-xl">{engagementOwner !== currentUserId || engagementLoading ? "Loading streak…" : `${currentStreak} day streak`}</h2>
+            <div><h2 className="font-bold text-xl">{!engagementReady ? "Loading streak…" : `${currentStreak} day streak`}</h2>
               <p className="text-sm text-muted-foreground">Europe/Prague study days · +5 points for each maintained day</p></div>
           </CardContent></Card>
           <Card className="border-2 border-accent/20"><CardContent className="pt-6">
             <div className="flex items-center gap-2 mb-3"><Award className="w-7 h-7 text-accent" />
-              <h2 className="font-bold text-xl">Badges ({earnedBadges.length})</h2></div>
+              <h2 className="font-bold text-xl">Badges ({visibleEarnedBadges.length})</h2></div>
             <div className="flex flex-wrap gap-2">
-              {engagementError ? <span role="alert" className="text-sm text-destructive">Engagement sync is pending; retry on your next visit.</span>
+              {engagementError ? <span role="alert" className="text-sm text-destructive">Badges could not be loaded; retry on your next visit.</span>
                 : engagementOwner !== currentUserId || engagementLoading ? <span className="text-sm text-muted-foreground">Loading badges…</span>
-                : earnedBadges.length === 0 ? <span className="text-sm text-muted-foreground">Complete learning milestones to earn badges.</span>
-                : earnedBadges.map((badge) => <Badge key={badge.id} variant="secondary" title={badge.description}>
+                : <>{visibleEarnedBadges.length === 0 ? <span className="text-sm text-muted-foreground">Complete learning milestones to earn badges.</span>
+                : visibleEarnedBadges.map((badge) => <Badge key={badge.id} variant="secondary" title={badge.description}>
                   {badge.icon} {badge.name}
                 </Badge>)}
+                {engagementSyncPending && <span className="text-sm text-muted-foreground">Recent activity will sync automatically on your next visit.</span>}</>}
             </div>
           </CardContent></Card>
         </div>}
