@@ -90,7 +90,7 @@ function getDiagramControlProps(
   };
 }
 
-// Simple schematic diagram showing where controls are - with clickable areas
+// Interactive yacht profile: presentation layers stay separate from the stable control targets.
 const SchematicDiagram = ({
   highlightId,
   onHover,
@@ -102,15 +102,44 @@ const SchematicDiagram = ({
 }) => (
   <svg
     viewBox="0 0 600 700"
-    className="h-auto w-full min-w-[600px] max-w-none md:min-w-0"
-    aria-label="Sail controls diagram"
+    className="h-auto w-full min-w-[600px] max-w-none rounded-xl [--diagram-coast:#8aa8a4] [--diagram-sea-bottom:#0d5274] [--diagram-sea-top:#3ba4c7] [--diagram-sky-bottom:#d9edf5] [--diagram-sky-top:#dff3ff] md:min-w-0 dark:[--diagram-coast:#304b55] dark:[--diagram-sea-bottom:#071c2b] dark:[--diagram-sea-top:#123d53] dark:[--diagram-sky-bottom:#172536] dark:[--diagram-sky-top:#081321] forced-colors:[--diagram-coast:CanvasText] forced-colors:[--diagram-sea-bottom:Canvas] forced-colors:[--diagram-sea-top:Canvas] forced-colors:[--diagram-sky-bottom:Canvas] forced-colors:[--diagram-sky-top:Canvas]"
+    aria-label="Interactive side view of a cruising yacht showing sail controls and rig adjustments"
     aria-describedby="sail-controls-diagram-help"
   >
     <defs>
-      <linearGradient id="sailGradient2" x1="0%" y1="0%" x2="100%" y2="0%">
-        <stop offset="0%" stopColor="#fef3c7" />
-        <stop offset="100%" stopColor="#fde68a" />
+      <linearGradient id="skyGradient" x1="0" y1="0" x2="0" y2="1">
+        <stop offset="0%" stopColor="var(--diagram-sky-top)" />
+        <stop offset="72%" stopColor="var(--diagram-sky-bottom)" />
+        <stop offset="100%" stopColor="var(--diagram-sky-bottom)" />
       </linearGradient>
+      <linearGradient id="seaGradient" x1="0" y1="0" x2="0" y2="1">
+        <stop offset="0%" stopColor="var(--diagram-sea-top)" />
+        <stop offset="100%" stopColor="var(--diagram-sea-bottom)" />
+      </linearGradient>
+      <linearGradient id="hullGradient" x1="0" y1="0" x2="0" y2="1">
+        <stop offset="0%" stopColor="#f8fafc" />
+        <stop offset="55%" stopColor="#dbe4ec" />
+        <stop offset="57%" stopColor="#173b56" />
+        <stop offset="100%" stopColor="#0b263c" />
+      </linearGradient>
+      <linearGradient id="mastGradient" x1="0" y1="0" x2="1" y2="0">
+        <stop offset="0%" stopColor="#334155" />
+        <stop offset="48%" stopColor="#cbd5e1" />
+        <stop offset="100%" stopColor="#475569" />
+      </linearGradient>
+      <linearGradient id="sailGradient2" x1="0%" y1="0%" x2="100%" y2="0%">
+        <stop offset="0%" stopColor="#fffdf4" />
+        <stop offset="58%" stopColor="#f5f0da" />
+        <stop offset="100%" stopColor="#d7e1e6" />
+      </linearGradient>
+      <linearGradient id="jibGradient" x1="0" y1="0" x2="1" y2="1">
+        <stop offset="0%" stopColor="#ffffff" />
+        <stop offset="72%" stopColor="#e8f0f2" />
+        <stop offset="100%" stopColor="#c8d8df" />
+      </linearGradient>
+      <filter id="boatShadow" x="-20%" y="-20%" width="140%" height="160%">
+        <feDropShadow dx="0" dy="8" stdDeviation="7" floodColor="#082f49" floodOpacity="0.28" />
+      </filter>
       <filter id="glow">
         <feGaussianBlur stdDeviation="3" result="coloredBlur" />
         <feMerge>
@@ -120,36 +149,51 @@ const SchematicDiagram = ({
       </filter>
     </defs>
 
-    {/* Background */}
-    <rect x="0" y="0" width="600" height="700" fill="#f0f9ff" />
+    {/* Coastal atmosphere and water establish a credible yacht side profile. */}
+    <rect x="0" y="0" width="600" height="700" rx="18" fill="url(#skyGradient)" className="forced-colors:fill-[Canvas]" />
+    <circle cx="502" cy="92" r="37" fill="#fff7c2" opacity="0.78" />
+    <path d="M0 535 C70 506 120 520 183 500 C255 478 326 518 390 492 C470 460 530 491 600 470 L600 565 L0 565Z" fill="var(--diagram-coast)" opacity="0.3" className="forced-colors:fill-[CanvasText]" />
+    <path d="M0 555 C95 526 155 548 232 530 C330 507 404 552 492 520 C535 505 570 511 600 520 L600 580 L0 580Z" fill="var(--diagram-coast)" opacity="0.2" className="forced-colors:fill-[CanvasText]" />
+    <rect x="0" y="565" width="600" height="135" fill="url(#seaGradient)" className="forced-colors:fill-[Canvas]" />
+    <g fill="none" strokeLinecap="round">
+      <path d="M0 585 C45 575 77 596 122 585 S204 575 252 587 S337 596 387 583 S474 575 526 587 S570 592 600 584" stroke="#d7f5ff" strokeWidth="3" opacity="0.8" />
+      <path d="M15 654 C66 643 102 663 153 652 M420 655 C468 643 516 662 580 650" stroke="#8ed6e8" strokeWidth="2" opacity="0.62" />
+    </g>
 
-    {/* Water hint at bottom */}
-    <rect x="0" y="620" width="600" height="80" fill="#e0f2fe" />
-    <path d="M0,620 Q75,610 150,620 T300,620 T450,620 T600,620" stroke="#7dd3fc" strokeWidth="2" fill="none" />
+    <g filter="url(#boatShadow)">
+      {/* A raked bow, counter stern and underwater body replace the box hull. */}
+      <path d="M89 573 Q112 567 139 558 L461 553 Q493 555 523 570 L505 598 Q472 626 406 639 L184 639 Q124 627 98 602Z" fill="url(#hullGradient)" stroke="#163a52" strokeWidth="3" />
+      <path d="M104 591 Q210 604 501 580" fill="none" stroke="#e44d43" strokeWidth="4" opacity="0.9" />
+      <path d="M122 565 Q183 544 264 546 L430 548 L465 559 L139 568Z" fill="#f8fafc" stroke="#64748b" strokeWidth="2" />
+      {/* Low coachroof, cockpit, ports and deck fittings. */}
+      <path d="M282 548 L307 517 L391 517 Q414 529 427 550Z" fill="#eef4f6" stroke="#40586b" strokeWidth="2" />
+      <path d="M315 522 H384 Q396 526 403 538 H306Z" fill="#28546d" opacity="0.9" />
+      <path d="M441 550 H488 L475 564 H432Z" fill="#9db1bb" stroke="#40586b" strokeWidth="2" />
+      <ellipse cx="211" cy="583" rx="13" ry="7" fill="#173b56" stroke="#9fb9c7" strokeWidth="2" />
+      <ellipse cx="253" cy="586" rx="13" ry="7" fill="#173b56" stroke="#9fb9c7" strokeWidth="2" />
+      <ellipse cx="404" cy="584" rx="13" ry="7" fill="#173b56" stroke="#9fb9c7" strokeWidth="2" />
+      <path d="M130 557 V539 M469 553 V535 M130 540 L469 536" stroke="#718899" strokeWidth="2" fill="none" />
+    </g>
 
-    {/* Hull outline */}
-    <path d="M120,580 L480,580 L510,640 L90,640 Z" fill="#e2e8f0" stroke="#1e3a5f" strokeWidth="3" />
-    <text x="300" y="615" textAnchor="middle" fontSize="14" fill="#64748b">
-      HULL
-    </text>
-
-    {/* Mast */}
-    <line x1="300" y1="60" x2="300" y2="520" stroke="#374151" strokeWidth="10" />
-    <circle cx="300" cy="55" r="8" fill="#374151" />
-    <text x="315" y="300" fontSize="12" fill="#374151" fontWeight="bold">
+    {/* Aluminium spars with subtle highlight and real mast hardware. */}
+    <path d="M296 520 L296 60 Q300 47 304 60 L304 520Z" fill="url(#mastGradient)" stroke="#334155" strokeWidth="1.5" />
+    <circle cx="300" cy="55" r="6" fill="#263746" stroke="#dbe5eb" strokeWidth="2" />
+    <line x1="299" y1="440" x2="140" y2="440" stroke="#263746" strokeWidth="10" strokeLinecap="round" />
+    <line x1="299" y1="437" x2="142" y2="437" stroke="#aebcc6" strokeWidth="2" strokeLinecap="round" opacity="0.75" />
+    <text x="315" y="270" fontSize="10" fill="#355264" opacity="0.78" fontWeight="700" letterSpacing="1.4" className="forced-colors:fill-[CanvasText]">
       MAST
     </text>
-
-    {/* Boom */}
-    <line x1="300" y1="440" x2="140" y2="440" stroke="#374151" strokeWidth="8" />
-    <circle cx="140" cy="440" r="6" fill="#6b7280" />
-    <text x="220" y="460" fontSize="11" fill="#374151">
+    <text x="213" y="458" textAnchor="middle" fontSize="10" fill="#355264" opacity="0.78" fontWeight="700" letterSpacing="1.4" className="forced-colors:fill-[CanvasText]">
       BOOM
     </text>
 
     {/* Mainsail */}
-    <path d="M296,75 L296,436 L144,436 Z" fill="url(#sailGradient2)" stroke="#1e3a5f" strokeWidth="2" opacity="0.9" />
-    <text x="220" y="300" fontSize="14" fill="#1e3a5f" opacity="0.6">
+    <path d="M296,75 C281,195 285,319 296,436 L144,436 C203,347 253,210 296,75 Z" fill="url(#sailGradient2)" stroke="#304c60" strokeWidth="2" />
+    <g fill="none" stroke="#9eacb4" strokeWidth="1.2" opacity="0.62">
+      <path d="M292 152 Q251 164 225 190" /><path d="M294 239 Q228 250 190 285" />
+      <path d="M295 329 Q204 341 157 382" /><path d="M181 352 L268 352 M166 392 L248 392" />
+    </g>
+    <text x="220" y="300" fontSize="13" fill="#355264" opacity="0.72" fontWeight="600" letterSpacing="1.5">
       MAINSAIL
     </text>
 
@@ -157,20 +201,20 @@ const SchematicDiagram = ({
     <path
       data-geometry="jib"
       d="M306,78 L500,540 L410,440 Z"
-      fill="#fef9c3"
-      stroke="#1e3a5f"
+      fill="url(#jibGradient)"
+      stroke="#304c60"
       strokeWidth="2"
-      opacity="0.85"
     />
-    <text x="390" y="330" fontSize="14" fill="#1e3a5f" opacity="0.6">
+    <path d="M336 150 Q399 281 472 476 M362 214 Q407 274 442 342" fill="none" stroke="#a4b3bb" strokeWidth="1.2" opacity="0.65" />
+    <text x="390" y="330" fontSize="13" fill="#355264" opacity="0.72" fontWeight="600" letterSpacing="1.5">
       JIB
     </text>
 
     {/* Forestay */}
-    <line data-geometry="forestay" x1="300" y1="60" x2="520" y2="560" stroke="#94a3b8" strokeWidth="3" />
+    <line data-geometry="forestay" x1="300" y1="60" x2="520" y2="560" stroke="#526b7a" strokeWidth="2.5" />
 
     {/* Backstay */}
-    <line x1="300" y1="60" x2="110" y2="640" stroke="#94a3b8" strokeWidth="3" />
+    <line x1="300" y1="60" x2="110" y2="640" stroke="#526b7a" strokeWidth="2.5" />
 
     {/* === INTERACTIVE CONTROL LINES === */}
 
