@@ -2,39 +2,36 @@ import { readFileSync } from "node:fs";
 import { describe, expect, it } from "vitest";
 import { sailControls } from "@/data/sailControls";
 
-const source = readFileSync(`${process.cwd()}/src/pages/SailControls.tsx`, "utf8");
+const source = readFileSync(`${process.cwd()}/src/components/SailControlsDiagram.tsx`, "utf8");
+const plate = readFileSync(`${process.cwd()}/public/images/sail-controls/cruising-sloop-controls.png`);
 
 describe("Sail Controls yacht diagram contract", () => {
   it("keeps one keyboard control and touch target for every catalogue item", () => {
-    const controls = [...source.matchAll(/getDiagramControlProps\("([^"]+)"/g)].map((match) => match[1]);
-    const targets = [...source.matchAll(/data-touch-target="([^"]+)"/g)].map((match) => match[1]);
+    const controls = [...source.matchAll(/id: "([^"]+)", name:/g)].map((match) => match[1]);
     const ids = sailControls.map((control) => control.id);
     expect(controls).toEqual(ids);
-    expect(targets).toEqual(ids);
+    expect(source).toContain("data-touch-target={control.id}");
+    expect(source).toContain('data-hit-polygons={control.hitPolygons.join("|")}');
+    expect(source).not.toContain("{...control.target}");
+    expect(source).toContain("data-control-artwork={control.id}");
+    expect(source).toContain('data-pointer-exclusion="presentation outside owned hotspot"');
+    expect(source.match(/pointerEvents="none"/g)).toHaveLength(3);
     expect(source).toContain('event.key === "Enter" || event.key === " "');
   });
 
-  it("retains fixed rig geometry while adding dimensional yacht rendering", () => {
+  it("uses a full-resolution generated raster plate without embedded diagram text", () => {
     expect(source).toContain('viewBox="0 0 600 700"');
-    expect(source).toContain('data-geometry="jib"');
-    expect(source).toContain('data-geometry="forestay"');
-    expect(source).toContain('id="skyGradient"');
-    expect(source).toContain('id="seaGradient"');
-    expect(source).toContain('id="hullGradient"');
-    expect(source).toContain('id="boatShadow"');
-    expect(source).toMatch(/>\s*MAST\s*<\/text>/);
-    expect(source).toMatch(/>\s*BOOM\s*<\/text>/);
+    expect(source).toContain('href="/images/sail-controls/cruising-sloop-controls.png"');
+    expect(source).not.toContain("<text");
+    expect(plate.subarray(1, 4).toString()).toBe("PNG");
+    expect(plate.readUInt32BE(16)).toBe(1163);
+    expect(plate.readUInt32BE(20)).toBe(1352);
   });
 
-  it("paints the opaque backdrop from dark-mode and forced-color tokens", () => {
-    for (const token of ["sky-top", "sky-bottom", "sea-top", "sea-bottom", "coast"]) {
-      expect(source).toContain(`[--diagram-${token}:`);
-      expect(source).toContain(`dark:[--diagram-${token}:`);
-      expect(source).toContain(`forced-colors:[--diagram-${token}:`);
-      expect(source).toContain(`var(--diagram-${token})`);
-    }
-    expect(source).toMatch(/fill="url\(#skyGradient\)" className="forced-colors:fill-\[Canvas\]"/);
-    expect(source).toMatch(/fill="url\(#seaGradient\)" className="forced-colors:fill-\[Canvas\]"/);
-    expect(source).not.toMatch(/<rect x="0" y="0"[^>]+fill="#[0-9a-f]+"/i);
+  it("keeps the overlays separate from the artwork and label-free", () => {
+    expect(source).toContain("overlays.map");
+    expect(source).toContain("fill=\"transparent\"");
+    expect(source).toContain("aria-label");
+    expect(source).not.toMatch(/<text|labelled control/);
   });
 });

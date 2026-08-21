@@ -88,7 +88,54 @@ try {
       const scroller = document.querySelector('[data-schematic-scroll]');
       const svg = scroller.querySelector('svg');
       const targets = [...svg.querySelectorAll('[data-touch-target]')].map((node) => node.getBoundingClientRect().toJSON());
-      const labels = [...svg.querySelectorAll('g[role=button] text')].map((node) => ({ text: node.textContent.trim(), box: node.getBoundingClientRect().toJSON(), size: parseFloat(getComputedStyle(node).fontSize) }));
+      const hitAreas = [...svg.querySelectorAll('[data-touch-target]')];
+      const polygons = hitAreas.flatMap((node) => node.dataset.hitPolygons.split('|').map((polygon) => ({
+        control: node.dataset.touchTarget,
+        points: polygon.split(' ').map((pair) => pair.split(',').map(Number)),
+      })));
+      const orientation = (a, b, c) => Math.sign((b[0] - a[0]) * (c[1] - a[1]) - (b[1] - a[1]) * (c[0] - a[0]));
+      const onSegment = (a, b, p) => orientation(a, b, p) === 0 && p[0] >= Math.min(a[0], b[0]) && p[0] <= Math.max(a[0], b[0]) && p[1] >= Math.min(a[1], b[1]) && p[1] <= Math.max(a[1], b[1]);
+      const segmentsIntersect = (a, b, c, d) => {
+        const [o1, o2, o3, o4] = [orientation(a, b, c), orientation(a, b, d), orientation(c, d, a), orientation(c, d, b)];
+        return (o1 !== o2 && o3 !== o4) || onSegment(a, b, c) || onSegment(a, b, d) || onSegment(c, d, a) || onSegment(c, d, b);
+      };
+      const pointInside = (point, polygon) => polygon.reduce((inside, vertex, index) => {
+        const previous = polygon[(index + polygon.length - 1) % polygon.length];
+        return ((vertex[1] > point[1]) !== (previous[1] > point[1]) && point[0] < (previous[0] - vertex[0]) * (point[1] - vertex[1]) / (previous[1] - vertex[1]) + vertex[0]) ? !inside : inside;
+      }, false);
+      const polygonsIntersect = (a, b) => a.some((point, index) => b.some((other, otherIndex) => segmentsIntersect(point, a[(index + 1) % a.length], other, b[(otherIndex + 1) % b.length]))) || pointInside(a[0], b) || pointInside(b[0], a);
+      const overlappingPairs = [];
+      for (let first = 0; first < polygons.length; first += 1) for (let second = first + 1; second < polygons.length; second += 1) {
+        if (polygons[first].control !== polygons[second].control && polygonsIntersect(polygons[first].points, polygons[second].points)) overlappingPairs.push([polygons[first].control, polygons[second].control]);
+      }
+      const interactiveArtwork = [...svg.querySelectorAll('[data-control-artwork]')].filter((node) => getComputedStyle(node).pointerEvents !== 'none').map((node) => node.dataset.controlArtwork);
+      const inactiveTargets = hitAreas.filter((node) => getComputedStyle(node).pointerEvents === 'none').map((node) => node.dataset.touchTarget);
+      const pointerOwnershipFailures = [];
+      for (const polygon of polygons) {
+        const center = polygon.points.reduce((sum, point) => [sum[0] + point[0] / polygon.points.length, sum[1] + point[1] / polygon.points.length], [0, 0]);
+        scroller.scrollLeft = Math.max(0, Math.min(scroller.scrollWidth - scroller.clientWidth, center[0] - scroller.clientWidth / 2));
+        window.scrollTo(0, Math.max(0, svg.getBoundingClientRect().top + window.scrollY + center[1] - window.innerHeight / 2));
+        const clientPoint = new DOMPoint(center[0], center[1]).matrixTransform(svg.getScreenCTM());
+        const owner = document.elementFromPoint(clientPoint.x, clientPoint.y)?.closest('[data-control-id]')?.dataset.controlId;
+        if (owner !== polygon.control) pointerOwnershipFailures.push({ expected: polygon.control, owner, center });
+      }
+      const artworkOwnershipFailures = [];
+      for (const artwork of svg.querySelectorAll('[data-control-artwork]')) {
+        const expected = artwork.dataset.controlArtwork;
+        const length = artwork.getTotalLength();
+        const samples = artwork.tagName === 'circle'
+          ? [{ point: new DOMPoint(Number(artwork.getAttribute('cx')), Number(artwork.getAttribute('cy'))), fraction: 'anchor-center' }]
+          : [0, 0.25, 0.5, 0.75, 1].map((fraction) => ({ point: artwork.getPointAtLength(length * fraction), fraction }));
+        for (const { point, fraction } of samples) {
+          scroller.scrollLeft = Math.max(0, Math.min(scroller.scrollWidth - scroller.clientWidth, point.x - scroller.clientWidth / 2));
+          window.scrollTo(0, Math.max(0, svg.getBoundingClientRect().top + window.scrollY + point.y - window.innerHeight / 2));
+          const clientPoint = new DOMPoint(point.x, point.y).matrixTransform(svg.getScreenCTM());
+          const owner = document.elementFromPoint(clientPoint.x, clientPoint.y)?.closest('[data-control-id]')?.dataset.controlId;
+          if (owner && owner !== expected) artworkOwnershipFailures.push({ expected, owner, point: [point.x, point.y], fraction });
+          if (!owner && !artwork.dataset.pointerExclusion) artworkOwnershipFailures.push({ expected, point: [point.x, point.y], fraction, missingExclusion: true });
+        }
+      }
+      const plate = svg.querySelector('[data-yacht-plate="cruising-sloop-controls"]');
       return {
         viewport: document.documentElement.clientWidth,
         pageWidth: document.documentElement.scrollWidth,
@@ -96,14 +143,19 @@ try {
         scrollWidth: scroller.scrollWidth,
         svg: svg.getBoundingClientRect().toJSON(),
         touchAction: getComputedStyle(scroller).touchAction,
-        targets, labels,
+        targets, overlappingPairs, interactiveArtwork, inactiveTargets, pointerOwnershipFailures, artworkOwnershipFailures, plate: plate?.getBoundingClientRect().toJSON(), embeddedTextCount: svg.querySelectorAll('text').length,
       };
     })()`);
     if (layout.pageWidth > layout.viewport || layout.scroller.left < 0 || layout.scroller.right > layout.viewport) throw new Error(`${width}px page overflow: ${JSON.stringify(layout)}`);
-    if (layout.svg.width < 590 || layout.svg.height < 680 || layout.labels.length !== 12 || layout.labels.some(({ size, box }) => size < 10 || box.width < 25 || box.height < 10)) throw new Error(`${width}px illegible canvas: ${JSON.stringify(layout)}`);
+    if (layout.svg.width < 590 || layout.svg.height < 680 || !layout.plate || layout.plate.width < 590 || layout.plate.height < 680 || layout.embeddedTextCount !== 0) throw new Error(`${width}px illegible canvas: ${JSON.stringify(layout)}`);
     if (layout.targets.some(({ width: hitWidth, height }) => hitWidth < 44 || height < 44)) throw new Error(`${width}px undersized hit area: ${JSON.stringify(layout.targets)}`);
+    if (layout.overlappingPairs.length) throw new Error(`${width}px overlapping hit areas: ${JSON.stringify(layout.overlappingPairs)}`);
+    if (layout.interactiveArtwork.length) throw new Error(`${width}px crossing artwork competes for pointer input: ${JSON.stringify(layout.interactiveArtwork)}`);
+    if (layout.inactiveTargets.length) throw new Error(`${width}px effective target is not pointer-interactive: ${JSON.stringify(layout.inactiveTargets)}`);
+    if (layout.pointerOwnershipFailures.length) throw new Error(`${width}px pointer ownership mismatch: ${JSON.stringify(layout.pointerOwnershipFailures)}`);
+    if (layout.artworkOwnershipFailures.length) throw new Error(`${width}px artwork resolves to the wrong control: ${JSON.stringify(layout.artworkOwnershipFailures)}`);
     if (layout.touchAction !== "auto") throw new Error(`${width}px must preserve native vertical touch scrolling; touch-action=${layout.touchAction}`);
-    if (width === 375 && layout.scrollWidth <= layout.scroller.width) throw new Error("375px diagram must be horizontally scrollable without shrinking labels.");
+    if (width === 375 && layout.scrollWidth <= layout.scroller.width) throw new Error("375px diagram must be horizontally scrollable without shrinking the teaching plate.");
 
     const scrollLeft = await evaluate(`(() => {
       const scroller = document.querySelector('[data-schematic-scroll]');

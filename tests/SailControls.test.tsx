@@ -253,43 +253,36 @@ describe("SailControls schematic geometry", () => {
     expect(screen.getByText(/Forward.*leech.*aft.*opens the leech/i)).toBeTruthy();
   });
 
-  it("aligns the jib luff, halyard, and aft-running sheet/fairlead route with the forestay", () => {
+  it("aligns the generated yacht plate with the jib halyard and aft-running sheet/fairlead overlays", () => {
     const { container } = render(
       <TestRouter>
         <SailControls />
       </TestRouter>
     );
 
-    const jib = container.querySelector('[data-geometry="jib"]');
-    const forestay = container.querySelector('[data-geometry="forestay"]');
+    const plate = container.querySelector('[data-yacht-plate="cruising-sloop-controls"]');
     const jibHalyard = container.querySelector('[data-control-id="jib-halyard"]');
     const jibSheet = container.querySelector('[data-control-id="jib-sheet"]');
     const fairlead = container.querySelector('[data-control-id="jib-fairlead"]');
 
-    expect(jib?.getAttribute("d")).toBe("M306,78 L500,540 L410,440 Z");
-    expect(forestay?.getAttribute("x1")).toBe("300");
-    expect(forestay?.getAttribute("y1")).toBe("60");
-    expect(forestay?.getAttribute("x2")).toBe("520");
-    expect(forestay?.getAttribute("y2")).toBe("560");
-    expect(jibHalyard?.querySelector("line")?.getAttribute("x1")).toBe("306");
-    expect(jibHalyard?.querySelector("line")?.getAttribute("y1")).toBe("78");
-    expect(jibSheet?.querySelector("circle")?.getAttribute("cx")).toBe("410");
-    expect(jibSheet?.querySelector("circle")?.getAttribute("cy")).toBe("440");
+    expect(plate?.getAttribute("href")).toBe("/images/sail-controls/cruising-sloop-controls.png");
+    expect(plate?.getAttribute("width")).toBe("600");
+    expect(plate?.getAttribute("height")).toBe("700");
+    expect(jibHalyard?.querySelector('[data-control-artwork="jib-halyard"]')?.getAttribute("d")).toBe("M340 464 L340 51 L332 35");
+    expect(jibSheet?.querySelector("circle")?.getAttribute("cx")).toBe("520");
+    expect(jibSheet?.querySelector("circle")?.getAttribute("cy")).toBe("530");
 
     const sheetPoints = jibSheet
-      ?.querySelector("[data-sheet-route]")
+      ?.querySelector('[data-control-artwork="jib-sheet"]')
       ?.getAttribute("points")
       ?.split(" ")
       .map((point) => point.split(",").map(Number));
-    const fairleadX = Number(fairlead?.querySelector("[data-fairlead-route]")?.getAttribute("x1"));
-    const winchX = Number(fairlead?.querySelector("[data-fairlead-route]")?.getAttribute("x2"));
+    const fairleadPath = fairlead?.querySelector('[data-control-artwork="jib-fairlead"]')?.getAttribute("d");
 
-    expect(sheetPoints).toHaveLength(3);
-    expect(sheetPoints?.[0]).toEqual([410, 440]);
-    expect(sheetPoints?.[1]?.[0]).toBe(fairleadX);
-    expect(sheetPoints?.[2]?.[0]).toBe(winchX);
-    expect(sheetPoints?.[0]?.[0]).toBeGreaterThan(fairleadX);
-    expect(fairleadX).toBeGreaterThan(winchX);
+    expect(sheetPoints).toHaveLength(2);
+    expect(sheetPoints?.[0]).toEqual([520, 530]);
+    expect(sheetPoints?.[1]).toEqual([480, 548]);
+    expect(fairleadPath).toBe("M430 570 L404 579");
   });
 
   it("preserves mobile scale and provides effective touch targets for every diagram control", () => {
@@ -308,8 +301,15 @@ describe("SailControls schematic geometry", () => {
     expect(schematic?.getAttribute("aria-describedby")).toBe("sail-controls-diagram-help");
     expect(touchTargets).toHaveLength(12);
     touchTargets.forEach((target) => {
-      expect(Number(target.getAttribute("width"))).toBeGreaterThanOrEqual(44);
-      expect(Number(target.getAttribute("height"))).toBeGreaterThanOrEqual(44);
+      const polygons = target.getAttribute("data-hit-polygons")
+        ?.split("|")
+        .flatMap((polygon) => polygon.split(" ").map((pair) => pair.split(",").map(Number)));
+      expect(polygons?.length).toBeGreaterThanOrEqual(4);
+      const xs = polygons!.map(([x]) => x);
+      const ys = polygons!.map(([, y]) => y);
+      expect(Math.max(...xs) - Math.min(...xs)).toBeGreaterThanOrEqual(44);
+      expect(Math.max(...ys) - Math.min(...ys)).toBeGreaterThanOrEqual(44);
+      expect(target.getAttribute("d")).toMatch(/^M.+Z/);
       expect(target.getAttribute("fill")).toBe("transparent");
     });
   });
@@ -324,7 +324,8 @@ describe("SailControls schematic geometry", () => {
     expect(scroller?.className).toContain("overflow-x-auto");
     expect(scroller?.className).toContain("overscroll-x-contain");
     expect(svg?.getAttribute("viewBox")).toBe("0 0 600 700");
-    expect(svg?.querySelectorAll("text").length).toBeGreaterThanOrEqual(16);
+    expect(svg?.querySelectorAll("text")).toHaveLength(0);
+    expect(svg?.querySelector('[data-yacht-plate="cruising-sloop-controls"]')).not.toBeNull();
   });
 
   it("places selected details after the diagram instead of over it", () => {
@@ -346,14 +347,14 @@ describe("SailControls schematic geometry", () => {
     );
 
     const jibSheet = container.querySelector<SVGGElement>('[data-control-id="jib-sheet"]');
-    const fairleadTarget = container.querySelector<SVGRectElement>('[data-touch-target="jib-fairlead"]');
+    const fairleadTarget = container.querySelector<SVGPathElement>('[data-touch-target="jib-fairlead"]');
     const mainHalyard = container.querySelector('[data-touch-target="main-halyard"]')?.parentElement;
 
     expect(jibSheet).not.toBeNull();
     expect(fairleadTarget).not.toBeNull();
     fireEvent.mouseEnter(jibSheet!);
     expect(jibSheet?.getAttribute("opacity")).toBe("1");
-    expect(mainHalyard?.getAttribute("opacity")).toBe("0.4");
+    expect(mainHalyard?.getAttribute("opacity")).toBe("0.22");
 
     fireEvent.mouseLeave(jibSheet!);
     fireEvent.click(fairleadTarget!);
