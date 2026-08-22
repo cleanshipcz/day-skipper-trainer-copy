@@ -50,8 +50,8 @@ const sideViewParts: BoatPart[] = [
     name: "Bow",
     description:
       "The front end of the boat. In sailing, knowing which way is 'forward' is essential for navigation and sail trim.",
-    partX: 520,
-    partY: 215,
+    partX: 442,
+    partY: 281,
     labelX: 570,
     labelY: 215,
     view: "side",
@@ -60,10 +60,10 @@ const sideViewParts: BoatPart[] = [
     id: "stern",
     name: "Stern",
     description: configurationAwareBoatPartDescriptions.stern,
-    partX: 90,
-    partY: 235,
-    labelX: 35,
-    labelY: 280,
+    partX: 128,
+    partY: 302,
+    labelX: 45,
+    labelY: 270,
     view: "side",
   },
   {
@@ -71,8 +71,8 @@ const sideViewParts: BoatPart[] = [
     name: "Hull",
     description:
       "The main watertight body of the boat. The hull's shape determines the boat's speed, stability, and handling characteristics.",
-    partX: 350,
-    partY: 240,
+    partX: 310,
+    partY: 300,
     labelX: 420,
     labelY: 280,
     view: "side",
@@ -82,8 +82,8 @@ const sideViewParts: BoatPart[] = [
     name: "Deck",
     description:
       "The top surface of the boat that you walk on. It keeps water out of the hull and provides a working platform.",
-    partX: 380,
-    partY: 200,
+    partX: 340,
+    partY: 279,
     labelX: 450,
     labelY: 175,
     view: "side",
@@ -92,8 +92,8 @@ const sideViewParts: BoatPart[] = [
     id: "mast",
     name: "Mast",
     description: "The vertical pole that supports the sails. It's held up by the standing rigging (stays and shrouds).",
-    partX: 270,
-    partY: 100,
+    partX: 316,
+    partY: 170,
     labelX: 320,
     labelY: 70,
     view: "side",
@@ -102,8 +102,8 @@ const sideViewParts: BoatPart[] = [
     id: "boom",
     name: "Boom",
     description: configurationAwareBoatPartDescriptions.boom,
-    partX: 210,
-    partY: 160,
+    partX: 250,
+    partY: 246,
     labelX: 150,
     labelY: 180,
     view: "side",
@@ -112,8 +112,8 @@ const sideViewParts: BoatPart[] = [
     id: "mainsail",
     name: "Mainsail",
     description: configurationAwareBoatPartDescriptions.mainsail,
-    partX: 230,
-    partY: 105,
+    partX: 275,
+    partY: 148,
     labelX: 175,
     labelY: 75,
     view: "side",
@@ -123,8 +123,8 @@ const sideViewParts: BoatPart[] = [
     name: "Jib",
     description:
       "A triangular sail set forward of the mast. It helps balance the boat and adds power, especially when sailing upwind.",
-    partX: 385,
-    partY: 145,
+    partX: 369,
+    partY: 173,
     labelX: 425,
     labelY: 120,
     view: "side",
@@ -133,8 +133,8 @@ const sideViewParts: BoatPart[] = [
     id: "forestay",
     name: "Forestay",
     description: configurationAwareBoatPartDescriptions.forestay,
-    partX: 505,
-    partY: 200,
+    partX: 388,
+    partY: 191,
     labelX: 550,
     labelY: 155,
     view: "side",
@@ -143,8 +143,8 @@ const sideViewParts: BoatPart[] = [
     id: "backstay",
     name: "Backstay",
     description: configurationAwareBoatPartDescriptions.backstay,
-    partX: 150,
-    partY: 150,
+    partX: 229,
+    partY: 158,
     labelX: 90,
     labelY: 120,
     view: "side",
@@ -154,10 +154,10 @@ const sideViewParts: BoatPart[] = [
     name: "Rudder",
     description:
       "An underwater blade at the stern used for steering. It pivots to direct water flow and turn the boat.",
-    partX: 78,
-    partY: 280,
+    partX: 143,
+    partY: 340,
     labelX: 30,
-    labelY: 330,
+    labelY: 340,
     view: "side",
   },
   {
@@ -165,8 +165,8 @@ const sideViewParts: BoatPart[] = [
     name: "Tiller",
     description:
       "A handle attached to the rudder for steering. Push it the opposite way you want to turn (push left to go right).",
-    partX: 155,
-    partY: 205,
+    partX: 165,
+    partY: 274,
     labelX: 155,
     labelY: 255,
     view: "side",
@@ -175,8 +175,8 @@ const sideViewParts: BoatPart[] = [
     id: "keel",
     name: "Keel",
     description: configurationAwareBoatPartDescriptions.keel,
-    partX: 300,
-    partY: 330,
+    partX: 283,
+    partY: 351,
     labelX: 370,
     labelY: 355,
     view: "side",
@@ -186,8 +186,8 @@ const sideViewParts: BoatPart[] = [
     name: "Cockpit",
     description:
       "The recessed area where the crew sits to steer and control the boat. It provides safety and comfort while sailing.",
-    partX: 200,
-    partY: 210,
+    partX: 195,
+    partY: 278,
     labelX: 255,
     labelY: 255,
     view: "side",
@@ -197,10 +197,10 @@ const sideViewParts: BoatPart[] = [
     name: "Telltales",
     description:
       "Small ribbons or yarn attached to sails to show wind flow. They help sailors trim sails correctly - when both sides stream back evenly, the sail is set properly.",
-    partX: 335,
-    partY: 98,
-    labelX: 390,
-    labelY: 115,
+    partX: 316,
+    partY: 117,
+    labelX: 375,
+    labelY: 95,
     view: "side",
   },
 ];
@@ -213,8 +213,8 @@ const frontViewParts: BoatPart[] = [
     name: "Port",
     description:
       "The left side of the boat when facing forward, marked with a RED navigation light. Remember: 'port' and 'left' both have 4 letters.",
-    partX: 95,
-    partY: 210,
+    partX: 140,
+    partY: 272,
     labelX: 35,
     labelY: 250,
     view: "front",
@@ -224,8 +224,8 @@ const frontViewParts: BoatPart[] = [
     name: "Starboard",
     description:
       "The right side of the boat when facing forward, marked with a GREEN navigation light. The term comes from 'steerboard' - the steering oar was on the right.",
-    partX: 305,
-    partY: 210,
+    partX: 260,
+    partY: 272,
     labelX: 365,
     labelY: 250,
     view: "front",
@@ -236,7 +236,7 @@ const frontViewParts: BoatPart[] = [
     description:
       "The widest part of the boat, measured from side to side. 'On the beam' means something is at 90 degrees to the boat's heading.",
     partX: 200,
-    partY: 235,
+    partY: 280,
     labelX: 200,
     labelY: 295,
     view: "front",
@@ -246,8 +246,8 @@ const frontViewParts: BoatPart[] = [
     name: "Shrouds",
     description:
       "Wire cables on either side of the mast providing lateral (sideways) support. They run from the mast to the deck or chainplates.",
-    partX: 290,
-    partY: 185,
+    partX: 232,
+    partY: 190,
     labelX: 355,
     labelY: 165,
     view: "front",
@@ -257,8 +257,8 @@ const frontViewParts: BoatPart[] = [
     name: "Spreaders",
     description:
       "Horizontal struts that push the shrouds away from the mast, improving their angle and support. They spread the load of the rigging.",
-    partX: 270,
-    partY: 90,
+    partX: 228,
+    partY: 146,
     labelX: 345,
     labelY: 60,
     view: "front",
@@ -592,7 +592,10 @@ const NauticalTerms = () => {
   const ownerRef = useRef<string | null>(ownerId);
   const ownerEpochRef = useRef(0);
   const [progressRevision, setProgressRevision] = useState(0);
-  const hydrationComplete = ownerId !== null && hydratedOwnerId === ownerId;
+  // Anonymous learners have no remote progress to hydrate. Treating their
+  // missing owner ID as a pending load made every visible marker silently
+  // inert. Signed-in learners still wait for their saved state before edits.
+  const interactionReady = ownerId === null || hydratedOwnerId === ownerId;
 
   useLayoutEffect(() => {
     if (ownerRef.current === ownerId) return;
@@ -647,7 +650,7 @@ const NauticalTerms = () => {
 
   const handlePartClick = useCallback(
     (part: BoatPart) => {
-      if (!hydrationComplete) return;
+      if (!interactionReady) return;
       const progress = partProgress[part.id];
       setSelectedPart(part);
       if (progress.state === "correct") {
@@ -674,7 +677,7 @@ const NauticalTerms = () => {
       });
       markProgressDirty();
     },
-    [activePart, hydrationComplete, markProgressDirty, partProgress]
+    [activePart, interactionReady, markProgressDirty, partProgress]
   );
 
   const handleOptionSelect = useCallback(
@@ -733,7 +736,7 @@ const NauticalTerms = () => {
 
     const markerId = originatingMarkerIdRef.current;
     if (markerId) {
-      document.querySelector<SVGGElement>(`[data-marker-id="${markerId}"]`)?.focus();
+      document.querySelector<HTMLButtonElement>(`button[data-marker-id="${markerId}"]`)?.focus();
       originatingMarkerIdRef.current = null;
     }
   }, [activePart]);
@@ -811,7 +814,7 @@ const NauticalTerms = () => {
 
   // Save progress whenever it changes
   useEffect(() => {
-    if (ownerId && hydrationComplete && progressDirtyRef.current) {
+    if (ownerId && interactionReady && progressDirtyRef.current) {
       progressDirtyRef.current = false;
       pendingSaveRef.current = {
         ownerId,
@@ -822,7 +825,7 @@ const NauticalTerms = () => {
       };
       void flushProgressSaves();
     }
-  }, [partProgress, score, ownerId, correctCount, progressRevision, hydrationComplete, flushProgressSaves]);
+  }, [partProgress, score, ownerId, correctCount, progressRevision, interactionReady, flushProgressSaves]);
 
   const getMarkerColor = (part: BoatPart) => {
     const progress = partProgress[part.id];
@@ -843,29 +846,11 @@ const NauticalTerms = () => {
       : progress.state === "hidden"
         ? "undiscovered"
         : progress.state;
-    const handleMarkerKeyDown = (event: KeyboardEvent<SVGGElement>) => {
-      if (event.key === "Enter" || event.key === " ") {
-        event.preventDefault();
-        handlePartClick(part);
-      }
-    };
-
     return (
       <g
         key={part.id}
-        role="button"
-        tabIndex={0}
-        aria-label={`Marker ${markerNumber}, ${markerState}. Activate to identify this boat part.`}
-        aria-describedby="boat-parts-instructions"
-        data-marker-state={markerState}
         data-marker-id={part.id}
-        style={{ cursor: "pointer" }}
-        onClick={() => handlePartClick(part)}
-        onKeyDown={handleMarkerKeyDown}
-        className="focus:outline-none focus-visible:[&_.marker-focus-ring]:stroke-ring focus-visible:[&_.marker-focus-ring]:stroke-[4]"
       >
-        {/* Transparent hit area and minimum SVG scale preserve a 44px+ touch target. */}
-        <circle cx={part.labelX} cy={part.labelY} r="28" fill="transparent" className="pointer-events-all" />
         {/* Connection line from label to part */}
         <line
           x1={part.labelX}
@@ -876,44 +861,52 @@ const NauticalTerms = () => {
           strokeWidth="2"
           strokeDasharray={progress.state === "correct" ? "0" : "4,4"}
           opacity="0.7"
+          pointerEvents="none"
         />
 
         {/* Dot on the actual part */}
-        <circle cx={part.partX} cy={part.partY} r="6" fill={color} stroke="#fff" strokeWidth="2" />
+        <circle
+          cx={part.partX}
+          cy={part.partY}
+          r="6"
+          fill={color}
+          stroke="#fff"
+          strokeWidth="2"
+          pointerEvents="none"
+        />
 
-        {/* Label marker (clickable) */}
-        <g>
-          <circle
-            cx={part.labelX}
-            cy={part.labelY}
-            r={isActive ? "18" : "15"}
-            fill={color}
-            stroke="#fff"
-            strokeWidth="3"
-            className={progress.state === "hidden" ? "animate-pulse" : ""}
-          />
-          <circle
-            cx={part.labelX}
-            cy={part.labelY}
-            r="20"
-            fill="none"
-            stroke="transparent"
-            className="marker-focus-ring pointer-events-none"
-          />
-          {progress.state === "correct" ? (
-            <text x={part.labelX} y={part.labelY + 5} textAnchor="middle" fill="#fff" fontSize="14" fontWeight="bold">
-              ✓
-            </text>
-          ) : progress.state === "wrong" ? (
-            <text x={part.labelX} y={part.labelY + 5} textAnchor="middle" fill="#fff" fontSize="14" fontWeight="bold">
-              ✗
-            </text>
-          ) : (
-            <text x={part.labelX} y={part.labelY + 5} textAnchor="middle" fill="#fff" fontSize="14" fontWeight="bold">
-              ?
-            </text>
-          )}
-        </g>
+        {/* A native HTML button provides reliable pointer and keyboard activation.
+            SVG group hit testing differs between browsers, especially for transparent fills. */}
+        <foreignObject x={part.labelX - 24} y={part.labelY - 24} width="48" height="48" overflow="visible">
+          <button
+            type="button"
+            role="button"
+            disabled={!interactionReady}
+            tabIndex={interactionReady ? 0 : -1}
+            aria-disabled={!interactionReady}
+            aria-label={`Marker ${markerNumber}, ${markerState}. Activate to identify this boat part.`}
+            aria-describedby="boat-parts-instructions"
+            data-marker-id={part.id}
+            data-marker-state={markerState}
+            data-marker-hit-area={part.id}
+            onClick={() => handlePartClick(part)}
+            onKeyDown={(event: KeyboardEvent<HTMLButtonElement>) => {
+              if (event.key === "Enter" || event.key === " ") {
+                event.preventDefault();
+                handlePartClick(part);
+              }
+            }}
+            className="flex h-12 w-12 cursor-pointer items-center justify-center rounded-full bg-transparent p-0 text-sm font-bold text-white focus:outline-none focus-visible:ring-4 focus-visible:ring-ring disabled:cursor-wait disabled:opacity-55"
+          >
+            <span
+              aria-hidden="true"
+              className={`flex items-center justify-center rounded-full border-[3px] border-white ${progress.state === "hidden" ? "animate-pulse" : ""}`}
+              style={{ backgroundColor: color, width: isActive ? 36 : 30, height: isActive ? 36 : 30 }}
+            >
+              {progress.state === "correct" ? "✓" : progress.state === "wrong" ? "✗" : "?"}
+            </span>
+          </button>
+        </foreignObject>
 
         {/* Show name if correct */}
         {progress.state === "correct" && (
@@ -951,12 +944,14 @@ const NauticalTerms = () => {
               <div>
                 <h1 className="text-xl font-bold">Nautical Terms Quiz</h1>
                 <p id="boat-parts-instructions" className="text-sm text-muted-foreground">
-                  Select a numbered marker to identify the boat part. Use Enter or Space with a keyboard.
+                  {interactionReady
+                    ? "Select a numbered marker to identify the boat part. Use Enter or Space with a keyboard."
+                    : "Loading your saved boat-parts progress…"}
                 </p>
               </div>
             </div>
             <div className="flex items-center gap-4">
-              <Button variant="outline" size="sm" onClick={resetGame} disabled={!hydrationComplete}>
+              <Button variant="outline" size="sm" onClick={resetGame} disabled={!interactionReady}>
                 <RotateCcw className="w-4 h-4 mr-2" />
                 Reset
               </Button>
@@ -1001,7 +996,13 @@ const NauticalTerms = () => {
             <CardContent>
               <div className="relative overflow-x-auto overflow-y-hidden rounded-lg border-2 border-slate-200">
                 <svg viewBox="0 0 600 400" className="h-auto w-full min-w-[550px]">
-                  <SideViewBoat />
+                  <image
+                    href="/images/quizzes/nautical-terms/yacht-side-profile.png"
+                    width="600"
+                    height="400"
+                    preserveAspectRatio="xMidYMid meet"
+                    aria-hidden="true"
+                  />
                   {sideViewParts.map((part) => renderPartMarker(part, activePart?.id === part.id))}
                 </svg>
               </div>
@@ -1019,7 +1020,13 @@ const NauticalTerms = () => {
             <CardContent>
               <div className="relative overflow-x-auto overflow-y-hidden rounded-lg border-2 border-slate-200">
                 <svg viewBox="0 0 400 400" className="h-auto w-full min-w-[400px]">
-                  <BackViewBoat />
+                  <image
+                    href="/images/quizzes/nautical-terms/yacht-stern-view.png"
+                    width="400"
+                    height="400"
+                    preserveAspectRatio="xMidYMid meet"
+                    aria-hidden="true"
+                  />
                   {frontViewParts.map((part) => renderPartMarker(part, activePart?.id === part.id))}
                 </svg>
               </div>
