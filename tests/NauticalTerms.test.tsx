@@ -1,5 +1,5 @@
 import { describe, it, expect, vi, beforeEach } from "vitest";
-import { render, screen, waitFor } from "@testing-library/react";
+import { fireEvent, render, screen, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import NauticalTerms from "../src/pages/NauticalTerms";
 import { configurationAwareBoatPartDescriptions } from "../src/data/boatPartDescriptions";
@@ -53,6 +53,29 @@ describe("NauticalTerms progress writes", () => {
     currentUser = { id: "test-user" };
   });
 
+  it("keeps every marker interactive for anonymous learners without attempting persistence", async () => {
+    const user = userEvent.setup();
+    currentUser = null;
+    const { container } = render(
+      <TestRouter>
+        <NauticalTerms />
+      </TestRouter>
+    );
+
+    const markers = screen.getAllByRole("button", { name: /marker \d+, undiscovered/i });
+    expect(markers).toHaveLength(20);
+    expect(loadProgressMock).not.toHaveBeenCalled();
+
+    for (let index = 0; index < markers.length; index += 1) {
+      await user.click(screen.getByRole("button", { name: new RegExp(`marker ${index + 1}, undiscovered`, "i") }));
+      expect(screen.getByRole("heading", { name: /what is this part/i })).toBe(document.activeElement);
+      await user.click(screen.getByRole("button", { name: /close answer choices/i }));
+    }
+
+    expect(container.querySelectorAll('[data-marker-state="undiscovered"]')).toHaveLength(20);
+    expect(saveProgressMock).not.toHaveBeenCalled();
+  });
+
   it("does not write initial state while hydration is delayed or after it completes", async () => {
     let resolveLoad: (value: null) => void = () => undefined;
     loadProgressMock.mockReturnValueOnce(
@@ -69,9 +92,16 @@ describe("NauticalTerms progress writes", () => {
 
     await waitFor(() => expect(loadProgressMock).toHaveBeenCalledOnce());
     expect(saveProgressMock).not.toHaveBeenCalled();
+    const pendingMarker = screen.getByRole("button", { name: /marker 1, undiscovered/i });
+    expect(pendingMarker.getAttribute("aria-disabled")).toBe("true");
+    expect(pendingMarker.getAttribute("tabindex")).toBe("-1");
+    expect(screen.getByText(/loading your saved boat-parts progress/i)).toBeTruthy();
+    await userEvent.click(pendingMarker);
+    expect(screen.queryByRole("heading", { name: /what is this part/i })).toBeNull();
 
     resolveLoad(null);
     await waitFor(() => expect(screen.getAllByRole("button", { name: /marker \d+, undiscovered/i })).toHaveLength(20));
+    expect(screen.getByRole("button", { name: /marker 1, undiscovered/i }).getAttribute("aria-disabled")).toBe("false");
     expect(saveProgressMock).not.toHaveBeenCalled();
   });
 
@@ -248,14 +278,13 @@ describe("NauticalTerms progress writes", () => {
   });
 
   it("exposes marker instructions, state, progress, and icon-only control labels", async () => {
-    loadProgressMock.mockReturnValueOnce(new Promise(() => undefined));
     render(
       <TestRouter>
         <NauticalTerms />
       </TestRouter>
     );
 
-    expect(screen.getByText(/use enter or space with a keyboard/i)).toBeTruthy();
+    expect(await screen.findByText(/use enter or space with a keyboard/i)).toBeTruthy();
     expect(screen.getByRole("button", { name: /back to nautical terms/i })).toBeTruthy();
 
     const markers = screen.getAllByRole("button", {
@@ -279,8 +308,9 @@ describe("NauticalTerms progress writes", () => {
     );
 
     const marker = screen.getByRole("button", { name: /marker 1, undiscovered/i });
+    await waitFor(() => expect(marker.getAttribute("aria-disabled")).toBe("false"));
     marker.focus();
-    await user.keyboard("{Enter}");
+    fireEvent.keyDown(marker, { key: "Enter" });
 
     expect(screen.getByRole("heading", { name: /what is this part/i })).toBe(document.activeElement);
     expect(screen.getByRole("button", { name: /marker 1, guessing/i }).getAttribute("data-marker-state")).toBe(
@@ -301,8 +331,9 @@ describe("NauticalTerms progress writes", () => {
     );
 
     const marker = screen.getByRole("button", { name: /marker 1, undiscovered/i });
+    await waitFor(() => expect(marker.getAttribute("aria-disabled")).toBe("false"));
     marker.focus();
-    await user.keyboard(" ");
+    fireEvent.keyDown(marker, { key: " " });
     expect(screen.getByRole("heading", { name: /what is this part/i })).toBe(document.activeElement);
 
     const answerButtons = screen.getAllByRole("button").filter((button) =>
@@ -325,16 +356,20 @@ describe("NauticalTerms progress writes", () => {
   });
 
   it("preserves mobile scale for 44px touch targets without covering the diagram", () => {
-    loadProgressMock.mockReturnValueOnce(new Promise(() => undefined));
+    currentUser = null;
     const { container } = render(
       <TestRouter>
         <NauticalTerms />
       </TestRouter>
     );
 
-    const markerHitAreas = container.querySelectorAll('[role="button"] > circle[r="28"]');
+    const markerHitAreas = container.querySelectorAll('[data-marker-hit-area]');
     expect(markerHitAreas).toHaveLength(20);
-    markerHitAreas.forEach((hitArea) => expect(hitArea.getAttribute("fill")).toBe("transparent"));
+    markerHitAreas.forEach((hitArea) => {
+      expect(hitArea.tagName).toBe("BUTTON");
+      expect(hitArea.classList.contains("h-12")).toBe(true);
+      expect(hitArea.classList.contains("w-12")).toBe(true);
+    });
     const markerControls = container.querySelectorAll('[role="button"][data-marker-id]');
     const sideViewSvg = markerControls[0]?.closest("svg");
     const backViewSvg = markerControls[15]?.closest("svg");
@@ -342,7 +377,51 @@ describe("NauticalTerms progress writes", () => {
     expect(backViewSvg?.classList.contains("min-w-[400px]")).toBe(true);
   });
 
-  it("keeps the jib luff aligned with the forestay while pointing to each part distinctly", () => {
+  it("keeps native button hit surfaces from occluding one another", () => {
+    currentUser = null;
+    const { container } = render(
+      <TestRouter>
+        <NauticalTerms />
+      </TestRouter>
+    );
+
+    container.querySelectorAll("svg").forEach((svg) => {
+      const hitAreas = Array.from(svg.querySelectorAll<HTMLButtonElement>("[data-marker-hit-area]"));
+      hitAreas.forEach((first, index) => {
+        for (const second of hitAreas.slice(index + 1)) {
+          const firstHost = first.closest("foreignObject");
+          const secondHost = second.closest("foreignObject");
+          const distance = Math.hypot(
+            Number(firstHost?.getAttribute("x")) - Number(secondHost?.getAttribute("x")),
+            Number(firstHost?.getAttribute("y")) - Number(secondHost?.getAttribute("y"))
+          );
+          expect(
+            distance,
+            `${first.dataset.markerHitArea} and ${second.dataset.markerHitArea} hit surfaces overlap`
+          ).toBeGreaterThanOrEqual(48);
+        }
+      });
+    });
+  });
+
+  it("activates a marker through its explicit SVG hit surface", async () => {
+    const user = userEvent.setup();
+    const { container } = render(
+      <TestRouter>
+        <NauticalTerms />
+      </TestRouter>
+    );
+
+    await waitFor(() => expect(loadProgressMock).toHaveBeenCalledOnce());
+    const bowHitArea = container.querySelector<HTMLButtonElement>('[data-marker-hit-area="bow"]');
+    expect(bowHitArea).toBeTruthy();
+    await user.click(bowHitArea!);
+
+    expect(screen.getByRole("heading", { name: /what is this part/i })).toBe(document.activeElement);
+    expect(screen.getByRole("button", { name: /marker 1, guessing/i })).toBeTruthy();
+  });
+
+  it("uses the overhauled image plates while keeping nearby rigging markers distinct", () => {
     loadProgressMock.mockReturnValueOnce(new Promise(() => undefined));
     const { container } = render(
       <TestRouter>
@@ -353,23 +432,45 @@ describe("NauticalTerms progress writes", () => {
     const jibMarker = container.querySelector('[data-marker-id="jib"]');
     const forestayMarker = container.querySelector('[data-marker-id="forestay"]');
     const sideView = jibMarker?.closest("svg");
-    const jibPath = sideView?.querySelector('[data-geometry="jib"]')?.getAttribute("d") ?? "";
-    const forestay = sideView?.querySelector('[data-geometry="forestay"]');
-    const luffMatch = jibPath.match(/^M(\d+),(\d+) L(\d+),(\d+)/);
+    const plate = sideView?.querySelector("image");
 
-    expect(luffMatch).not.toBeNull();
-    const [, headX, headY, tackX, tackY] = luffMatch!.map(Number);
-    const stayStart = [Number(forestay?.getAttribute("x1")), Number(forestay?.getAttribute("y1"))];
-    const stayEnd = [Number(forestay?.getAttribute("x2")), Number(forestay?.getAttribute("y2"))];
-    const distanceFromForestay = (x: number, y: number) =>
-      Math.abs((stayEnd[1] - stayStart[1]) * x - (stayEnd[0] - stayStart[0]) * y + stayEnd[0] * stayStart[1] - stayEnd[1] * stayStart[0]) /
-      Math.hypot(stayEnd[1] - stayStart[1], stayEnd[0] - stayStart[0]);
+    expect(plate?.getAttribute("href")).toBe("/images/quizzes/nautical-terms/yacht-side-profile.png");
+    expect(plate?.getAttribute("aria-hidden")).toBe("true");
+    expect(jibMarker?.querySelector("line")?.getAttribute("x2")).toBe("369");
+    expect(jibMarker?.querySelector("line")?.getAttribute("y2")).toBe("173");
+    expect(forestayMarker?.querySelector("line")?.getAttribute("x2")).toBe("388");
+    expect(forestayMarker?.querySelector("line")?.getAttribute("y2")).toBe("191");
+    expect(jibMarker?.querySelector("line")?.getAttribute("x2")).not.toBe(
+      forestayMarker?.querySelector("line")?.getAttribute("x2")
+    );
 
-    expect(distanceFromForestay(headX, headY)).toBeLessThan(7);
-    expect(distanceFromForestay(tackX, tackY)).toBeLessThan(7);
-    expect(jibMarker?.querySelector("line")?.getAttribute("x2")).toBe("385");
-    expect(jibMarker?.querySelector("line")?.getAttribute("y2")).toBe("145");
-    expect(forestayMarker?.querySelector("line")?.getAttribute("x2")).toBe("505");
-    expect(forestayMarker?.querySelector("line")?.getAttribute("y2")).toBe("200");
+    const sternPlate = container
+      .querySelector('[data-marker-id="port"]')
+      ?.closest("svg")
+      ?.querySelector("image");
+    expect(sternPlate?.getAttribute("href")).toBe("/images/quizzes/nautical-terms/yacht-stern-view.png");
+  });
+
+  it("locks every leader endpoint to the reviewed raster-plate geometry", () => {
+    loadProgressMock.mockReturnValueOnce(new Promise(() => undefined));
+    const { container } = render(
+      <TestRouter>
+        <NauticalTerms />
+      </TestRouter>
+    );
+    const expectedEndpoints: Record<string, [string, string]> = {
+      bow: ["442", "281"], stern: ["128", "302"], hull: ["310", "300"], deck: ["340", "279"],
+      mast: ["316", "170"], boom: ["250", "246"], mainsail: ["275", "148"], jib: ["369", "173"],
+      forestay: ["388", "191"], backstay: ["229", "158"], rudder: ["143", "340"], tiller: ["165", "274"],
+      keel: ["283", "351"], cockpit: ["195", "278"], telltales: ["316", "117"], port: ["140", "272"],
+      starboard: ["260", "272"], beam: ["200", "280"], shrouds: ["232", "190"], spreaders: ["228", "146"],
+    };
+
+    Object.entries(expectedEndpoints).forEach(([id, [x, y]]) => {
+      const leader = container.querySelector(`[data-marker-id="${id}"] > line`);
+      expect(leader?.getAttribute("x2"), `${id} x endpoint`).toBe(x);
+      expect(leader?.getAttribute("y2"), `${id} y endpoint`).toBe(y);
+      expect(leader?.getAttribute("pointer-events"), `${id} leader hit testing`).toBe("none");
+    });
   });
 });
