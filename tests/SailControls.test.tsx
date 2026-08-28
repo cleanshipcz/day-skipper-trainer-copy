@@ -2,6 +2,7 @@ import { act, fireEvent, render, screen, waitFor } from "@testing-library/react"
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { toast } from "sonner";
 import SailControls from "../src/pages/SailControls";
+import { sailControls } from "../src/data/sailControls";
 import TestRouter from "./TestRouter";
 
 const progressMocks = vi.hoisted(() => ({
@@ -60,6 +61,24 @@ const finishQuiz = () => {
 };
 
 describe("SailControls schematic geometry", () => {
+  it("explains and renders a numbered mapping that does not depend on colour", () => {
+    const { container } = render(<TestRouter><SailControls /></TestRouter>);
+    expect(screen.getByText(/Match its numbered marker to the diagram key/)).toBeTruthy();
+    expect(screen.getByLabelText("Diagram number key")).toBeTruthy();
+
+    sailControls.forEach((control, index) => {
+      const marker = container.querySelector(`[data-control-affordance="${control.id}"]`);
+      const keyNumber = container.querySelector(`[data-control-key="${control.id}"]`);
+      const keyButton = screen.getByRole("button", { name: `Show ${control.name} details from diagram key` });
+      const card = screen.getByRole("button", { name: `Show ${control.name} details from control list` });
+      expect(marker?.getAttribute("stroke")).toBe(control.color);
+      expect(keyNumber?.textContent).toBe(String(index + 1));
+      expect(keyButton.textContent).toContain(String(index + 1));
+      expect(keyButton.textContent).toContain(control.name);
+      expect(card.getAttribute("style")).toContain(control.color);
+    });
+  });
+
   it.each([
     ["remote", "Completion saved to your account."],
     ["queued", "Completion saved offline and queued to sync."],
@@ -253,43 +272,35 @@ describe("SailControls schematic geometry", () => {
     expect(screen.getByText(/Forward.*leech.*aft.*opens the leech/i)).toBeTruthy();
   });
 
-  it("aligns the jib luff, halyard, and aft-running sheet/fairlead route with the forestay", () => {
+  it("routes the jib halyard and sheet through their distinct working points", () => {
     const { container } = render(
       <TestRouter>
         <SailControls />
       </TestRouter>
     );
 
-    const jib = container.querySelector('[data-geometry="jib"]');
-    const forestay = container.querySelector('[data-geometry="forestay"]');
     const jibHalyard = container.querySelector('[data-control-id="jib-halyard"]');
     const jibSheet = container.querySelector('[data-control-id="jib-sheet"]');
     const fairlead = container.querySelector('[data-control-id="jib-fairlead"]');
 
-    expect(jib?.getAttribute("d")).toBe("M306,78 L500,540 L410,440 Z");
-    expect(forestay?.getAttribute("x1")).toBe("300");
-    expect(forestay?.getAttribute("y1")).toBe("60");
-    expect(forestay?.getAttribute("x2")).toBe("520");
-    expect(forestay?.getAttribute("y2")).toBe("560");
-    expect(jibHalyard?.querySelector("line")?.getAttribute("x1")).toBe("306");
-    expect(jibHalyard?.querySelector("line")?.getAttribute("y1")).toBe("78");
-    expect(jibSheet?.querySelector("circle")?.getAttribute("cx")).toBe("410");
-    expect(jibSheet?.querySelector("circle")?.getAttribute("cy")).toBe("440");
+    expect(jibHalyard?.querySelector('[data-control-artwork="jib-halyard"]')?.getAttribute("d")).toBe("M458 108 L430 52 L458 478");
+    expect(jibSheet?.querySelector('[data-control-affordance="jib-sheet"]')?.getAttribute("cx")).toBe("548");
+    expect(jibSheet?.querySelector('[data-control-affordance="jib-sheet"]')?.getAttribute("cy")).toBe("514");
 
-    const sheetPoints = jibSheet
-      ?.querySelector("[data-sheet-route]")
-      ?.getAttribute("points")
-      ?.split(" ")
-      .map((point) => point.split(",").map(Number));
-    const fairleadX = Number(fairlead?.querySelector("[data-fairlead-route]")?.getAttribute("x1"));
-    const winchX = Number(fairlead?.querySelector("[data-fairlead-route]")?.getAttribute("x2"));
+    const sheetPath = jibSheet?.querySelector('[data-control-artwork="jib-sheet"]')?.getAttribute("d");
+    const fairleadPath = fairlead?.querySelector('[data-control-artwork="jib-fairlead"]')?.getAttribute("d");
 
-    expect(sheetPoints).toHaveLength(3);
-    expect(sheetPoints?.[0]).toEqual([410, 440]);
-    expect(sheetPoints?.[1]?.[0]).toBe(fairleadX);
-    expect(sheetPoints?.[2]?.[0]).toBe(winchX);
-    expect(sheetPoints?.[0]?.[0]).toBeGreaterThan(fairleadX);
-    expect(fairleadX).toBeGreaterThan(winchX);
+    expect(sheetPath).toBe("M744 410 L628 493 L548 514");
+    expect(fairleadPath).toBe("M614 493 L645 493");
+  });
+
+  it("routes the topping lift from the masthead to the boom outboard end", () => {
+    const { container } = render(<TestRouter><SailControls /></TestRouter>);
+    const toppingLift = container.querySelector('[data-control-id="topping-lift"]');
+
+    expect(toppingLift?.querySelector('[data-control-artwork="topping-lift"]')?.getAttribute("d")).toBe("M430 52 L162 400");
+    expect(toppingLift?.querySelector('[data-control-affordance="topping-lift"]')?.getAttribute("cx")).toBe("300");
+    expect(toppingLift?.querySelector('[data-control-affordance="topping-lift"]')?.getAttribute("cy")).toBe("221");
   });
 
   it("preserves mobile scale and provides effective touch targets for every diagram control", () => {
@@ -300,18 +311,42 @@ describe("SailControls schematic geometry", () => {
     );
 
     const schematic = container.querySelector('[data-schematic-scroll] svg');
-    const touchTargets = container.querySelectorAll("[data-touch-target]");
+    const controls = container.querySelectorAll("[data-control-id]");
 
     expect(container.querySelector("[data-schematic-scroll]")?.classList.contains("overflow-x-auto")).toBe(true);
-    expect(schematic?.classList.contains("min-w-[600px]")).toBe(true);
-    expect(schematic?.classList.contains("md:min-w-0")).toBe(true);
+    expect(schematic?.classList.contains("w-[826px]")).toBe(true);
     expect(schematic?.getAttribute("aria-describedby")).toBe("sail-controls-diagram-help");
-    expect(touchTargets).toHaveLength(12);
-    touchTargets.forEach((target) => {
-      expect(Number(target.getAttribute("width"))).toBeGreaterThanOrEqual(44);
-      expect(Number(target.getAttribute("height"))).toBeGreaterThanOrEqual(44);
-      expect(target.getAttribute("fill")).toBe("transparent");
+    expect(controls).toHaveLength(12);
+    const handles: Array<{ id: string; x: number; y: number; radius: number }> = [];
+    controls.forEach((control) => {
+      const targets = control.querySelectorAll("[data-touch-target]");
+      const affordances = control.querySelectorAll("[data-control-affordance]");
+      expect(targets).toHaveLength(1);
+      expect(affordances).toHaveLength(1);
+      targets.forEach((target) => {
+        const radius = Number(target.getAttribute("r"));
+        expect(radius * 2).toBeGreaterThanOrEqual(44);
+        handles.push({
+          id: control.getAttribute("data-control-id")!,
+          x: Number(target.getAttribute("cx")),
+          y: Number(target.getAttribute("cy")),
+          radius,
+        });
+        expect(target.getAttribute("fill")).toBe("transparent");
+        expect(target.getAttribute("stroke")).toBe("transparent");
+        expect(affordances[0].getAttribute("cx")).toBe(target.getAttribute("cx"));
+        expect(affordances[0].getAttribute("cy")).toBe(target.getAttribute("cy"));
+      });
     });
+
+    for (let first = 0; first < handles.length; first += 1) {
+      for (let second = first + 1; second < handles.length; second += 1) {
+        const a = handles[first];
+        const b = handles[second];
+        const distance = Math.hypot(a.x - b.x, a.y - b.y);
+        expect(distance, `${a.id} and ${b.id} handles overlap`).toBeGreaterThanOrEqual(a.radius + b.radius);
+      }
+    }
   });
 
   it.each([375, 768, 1280])("keeps the %ipx schematic in a bounded responsive scroller", (width) => {
@@ -323,8 +358,9 @@ describe("SailControls schematic geometry", () => {
     expect(scroller?.className).toContain("w-full");
     expect(scroller?.className).toContain("overflow-x-auto");
     expect(scroller?.className).toContain("overscroll-x-contain");
-    expect(svg?.getAttribute("viewBox")).toBe("0 0 600 700");
-    expect(svg?.querySelectorAll("text").length).toBeGreaterThanOrEqual(16);
+    expect(svg?.getAttribute("viewBox")).toBe("0 0 900 600");
+    expect(svg?.querySelectorAll("[data-control-key]")).toHaveLength(12);
+    expect(svg?.querySelectorAll("[data-control-id]")).toHaveLength(12);
   });
 
   it("places selected details after the diagram instead of over it", () => {
@@ -346,14 +382,14 @@ describe("SailControls schematic geometry", () => {
     );
 
     const jibSheet = container.querySelector<SVGGElement>('[data-control-id="jib-sheet"]');
-    const fairleadTarget = container.querySelector<SVGRectElement>('[data-touch-target="jib-fairlead"]');
+    const fairleadTarget = container.querySelector<SVGPathElement>('[data-touch-target="jib-fairlead"]');
     const mainHalyard = container.querySelector('[data-touch-target="main-halyard"]')?.parentElement;
 
     expect(jibSheet).not.toBeNull();
     expect(fairleadTarget).not.toBeNull();
     fireEvent.mouseEnter(jibSheet!);
     expect(jibSheet?.getAttribute("opacity")).toBe("1");
-    expect(mainHalyard?.getAttribute("opacity")).toBe("0.4");
+    expect(mainHalyard?.getAttribute("opacity")).toBe("0.12");
 
     fireEvent.mouseLeave(jibSheet!);
     fireEvent.click(fairleadTarget!);
@@ -367,9 +403,11 @@ describe("SailControls schematic geometry", () => {
       </TestRouter>
     );
 
-    const diagramControls = screen.getAllByRole("button", { name: /details from diagram/i });
+    const diagramControls = screen.getAllByRole("button", { name: /details from diagram$/i });
+    const keyControls = screen.getAllByRole("button", { name: /details from diagram key$/i });
     const listControls = screen.getAllByRole("button", { name: /details from control list/i });
     expect(diagramControls).toHaveLength(12);
+    expect(keyControls).toHaveLength(12);
     expect(listControls).toHaveLength(12);
 
     const mainHalyard = screen.getByRole("button", { name: "Show Main Halyard details from diagram" });
